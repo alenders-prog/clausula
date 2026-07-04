@@ -1934,6 +1934,52 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       status.textContent = count > 0 ? `${count} bevinding${count !== 1 ? 'en' : ''}` : 'Geen bevindingen';
     };
 
+    // Progressieve render: toont werkelijke bevindingen zodra een dimensie klaar is.
+    // Vervangt de statische skeleton-tekst met echte issue-kaarten + status-balk.
+    var _renderProgressief = (bestandsnaam) => {
+      const _actiefBn = effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam;
+      if (bestandsnaam !== _actiefBn) return; // niet het actieve tabblad — skip
+      const acc = _sseAcc?.[bestandsnaam];
+      if (!acc) {
+        // _sseAcc nog niet geïnitialiseerd — val terug op statische skeleton
+        document.getElementById('analysePanel').innerHTML = _skeletonHtml(bestandsnaam);
+        return;
+      }
+      // Dedupliceer alle issues die tot nu toe zijn binnengekomen
+      const alleI = dedupIssues([
+        Array.isArray(acc.structuur?.issues) ? acc.structuur.issues : [],
+        Array.isArray(acc.juridisch?.issues) ? acc.juridisch.issues : [],
+        Array.isArray(acc.balans?.issues)    ? acc.balans.issues    : [],
+      ]).map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
+      // Zet global zodat issueKaart() de juiste rijen leest
+      huidigRapport = {
+        ...(huidigRapport || {}),
+        issues:       alleI,
+        samenvatting: acc.structuur?.samenvatting || huidigRapport?.samenvatting || '',
+        mfn_score:    acc.structuur?.mfn_score    || huidigRapport?.mfn_score    || null,
+      };
+      // Status-balk: één rij per dimensie (Analyseren… / N bevindingen / Geen bevindingen)
+      const _pDims = [
+        { key: 'structuur', lbl: 'Volledigheid'       },
+        { key: 'juridisch', lbl: 'Juridisch'           },
+        { key: 'balans',    lbl: 'Balans & Grammatica' },
+      ];
+      const _statusHtml = '<div class="analyseer-voortgang" style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px">' +
+        _pDims.map(d => {
+          const r    = acc[d.key];
+          const klaar = r !== null && r !== undefined;
+          const cnt  = klaar ? (Array.isArray(r?.issues) ? r.issues.length : 0) : -1;
+          const cls  = klaar ? (cnt > 0 ? ' klaar klaar-issues' : ' klaar klaar-ok') : '';
+          const dot  = klaar ? (cnt > 0 ? 'var(--amber)' : 'var(--sage)') : '';
+          const st   = klaar ? (cnt > 0 ? `${cnt} bevinding${cnt !== 1 ? 'en' : ''}` : 'Geen bevindingen') : 'Analyseren…';
+          return `<div class="dim-rij${cls}"><span class="dim-rij-dot"${dot ? ` style="color:${dot}"` : ''}>●</span><span class="dim-rij-naam">${d.lbl}</span><span class="dim-rij-status">${st}</span></div>`;
+        }).join('') + '</div>';
+      const _issH = alleI.length
+        ? `<div id="issuesLijst">${alleI.map((_, i) => issueKaart(i)).join('')}</div>`
+        : '';
+      document.getElementById('analysePanel').innerHTML = _statusHtml + _issH;
+    };
+
     // Document-tabs in de meta-balk (multi-doc) of klassieke header (single)
     const _metaEl = document.querySelector('.split-meta');
     if (effectieveHoofdItems.length > 1) {
@@ -1950,7 +1996,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
           huidigeDocIdx = idx;
           _metaEl.querySelectorAll('.doc-tab').forEach(b => b.classList.toggle('actief', b === btn));
           const item = effectieveHoofdItems[idx];
-          document.getElementById('analysePanel').innerHTML = _skeletonHtml(item.bestandsnaam);
+          _renderProgressief(item.bestandsnaam); // toont resultaten die al zijn binnengekomen, of skeleton als alles nog loopt
           const bestVoorTab = huidigePrimaireBest[idx];
           if (bestVoorTab?.length) {
             huidigeBestandenLijst = bestVoorTab;
@@ -1969,6 +2015,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 
     document.getElementById('analysePanel').innerHTML = _skeletonHtml(effectieveHoofdItems[0]?.bestandsnaam);
     openSplitView();
+    document.getElementById('scanning').classList.remove('active'); // verberg scan-overlay — skeleton is nu zichtbaar
     renderDocPanel(''); // asynchroon — blokkeer SSE-loop niet
   }
 
@@ -2018,19 +2065,19 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         switch (_data.type) {
           case 'structuur':
             if (_sseAcc[_bn]) _sseAcc[_bn].structuur = _data.result;
-            _updateSkeletonDim(_bn, 'structuur');
+            _renderProgressief(_bn); // toont volledigheid-bevindingen direct
             _eventsKlaar++;
             onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
             break;
           case 'juridisch':
             if (_sseAcc[_bn]) _sseAcc[_bn].juridisch = _data.result;
-            _updateSkeletonDim(_bn, 'juridisch');
+            _renderProgressief(_bn); // voegt juridische bevindingen toe
             _eventsKlaar++;
             onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
             break;
           case 'balans':
             if (_sseAcc[_bn]) _sseAcc[_bn].balans = _data.result;
-            _updateSkeletonDim(_bn, 'balans');
+            _renderProgressief(_bn); // voegt balans/grammatica-bevindingen toe
             _eventsKlaar++;
             onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
             break;
@@ -2039,7 +2086,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
             // Zet een leeg resultaat zodat het betreffende tabblad "klaar" toont
             if (_sseAcc[_bn] && _data.tool) {
               _sseAcc[_bn][_data.tool] = { issues: [] };
-              _updateSkeletonDim(_bn, _data.tool);
+              _renderProgressief(_bn); // dimensie met max_tokens als "klaar" markeren
             }
             console.warn('[analyseer] max_tokens:', _bn, _data.tool);
             break;
