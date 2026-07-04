@@ -2,9 +2,10 @@
 .env
 .env.local
 node_modules
-config.local.js
+# config.local.js is leeg gecommit voor productie; negeer lokale wijzigingen via:
+# git update-index --skip-worktree config.local.js
 
-# Tijdelijke bestanden en kopieën
+# Tijdelijke bestanden en kopieï¿½n
 - kopie.env.old
 index.html.tmp.*
 Clausula_voorstel_redesign.html
