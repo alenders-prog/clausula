@@ -400,7 +400,7 @@ DOCUMENTTYPE: ${docTypLabel}
 
             callMetSse(() => askClaude(sysBalansGram,
               docBlok,
-              balansGramTool, 2500), 'balans'),
+              balansGramTool, 3500), 'balans'),
           ]);
 
           console.log(`[analyseer] ${doc.bestandsnaam}: klaar`);
