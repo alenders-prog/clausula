@@ -927,6 +927,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .dim-tab-btn.actief .dim-tab-badge{background:var(--accent-faint,#e8f0ff);color:var(--accent);}
 .dim-tab-btn.klaar-issues .dim-tab-badge{background:#FEF3C7;color:#92400E;}
 .dim-tab-btn.klaar-ok    .dim-tab-badge{background:#D1FAE5;color:#065F46;}
+/* Tab in laad-staat: kolom-layout zodat KR-balk onder de tekst past */
+.dim-tab-btn.laadt{flex-direction:column;align-items:stretch;gap:4px;min-width:90px;}
+.dim-tab-mini-krl{display:block;height:3px;background:var(--line);border-radius:2px;overflow:hidden;position:relative;}
+.dim-tab-mini-krl span{position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:2px;animation:krl-scan 1.5s ease-in-out infinite;}
 /* Knight Rider laad-animatie */
 .krl-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:16px;}
 .krl-lbl{font-size:.9rem;color:var(--ink-soft);}
@@ -1958,12 +1962,15 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         { key: 'balans',    lbl: 'Balans & Grammatica' },
       ];
       const tabs = dimDefs.map(d => {
-        const r    = acc[d.key];
+        const r     = acc[d.key];
         const klaar = r !== null && r !== undefined;
-        const cnt  = klaar ? (Array.isArray(r?.issues) ? r.issues.length : 0) : -1;
-        const cls  = ['dim-tab-btn', d.key === act ? 'actief' : '', klaar ? (cnt > 0 ? 'klaar-issues' : 'klaar-ok') : ''].filter(Boolean).join(' ');
-        const badge = klaar ? (cnt > 0 ? String(cnt) : '✓') : '…';
-        return `<button class="${cls}" data-dim="${d.key}">${d.lbl} <span class="dim-tab-badge">${badge}</span></button>`;
+        const cnt   = klaar ? (Array.isArray(r?.issues) ? r.issues.length : 0) : -1;
+        const cls   = ['dim-tab-btn', d.key === act ? 'actief' : '', klaar ? (cnt > 0 ? 'klaar-issues' : 'klaar-ok') : 'laadt'].filter(Boolean).join(' ');
+        // Loading: naam + mini Knight Rider balk; klaar: naam + badge
+        const inner = klaar
+          ? `${d.lbl} <span class="dim-tab-badge">${cnt > 0 ? cnt : '✓'}</span>`
+          : `${d.lbl}<span class="dim-tab-mini-krl"><span></span></span>`;
+        return `<button class="${cls}" data-dim="${d.key}">${inner}</button>`;
       }).join('');
       return `<div class="dim-tabs-bar" id="dimTabsBar">${tabs}</div>` +
              `<div id="dimTabContent">${_dimContentHtml(acc, act)}</div>`;
@@ -2618,6 +2625,21 @@ function filterIssues(btn) {
   document.querySelectorAll('.a-filter-dim').forEach(b => b.classList.remove('actief'));
   btn.classList.add('actief');
   const dim = btn.dataset.dim;
+
+  const issuesLijst = document.getElementById('issuesLijst');
+  const mfnSectie   = document.getElementById('mfnSectie');
+
+  if (dim === 'mfn') {
+    // Toon MfN-sectie, verberg issues
+    if (issuesLijst) issuesLijst.style.display = 'none';
+    if (mfnSectie)   mfnSectie.style.display   = '';
+    return;
+  }
+
+  // Normaal: toon issues, verberg MfN
+  if (issuesLijst) issuesLijst.style.display = '';
+  if (mfnSectie)   mfnSectie.style.display   = 'none';
+
   document.querySelectorAll('#issuesLijst .card').forEach(card => {
     if (dim === 'alle') {
       card.style.display = '';
@@ -2761,8 +2783,18 @@ async function toonRapport(cls, rp) {
     const dimCounts = {};
     dims.forEach(d => { dimCounts[d] = issues.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d)).length; });
 
-    // Sort-toggle label
-    const sortLabel = _issueSortModus === 'ernst' ? '↕ Ernst' : '↕ Volgorde';
+    // Sort-toggle: toont huidige modus + hint dat klikken wisselt
+    const sortLabel = _issueSortModus === 'ernst'
+      ? '↕ Ernst (hoog→laag)'
+      : '↕ Documentvolgorde';
+
+    // MfN-sectie HTML (optioneel)
+    const mfnFilterKnop = `<div class="anal-tab-toolbar">
+      <button class="a-filter-btn" onclick="toggleTabFilter(this)">Verbeterpunten</button>
+    </div>`;
+    const mfnHtml = drp.mfn_score?.elementen?.length
+      ? renderMfnScore(drp.mfn_score, mfnFilterKnop)
+      : '';
 
     const filterBar = `<div class="issue-filter-bar" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
       <button class="a-filter-dim actief" data-dim="alle" onclick="filterIssues(this)">Alle issues (${issues.length})</button>
@@ -2770,17 +2802,10 @@ async function toonRapport(cls, rp) {
         ? `<button class="a-filter-dim" data-dim="${d}" onclick="filterIssues(this)">${DIM_LABELS[d]} (${dimCounts[d]})</button>`
         : ''
       ).join('')}
+      ${mfnHtml ? `<button class="a-filter-dim" data-dim="mfn" onclick="filterIssues(this)">MfN-score</button>` : ''}
       <span style="flex:1"></span>
       <button class="a-filter-dim" style="opacity:.7" onclick="sorteerIssues()" title="Wissel sorteervolgorde">${sortLabel}</button>
     </div>`;
-
-    // MfN sectie (naast de categorieën — boven de issuelijst)
-    const mfnFilterKnop = `<div class="anal-tab-toolbar">
-      <button class="a-filter-btn" onclick="toggleTabFilter(this)">Verbeterpunten</button>
-    </div>`;
-    const mfnHtml = drp.mfn_score?.elementen?.length
-      ? renderMfnScore(drp.mfn_score, mfnFilterKnop)
-      : '';
 
     // Sorteer issues op modus: ernst (hoog→laag) of originele documentvolgorde
     const gesorteerdeIdx = issues.map((_, i) => i);
@@ -2792,9 +2817,9 @@ async function toonRapport(cls, rp) {
       : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
     return scoreHtml + samenvattingHtml + filterBar +
-      (mfnHtml ? `<div style="margin:12px 0 0;padding-bottom:16px;border-bottom:1px solid var(--line)">${mfnHtml}</div>` : '') +
       `<div class="anal-tab-body" id="analTabBody">` +
       `<div id="issuesLijst">${issueKaartenHtml}</div>` +
+      (mfnHtml ? `<div id="mfnSectie" style="display:none">${mfnHtml}</div>` : '') +
       `</div>`;
   }
 

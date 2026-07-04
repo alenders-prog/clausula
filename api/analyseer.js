@@ -403,11 +403,11 @@ DOCUMENTTYPE: ${docTypLabel}
             callMetSse(() => askClaude(sysJuridisch, [
               { text: stabielBlokWet, cache: true },
               { text: docBlok },
-            ], juridischTool, 4000), 'juridisch'),
+            ], juridischTool, 5500), 'juridisch'),
 
             callMetSse(() => askClaude(sysBalansGram,
               docBlok,
-              balansGramTool, 3500), 'balans'),
+              balansGramTool, 5000), 'balans'),
           ]);
 
           console.log(`[analyseer] ${doc.bestandsnaam}: klaar`);
