@@ -2640,9 +2640,15 @@ function sorteerIssues() {
   const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
   _issueSortModus = _issueSortModus === 'ernst' ? 'volgorde' : 'ernst';
 
+  // Onthoud actieve dimensie-filter zodat die na re-render hersteld wordt
+  const huidigeDim = document.querySelector('.a-filter-dim.actief')?.dataset?.dim || 'alle';
+
   if (_activeerAnalysePanelFn) {
     // Na voltooide analyse: volledige panel-rebuild via toonRapport-closure
     _activeerAnalysePanelFn(huidigRapport);
+    // Herstel actieve filter (bouwAnalyseHtml reset altijd naar 'alle')
+    const herstelBtn = document.querySelector(`.a-filter-dim[data-dim="${huidigeDim}"]`);
+    if (herstelBtn) filterIssues(herstelBtn);
     return;
   }
 
@@ -2658,6 +2664,10 @@ function sorteerIssues() {
     gesorteerdeIdx.sort((a, b) => (ERNST_ORD[issues[a].ernst] ?? 1) - (ERNST_ORD[issues[b].ernst] ?? 1));
   }
   lijstEl.innerHTML = gesorteerdeIdx.map(i => issueKaart(i)).join('');
+
+  // Herstel actieve filter op de nieuwe cards
+  const herstelBtn = document.querySelector(`.a-filter-dim[data-dim="${huidigeDim}"]`);
+  if (herstelBtn) filterIssues(herstelBtn);
 
   // Update sort-knop label in de filterbar
   document.querySelectorAll('.a-filter-dim[title="Wissel sorteervolgorde"]').forEach(btn => {

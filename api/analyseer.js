@@ -346,6 +346,12 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
           const docBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}` +
             (contextTekst ? `\n\nBIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}` : '');
 
+          const ernstCriteria =
+`Ernst-criteria (verplicht toepassen):
+- hoog: juridisch onhoudbaar of raakt uitvoerbaarheid; kan direct financieel of rechtsgevolg hebben (bijv. WVPS-verplichting volledig afwezig, nihilbeding zonder wettelijke grond, alimentatiebedrag ontbreekt terwijl kinderen minderjarig zijn).
+- midden: inhoudelijk onjuist of onvolledig, maar herstelbaar zonder volledige heronderhandeling (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent).
+- laag: stijl, verduidelijking of kleine onvolledigheid zonder directe juridische gevolgen (bijv. vage verwijzing, spelling, overbodige herhaling).`;
+
           const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 DOCUMENTTYPE: ${docTypLabel}
@@ -353,7 +359,9 @@ ${mfnInstructie}
 
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
 - Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.`;
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.
+
+${ernstCriteria}`;
 
           const sysJuridisch =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
@@ -365,7 +373,9 @@ DOCUMENTTYPE: ${docTypLabel}
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
-- Bij twijfel: geen issue. Speculeer niet.`;
+- Bij twijfel: geen issue. Speculeer niet.
+
+${ernstCriteria}`;
 
           const sysBalansGram =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op evenwichtigheid en taal.
@@ -375,7 +385,9 @@ DOCUMENTTYPE: ${docTypLabel}
 **issues (grammatica)** — Dimensies ["grammatica"]: vage verwijzingen, inconsistente datums/bedragen, onduidelijke bewoording.
 **issues (conflicten)** — Dimensies ["conflicten"]: tegenstrijdige bepalingen BINNEN het document (artikel X zegt iets anders dan artikel Y over hetzelfde onderwerp).
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
-- Bij twijfel: geen issue. Speculeer niet.`;
+- Bij twijfel: geen issue. Speculeer niet.
+
+${ernstCriteria}`;
 
           const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
 
