@@ -1705,6 +1705,7 @@ const docxPerBestandsnaam = new Map(); // bestand.name    → Blob  (DOCX van Ad
 function dedupIssues(arrays) {
   const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
   const kaart = new Map();
+  let _pos = 0;
   for (const iss of arrays.flat()) {
     if (!iss || typeof iss !== 'object' || Array.isArray(iss)) continue;
     const k = (iss.onderwerp || '').toLowerCase().trim().replace(/\s+/g, ' ');
@@ -1716,9 +1717,11 @@ function dedupIssues(arrays) {
       if (iss.bevinding && !b.bevinding?.includes(iss.bevinding))
         b.bevinding = b.bevinding ? b.bevinding + ' ' + iss.bevinding : iss.bevinding;
       if (!b.aanbeveling && iss.aanbeveling) b.aanbeveling = iss.aanbeveling;
+      if (!b.passage && iss.passage) b.passage = iss.passage;
     } else {
-      kaart.set(k, { ...iss });
+      kaart.set(k, { ...iss, _origPos: _pos });
     }
+    _pos++;
   }
   return [...kaart.values()]
     .sort((a, b) => (ERNST_ORD[a.ernst] ?? 1) - (ERNST_ORD[b.ernst] ?? 1))
@@ -2572,14 +2575,22 @@ function lijstKaarten(cat, items, renderFn, leegTekst) {
 
 // ── Issue-centric helpers (v2 schema) ─────────────────────────────────────────
 
-const DIM_LABELS = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:'Balans', grammatica:'Grammatica' };
+const DIM_LABELS = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:'Balans', grammatica:'Grammatica', conflicten:'Conflicten' };
+
+// Sorteer-modus voor de issuelijst: 'ernst' (hoog→laag) of 'volgorde' (documentvolgorde)
+let _issueSortModus = 'ernst';
+
+function sorteerIssues() {
+  _issueSortModus = _issueSortModus === 'ernst' ? 'volgorde' : 'ernst';
+  activeerAnalysePanel(huidigRapport);
+}
 
 function issueKaart(idx) {
   const issue = huidigRapport.issues[idx];
   if (!issue || typeof issue !== 'object') return ''; // defensief: sla ongeldige items over
   const ernstKlas    = 'sev-' + (issue.ernst || 'midden');
   const isOk         = issue.ernst === 'laag';
-  const heeftPassage = !!(issue.bevinding);
+  const heeftPassage = !!(issue.passage || issue.bevinding);
   const dimBadges    = (issue.dimensies || []).map(d =>
     `<span class="dim-badge dim-${d}">${DIM_LABELS[d] || d}</span>`
   ).join('');
@@ -2745,23 +2756,25 @@ async function toonRapport(cls, rp) {
       ? `<div class="samenvatting">${escH(drp.samenvatting)}</div>`
       : '';
 
-    // Dimensie-filter knoppen
-    const dims = ['volledigheid','juridisch','balans','grammatica'];
+    // Dimensie-filter knoppen (incl. conflicten als aparte categorie)
+    const dims = ['volledigheid','juridisch','balans','grammatica','conflicten'];
     const dimCounts = {};
     dims.forEach(d => { dimCounts[d] = issues.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d)).length; });
-    const filterBar = `<div class="issue-filter-bar">
+
+    // Sort-toggle label
+    const sortLabel = _issueSortModus === 'ernst' ? '↕ Ernst' : '↕ Volgorde';
+
+    const filterBar = `<div class="issue-filter-bar" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
       <button class="a-filter-dim actief" data-dim="alle" onclick="filterIssues(this)">Alle issues (${issues.length})</button>
       ${dims.map(d => dimCounts[d] > 0
         ? `<button class="a-filter-dim" data-dim="${d}" onclick="filterIssues(this)">${DIM_LABELS[d]} (${dimCounts[d]})</button>`
         : ''
       ).join('')}
+      <span style="flex:1"></span>
+      <button class="a-filter-dim" style="opacity:.7" onclick="sorteerIssues()" title="Wissel sorteervolgorde">${sortLabel}</button>
     </div>`;
 
-    const issueKaartenHtml = issues.length > 0
-      ? issues.map((_, i) => issueKaart(i)).join('')
-      : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
-
-    // MfN sectie (optioneel, ongewijzigd)
+    // MfN sectie (naast de categorieën — boven de issuelijst)
     const mfnFilterKnop = `<div class="anal-tab-toolbar">
       <button class="a-filter-btn" onclick="toggleTabFilter(this)">Verbeterpunten</button>
     </div>`;
@@ -2769,10 +2782,19 @@ async function toonRapport(cls, rp) {
       ? renderMfnScore(drp.mfn_score, mfnFilterKnop)
       : '';
 
+    // Sorteer issues op modus: ernst (hoog→laag) of originele documentvolgorde
+    const gesorteerdeIdx = issues.map((_, i) => i);
+    if (_issueSortModus === 'volgorde') {
+      gesorteerdeIdx.sort((a, b) => (issues[a]._origPos ?? a) - (issues[b]._origPos ?? b));
+    }
+    const issueKaartenHtml = gesorteerdeIdx.length > 0
+      ? gesorteerdeIdx.map(i => issueKaart(i)).join('')
+      : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
+
     return scoreHtml + samenvattingHtml + filterBar +
+      (mfnHtml ? `<div style="margin:12px 0 0;padding-bottom:16px;border-bottom:1px solid var(--line)">${mfnHtml}</div>` : '') +
       `<div class="anal-tab-body" id="analTabBody">` +
       `<div id="issuesLijst">${issueKaartenHtml}</div>` +
-      (mfnHtml ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">${mfnHtml}</div>` : '') +
       `</div>`;
   }
 
@@ -2875,9 +2897,10 @@ document.getElementById('analysePanel').addEventListener('click', async e => {
   const issueIdx = card.dataset.issueIdx !== undefined ? parseInt(card.dataset.issueIdx, 10) : NaN;
 
   if (!isNaN(issueIdx)) {
-    // Nieuw schema v2: issues[idx] — gebruik bevinding als zoektekst
+    // Nieuw schema v2: issues[idx]
+    // Volgorde van voorkeur: verbatim passage > onderwerp (kort & specifiek) > bevinding
     const issue = huidigRapport.issues?.[issueIdx];
-    passage = issue?.bevinding || issue?.onderwerp || '';
+    passage = issue?.passage || issue?.onderwerp || issue?.bevinding || '';
   } else {
     // Oud schema (backward compat): cat/idx
     const cat = card.dataset.cat;

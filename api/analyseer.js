@@ -157,6 +157,9 @@ const issueItem = {
     dimensies:   { type: 'array', items: { type: 'string' } },
     bevinding:   { type: 'string' },
     aanbeveling: { type: 'string' },
+    // Verbatim citaat (1-2 zinnen) uit het document waarop dit issue betrekking heeft.
+    // Leeg laten bij ontbrekende secties (er is niets om te citeren).
+    passage: { type: 'string' },
   },
   required: ['onderwerp', 'ernst', 'dimensies', 'bevinding', 'aanbeveling'],
 };
@@ -349,7 +352,8 @@ DOCUMENTTYPE: ${docTypLabel}
 ${mfnInstructie}
 
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
-- Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}`;
+- Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.`;
 
           const sysJuridisch =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
@@ -360,6 +364,7 @@ DOCUMENTTYPE: ${docTypLabel}
 - Gebruik uitsluitend wetsartikelen uit de WETSARTIKELEN-sectie.
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
 - Bij twijfel: geen issue. Speculeer niet.`;
 
           const sysBalansGram =
@@ -367,7 +372,9 @@ DOCUMENTTYPE: ${docTypLabel}
 DOCUMENTTYPE: ${docTypLabel}
 
 **issues (balans)** — Dimensies ["balans"]: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering.
-**issues (grammatica)** — Dimensies ["grammatica"]: tegenstrijdige zinnen, vage verwijzingen, inconsistente datums/bedragen.
+**issues (grammatica)** — Dimensies ["grammatica"]: vage verwijzingen, inconsistente datums/bedragen, onduidelijke bewoording.
+**issues (conflicten)** — Dimensies ["conflicten"]: tegenstrijdige bepalingen BINNEN het document (artikel X zegt iets anders dan artikel Y over hetzelfde onderwerp).
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
 - Bij twijfel: geen issue. Speculeer niet.`;
 
           const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
