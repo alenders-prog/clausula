@@ -918,6 +918,27 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .dim-rij.klaar-ok .dim-rij-dot{color:var(--sage);}
 .dim-rij.klaar-issues .dim-rij-dot{color:var(--amber);}
 
+/* ── Dimensie-tabbladen tijdens progressieve analyse ────────────────────── */
+.dim-tabs-bar{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto;}
+.dim-tab-btn{display:flex;align-items:center;gap:6px;padding:10px 16px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:.87rem;color:var(--ink-soft);white-space:nowrap;transition:color .15s,border-color .15s;}
+.dim-tab-btn:hover{color:var(--ink-mid);}
+.dim-tab-btn.actief{color:var(--ink);border-bottom-color:var(--accent);}
+.dim-tab-badge{font-size:.74rem;font-weight:700;padding:1px 8px;border-radius:10px;background:var(--bg-soft);color:var(--ink-soft);min-width:22px;text-align:center;}
+.dim-tab-btn.actief .dim-tab-badge{background:var(--accent-faint,#e8f0ff);color:var(--accent);}
+.dim-tab-btn.klaar-issues .dim-tab-badge{background:#FEF3C7;color:#92400E;}
+.dim-tab-btn.klaar-ok    .dim-tab-badge{background:#D1FAE5;color:#065F46;}
+/* Knight Rider laad-animatie */
+.krl-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:16px;}
+.krl-lbl{font-size:.9rem;color:var(--ink-soft);}
+.krl-track{width:200px;height:5px;background:var(--line);border-radius:3px;overflow:hidden;position:relative;}
+.krl-glow{position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:3px;animation:krl-scan 1.5s ease-in-out infinite;}
+@keyframes krl-scan{0%{left:-40%}50%{left:100%}100%{left:-40%}}
+/* Simpele issue-kaart tijdens progressieve render */
+.prog-kaart{padding:12px 16px;margin-bottom:8px;border-radius:6px;background:var(--bg);border:1px solid var(--line);border-left-width:3px;}
+.prog-kaart-titel{font-weight:600;font-size:.9rem;color:var(--ink);}
+.prog-kaart-bevinding{font-size:.83rem;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+.prog-geen{padding:40px 24px;text-align:center;color:var(--ink-soft);font-size:.9rem;}
+
 /* Mini chips voor dossierlijst */
 .chip{display:inline-flex;align-items:center;font-size:.67rem;font-weight:700;
   padding:2px 7px;border-radius:20px;letter-spacing:.02em;white-space:nowrap;}
@@ -1890,94 +1911,74 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null };
     }
 
-    // HTML voor één dimensie-rij
-    const _dimRijHtml = (id, label, accEntry) => {
-      const result = accEntry;
-      const klaar  = result !== null;
-      const count  = klaar ? (Array.isArray(result?.issues) ? result.issues.length : 0) : -1;
-      const klasse = klaar ? (count > 0 ? ' klaar klaar-issues' : ' klaar klaar-ok') : '';
-      const dot    = klaar ? (count > 0 ? 'var(--amber)' : 'var(--sage)') : '';
-      const status = klaar ? (count > 0 ? `${count} bevinding${count !== 1 ? 'en' : ''}` : 'Geen bevindingen') : 'Analyseren…';
-      return `<div class="dim-rij${klasse}" id="${id}">
-        <span class="dim-rij-dot"${dot ? ` style="color:${dot}"` : ''}>●</span>
-        <span class="dim-rij-naam">${label}</span>
-        <span class="dim-rij-status">${status}</span>
+    // Welk dimensie-tabblad is geselecteerd tijdens progressieve render
+    var _activeDimTab     = 'structuur'; // standaard eerste tab
+    var _hasSwitchedAuto  = false;       // auto-switch naar eerste klare dim (één keer)
+
+    // Knight Rider laad-animatie voor een dimensie die nog bezig is
+    const _laadHtml = () =>
+      `<div class="krl-wrap">
+         <div class="krl-lbl">Analyseren…</div>
+         <div class="krl-track"><div class="krl-glow"></div></div>
+       </div>`;
+
+    // Simpele issue-kaart voor progressieve render (zonder checkboxes — die volgen via toonRapport)
+    const _progKaart = (iss) => {
+      const e = iss.ernst || 'laag';
+      const kleur = e === 'hoog' ? 'var(--terra)' : e === 'midden' ? 'var(--amber)' : 'var(--sage)';
+      const ernstBg = e === 'hoog' ? '#FEE2E2' : e === 'midden' ? '#FEF3C7' : '#D1FAE5';
+      return `<div class="prog-kaart" style="border-left-color:${kleur}">
+        <div class="prog-kaart-titel">${escH(iss.onderwerp || '')}
+          <span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;font-size:.7rem;font-weight:700;background:${ernstBg};color:${kleur}">${e.toUpperCase()}</span>
+        </div>
+        ${iss.bevinding  ? `<div class="prog-kaart-bevinding">${escH(iss.bevinding)}</div>` : ''}
+        ${iss.aanbeveling ? `<div class="prog-kaart-bevinding" style="margin-top:6px;color:var(--accent)">💡 ${escH(iss.aanbeveling)}</div>` : ''}
       </div>`;
     };
 
-    // Volledige skeleton-html voor één document (op basis van huidige accumulatorstand)
-    const _skeletonHtml = (bestandsnaam) => {
-      const acc = _sseAcc[bestandsnaam] || {};
-      return `<div class="analyseer-voortgang">
-        ${_dimRijHtml('dim-volledigheid', 'Volledigheid',      acc.structuur)}
-        ${_dimRijHtml('dim-juridisch',    'Juridisch',         acc.juridisch)}
-        ${_dimRijHtml('dim-balans',       'Balans & Grammatica', acc.balans)}
-      </div>`;
+    // Content voor één dimensie-tab (loading of issue-kaarten)
+    const _dimContentHtml = (acc, dim) => {
+      const r = acc?.[dim];
+      if (r === null || r === undefined) return _laadHtml();
+      const issues = Array.isArray(r.issues) ? r.issues : [];
+      if (!issues.length) return `<div class="prog-geen">✓ Geen bevindingen voor dit onderdeel</div>`;
+      return `<div style="padding:0 2px">${issues.map(_progKaart).join('')}</div>`;
     };
 
-    // Update één dimensie-rij in de DOM (alleen als dat tabblad actief is)
-    var _updateSkeletonDim = (bestandsnaam, type) => {
-      const actiefDoc = effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam;
-      if (bestandsnaam !== actiefDoc) return; // ander tabblad — skip DOM update
-      const dimId = type === 'structuur' ? 'dim-volledigheid'
-                  : type === 'juridisch' ? 'dim-juridisch'
-                  : 'dim-balans';
-      const rij = document.getElementById(dimId);
-      if (!rij) return;
-      const acc   = _sseAcc[bestandsnaam];
-      const result = acc?.[type];
-      const count  = Array.isArray(result?.issues) ? result.issues.length : 0;
-      rij.className = `dim-rij klaar ${count > 0 ? 'klaar-issues' : 'klaar-ok'}`;
-      const dot    = rij.querySelector('.dim-rij-dot');
-      const status = rij.querySelector('.dim-rij-status');
-      dot.style.color   = count > 0 ? 'var(--amber)' : 'var(--sage)';
-      status.textContent = count > 0 ? `${count} bevinding${count !== 1 ? 'en' : ''}` : 'Geen bevindingen';
-    };
-
-    // Progressieve render: toont werkelijke bevindingen zodra een dimensie klaar is.
-    // Vervangt de statische skeleton-tekst met echte issue-kaarten + status-balk.
-    var _renderProgressief = (bestandsnaam) => {
-      const _actiefBn = effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam;
-      if (bestandsnaam !== _actiefBn) return; // niet het actieve tabblad — skip
-      const acc = _sseAcc?.[bestandsnaam];
-      if (!acc) {
-        // _sseAcc nog niet geïnitialiseerd — val terug op statische skeleton
-        document.getElementById('analysePanel').innerHTML = _skeletonHtml(bestandsnaam);
-        return;
-      }
-      // Dedupliceer alle issues die tot nu toe zijn binnengekomen
-      const alleI = dedupIssues([
-        Array.isArray(acc.structuur?.issues) ? acc.structuur.issues : [],
-        Array.isArray(acc.juridisch?.issues) ? acc.juridisch.issues : [],
-        Array.isArray(acc.balans?.issues)    ? acc.balans.issues    : [],
-      ]).map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
-      // Zet global zodat issueKaart() de juiste rijen leest
-      huidigRapport = {
-        ...(huidigRapport || {}),
-        issues:       alleI,
-        samenvatting: acc.structuur?.samenvatting || huidigRapport?.samenvatting || '',
-        mfn_score:    acc.structuur?.mfn_score    || huidigRapport?.mfn_score    || null,
-      };
-      // Status-balk: één rij per dimensie (Analyseren… / N bevindingen / Geen bevindingen)
-      const _pDims = [
+    // Volledige tab-balk + content HTML voor het analyse-panel
+    var _skeletonHtml = (bestandsnaam) => {
+      const acc = _sseAcc?.[bestandsnaam] || {};
+      const act = _activeDimTab;
+      const dimDefs = [
         { key: 'structuur', lbl: 'Volledigheid'       },
         { key: 'juridisch', lbl: 'Juridisch'           },
         { key: 'balans',    lbl: 'Balans & Grammatica' },
       ];
-      const _statusHtml = '<div class="analyseer-voortgang" style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:16px">' +
-        _pDims.map(d => {
-          const r    = acc[d.key];
-          const klaar = r !== null && r !== undefined;
-          const cnt  = klaar ? (Array.isArray(r?.issues) ? r.issues.length : 0) : -1;
-          const cls  = klaar ? (cnt > 0 ? ' klaar klaar-issues' : ' klaar klaar-ok') : '';
-          const dot  = klaar ? (cnt > 0 ? 'var(--amber)' : 'var(--sage)') : '';
-          const st   = klaar ? (cnt > 0 ? `${cnt} bevinding${cnt !== 1 ? 'en' : ''}` : 'Geen bevindingen') : 'Analyseren…';
-          return `<div class="dim-rij${cls}"><span class="dim-rij-dot"${dot ? ` style="color:${dot}"` : ''}>●</span><span class="dim-rij-naam">${d.lbl}</span><span class="dim-rij-status">${st}</span></div>`;
-        }).join('') + '</div>';
-      const _issH = alleI.length
-        ? `<div id="issuesLijst">${alleI.map((_, i) => issueKaart(i)).join('')}</div>`
-        : '';
-      document.getElementById('analysePanel').innerHTML = _statusHtml + _issH;
+      const tabs = dimDefs.map(d => {
+        const r    = acc[d.key];
+        const klaar = r !== null && r !== undefined;
+        const cnt  = klaar ? (Array.isArray(r?.issues) ? r.issues.length : 0) : -1;
+        const cls  = ['dim-tab-btn', d.key === act ? 'actief' : '', klaar ? (cnt > 0 ? 'klaar-issues' : 'klaar-ok') : ''].filter(Boolean).join(' ');
+        const badge = klaar ? (cnt > 0 ? String(cnt) : '✓') : '…';
+        return `<button class="${cls}" data-dim="${d.key}">${d.lbl} <span class="dim-tab-badge">${badge}</span></button>`;
+      }).join('');
+      return `<div class="dim-tabs-bar" id="dimTabsBar">${tabs}</div>` +
+             `<div id="dimTabContent">${_dimContentHtml(acc, act)}</div>`;
+    };
+
+    // Progressieve render: herbouwt het analyse-panel zodra een dimensie klaar is.
+    // Auto-switcht naar de eerste klare dimensie; daarna volgt de gebruikerskeuze.
+    var _renderProgressief = (bestandsnaam) => {
+      const _actiefBn = effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam;
+      if (bestandsnaam !== _actiefBn) return; // ander doc-tabblad — skip
+      const acc = _sseAcc?.[bestandsnaam];
+      if (!acc) { document.getElementById('analysePanel').innerHTML = _skeletonHtml(bestandsnaam); return; }
+      // Auto-switch naar de eerste dimensie die klaar is (één keer)
+      if (!_hasSwitchedAuto) {
+        const firstDone = ['structuur', 'juridisch', 'balans'].find(k => acc[k] !== null && acc[k] !== undefined);
+        if (firstDone) { _activeDimTab = firstDone; _hasSwitchedAuto = true; }
+      }
+      document.getElementById('analysePanel').innerHTML = _skeletonHtml(bestandsnaam);
     };
 
     // Document-tabs in de meta-balk (multi-doc) of klassieke header (single)
@@ -2016,6 +2017,22 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     document.getElementById('analysePanel').innerHTML = _skeletonHtml(effectieveHoofdItems[0]?.bestandsnaam);
     openSplitView();
     document.getElementById('scanning').classList.remove('active'); // verberg scan-overlay — skeleton is nu zichtbaar
+
+    // Delegated click-handler voor dimensie-tabs in het analyse-panel.
+    // Eén listener op analysePanel (persisteert na innerHTML-updates van _renderProgressief).
+    // Verwijder eventuele vorige listener van een eerdere analyse.
+    const _ap = document.getElementById('analysePanel');
+    if (_ap._dimTabHandler) _ap.removeEventListener('click', _ap._dimTabHandler);
+    _ap._dimTabHandler = e => {
+      const btn = e.target.closest('.dim-tab-btn');
+      if (!btn) return;
+      const dim = btn.dataset.dim;
+      if (!dim || dim === _activeDimTab) return;
+      _activeDimTab = dim;
+      _renderProgressief(effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam);
+    };
+    _ap.addEventListener('click', _ap._dimTabHandler);
+
     renderDocPanel(''); // asynchroon — blokkeer SSE-loop niet
   }
 
