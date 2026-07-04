@@ -34,7 +34,7 @@ export default async function handler(req) {
   const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
     headers: {
       'Authorization': `Bearer ${token}`,
-      'apikey': process.env.SUPABASE_ANON_KEY,
+      'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
     },
   });
   if (!authCheck.ok) {
