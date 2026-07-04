@@ -664,13 +664,21 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .a-filter-dim.actief .a-filter-cnt span{color:rgba(255,255,255,.8)!important;}
 /* Gekleurde ernst-teller onder de filterknop-naam */
 .a-filter-cnt{display:flex;gap:5px;align-items:center;margin-top:2px;font-size:.67rem;font-weight:700;line-height:1;}
-/* ── Draaiende ring voor loading-status ── */
-@keyframes ring-spin{to{transform:rotate(360deg);}}
+/* ── Zweep-animatie op de rand van loading-filterknopjes ── */
+@keyframes zweep-spin{to{transform:rotate(360deg);}}
 .a-filter-ring{position:relative;display:inline-flex;border-radius:22px;}
 .a-filter-ring::before{
-  content:'';position:absolute;inset:-2px;border-radius:22px;
-  background:conic-gradient(from 0deg,var(--coral) 0deg 75deg,var(--line) 75deg 360deg);
-  animation:ring-spin 1.1s linear infinite;z-index:0;}
+  content:'';position:absolute;inset:-1.5px;border-radius:23.5px;
+  /* Conic-gradient: basis = lichte randkleur; zweep = coral die in- en uitfadet */
+  background:conic-gradient(
+    from 0deg,
+    var(--line)              0deg 210deg,
+    rgba(200,106,60,.15)   225deg,
+    rgba(200,106,60,.7)    285deg,
+    rgba(200,106,60,.15)   345deg,
+    var(--line)            360deg
+  );
+  animation:zweep-spin 2s linear infinite;z-index:0;}
 .a-filter-ring>.a-filter-dim{
   position:relative;z-index:1;background:var(--paper);border-color:transparent;box-shadow:none;}
 .a-filter-ring>.a-filter-dim:hover{transform:none;border-color:transparent;box-shadow:none;color:var(--ink-mid);}
