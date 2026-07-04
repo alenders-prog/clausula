@@ -1,7 +1,5 @@
 /**
- * api/analyseer.js
- *
- * POST /api/analyseer
+ * api/analyseer.js — Edge Runtime analyse via Server-Sent Events (SSE)
  *
  * AVG-conforme architectuur:
  *   - De BROWSER pseudonimiseert de documenttekst (namen → [PERSOON_A], IBAN → [IBAN], etc.)
@@ -9,10 +7,15 @@
  *   - De SERVER ontvangt alleen pseudoniemen — nooit echte namen of BSN-nummers.
  *   - De server retourneert pseudonieme resultaten; de browser de-pseudonimiseert lokaal.
  *
- * Input:  { classificatie, documenten: [{ bestandsnaam, type, tekst }] }
- *         (tekst is al pseudoniem — gepseudonimiseerd door de browser)
- * Output: { classificatie, documenten: [{ doc_type, bestandsnaam, samenvatting, issues[], mfn_score? }] }
- *         (output bevat ook alleen pseudoniemen)
+ * Transport: Server-Sent Events (SSE)
+ *   - Stuur per Claude-call één event zodra het klaar is:
+ *       { type: 'structuur', bestandsnaam, result }
+ *       { type: 'juridisch', bestandsnaam, result }
+ *       { type: 'balans',    bestandsnaam, result }
+ *   - Keepalive elke 5s (`: keepalive`) zodat Vercel de verbinding open houdt
+ *   - Eindigen met { type: 'klaar' } of { type: 'fout', error }
+ *   - Bij max_tokens: { type: 'max_tokens', bestandsnaam, tool }  (analyse gaat door)
+ *   - Deduplicatie: naar de browser verplaatst (dedupIssues in index.html)
  *
  * Auth:   vereist Supabase JWT via Authorization: Bearer <token>
  * Retry:  tot 2× herpoging bij netwerk/5xx-fouten
@@ -20,14 +23,18 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-export const config = {
-  api: { bodyParser: { sizeLimit: '4mb' } },
-};
+export const config = { runtime: 'edge' };
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+// ── Hulpfunctie: JSON-fout als reguliere Response ─────────────────────────────
+function errResp(msg, status = 500) {
+  return new Response(JSON.stringify({ error: msg }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 // ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
-async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, model = 'claude-fable-5') {
+async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, model = 'claude-sonnet-4-6') {
   const systemField = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
   const messageContent = Array.isArray(userContent)
     ? userContent.map(b => b.cache
@@ -62,10 +69,9 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        const json    = await res.json();
-        // Detecteer max_tokens: gooi een herkenbare fout zodat de handler dit kan doorgeven
+        const json = await res.json();
         if (json.stop_reason === 'max_tokens') {
-          const err = new Error(`Tokenbudget bereikt voor ${tool.name} — analyse mogelijk onvolledig`);
+          const err = new Error(`Tokenbudget bereikt voor ${tool.name}`);
           err.isMaxTokens = true;
           throw err;
         }
@@ -77,7 +83,8 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
       lastErr = new Error(`Claude fout (${res.status})`);
       console.warn(`[analyseer/${tool.name}] HTTP ${res.status} — herpoging…`);
     } catch (err) {
-      if (err.message.startsWith('Claude fout') || poging === 2) throw err;
+      // Gooi direct bij max_tokens of auth-fout (geen zin om opnieuw te proberen)
+      if (err.isMaxTokens || err.message.startsWith('Claude fout (4') || poging === 2) throw err;
       lastErr = err;
     }
   }
@@ -190,37 +197,13 @@ const balansGramTool = {
   },
 };
 
-// ── Deduplicatie ──────────────────────────────────────────────────────────────
-function dedupIssues(arrays) {
-  const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
-  const kaart = new Map();
-  for (const iss of arrays.flat()) {
-    if (!iss || typeof iss !== 'object' || Array.isArray(iss)) continue;
-    const k = (iss.onderwerp || '').toLowerCase().trim().replace(/\s+/g, ' ');
-    if (!k) continue;
-    if (kaart.has(k)) {
-      const b = kaart.get(k);
-      if ((ERNST_ORD[iss.ernst] ?? 1) < (ERNST_ORD[b.ernst] ?? 1)) b.ernst = iss.ernst;
-      b.dimensies = [...new Set([...(b.dimensies || []), ...(iss.dimensies || [])])];
-      if (iss.bevinding && !b.bevinding?.includes(iss.bevinding))
-        b.bevinding = b.bevinding ? b.bevinding + ' ' + iss.bevinding : iss.bevinding;
-      if (!b.aanbeveling && iss.aanbeveling) b.aanbeveling = iss.aanbeveling;
-    } else {
-      kaart.set(k, { ...iss });
-    }
-  }
-  return [...kaart.values()]
-    .sort((a, b) => (ERNST_ORD[a.ernst] ?? 1) - (ERNST_ORD[b.ernst] ?? 1))
-    .map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
-}
-
 // ── Handler ───────────────────────────────────────────────────────────────────
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST' });
+export default async function handler(req) {
+  if (req.method !== 'POST') return errResp('Alleen POST toegestaan', 405);
 
   // ── Auth: Supabase JWT valideren ──────────────────────────────────────────
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) return errResp('Niet geautoriseerd', 401);
 
   const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
     headers: {
@@ -228,74 +211,101 @@ export default async function handler(req, res) {
       'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
     },
   });
-  if (!authCheck.ok) return res.status(401).json({ error: 'Sessie verlopen — log opnieuw in' });
+  if (!authCheck.ok) return errResp('Sessie verlopen — log opnieuw in', 401);
 
+  // ── Body parsen ───────────────────────────────────────────────────────────
+  let classificatie, documenten;
   try {
-    // classificatie: van de browser (bevat situatie_kenmerken, doc_type, namen als placeholders)
-    // documenten:    al gepseudonimiseerd door de browser
-    const { classificatie, documenten } = req.body;
-    if (!classificatie || !Array.isArray(documenten) || !documenten.length) {
-      return res.status(400).json({ error: 'classificatie en documenten[] zijn verplicht' });
-    }
+    const b = await req.json();
+    classificatie = b.classificatie;
+    documenten    = b.documenten;
+  } catch {
+    return errResp('Ongeldige request body', 400);
+  }
+  if (!classificatie || !Array.isArray(documenten) || !documenten.length) {
+    return errResp('classificatie en documenten[] zijn verplicht', 400);
+  }
 
-    const HOOFD_TYPES    = new Set(['convenant', 'ouderschapsplan']);
-    const hoofdDocs      = documenten.filter(d => HOOFD_TYPES.has(d.type));
-    const contextDocs    = documenten.filter(d => !HOOFD_TYPES.has(d.type));
-    const effectiefHoofd = hoofdDocs.length ? hoofdDocs : documenten;
+  // ── SSE stream ────────────────────────────────────────────────────────────
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
 
-    const contextTekst = contextDocs
-      .map(d => `=== ${d.type?.toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
-      .join('\n\n');
+      // Emit één SSE-event
+      const sse = (obj) => {
+        try { controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`)); } catch {}
+      };
 
-    const situatieKenmerken = classificatie.situatie_kenmerken ?? [];
-    const heeftHV = documenten.some(d => d.type === 'huwelijkse_voorwaarden');
+      // Keepalive: stuur elke 5s een comment zodat Vercel de stream open houdt
+      const keepalive = setInterval(() => {
+        try { controller.enqueue(enc.encode(': keepalive\n\n')); } catch {}
+      }, 5000);
 
-    // ── Supabase-queries ──────────────────────────────────────────────────
-    const wetsQueryTags = [...new Set([
-      ...situatieKenmerken,
-      ...effectiefHoofd.map(d => d.type),
-      ...(heeftHV ? ['huwelijkse_voorwaarden', 'verrekenbeding', 'koude_uitsluiting', 'uitsluitingsclausule'] : []),
-    ])];
+      try {
+        // Supabase client — persistSession: false voorkomt gebruik van localStorage
+        const supabase = createClient(
+          process.env.SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { persistSession: false, autoRefreshToken: false } }
+        );
 
-    const [{ data: wetteksten }, { data: standaardClausules },
-          { data: tmplConvenant }, { data: tmplOuderschapsplan }] = await Promise.all([
-      supabase.from('legal_chunks').select('citation, content')
-        .overlaps('topic_tags', wetsQueryTags).limit(25),
-      supabase.from('legal_chunks').select('citation, content')
-        .eq('source_id', '10000000-0000-0000-0000-000000000001')
-        .eq('chunk_index', 28).limit(1),
-      supabase.from('document_templates')
-        .select('section_name, required, applies_when, instructions')
-        .eq('doc_type', 'convenant').order('section_order'),
-      supabase.from('document_templates')
-        .select('section_name, required, applies_when, instructions')
-        .eq('doc_type', 'ouderschapsplan').order('section_order'),
-    ]);
+        const HOOFD_TYPES    = new Set(['convenant', 'ouderschapsplan']);
+        const hoofdDocs      = documenten.filter(d => HOOFD_TYPES.has(d.type));
+        const contextDocs    = documenten.filter(d => !HOOFD_TYPES.has(d.type));
+        const effectiefHoofd = hoofdDocs.length ? hoofdDocs : documenten;
 
-    const _wttAll = [...(wetteksten ?? [])];
-    const _stdCit = 'Gangbare correcte standaardclausules in Nederlandse echtscheidingsdocumenten';
-    if (standaardClausules?.length && !_wttAll.some(w => w.citation === _stdCit)) {
-      _wttAll.push(...standaardClausules);
-    }
-    const wetTekst = _wttAll.map(w => `[${w.citation}] ${w.content}`).join('\n\n');
+        const contextTekst = contextDocs
+          .map(d => `=== ${d.type?.toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
+          .join('\n\n');
 
-    const templatesPer = { convenant: tmplConvenant ?? [], ouderschapsplan: tmplOuderschapsplan ?? [] };
+        const situatieKenmerken = classificatie.situatie_kenmerken ?? [];
+        const heeftHV = documenten.some(d => d.type === 'huwelijkse_voorwaarden');
 
-    // ── Per hoofddocument analyseren (max 2 tegelijk) ────────────────────
-    // Meer dan 2 parallelle documenten (elk 3 Claude-calls) raakt de rate-limit.
-    const analyseDoc = async (doc) => {
-      const docType     = doc.type === 'onbekend' ? 'convenant' : doc.type;
-      const heeftMfn    = docType === 'convenant' || docType === 'ouderschapsplan';
-      const mfnElemList = heeftMfn ? (MFN_ELEMENTEN[docType] || MFN_ELEMENTEN.convenant) : [];
-      const docTypLabel = docType === 'ouderschapsplan' ? 'Ouderschapsplan' : 'Echtscheidingsconvenant';
+        // ── Supabase-queries ──────────────────────────────────────────────
+        const wetsQueryTags = [...new Set([
+          ...situatieKenmerken,
+          ...effectiefHoofd.map(d => d.type),
+          ...(heeftHV ? ['huwelijkse_voorwaarden', 'verrekenbeding', 'koude_uitsluiting', 'uitsluitingsclausule'] : []),
+        ])];
 
-      const tmplType    = docType === 'ouderschapsplan' ? 'ouderschapsplan' : 'convenant';
-      const checklist   = (templatesPer[tmplType] || []).filter(
-        t => !t.applies_when || t.applies_when.every(tag => situatieKenmerken.includes(tag))
-      );
-      const checklistTekst = checklist.map(c => `- ${c.section_name}: ${c.instructions ?? ''}`).join('\n');
+        const [{ data: wetteksten }, { data: standaardClausules },
+              { data: tmplConvenant }, { data: tmplOuderschapsplan }] = await Promise.all([
+          supabase.from('legal_chunks').select('citation, content')
+            .overlaps('topic_tags', wetsQueryTags).limit(25),
+          supabase.from('legal_chunks').select('citation, content')
+            .eq('source_id', '10000000-0000-0000-0000-000000000001')
+            .eq('chunk_index', 28).limit(1),
+          supabase.from('document_templates')
+            .select('section_name, required, applies_when, instructions')
+            .eq('doc_type', 'convenant').order('section_order'),
+          supabase.from('document_templates')
+            .select('section_name, required, applies_when, instructions')
+            .eq('doc_type', 'ouderschapsplan').order('section_order'),
+        ]);
 
-      const juridischeChecks = docType === 'ouderschapsplan' ? `
+        const _wttAll = [...(wetteksten ?? [])];
+        const _stdCit = 'Gangbare correcte standaardclausules in Nederlandse echtscheidingsdocumenten';
+        if (standaardClausules?.length && !_wttAll.some(w => w.citation === _stdCit)) {
+          _wttAll.push(...standaardClausules);
+        }
+        const wetTekst = _wttAll.map(w => `[${w.citation}] ${w.content}`).join('\n\n');
+
+        const templatesPer = { convenant: tmplConvenant ?? [], ouderschapsplan: tmplOuderschapsplan ?? [] };
+
+        // ── Per document analyseren — 3 parallelle calls, elk een SSE-event ──
+        const analyseDoc = async (doc) => {
+          const docType     = doc.type === 'onbekend' ? 'convenant' : doc.type;
+          const heeftMfn    = docType === 'convenant' || docType === 'ouderschapsplan';
+          const mfnElemList = heeftMfn ? (MFN_ELEMENTEN[docType] || MFN_ELEMENTEN.convenant) : [];
+          const docTypLabel = docType === 'ouderschapsplan' ? 'Ouderschapsplan' : 'Echtscheidingsconvenant';
+
+          const tmplType    = docType === 'ouderschapsplan' ? 'ouderschapsplan' : 'convenant';
+          const checklist   = (templatesPer[tmplType] || []).filter(
+            t => !t.applies_when || t.applies_when.every(tag => situatieKenmerken.includes(tag))
+          );
+          const checklistTekst = checklist.map(c => `- ${c.section_name}: ${c.instructions ?? ''}`).join('\n');
+
+          const juridischeChecks = docType === 'ouderschapsplan' ? `
 Controleer specifiek op:
 1. HOOFDVERBLIJFPLAATS — Wettelijk verplicht (art. 826 Rv).
 2. ZORGREGELING — Omgangstijden specifiek (welke dagen, weekenden, vakanties, feestdagen)?
@@ -304,7 +314,7 @@ Controleer specifiek op:
 5. GEZAG — Gezamenlijk gezag bevestigd of afwijking gevraagd (art. 1:247 BW)?
 6. GESCHILLENREGELING — Escalatiebepaling of mediationclausule (art. 1:253a BW)?
 7. INDEXERING — Kinderalimentatie jaarlijks geïndexeerd?`
-      : docType === 'convenant' ? `
+            : docType === 'convenant' ? `
 Controleer specifiek op:
 1. PARTNERALIMENTATIE — Bedrag of nihilbeding? Bij nihilbeding: bewust en geïnformeerd (art. 1:159 BW)? Termijn max 12 jaar (art. 1:157 BW)? Indexering?
 2. KINDERALIMENTATIE — Tremanormen of gemotiveerde afwijking (art. 1:404 BW)?
@@ -313,9 +323,9 @@ Controleer specifiek op:
 5. BELASTING — Fiscaal partnerschap tot welke datum? Aanslagen/teruggaven verdeeld?
 6. VERMOGEN — Huwelijksgemeenschap of verrekenbeding volledig afgewikkeld (art. 1:94 en 1:121 BW)?
 7. SCHULDEN — Wie neemt welke schulden over?`
-      : `\nControleer op juridische juistheid, volledigheid en consistentie.`;
+            : `\nControleer op juridische juistheid, volledigheid en consistentie.`;
 
-      const hvChecks = heeftHV ? `
+          const hvChecks = heeftHV ? `
 
 HUWELIJKSE VOORWAARDEN AANWEZIG — kruiscontroles uitvoeren:
 HV-A. STELSEL — Benoem het vermogensrechtelijk stelsel (koude uitsluiting / beperkte gemeenschap / verrekenbeding).
@@ -324,16 +334,16 @@ HV-A. STELSEL — Benoem het vermogensrechtelijk stelsel (koude uitsluiting / be
 HV-B. UITSLUITINGSCLAUSULES — Erfenissen/schenkingen (art. 1:94 lid 3 BW) correct buiten verdeling?
 HV-C. REFERENTIE — Verwijst convenant expliciet naar huwelijkse voorwaarden (datum en notaris)?` : '';
 
-      const mfnInstructie = heeftMfn ? `
+          const mfnInstructie = heeftMfn ? `
 
 **mfn_score** — Beoordeel op MfN-vereisten. Score_aanwezig = aantal "aanwezig". Score_totaal = ${mfnElemList.length}.
 MfN-VEREISTE ELEMENTEN (${docTypLabel}):
 ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 
-      const docBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}` +
-        (contextTekst ? `\n\nBIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}` : '');
+          const docBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}` +
+            (contextTekst ? `\n\nBIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}` : '');
 
-      const sysStructuur =
+          const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 DOCUMENTTYPE: ${docTypLabel}
 ${mfnInstructie}
@@ -341,7 +351,7 @@ ${mfnInstructie}
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
 - Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}`;
 
-      const sysJuridisch =
+          const sysJuridisch =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
 DOCUMENTTYPE: ${docTypLabel}
 
@@ -352,7 +362,7 @@ DOCUMENTTYPE: ${docTypLabel}
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
 - Bij twijfel: geen issue. Speculeer niet.`;
 
-      const sysBalansGram =
+          const sysBalansGram =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op evenwichtigheid en taal.
 DOCUMENTTYPE: ${docTypLabel}
 
@@ -360,79 +370,69 @@ DOCUMENTTYPE: ${docTypLabel}
 **issues (grammatica)** — Dimensies ["grammatica"]: tegenstrijdige zinnen, vage verwijzingen, inconsistente datums/bedragen.
 - Bij twijfel: geen issue. Speculeer niet.`;
 
-      const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
+          const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
 
-      // 3 parallelle Sonnet-calls — elk gefocust op één dimensie.
-      // Structuur met MfN heeft meer budget nodig: 15 elementen × ~150 tok = ~2250 tok voor MfN alleen.
-      const [structuurR, juridischR, balansGramR] = await Promise.all([
-        askClaude(sysStructuur, [
-          { text: `VERWACHTE SECTIES:\n${checklistTekst}`, cache: true },
-          { text: docBlok },
-        ], maakStructuurTool(heeftMfn), heeftMfn ? 6000 : 2000, 'claude-sonnet-4-6'),
+          // Helper: roep Claude aan en stuur SSE zodra het klaar is; vang max_tokens af
+          const callMetSse = (clodeFn, type) =>
+            clodeFn().then(
+              result => { sse({ type, bestandsnaam: doc.bestandsnaam, result }); return result; },
+              err => {
+                if (err.isMaxTokens) {
+                  console.warn(`[analyseer] max_tokens: ${doc.bestandsnaam}/${type}`);
+                  sse({ type: 'max_tokens', bestandsnaam: doc.bestandsnaam, tool: type });
+                  return { issues: [] }; // leeg resultaat — analyse gaat door
+                }
+                throw err;
+              }
+            );
 
-        askClaude(sysJuridisch, [
-          { text: stabielBlokWet, cache: true },
-          { text: docBlok },
-        ], juridischTool, 4000, 'claude-sonnet-4-6'),
+          // 3 parallelle Sonnet-calls — elk gefocust op één dimensie
+          await Promise.all([
+            callMetSse(() => askClaude(sysStructuur, [
+              { text: `VERWACHTE SECTIES:\n${checklistTekst}`, cache: true },
+              { text: docBlok },
+            ], maakStructuurTool(heeftMfn), heeftMfn ? 6000 : 2000), 'structuur'),
 
-        askClaude(sysBalansGram,
-          docBlok,
-          balansGramTool, 2500, 'claude-sonnet-4-6'),
-      ]);
+            callMetSse(() => askClaude(sysJuridisch, [
+              { text: stabielBlokWet, cache: true },
+              { text: docBlok },
+            ], juridischTool, 4000), 'juridisch'),
 
-      const alleIssues = dedupIssues([
-        Array.isArray(structuurR?.issues)  ? structuurR.issues  : [],
-        Array.isArray(juridischR?.issues)  ? juridischR.issues  : [],
-        Array.isArray(balansGramR?.issues) ? balansGramR.issues : [],
-      ]);
+            callMetSse(() => askClaude(sysBalansGram,
+              docBlok,
+              balansGramTool, 2500), 'balans'),
+          ]);
 
-      console.log(`[analyseer] ${doc.bestandsnaam}: ${alleIssues.length} issues na dedup`);
+          console.log(`[analyseer] ${doc.bestandsnaam}: klaar`);
+        };
 
-      return {
-        doc_type:     docType,
-        bestandsnaam: doc.bestandsnaam,
-        samenvatting: structuurR?.samenvatting || '',
-        mfn_score:    structuurR?.mfn_score    || null,
-        issues:       alleIssues,
-      };
-    };
-
-    // Beide hoofddocumenten parallel (elk 3 Sonnet-calls → max 6 parallelle requests)
-    const CONCURRENT = 2;
-    const docResultaten = [];
-    let maxTokensWaarschuwing = false;
-
-    for (let i = 0; i < effectiefHoofd.length; i += CONCURRENT) {
-      const golf = effectiefHoofd.slice(i, i + CONCURRENT);
-      const resultaten = await Promise.allSettled(golf.map(analyseDoc));
-      for (const r of resultaten) {
-        if (r.status === 'fulfilled') {
-          docResultaten.push(r.value);
-        } else {
-          // max_tokens: gedeeltelijk resultaat teruggeven met waarschuwing
-          if (r.reason?.isMaxTokens) {
-            maxTokensWaarschuwing = true;
-            console.warn('[analyseer] max_tokens bereikt:', r.reason.message);
-            // Voeg een leeg resultaat toe zodat de frontend niet crasht
-            docResultaten.push({
-              doc_type: 'onbekend', bestandsnaam: '?',
-              samenvatting: '', mfn_score: null, issues: [],
-            });
-          } else {
-            throw r.reason; // echte fout: gooi door
+        // Verwerk max 2 documenten tegelijk (rate-limit bescherming)
+        const CONCURRENT = 2;
+        for (let i = 0; i < effectiefHoofd.length; i += CONCURRENT) {
+          const golf = effectiefHoofd.slice(i, i + CONCURRENT);
+          const resultaten = await Promise.allSettled(golf.map(analyseDoc));
+          for (const r of resultaten) {
+            if (r.status === 'rejected') throw r.reason; // echte fout
           }
         }
+
+        sse({ type: 'klaar' });
+
+      } catch (err) {
+        console.error('[analyseer SSE]', err);
+        sse({ type: 'fout', error: err.message });
+      } finally {
+        clearInterval(keepalive);
+        controller.close();
       }
-    }
+    },
+  });
 
-    return res.status(200).json({
-      classificatie,
-      documenten: docResultaten,
-      ...(maxTokensWaarschuwing ? { waarschuwing: 'max_tokens' } : {}),
-    });
-
-  } catch (err) {
-    console.error('[analyseer]', err);
-    return res.status(500).json({ error: err.message });
-  }
+  return new Response(stream, {
+    headers: {
+      'Content-Type':      'text/event-stream',
+      'Cache-Control':     'no-cache',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }

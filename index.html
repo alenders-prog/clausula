@@ -905,6 +905,19 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   border-top-color:var(--coral);border-radius:50%;animation:draaien .7s linear infinite;}
 @keyframes draaien{to{transform:rotate(360deg);}}
 
+/* ── Analyse-skeleton (SSE voortgang per dimensie) ─── */
+.analyseer-voortgang{padding:24px 0;}
+.dim-rij{display:flex;align-items:center;gap:12px;padding:13px 0;
+  border-bottom:1px solid var(--line);}
+.dim-rij:last-child{border-bottom:none;}
+.dim-rij-dot{font-size:1rem;width:20px;text-align:center;
+  transition:color .3s;color:var(--ink-faint);}
+.dim-rij-naam{font-weight:600;flex:1;font-size:.93rem;}
+.dim-rij-status{font-size:.83rem;color:var(--ink-soft);transition:color .3s;}
+.dim-rij.klaar .dim-rij-status{color:var(--ink-mid);}
+.dim-rij.klaar-ok .dim-rij-dot{color:var(--sage);}
+.dim-rij.klaar-issues .dim-rij-dot{color:var(--amber);}
+
 /* Mini chips voor dossierlijst */
 .chip{display:inline-flex;align-items:center;font-size:.67rem;font-weight:700;
   padding:2px 7px;border-radius:20px;letter-spacing:.02em;white-space:nowrap;}
@@ -1666,6 +1679,31 @@ async function askClaudeForJson(systemPrompt, userContent, tool, maxTokens = 409
 const tekstPerPad        = new Map(); // storageInfo.pad → tekst (mammoth of PDF.js)
 const docxPerBestandsnaam = new Map(); // bestand.name    → Blob  (DOCX van Adobe)
 
+// ── Issue-deduplicatie (browser-side, identiek aan server-versie) ─────────────
+// Wordt gebruikt om de 3 SSE-resultaten (structuur/juridisch/balans) samen te voegen.
+function dedupIssues(arrays) {
+  const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
+  const kaart = new Map();
+  for (const iss of arrays.flat()) {
+    if (!iss || typeof iss !== 'object' || Array.isArray(iss)) continue;
+    const k = (iss.onderwerp || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    if (!k) continue;
+    if (kaart.has(k)) {
+      const b = kaart.get(k);
+      if ((ERNST_ORD[iss.ernst] ?? 1) < (ERNST_ORD[b.ernst] ?? 1)) b.ernst = iss.ernst;
+      b.dimensies = [...new Set([...(b.dimensies || []), ...(iss.dimensies || [])])];
+      if (iss.bevinding && !b.bevinding?.includes(iss.bevinding))
+        b.bevinding = b.bevinding ? b.bevinding + ' ' + iss.bevinding : iss.bevinding;
+      if (!b.aanbeveling && iss.aanbeveling) b.aanbeveling = iss.aanbeveling;
+    } else {
+      kaart.set(k, { ...iss });
+    }
+  }
+  return [...kaart.values()]
+    .sort((a, b) => (ERNST_ORD[a.ernst] ?? 1) - (ERNST_ORD[b.ernst] ?? 1))
+    .map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
+}
+
 // ── Document analyseren ───────────────────────────────
 async function analyseDocument(trayItems, onProgress = () => {}) {
   // Zorg dat elk item een File-object heeft (download uit Storage als nodig)
@@ -1812,21 +1850,11 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   // Bijlagen-tekst alvast anonimiseren (buiten de per-doc-loop)
   const bijlagenTekstAnon = anonimiseerTekst(bijlagenTekst, naarAnon);
 
-  // ── Stap 2: Analyse via server (AVG-conform) ────────────────────────────
+  // ── Stap 2: Analyse via server (AVG-conform, SSE streaming) ────────────────
   // De browser pseudonimiseert de tekst VOORDAT die naar de server gaat.
   // De server (api/analyseer) ontvangt alleen placeholders — nooit echte namen of BSN.
-  // De server handelt: Supabase-queries, 3 parallelle Claude-calls, deduplicatie.
-  // De browser de-pseudonimiseert het resultaat lokaal.
+  // De server stuurt per Claude-call één SSE-event; de browser dedupliceert zelf.
   onProgress('Stap 2 van 2 — Analyseren…', 0);
-
-  // Gesimuleerde voortgang — de server geeft geen tussentijdse updates.
-  // De balk loopt langzaam op naar ~90% en springt naar 100% zodra het klaar is.
-  let _simPct = 0;
-  const _simTimer = setInterval(() => {
-    const stap = Math.max(0.4, (90 - _simPct) * 0.05); // vertraagt naarmate 90% nadert
-    _simPct = Math.min(90, _simPct + stap);
-    onProgress('Stap 2 van 2 — Analyseren…', Math.round(_simPct));
-  }, 800);
 
   // Bouw de gepseudonimiseerde documenten-array voor de server
   const documentenVoorServer = resolvedItems.map((item, i) => ({
@@ -1835,7 +1863,121 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     tekst:        anonimiseerTekst(documentDelen[i].tekst, naarAnon),
   }));
 
+  // ── Skeleton split-view alvast openen ─────────────────────────────────────
+  // Toon de split-view met "Analyseren…" per dimensie vóórdat de server begint.
+  // Zodra SSE-events binnenkomen worden de dimensies bijgewerkt.
+  {
+    const _bn = samenstellenBestandsnaam(classificatie, resolvedItems.map(i => ({ name: i.bestandsnaam })));
+    huidigeId             = null; // nieuwe analyse — geen opgeslagen versie
+    huidigeClassificatie  = classificatie;
+    huidigeBestandsnaam   = _bn;
+    huidigeDocumenten     = [];   // wordt gevuld na klaar-event door toonRapport()
+    huidigeDocIdx         = 0;
+    huidigePrimaireBest   = effectieveHoofdItems.map(hoofd => {
+      const relevantCtx = effectieveContextItems
+        .filter(ctx => contextVoorHoofd(ctx.type, hoofd.type))
+        .map(i => i.bestand).filter(Boolean);
+      return [hoofd.bestand, ...relevantCtx].filter(Boolean);
+    });
+    huidigeBestandenLijst = huidigePrimaireBest[0] || [];
+    docPanelGereed        = false;
+    huidigePdfDocCache    = {};
+
+    // Accumulator: SSE-resultaten per bestandsnaam opslaan
+    // (toegankelijk door zowel de SSE-loop als de tab-klik-handler)
+    var _sseAcc = {};
+    for (const item of effectieveHoofdItems) {
+      _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null };
+    }
+
+    // HTML voor één dimensie-rij
+    const _dimRijHtml = (id, label, accEntry) => {
+      const result = accEntry;
+      const klaar  = result !== null;
+      const count  = klaar ? (Array.isArray(result?.issues) ? result.issues.length : 0) : -1;
+      const klasse = klaar ? (count > 0 ? ' klaar klaar-issues' : ' klaar klaar-ok') : '';
+      const dot    = klaar ? (count > 0 ? 'var(--amber)' : 'var(--sage)') : '';
+      const status = klaar ? (count > 0 ? `${count} bevinding${count !== 1 ? 'en' : ''}` : 'Geen bevindingen') : 'Analyseren…';
+      return `<div class="dim-rij${klasse}" id="${id}">
+        <span class="dim-rij-dot"${dot ? ` style="color:${dot}"` : ''}>●</span>
+        <span class="dim-rij-naam">${label}</span>
+        <span class="dim-rij-status">${status}</span>
+      </div>`;
+    };
+
+    // Volledige skeleton-html voor één document (op basis van huidige accumulatorstand)
+    const _skeletonHtml = (bestandsnaam) => {
+      const acc = _sseAcc[bestandsnaam] || {};
+      return `<div class="analyseer-voortgang">
+        ${_dimRijHtml('dim-volledigheid', 'Volledigheid',      acc.structuur)}
+        ${_dimRijHtml('dim-juridisch',    'Juridisch',         acc.juridisch)}
+        ${_dimRijHtml('dim-balans',       'Balans & Grammatica', acc.balans)}
+      </div>`;
+    };
+
+    // Update één dimensie-rij in de DOM (alleen als dat tabblad actief is)
+    var _updateSkeletonDim = (bestandsnaam, type) => {
+      const actiefDoc = effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam;
+      if (bestandsnaam !== actiefDoc) return; // ander tabblad — skip DOM update
+      const dimId = type === 'structuur' ? 'dim-volledigheid'
+                  : type === 'juridisch' ? 'dim-juridisch'
+                  : 'dim-balans';
+      const rij = document.getElementById(dimId);
+      if (!rij) return;
+      const acc   = _sseAcc[bestandsnaam];
+      const result = acc?.[type];
+      const count  = Array.isArray(result?.issues) ? result.issues.length : 0;
+      rij.className = `dim-rij klaar ${count > 0 ? 'klaar-issues' : 'klaar-ok'}`;
+      const dot    = rij.querySelector('.dim-rij-dot');
+      const status = rij.querySelector('.dim-rij-status');
+      dot.style.color   = count > 0 ? 'var(--amber)' : 'var(--sage)';
+      status.textContent = count > 0 ? `${count} bevinding${count !== 1 ? 'en' : ''}` : 'Geen bevindingen';
+    };
+
+    // Document-tabs in de meta-balk (multi-doc) of klassieke header (single)
+    const _metaEl = document.querySelector('.split-meta');
+    if (effectieveHoofdItems.length > 1) {
+      _metaEl.classList.add('tabs-modus');
+      _metaEl.innerHTML = effectieveHoofdItems.map((item, i) =>
+        `<button class="doc-tab${i === 0 ? ' actief' : ''}" data-idx="${i}">
+          ${escH((DOC_TYPE_ICONS[item.type] || '📄') + ' ' + (DOC_TYPE_LABELS[item.type] || item.type))}
+        </button>`
+      ).join('');
+      _metaEl.querySelectorAll('.doc-tab').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const idx = parseInt(btn.dataset.idx, 10);
+          if (idx === huidigeDocIdx) return;
+          huidigeDocIdx = idx;
+          _metaEl.querySelectorAll('.doc-tab').forEach(b => b.classList.toggle('actief', b === btn));
+          const item = effectieveHoofdItems[idx];
+          document.getElementById('analysePanel').innerHTML = _skeletonHtml(item.bestandsnaam);
+          const bestVoorTab = huidigePrimaireBest[idx];
+          if (bestVoorTab?.length) {
+            huidigeBestandenLijst = bestVoorTab;
+            docPanelGereed  = false;
+            huidigePdfDocCache = {};
+          }
+          await renderDocPanel('');
+        });
+      });
+    } else {
+      _metaEl.classList.remove('tabs-modus');
+      _metaEl.innerHTML =
+        `<span class="doctype">${escH(DOC_TYPE_LABELS[effectieveHoofdItems[0]?.type] || classificatie.doc_type || '')}</span>
+         <span class="titel">${escH(_bn)}</span>`;
+    }
+
+    document.getElementById('analysePanel').innerHTML = _skeletonHtml(effectieveHoofdItems[0]?.bestandsnaam);
+    openSplitView();
+    renderDocPanel(''); // asynchroon — blokkeer SSE-loop niet
+  }
+
+  // ── SSE-stream lezen ──────────────────────────────────────────────────────
   let _serverData;
+  let _maxTokensWaarschuwing = false;
+  const _totaalEvents = effectieveHoofdItems.length * 3;
+  let _eventsKlaar = 0;
+
   try {
     const { data: { session: _analyseerSess } } = await db.auth.getSession();
     const _analyseerRes = await fetch('/api/analyseer', {
@@ -1850,12 +1992,97 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const _err = await _analyseerRes.json().catch(() => ({ error: _analyseerRes.statusText }));
       throw new Error(_err.error || 'Analyse mislukt op de server. Probeer opnieuw.');
     }
-    _serverData = await _analyseerRes.json();
-  } finally {
-    clearInterval(_simTimer);
+
+    const _reader  = _analyseerRes.body.getReader();
+    const _decoder = new TextDecoder();
+    let _sseBuf = '';
+    let _klaar  = false;
+
+    while (!_klaar) {
+      const { done, value } = await _reader.read();
+      if (done) break;
+
+      _sseBuf += _decoder.decode(value, { stream: true });
+      const _events = _sseBuf.split('\n\n');
+      _sseBuf = _events.pop(); // onvolledig laatste blok bewaren
+
+      for (const _evt of _events) {
+        const _trimmed = _evt.trim();
+        if (!_trimmed || _trimmed.startsWith(':')) continue; // keepalive-comment
+        if (!_trimmed.startsWith('data: ')) continue;
+
+        let _data;
+        try { _data = JSON.parse(_trimmed.slice(6)); } catch { continue; }
+
+        const _bn = _data.bestandsnaam;
+        switch (_data.type) {
+          case 'structuur':
+            if (_sseAcc[_bn]) _sseAcc[_bn].structuur = _data.result;
+            _updateSkeletonDim(_bn, 'structuur');
+            _eventsKlaar++;
+            onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
+            break;
+          case 'juridisch':
+            if (_sseAcc[_bn]) _sseAcc[_bn].juridisch = _data.result;
+            _updateSkeletonDim(_bn, 'juridisch');
+            _eventsKlaar++;
+            onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
+            break;
+          case 'balans':
+            if (_sseAcc[_bn]) _sseAcc[_bn].balans = _data.result;
+            _updateSkeletonDim(_bn, 'balans');
+            _eventsKlaar++;
+            onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
+            break;
+          case 'max_tokens':
+            _maxTokensWaarschuwing = true;
+            // Zet een leeg resultaat zodat het betreffende tabblad "klaar" toont
+            if (_sseAcc[_bn] && _data.tool) {
+              _sseAcc[_bn][_data.tool] = { issues: [] };
+              _updateSkeletonDim(_bn, _data.tool);
+            }
+            console.warn('[analyseer] max_tokens:', _bn, _data.tool);
+            break;
+          case 'fout':
+            throw new Error(_data.error || 'Analyse mislukt op de server.');
+          case 'klaar':
+            _klaar = true;
+            break;
+        }
+      }
+    }
+  } catch (err) {
+    throw err; // doorspoelen — caller toont foutmelding
   }
 
   onProgress('Stap 2 van 2 — Analyseren…', 100);
+
+  // ── Rapport samenvoegen uit accumulator (browser-side dedup) ──────────────
+  const _docResultaten = effectieveHoofdItems.map(item => {
+    const acc = _sseAcc[item.bestandsnaam] || {};
+    const s   = acc.structuur || { issues: [], samenvatting: '', mfn_score: null };
+    const j   = acc.juridisch || { issues: [] };
+    const b   = acc.balans    || { issues: [] };
+    const alleIssues = dedupIssues([
+      Array.isArray(s.issues) ? s.issues : [],
+      Array.isArray(j.issues) ? j.issues : [],
+      Array.isArray(b.issues) ? b.issues : [],
+    ]);
+    console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues na dedup`);
+    return {
+      doc_type:     item.type,
+      bestandsnaam: item.bestandsnaam,
+      samenvatting: s.samenvatting || '',
+      mfn_score:    s.mfn_score    || null,
+      issues:       alleIssues,
+    };
+  });
+
+  _serverData = {
+    classificatie,
+    documenten: _docResultaten,
+    ...(_maxTokensWaarschuwing ? { waarschuwing: 'max_tokens' } : {}),
+  };
 
   // Waarschuw de gebruiker als het tokenbudget bereikt was
   if (_serverData.waarschuwing === 'max_tokens') {
