@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nieuw wachtwoord — Documentscreening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#FAF6F0;--paper:#FFFFFF;--line:#E8E1D6;--ink:#2B2825;--ink-soft:#6B6358;
+    --coral:#E8714A;--coral-dark:#C75A38;--terra:#C75D4D;--sage:#5C8C6A;}
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;background:var(--bg);display:flex;align-items:center;
+    justify-content:center;font-family:'IBM Plex Sans',sans-serif;color:var(--ink);}
+  .wrap{width:100%;max-width:420px;padding:32px 24px;}
+  .logo{text-align:center;margin-bottom:40px;}
+  .logo h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.8rem;margin:0 0 4px;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:32px;}
+  .card h2{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.2rem;margin:0 0 20px;}
+  label{display:block;font-size:.88rem;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
+  input{width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:8px;
+    font-family:inherit;font-size:.97rem;color:var(--ink);background:var(--bg);
+    outline:none;transition:border-color .15s;margin-bottom:16px;}
+  input:focus{border-color:var(--coral);}
+  button{width:100%;padding:13px;background:var(--coral);color:#fff;border:none;
+    border-radius:10px;font-size:1rem;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:background .15s;}
+  button:hover{background:var(--coral-dark);}
+  button:disabled{background:#D8CFC2;cursor:not-allowed;}
+  .fout{margin-top:16px;padding:12px 14px;border-radius:8px;
+    background:#FCEFEC;border:1px solid #F0C8BE;color:var(--terra);font-size:.9rem;}
+  .ok{margin-top:16px;padding:12px 14px;border-radius:8px;
+    background:#EDF4EF;border:1px solid #B8D4C0;color:var(--sage);font-size:.9rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <h1>Documentscreening</h1>
+  </div>
+  <div class="card" id="laadKaart">
+    <h2>Bezig met laden…</h2>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+'use strict';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Supabase verwerkt het reset-token uit de URL-hash automatisch
+// en stuurt een PASSWORD_RECOVERY event via onAuthStateChange.
+db.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    toonResetFormulier();
+  } else if (event === 'SIGNED_IN' && !document.getElementById('nieuwWachtwoord')) {
+    // Geen recovery — misschien verkeerde link
+    toonFout('Deze link is ongeldig of verlopen. Vraag een nieuwe aan.');
+  }
+});
+
+function toonResetFormulier() {
+  document.getElementById('laadKaart').innerHTML = `
+    <h2>Nieuw wachtwoord instellen</h2>
+    <label for="nieuwWachtwoord">Nieuw wachtwoord <span style="font-weight:400">(min. 8 tekens)</span></label>
+    <input type="password" id="nieuwWachtwoord" placeholder="••••••••" autocomplete="new-password">
+    <label for="bevestigWachtwoord">Bevestig wachtwoord</label>
+    <input type="password" id="bevestigWachtwoord" placeholder="••••••••" autocomplete="new-password">
+    <button id="opslaanBtn">Wachtwoord opslaan</button>
+    <div class="fout" id="fout" style="display:none"></div>
+    <div class="ok"  id="ok"   style="display:none"></div>
+  `;
+  document.getElementById('opslaanBtn').addEventListener('click', slaWachtwoordOp);
+}
+
+function toonFout(msg) {
+  document.getElementById('laadKaart').innerHTML = `
+    <h2>Link ongeldig</h2>
+    <div class="fout">${msg}</div>
+    <p style="margin-top:16px;font-size:.88rem">
+      <a href="wachtwoord-vergeten.html" style="color:var(--coral)">Nieuw verzoek aanvragen</a>
+    </p>
+  `;
+}
+
+async function slaWachtwoordOp() {
+  const nieuw      = document.getElementById('nieuwWachtwoord').value;
+  const bevestig   = document.getElementById('bevestigWachtwoord').value;
+  const foutEl     = document.getElementById('fout');
+  const okEl       = document.getElementById('ok');
+  const btn        = document.getElementById('opslaanBtn');
+
+  foutEl.style.display = 'none';
+  okEl.style.display   = 'none';
+
+  if (nieuw.length < 8) {
+    foutEl.textContent = 'Wachtwoord moet minimaal 8 tekens zijn.';
+    foutEl.style.display = 'block'; return;
+  }
+  if (nieuw !== bevestig) {
+    foutEl.textContent = 'Wachtwoorden komen niet overeen.';
+    foutEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Opslaan…';
+  const { error } = await db.auth.updateUser({ password: nieuw });
+
+  if (error) {
+    foutEl.textContent   = error.message;
+    foutEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Wachtwoord opslaan';
+  } else {
+    okEl.textContent   = 'Wachtwoord opgeslagen. Je wordt doorgestuurd…';
+    okEl.style.display = 'block';
+    setTimeout(() => window.location.replace('login.html'), 2000);
+  }
+}
+</script>
+</body>
+</html>

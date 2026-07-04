@@ -55,16 +55,17 @@ export default async function handler(req, res) {
 
   // ── Hulpfunctie: verbeterpunt formatteren voor de prompt ──────────
   const formatItem = (item, nr) => {
-    const cat = item.categorie || '?';
-    const loc = item.locatie || item.sectie || item.onderwerp || item.signalering || '';
-    const bev = item.bevinding || item.toelichting || item.probleem || item.signalering || '';
-    const sug = item.suggestie || '';
-    const opm = item.opmerking || '';
-    const pas = item.passage   || item.citaat || '';
-    let tekst = `[${nr}] (${cat})`;
-    if (loc) tekst += `\n   Locatie: ${loc}`;
+    const cat  = item.categorie || '?';
+    const loc  = item.onderwerp || item.locatie || item.sectie || item.signalering || '';
+    const bev  = item.bevinding || item.toelichting || item.probleem || item.signalering || '';
+    const sug  = item.aanbeveling || item.suggestie || '';
+    const opm  = item.opmerking || '';
+    const pas  = item.passage   || item.citaat || '';
+    const dims = Array.isArray(item.dimensies) && item.dimensies.length ? item.dimensies.join(', ') : '';
+    let tekst = `[${nr}] (${cat}${dims ? ' — ' + dims : ''})`;
+    if (loc) tekst += `\n   Onderwerp: ${loc}`;
     if (bev) tekst += `\n   Bevinding: ${bev}`;
-    if (sug) tekst += `\n   Suggestie: ${sug}`;
+    if (sug) tekst += `\n   Aanbeveling: ${sug}`;
     if (opm) tekst += `\n   Opmerking mediator: ${opm}`;
     if (pas) tekst += `\n   Passage in document: "${pas}"`;
     return tekst;
@@ -157,8 +158,8 @@ ORIGINEEL DOCUMENT:
 ${documentTekst}`;
 
       const { status, body: json } = await anthropicPost(apiKey, {
-        model:       'claude-sonnet-4-6',
-        max_tokens:  2048, // per batch van 5: ruim voldoende
+        model:       'claude-fable-5',
+        max_tokens:  4096, // per batch van 5: ruim voldoende voor complexe wijzigingen
         temperature: 0,
         system:      systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
@@ -171,6 +172,8 @@ ${documentTekst}`;
       }
       if (json.stop_reason === 'max_tokens') {
         console.warn(`[genereer-concept] batch ${bIdx + 1}: max_tokens bereikt — sommige wijzigingen mogelijk afgekapt`);
+        // Gooi een herkenbare fout zodat de client dit kan tonen
+        throw new Error(`Tokenbudget bereikt voor batch ${bIdx + 1}. Selecteer minder verbeterpunten tegelijk (max 5 aanbevolen).`);
       }
 
       const toolUse = json.content?.find(b => b.type === 'tool_use');

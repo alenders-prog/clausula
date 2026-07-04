@@ -1,10 +1,11 @@
 {
   "regions": ["fra1"],
   "functions": {
+    "api/analyseer.js":        { "maxDuration": 120 },
     "api/genereer-concept.js": { "maxDuration": 120 },
     "api/claude.js":           { "maxDuration": 120 },
+    "api/claude-edge.js":      { "maxDuration": 120 },
     "api/screen.js":           { "maxDuration": 120 },
-    "api/extract-pdf.js":      { "maxDuration": 30  },
     "api/adobe-start.js":      { "maxDuration": 60  },
     "api/adobe-result.js":     { "maxDuration": 30  }
   },

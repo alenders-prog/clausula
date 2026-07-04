@@ -10,76 +10,145 @@ De kennisbank bevat wetteksten en richtlijnen die Claude gebruikt bij de analyse
 
 | Categorie | Artikelen |
 |---|---|
-| **BW Boek 1 — Vermogen** | art. 1:94 (2× pre/na 2018), 1:99-100, 1:114, 1:121, 1:132-133, 1:141, 1:94 lid 3/1:95 |
-| **BW Boek 1 — Alimentatie** | art. 1:157, 1:158, 1:159, **1:159a**, 1:160, 1:397, 1:401, 1:402, 1:408 |
+| **BW Boek 1 — Vermogen** | art. 1:94 (2× pre/na 2018), 1:99-100, 1:114, 1:121, 1:132-133, 1:141, 1:94 lid 3/1:95, **1:88, 1:81, 1:149** |
+| **BW Boek 1 — Alimentatie** | art. 1:157, 1:158, 1:159, 1:159a, 1:160, 1:397, 1:401, 1:402, 1:408, **1:395a, 1:400** |
 | **BW Boek 1 — Kinderen** | art. 1:404, 1:247, 1:253a, 1:253n, 1:377a-377b |
+| **BW Boek 1 — Pensioen** | art. **1:155** |
+| **BW Boek 1 — Overig** | art. **1:165** (finale kwijting), **Standaardclausules** |
 | **Rv** | art. 815, 826 |
-| **WVPS** | art. 2, 5, **11** |
-| **BW Boek 3** | art. 3:170 |
-| **IB 2001** | art. 6.3+3.101 (alimentatie fiscaal), art. 3.111+3.119a (eigen woning) |
+| **WVPS** | art. 2, **3, 4**, 5, 11 |
+| **BW Boek 3** | art. 3:170, **3:177-178** |
+| **IB 2001** | art. 6.3+3.101 (alimentatie fiscaal), art. 3.111+3.119a (eigen woning), **art. 2.17 (fiscale partners)** |
 | **Participatiewet** | art. 62 |
 | **Tremanormen** | Methode, behoeftetabel, draagkrachttabel, partneralimentatie |
 
 ---
 
-## Jaarlijkse update: Tremanormen (elk januari)
+## Nieuw artikel automatisch toevoegen (aanbevolen)
 
-De Tremanormen worden jaarlijks per 1 januari bijgewerkt door de Expertgroep Alimentatienormen. De tabel-bedragen (behoeftetabel, draagkrachttabel) wijzigen elk jaar met het CBS-indexcijfer.
+Gebruik het fetch-script voor nieuwe artikelen. Het script haalt de officiële wettekst op van wetten.overheid.nl en laat Claude de chunk structureren:
 
-### Wanneer?
-- **Controleer elke januari** of nieuwe Tremanormen zijn gepubliceerd.
-- Bron: [rechtspraak.nl/Onderwerpen/Paginas/Alimentatie.aspx](https://www.rechtspraak.nl/Onderwerpen/Paginas/Alimentatie.aspx)
+```bash
+# Alle artikelen in de TE_VERWERKEN lijst verwerken:
+node scripts/fetch-wetteksten.js
 
-### Wat bijwerken?
-In `legal_chunks_seed.sql`, zoek op `Tremanormen 2025` en vervang:
-1. De **behoeftetabel** (chunk index 2) — alle euro-bedragen bijwerken
-2. De **draagkrachttabel** (chunk index 3) — alle euro-bedragen bijwerken + bijstandsnorm
-3. Het **jaar** in alle Tremanormen-citations: `Tremanormen 2025` → `Tremanormen 2026`
-4. De `valid_from` datum van de Tremanormen-bron onderaan het bestand
+# Eén specifiek artikel:
+node scripts/fetch-wetteksten.js --artikel=1:82
 
-### Hoe uitvoeren?
-1. Open `legal_chunks_seed.sql` in VSCode
-2. Pas de bedragen aan
-3. Ga naar Supabase SQL-editor → plak de volledige inhoud van het bestand → Klik "Run"
+# Alleen fetchen, niet structureren (testen):
+node scripts/fetch-wetteksten.js --dry-run
+```
+
+Output: `scripts/output/nieuwe-chunks.sql`
+
+**Na een run:**
+1. Review het gegenereerde SQL-bestand
+2. Kopieer het naar `legal_chunks_seed.sql` (vóór het SELECT-blok)
+3. Voer uit in Supabase SQL-editor
+4. Pas `VOLGENDE_INDEX` in `scripts/fetch-wetteksten.js` aan
+
+**Nieuwe artikelen toevoegen aan de verwerkingslijst:**
+Open `scripts/fetch-wetteksten.js` en voeg toe aan de `TE_VERWERKEN` array:
+
+```javascript
+{
+  sourceId:  '10000000-0000-0000-0000-000000000001', // BW Boek 1
+  bwbId:     'BWBR0002656',
+  wetNaam:   'BW Boek 1',
+  artikel:   '1:82',
+  hint:      'Bijdrage kosten huishouding tijdens huwelijk',
+},
+```
+
+Source-IDs per wet:
+| Wet | source_id |
+|-----|-----------|
+| BW Boek 1 | `10000000-0000-0000-0000-000000000001` |
+| Rv | `10000000-0000-0000-0000-000000000002` |
+| WVPS | `10000000-0000-0000-0000-000000000003` |
+| BW Boek 3 | `10000000-0000-0000-0000-000000000004` |
+| Tremanormen | `10000000-0000-0000-0000-000000000005` |
+| IB 2001 | `10000000-0000-0000-0000-000000000006` |
+| Participatiewet | `10000000-0000-0000-0000-000000000007` |
 
 ---
 
-## Bij wetswijzigingen (onregelmatig)
+## Handmatig artikel toevoegen
 
-### Hoe kom je erachter?
-- Abonneer op [wetten.overheid.nl](https://wetten.overheid.nl) voor alerts op specifieke BWB-nummers
-- Of volg [rechtspraak.nl](https://www.rechtspraak.nl) voor uitspraken over echtscheiding
-
-### Wat te doen bij een wetswijziging?
-1. Zoek het gewijzigde artikel op in `legal_chunks_seed.sql`
-2. Pas de inhoud aan
-3. Herrun het SQL-bestand in Supabase
-
-### Nieuwe artikelen toevoegen?
-Voeg onderaan de juiste sectie in `legal_chunks_seed.sql` een nieuw blok toe:
+Voeg direct toe aan `legal_chunks_seed.sql` vóór het SELECT-verificatieblok:
 
 ```sql
-('10000000-0000-0000-0000-000000000001', 23,  -- source_id + volgend chunk_index
+INSERT INTO legal_chunks (source_id, chunk_index, citation, content, topic_tags) VALUES
+('10000000-0000-0000-0000-000000000001', 35,  -- source_id + volgend chunk_index
 'art. X:XX BW — korte omschrijving',
-'Volledige wettekst of samenvatting met praktische aandachtspunten voor het convenant...',
-ARRAY['tag1','tag2','tag3']),
+'Volledige wettekst of samenvatting met praktische aandachtspunten...',
+ARRAY['tag1','tag2','convenant']);
 ```
 
-### Topic tags — overzicht
-Gebruik bestaande tags zodat de retrieval werkt:
+Voer daarna uit in de Supabase SQL-editor.
+
+---
+
+## Jaarlijkse update: Tremanormen (elk januari)
+
+De Tremanormen worden jaarlijks per 1 januari bijgewerkt. Controleer elk jaar in januari.
+
+**Bron:** [rechtspraak.nl/Onderwerpen/Paginas/Alimentatie.aspx](https://www.rechtspraak.nl/Onderwerpen/Paginas/Alimentatie.aspx)
+
+In `legal_chunks_seed.sql`:
+1. Zoek op `Tremanormen 2025`
+2. Vervang jaar + bijgewerkte bedragen (behoeftetabel chunk 2, draagkrachttabel chunk 3)
+3. Herrun het volledige bestand in Supabase SQL-editor
+
+---
+
+## Bij wetswijzigingen
+
+- Abonneer op alerts via [wetten.overheid.nl](https://wetten.overheid.nl)
+- Zoek het gewijzigde artikel op in `legal_chunks_seed.sql`
+- Pas inhoud aan en herrun in Supabase
+
+---
+
+## Als Claude een vals positief genereert
+
+Als Claude een wetsartikel of gangbare clausule ten onrechte als fout aanmerkt:
+
+1. **Controleer** of het artikel in `legal_chunks_seed.sql` staat (ook in de standaardclausules-chunk, index 28)
+2. **Ontbreekt het**: voeg toe via `node scripts/fetch-wetteksten.js --artikel=X:XX`
+3. **Herrun** de INSERT in Supabase SQL-editor
+4. Voer een nieuwe analyse uit — Claude heeft nu de juiste context
+
+**Speciaal geval — standaardformuleringen:**
+Als Claude een *gangbare formulering* in een convenant aanmerkt als fout, voeg die formulering dan toe aan chunk 28 (`Gangbare correcte standaardclausules`) in `legal_chunks_seed.sql`.
+
+---
+
+## Volledigheidscheck
+
+```bash
+node scripts/check-legal-chunks.js
+```
+
+Vergelijkt huidige database met referentielijst en rapporteert wat ontbreekt.
+
+---
+
+## Topic tags — overzicht
 
 | Tag | Wanneer gebruiken |
 |---|---|
-| `convenant` | Alle artikelen die relevant zijn voor het convenant |
-| `ouderschapsplan` | Alle artikelen over kinderaangelegenheden |
-| `alimentatie` | Algemeen alimentatie (beide soorten) |
+| `convenant` | Alle artikelen relevant voor het convenant |
+| `ouderschapsplan` | Artikelen over kinderaangelegenheden |
+| `alimentatie` | Algemeen (beide soorten) |
 | `partneralimentatie` | Specifiek partneralimentatie |
 | `kinderalimentatie` | Specifiek kinderalimentatie |
+| `jongmeerderjarigen` | Kinderen 18–21 jaar |
 | `nihilbeding` | Nihilbeding partneralimentatie |
 | `tremanormen` | Tremanormen-richtlijnen |
-| `pensioen` | Pensioenverevening |
-| `pensioenverevening` | Pensioenverevening standaard |
-| `pensioenverevening_uitgesloten` | Pensioenverevening afgeweken of uitgesloten |
+| `pensioen` | Pensioenverevening algemeen |
+| `pensioenverevening` | Standaard pensioenverevening |
+| `pensioenverevening_uitgesloten` | Afgeweken of uitgesloten verevening |
 | `vermogen` | Vermogensverdeling |
 | `verdeling` | Verdeling goederen |
 | `gemeenschap_van_goederen` | Algehele gemeenschap (pre-2018) |
@@ -90,47 +159,20 @@ Gebruik bestaande tags zodat de retrieval werkt:
 | `koude_uitsluiting` | Koude uitsluiting |
 | `verrekenbeding` | Verrekenbeding |
 | `uitsluitingsclausule` | Uitsluitingsclausule / erfenissen |
-| `woning` | Eigen woning behandeling |
-| `eigen_woning` | Eigen woning (fiscaal of goederenrecht) |
-| `hypotheek` | Hypotheek en hoofdelijke aansprakelijkheid |
+| `woning` | Eigen woning (goederenrecht) |
+| `eigen_woning` | Eigen woning (fiscaal) |
+| `hypotheek` | Hypotheek en aansprakelijkheid |
 | `fiscaal` | Fiscale aspecten (IB 2001) |
 | `gezag` | Ouderlijk gezag |
 | `gezamenlijk_gezag` | Gezamenlijk gezag |
 | `omgang` | Omgang / contactregeling |
 | `informatieplicht` | Informatie- en consultatieverplichting |
 | `zorgregeling` | Zorgregeling / verblijfsregeling |
-| `kinderen_minderjarig` | Aanwezig als er minderjarige kinderen zijn |
-| `geschillenregeling` | Geschillenregeling / escalatiebepaling |
-| `volledigheid` | Formele volledigheid convenant/ouderschapsplan |
-| `participatiewet` | Interactie met bijstand/gemeente |
+| `kinderen_minderjarig` | Minderjarige kinderen aanwezig |
+| `geschillenregeling` | Geschillenregeling / mediationclausule |
+| `volledigheid` | Formele volledigheid convenant/OP |
+| `participatiewet` | Bijstand / gemeente |
 
 ---
 
-## Volledigheidscheck uitvoeren
-
-Je kunt automatisch controleren of alle verwachte chunks aanwezig zijn in de database:
-
-```bash
-node scripts/check-legal-chunks.js
-```
-
-Het script vergelijkt de huidige database-inhoud met de referentielijst en rapporteert wat ontbreekt.
-
----
-
-## Wat te doen als Claude een artikel als "niet bestaand" aanmerkt?
-
-Als Claude in de analyse aangeeft dat een bepaald wetsartikel "niet bestaat" terwijl het wél bestaat:
-
-1. **Controleer** of het artikel in `legal_chunks_seed.sql` staat
-2. **Als het ontbreekt**: voeg het toe aan het SQL-bestand
-3. **Herrun** het SQL-bestand in Supabase SQL-editor
-4. Voer daarna een nieuwe analyse uit — Claude krijgt nu de juiste context
-
-### Verificatie van wetteksten
-- Actuele Nederlandse wetgeving: [wetten.overheid.nl](https://wetten.overheid.nl)
-- Alimentatienormen: [rechtspraak.nl/alimentatie](https://www.rechtspraak.nl/Onderwerpen/Paginas/Alimentatie.aspx)
-
----
-
-*Bijgewerkt: juni 2026*
+*Bijgewerkt: juli 2026*

@@ -193,6 +193,17 @@ ARRAY['geschillenregeling','ouderschapsplan','gezag','kinderen_minderjarig']),
 'Art. 1:377a BW: Het kind heeft recht op omgang met beide ouders. De niet-verzorgende ouder heeft het recht op en de verplichting tot omgang. De rechter stelt een omgangsregeling vast tenzij dit strijdig is met zwaarwegende belangen van het kind. Art. 1:377b BW: De ouder bij wie het kind zijn hoofdverblijfplaats heeft, is verplicht de andere ouder te informeren over gewichtige aangelegenheden de persoon en het vermogen van het kind betreffende. Tevens is overleg (consultatie) verplicht bij belangrijke beslissingen over het kind. In het ouderschapsplan dient de informatie- en consultatieverplichting expliciet te worden opgenomen (vereiste op grond van art. 826 Rv).',
 ARRAY['omgang','informatieplicht','ouderschapsplan','kinderen_minderjarig']),
 
+('10000000-0000-0000-0000-000000000001', 23,
+'art. 1:155 BW — pensioenverevening bij scheiding (verwijzing naar WVPS)',
+'Art. 1:155 BW bepaalt dat bij ontbinding van het huwelijk de verevening van pensioenrechten plaatsvindt overeenkomstig de Wet verevening pensioenrechten bij scheiding (WVPS). Art. 1:155 BW vormt de BW-grondslag die de WVPS van toepassing verklaart; de uitwerking staat in de WVPS zelf (standaardverevening 50/50 in art. 2 WVPS, afwijking in art. 5 WVPS).
+
+DE GANGBARE STANDAARDFORMULE in convenanten is: "De ouderdomspensioenen worden verevend conform de in artikel 1:155 BW in samenhang met de in Wet VPS opgenomen standaardregeling." Deze formulering is juridisch correct en wordt standaard gebruikt in de notariële en mediationpraktijk. Een screener mag deze formulering NIET als fout aanmerken.
+
+AFWIJKING (art. 5 WVPS): Partijen kunnen schriftelijk afwijken van de standaardverevening (andere verdeling, conversie of volledige afstand). Dit dient uitdrukkelijk in het convenant te worden vastgelegd.
+
+MELDING (art. 11 WVPS): De vereveningsgerechtigde dient binnen 2 jaar na inschrijving van de echtscheiding de pensioenuitvoerder(s) te informeren, anders vervalt het recht op rechtstreekse betaling.',
+ARRAY['pensioen','pensioenverevening','convenant']),
+
 -- ════════════════════════════════════════════════════════════════════
 -- WETBOEK VAN BURGERLIJKE RECHTSVORDERING
 -- ════════════════════════════════════════════════════════════════════
@@ -420,6 +431,206 @@ AANDACHTSPUNTEN VOOR CONVENANT:
 
 ⚠ Tremanormen zijn richtlijnen, geen wet. Gemotiveerde afwijking is toegestaan maar dient expliciet in het convenant te worden opgenomen.',
 ARRAY['partneralimentatie','alimentatie','tremanormen','convenant','nihilbeding']);
+
+-- ══════════════════════════════════════════════════════════════════════
+-- UITBREIDINGEN 2026-07
+-- ══════════════════════════════════════════════════════════════════════
+
+-- ── BW Boek 1 — aanvullingen ─────────────────────────────────────────
+
+INSERT INTO legal_chunks (source_id, chunk_index, citation, content, topic_tags) VALUES
+
+('10000000-0000-0000-0000-000000000001', 24,
+'art. 1:395a BW — levensonderhoud jongmeerderjarigen (18–21 jaar)',
+'Ouders zijn verplicht naar draagkracht te voorzien in de kosten van levensonderhoud en studie van hun kinderen die meerderjarig zijn maar de leeftijd van 21 jaar nog niet hebben bereikt (jongmeerderjarigen). De verplichting is een voorzetting van art. 1:404 BW (minderjarigen) en eindigt van rechtswege bij het 21e jaar. De jongmeerderjarige zelf is procesrechtelijk bevoegd en kan de vordering zelf instellen.
+
+BELANG VOOR CONVENANT / OUDERSCHAPSPLAN:
+(1) Veel convenanten regelen alimentatie "tot het kind 18 jaar is" — dit is onvolledig: art. 1:395a BW loopt door tot 21 jaar;
+(2) Partijen dienen te vermelden of en hoe de bijdrage voortloopt na het 18e jaar (bijv. bijdrage in studiekosten, huurkosten op studentenkamer);
+(3) Hoogte na 18 jaar wordt bepaald door: behoefte kind (studie + wonen) minus eigen inkomsten kind, afgezet tegen draagkracht ouders;
+(4) Praktisch: vermeld in ouderschapsplan een aparte regeling voor studerende kinderen, anders ontstaat later discussie;
+(5) Na 21 jaar: geen wettelijke plicht meer, maar partijen kunnen vrijwillig afspraken maken (bijv. bijdrage tot afstuderen).',
+ARRAY['kinderalimentatie','alimentatie','ouderschapsplan','kinderen_minderjarig','jongmeerderjarigen']),
+
+('10000000-0000-0000-0000-000000000001', 25,
+'art. 1:400 BW — dwingend recht kinderalimentatie / verbod uitsluiting',
+'Art. 1:400 lid 1 BW: Overeenkomsten met betrekking tot levensonderhoud voor de toekomst zijn geldig (dit omvat ook nihilbedingen voor partneralimentatie, zie art. 1:158 BW).
+Art. 1:400 lid 2 BW: Overeenkomsten waarbij het recht op levensonderhoud van minderjarige kinderen bij voorbaat wordt beperkt of uitgesloten, zijn NIETIG. Kinderalimentatie voor minderjarigen is van openbare orde en kan contractueel niet worden weggenomen.
+
+PRAKTISCH BELANG:
+(1) Een convenant dat kinderalimentatie op nihil stelt zónder deugdelijke motivering (bijv. ouder draagt het kind al volledig in natura) is nietig voor dat gedeelte;
+(2) Tremanormen-berekening is verplicht uitgangspunt; bewuste, gemotiveerde afwijking is wel toegestaan;
+(3) Partneralimentatie KAN contractueel worden uitgesloten (nihilbeding, art. 1:158 BW) — kinderalimentatie voor minderjarigen dus NIET;
+(4) Na het 18e jaar (jongmeerderjarigen, art. 1:395a BW) is contractuele uitsluiting evenmin geldig, maar hier geldt een andere juridische grondslag.',
+ARRAY['kinderalimentatie','alimentatie','ouderschapsplan','convenant','kinderen_minderjarig']),
+
+('10000000-0000-0000-0000-000000000001', 26,
+'art. 1:88 BW — toestemmingsvereiste echtgenoot voor vervreemding gezinswoning',
+'Een echtgenoot behoeft de schriftelijke toestemming van de andere echtgenoot voor rechtshandelingen die strekken tot vervreemding, bezwaring of ingebruikgeving van de woning die de echtgenoten als hun hoofdverblijf gebruikt of bestemd is als zodanig (art. 1:88 lid 1 sub a BW). Dit geldt ook als de woning alleen op naam van één echtgenoot staat.
+
+Toestemming ontbreekt → rechtshandeling is vernietigbaar (niet nietig). De andere echtgenoot kan tot 3 jaar na ontdekking vernietigen.
+
+BELANG VOOR CONVENANT:
+(1) Verkoop van de gezinswoning aan een derde vereist medewerking/toestemming van beide echtgenoten, ook als maar één eigenaar is;
+(2) Overdracht van de woning aan één van de echtgenoten (uitkopen andere partij) vereist eveneens medewerking van de andere partij;
+(3) Hypotheekverstrekking of aanpassing (bijv. omzetten naar één naam) vereist instemming beide partijen;
+(4) In convenant: vermeld expliciet dat beide partijen meewerken aan overdracht/verkoop en hypotheekwijziging;
+(5) Toestemmingsvereiste vervalt na inschrijving echtscheiding in het register van burgerlijke stand;
+(6) STANDAARD: "Partijen verbinden zich over en weer mee te werken aan al hetgeen nodig is voor de overdracht/verkoop van de gezinswoning." → CORRECTE FORMULE.',
+ARRAY['woning','hypotheek','verdeling','convenant']),
+
+('10000000-0000-0000-0000-000000000001', 27,
+'art. 1:81 BW — wederzijdse verzorgingsplicht en informatieplicht tijdens huwelijk',
+'Art. 1:81 BW: Echtgenoten zijn verplicht elkaar het nodige te verschaffen. Deze plicht eindigt bij ontbinding van het huwelijk maar vormt de historische basis voor de alimentatieverplichting na echtscheiding.
+
+Art. 1:83 BW: Echtgenoten zijn verplicht elkaar te informeren over hun financiële situatie (inkomen en vermogen). Deze informatieplicht bestaat tijdens het huwelijk en speelt een rol bij de draagkrachtbepaling.
+
+BELANG VOOR CONVENANT:
+(1) In het kader van de draagkrachtberekening (Tremanormen) zijn partijen over en weer verplicht financiële informatie te verstrekken;
+(2) Sommige convenanten nemen een informatieverplichting op voor de periode na scheiding — dit is zinvol bij variabel inkomen;
+(3) Weigering financiële informatie te verstrekken kan later grond zijn voor wijziging van de alimentatie.',
+ARRAY['alimentatie','partneralimentatie','convenant']),
+
+('10000000-0000-0000-0000-000000000001', 28,
+'Gangbare correcte standaardclausules in Nederlandse echtscheidingsdocumenten',
+'De volgende formuleringen komen standaard voor in Nederlandse convenanten en ouderschapsplannen en zijn JURIDISCH CORRECT. Een screener dient deze formuleringen NIET als fout of verdacht aan te merken.
+
+1. PENSIOENVEREVENING (standaard):
+"De ouderdomspensioenen worden verevend conform de in artikel 1:155 BW in samenhang met de in Wet VPS opgenomen standaardregeling." → CORRECT. Art. 1:155 BW bestaat en verwijst naar de WVPS; deze combinatiereferentie is gebruikelijk.
+
+2. PENSIOENVEREVENING (alternatief):
+"Partijen verevenen de tijdens het huwelijk opgebouwde ouderdomspensioenrechten conform artikel 2 WVPS (standaard 50/50)." → CORRECT.
+
+3. TREMANORMEN-AFWIJKING:
+"Partijen zijn na berekening conform de Tremanormen bewust afgeweken van de uitkomst en stellen de [kinder/partner]alimentatie vast op € ... per maand." → CORRECT. Gemotiveerde afwijking is altijd toegestaan.
+
+4. NIHILBEDING PARTNERALIMENTATIE:
+"Partijen komen overeen dat er geen partneralimentatie verschuldigd is (nihilbeding ex art. 1:158 BW). Partijen verklaren bewust en na goede voorlichting hiermee in te stemmen." → CORRECT.
+
+5. INDEXERING:
+"De alimentatiebedragen worden jaarlijks per 1 januari geïndexeerd conform artikel 1:408 BW en het CBS-indexcijfer CAO-lonen particuliere bedrijven." → CORRECT.
+
+6. FISCAAL PARTNERSCHAP:
+"Partijen zijn fiscale partners tot de datum van inschrijving van de echtscheiding in het register van burgerlijke stand." → CORRECT.
+
+7. PENSIOENMELDING:
+"Partijen verbinden zich om binnen twee jaar na datum inschrijving van de echtscheiding de pensioenuitvoerder(s) gezamenlijk te informeren conform art. 11 WVPS." → CORRECT.
+
+8. KOUDE UITSLUITING:
+"Partijen zijn buiten gemeenschap van goederen gehuwd (koude uitsluiting); er is geen huwelijksgemeenschap te verdelen." → CORRECT. Gebruik van term "verdeling huwelijksgemeenschap" is hier juist FOUT.
+
+9. MEDEWERKING WONING:
+"Partijen verbinden zich over en weer mee te werken aan al hetgeen notarieel en anderszins noodzakelijk is voor de overdracht / verkoop van de gezinswoning." → CORRECT.
+
+10. VERKLARING GEEN AANSPRAKEN:
+"Partijen verklaren over en weer niets meer van elkaar te vorderen te hebben terzake de huwelijksgemeenschap / het huwelijksvermogen, behoudens hetgeen in dit convenant is vastgelegd." → CORRECT (finale kwijting).',
+ARRAY['convenant','pensioenverevening','pensioen','alimentatie','partneralimentatie','kinderalimentatie','woning','nihilbeding','tremanormen','huwelijkse_voorwaarden','koude_uitsluiting']),
+
+('10000000-0000-0000-0000-000000000001', 29,
+'art. 1:165 BW — overeenkomst bij scheiding / finale kwijting',
+'Echtgenoten kunnen bij overeenkomst regelingen treffen met betrekking tot de gevolgen van de echtscheiding, waaronder vermogensverdeling, alimentatie en de zorg voor kinderen. Een dergelijke overeenkomst (het convenant) bindt partijen en kan worden gehecht aan het echtscheidingsverzoek. De rechter neemt de inhoud in de beschikking op.
+
+FINALE KWIJTING:
+Een kwijtingsbeding ("finale kwijting") waarbij partijen verklaren niets meer van elkaar te vorderen te hebben is geldig voor vermogensrechtelijke aanspraken. Het mag niet-vatbaar zijn voor herroeping bij de rechter, behalve bij dwaling of bedrog.
+
+Kwijting is NIET geldig voor:
+(1) Kinderalimentatie voor minderjarigen (art. 1:400 lid 2 BW — van openbare orde);
+(2) Toekomstige niet-voorziene rechtsvorderingen die buiten het vermogensrecht vallen.',
+ARRAY['convenant','verdeling','alimentatie']),
+
+('10000000-0000-0000-0000-000000000001', 30,
+'art. 1:149 BW — tijdstip ontbinding huwelijksgemeenschap (peildatum)',
+'De huwelijksgemeenschap wordt ontbonden op het tijdstip waarop het verzoek tot echtscheiding is ingediend (peildatum voor de OMVANG van de gemeenschap). De WAARDE van de goederen wordt bepaald op het tijdstip van verdeling, tenzij partijen een andere peildatum overeenkomen.
+
+BELANG VOOR CONVENANT:
+(1) Vermeld de peildatum voor de omvang van de gemeenschap (datum indiening verzoekschrift = wettelijk standaard);
+(2) Vermeld de peildatum voor de waardebepaling van goederen (woning, effecten) — dit is dikwijls datum ondertekening convenant of een overeengekomen datum;
+(3) Onduidelijkheid over de peildatum kan leiden tot discussies over waardestijging/daling tussen peildatum en leveringsdatum;
+(4) Gangbare formulering: "Als peildatum voor de omvang van de te verdelen gemeenschap geldt de datum van indiening van het gemeenschappelijk verzoekschrift. Als peildatum voor de waardebepaling geldt [datum]." → CORRECT.',
+ARRAY['vermogen','verdeling','gemeenschap_van_goederen','beperkte_gemeenschap','convenant']);
+
+-- ── WVPS — aanvullingen ───────────────────────────────────────────────
+
+INSERT INTO legal_chunks (source_id, chunk_index, citation, content, topic_tags) VALUES
+
+('10000000-0000-0000-0000-000000000003', 4,
+'WVPS art. 3 — recht op rechtstreekse betaling door pensioenuitvoerder',
+'Art. 3 WVPS: De vereveningsgerechtigde heeft recht op rechtstreekse betaling van zijn of haar aandeel door de pensioenuitvoerder, zodra:
+(a) de pensioenuitvoerder op de hoogte is gesteld van de scheiding via het standaard WVPS-formulier, én
+(b) de melding tijdig is gedaan (binnen 2 jaar na inschrijving echtscheiding, art. 11 WVPS).
+
+GEVOLG: de vereveningsgerechtigde ontvangt pensioenuitkeringen direct van het pensioenfonds of de verzekeraar, zonder tussenkomst van de andere partij (geen doorbetalingsrisico).
+
+BIJ NIET-TIJDIGE MELDING (art. 11 WVPS):
+Recht op rechtstreekse betaling vervalt, maar de vereveningsaanspraak zelf blijft bestaan. De gerechtigde moet de verevening dan verhalen op de andere partij (betaling via ex-partner).
+
+BELANG VOOR CONVENANT:
+(1) Adviseer en documenteer wie de melding bij de pensioenuitvoerder(s) doet en wanneer;
+(2) Vermelding: "De vereveningsgerechtigde ([naam]) doet tijdig (binnen 2 jaar na inschrijving echtscheiding) melding bij de pensioenuitvoerder(s) conform art. 11 WVPS";
+(3) Let op: elke pensioenuitvoerder afzonderlijk informeren als er meerdere pensioenrechten zijn (bijv. meerdere werkgevers);
+(4) Gebruik het standaard formulier "Mededeling van scheiding in verband met pensioenverevening" (verkrijgbaar bij de pensioenuitvoerder of via rijksoverheid.nl).',
+ARRAY['pensioen','pensioenverevening','convenant']),
+
+('10000000-0000-0000-0000-000000000003', 5,
+'WVPS art. 4 — conversie pensioenrechten als alternatief voor verevening',
+'Art. 4 WVPS: In plaats van pensioenverevening (recht op deel van het pensioen van de andere partij) kunnen partijen kiezen voor CONVERSIE: omzetting van het vereveningsrecht in een eigen, zelfstandig pensioenrecht voor de vereveningsgerechtigde.
+
+VEREISTEN VOOR CONVERSIE:
+(1) Schriftelijke overeenstemming tussen beide partijen (in het convenant vastleggen);
+(2) Medewerking van de pensioenuitvoerder is vereist — de uitvoerder is NIET verplicht mee te werken;
+(3) De waarde van het conversierecht dient actuarieel te worden vastgesteld;
+(4) Conversie dient tijdig te worden aangemeld bij de pensioenuitvoerder.
+
+VOORDELEN CONVERSIE t.o.v. STANDAARDVEREVENING:
+- Vereveningsgerechtigde heeft eigen zelfstandig recht, onafhankelijk van het voortleven van de andere partij;
+- Geen doorbetalingsrisico (bij standaardverevening zonder tijdige melding loopt dat via ex-partner);
+- Minder afhankelijkheid van de pensioenuitvoerder van de ex-partner.
+
+NADELEN CONVERSIE:
+- Pensioenuitvoerder hoeft niet mee te werken;
+- Actuariële berekening nodig (kosten, complexiteit);
+- Definitief: na conversie geen terugkeer naar verevening mogelijk.
+
+CONVENANT:
+Als partijen voor conversie kiezen: "Partijen komen overeen de pensioenverevening om te zetten in een zelfstandig pensioenrecht voor [naam] (conversie ex art. 4 WVPS). Partijen verzoeken gezamenlijk [naam pensioenuitvoerder] de benodigde conversie te effectueren." Let op: als pensioenuitvoerder niet meewerkt, geldt de standaardverevening van art. 2 WVPS als fallback.',
+ARRAY['pensioen','pensioenverevening','pensioenverevening_uitgesloten','convenant']);
+
+-- ── BW Boek 3 — aanvullingen ─────────────────────────────────────────
+
+INSERT INTO legal_chunks (source_id, chunk_index, citation, content, topic_tags) VALUES
+
+('10000000-0000-0000-0000-000000000004', 2,
+'art. 3:177–178 BW — verdeling van gemeenschap / recht op verdeling',
+'Art. 3:177 BW: Iedere deelgenoot kan te allen tijde verdeling van een gemeenschap vorderen, tenzij dit naar maatstaven van redelijkheid en billijkheid onaanvaardbaar zou zijn. Een verbod tot verdeling voor langer dan vijf jaar is nietig.
+
+Art. 3:178 BW: De wijze van verdeling kan door de deelgenoten worden overeengekomen. Het convenant vormt de verdelingsovereenkomst (lex specialis). Zonder overeenkomst: verdeling via de rechter.
+
+BELANG VOOR CONVENANT:
+(1) Het convenant is de verdelingsovereenkomst ex art. 3:178 BW — partijen hoeven niet naar de rechter als het convenant volledig is;
+(2) Voor registergoederen (woning, perceel) is ter uitvoering van de verdeling een notariële akte vereist (art. 3:89 BW jo. art. 3:186 BW);
+(3) Vermeld in convenant de peildatum voor waardebepaling en de uitvoeringstermijn (bijv. "overdracht bij notaris uiterlijk [datum]");
+(4) Overbedeelde partij dient een vergoeding te betalen aan onderbedeelde partij (de "overbedelingsvergoeding") — dit dient in het convenant te worden vastgelegd;
+(5) De levering van de woning vindt pas feitelijk plaats bij de notariële leveringsakte — het convenant bindt partijen wel, maar is geen levering.',
+ARRAY['vermogen','verdeling','woning','gemeenschap_van_goederen','beperkte_gemeenschap','convenant']);
+
+-- ── IB 2001 — aanvullingen ───────────────────────────────────────────
+
+INSERT INTO legal_chunks (source_id, chunk_index, citation, content, topic_tags) VALUES
+
+('10000000-0000-0000-0000-000000000006', 3,
+'IB 2001 art. 2.17 — fiscale partners: toerekening gemeenschappelijke inkomensbestanddelen',
+'Art. 2.17 IB 2001: Fiscale partners kunnen gemeenschappelijke inkomensbestanddelen (o.a. box 3-vermogen, eigen woning, persoonsgebonden aftrekposten) vrij aan elkaar toerekenen voor de belastingaangifte. Dit geeft optimalisatiemogelijkheden (hogere aftrek bij degene met het hoogste tarief).
+
+FISCAAL PARTNERSCHAP BIJ SCHEIDING:
+Fiscaal partnerschap eindigt op de dag van inschrijving van de echtscheiding in het register van burgerlijke stand (tenzij partijen nog op hetzelfde woonadres staan ingeschreven — dan blijft het fiscaal partnerschap voortduren ook na echtscheiding).
+
+BELANG VOOR CONVENANT:
+(1) Vermeld tot wanneer partijen fiscale partners zijn (datum inschrijving echtscheiding);
+(2) In het scheidingsjaar: partijen kunnen nog optimaal gebruikmaken van de vrije toerekening — adviseer dit te bespreken met een belastingadviseur;
+(3) Box 3-vermogen dat in het scheidingsjaar deels gemeenschappelijk was en deels privé: zorgvuldige toerekening per peildatum (1 januari) is noodzakelijk;
+(4) Hypotheekrenteaftrek: de vertrekkende partner heeft maximaal 2 jaar recht op aftrek als eigenwoningschuld (art. 3.111 lid 4 IB 2001 — scheidingsregeling eigen woning);
+(5) GANGBARE FORMULERING: "Partijen zijn fiscale partners tot de datum van inschrijving van de echtscheiding in het register van burgerlijke stand. Vanaf dat moment doet ieder een eigen belastingaangifte." → CORRECT.',
+ARRAY['fiscaal','partneralimentatie','woning','convenant']);
 
 -- ── Controleer resultaat ─────────────────────────────────────────────
 SELECT ls.title, lc.citation, array_length(lc.topic_tags, 1) AS tags, lc.topic_tags

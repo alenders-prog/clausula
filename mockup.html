@@ -3,1491 +3,1251 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clausula — Mockup</title>
+<title>Clausula — Juridische toetsing voor scheidingsmediators</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#1A2540; --navy-deep:#111B30; --navy-mid:#243050;
+  --coral:#C8502A; --coral-dark:#A83E1E; --coral-light:#F8EDE8;
+  --cream:#F7F4EF; --white:#FFFFFF;
+  --ink:#1E1A17; --ink-mid:#5C5249; --ink-soft:#8B7B6E;
+  --border:#E5DED5; --gold:#BFA05B;
+  --ok:#2E7D5A; --ok-bg:#E8F4EE; --warn:#B47B00; --risk:#C0392B;
+  --radius:12px; --shadow:0 2px 16px rgba(26,37,64,.08); --shadow-lg:0 8px 40px rgba(26,37,64,.13);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--white);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;}
+h1,h2,h3,h4{font-family:'Source Serif 4',Georgia,serif;line-height:1.18;letter-spacing:-.02em;}
+h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:700;}
+h2{font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:600;}
+h3{font-size:1.25rem;font-weight:600;}
+p{color:var(--ink-mid);}
 
-/* ══════════════════════════════════════════════════════════
-   MOCKUP CHROME
-   ══════════════════════════════════════════════════════════ */
-.mockup-bar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-  background: #0E1A2D; color: #A8BDD4;
-  display: flex; align-items: center; gap: 0;
-  font-family: 'Inter', sans-serif; font-size: .78rem;
-  border-bottom: 1px solid #1E3050;
-  padding: 0 12px;
-}
-.mockup-bar-label {
-  color: #4A7FA8; font-weight: 600; letter-spacing: .06em;
-  text-transform: uppercase; font-size: .68rem; margin-right: 16px;
-  padding: 10px 0; border-right: 1px solid #1E3050; padding-right: 16px;
-}
-.mockup-btn {
-  padding: 7px 16px; border: none; background: none; color: #8AA8C4;
-  cursor: pointer; font-family: inherit; font-size: .78rem; font-weight: 500;
-  border-bottom: 2px solid transparent; transition: all .15s; white-space: nowrap;
-}
-.mockup-btn:hover { color: #C8DCF0; }
-.mockup-btn.act { color: #4AAFFF; border-bottom-color: #4AAFFF; background: rgba(74,175,255,.06); }
-.mockup-note {
-  margin-left: auto; font-size: .72rem; color: #3A5A7A; padding: 10px 0; padding-left: 16px;
-  border-left: 1px solid #1E3050;
-}
+/* ── Nav ── */
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
+.nav-inner{max-width:1160px;margin:0 auto;padding:0 32px;height:64px;display:flex;align-items:center;gap:40px;}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
+.nav-logo-mark{width:34px;height:34px;background:var(--navy);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:1.1rem;color:var(--gold);}
+.nav-logo-text{font-family:'Source Serif 4',serif;font-weight:700;font-size:1.18rem;color:var(--navy);}
+.nav-logo-sub{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);display:block;line-height:1;}
+.nav-links{display:flex;gap:28px;list-style:none;flex:1;}
+.nav-links a{text-decoration:none;font-size:.88rem;font-weight:500;color:var(--ink-mid);transition:color .15s;}
+.nav-links a:hover{color:var(--navy);}
+.nav-cta{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;font-weight:600;font-size:.88rem;cursor:pointer;border:none;transition:all .15s;text-decoration:none;font-family:'Inter',sans-serif;white-space:nowrap;}
+.btn-ghost-nav{background:none;border:1.5px solid var(--border);color:var(--ink-mid);padding:8px 16px;}
+.btn-ghost-nav:hover{border-color:var(--navy);color:var(--navy);}
+.btn-primary{background:var(--coral);color:#fff;padding:9px 18px;box-shadow:0 1px 4px rgba(200,80,42,.25);}
+.btn-primary:hover{background:var(--coral-dark);transform:translateY(-1px);}
+.btn-primary-lg{padding:14px 28px;font-size:1rem;border-radius:10px;}
+.btn-outline-lg{background:none;border:2px solid rgba(255,255,255,.3);color:#fff;padding:14px 28px;font-size:1rem;border-radius:10px;}
+.btn-outline-lg:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.5);}
 
-/* ══════════════════════════════════════════════════════════
-   DESIGN TOKENS
-   ══════════════════════════════════════════════════════════ */
-:root {
-  --nav-bg:          #1B3050;
-  --nav-border:      #243F68;
-  --nav-text:        rgba(255,255,255,.6);
+/* ── Hero ── */
+.hero{background:linear-gradient(160deg,var(--navy-deep) 0%,var(--navy) 55%,#243868 100%);padding:90px 32px 0;overflow:hidden;position:relative;}
+.hero::before{content:'';position:absolute;top:0;right:0;width:50%;height:100%;background:radial-gradient(ellipse at 70% 30%,rgba(191,160,91,.07) 0%,transparent 60%);}
+.hero-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:end;}
+.hero-content{padding-bottom:80px;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(191,160,91,.12);border:1px solid rgba(191,160,91,.25);border-radius:20px;padding:5px 14px 5px 8px;margin-bottom:28px;}
+.hero-badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);}
+.hero-badge span{font-size:.76rem;font-weight:600;color:var(--gold);letter-spacing:.04em;}
+.hero h1{color:#fff;margin-bottom:20px;}
+.hero h1 em{color:var(--gold);font-style:normal;}
+.hero-sub{font-size:1.08rem;color:rgba(255,255,255,.65);margin-bottom:36px;max-width:460px;line-height:1.7;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px;}
+.hero-proof{display:flex;align-items:center;gap:10px;}
+.hero-avatars{display:flex;}
+.hero-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--navy);background:var(--navy-mid);margin-left:-8px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.6);}
+.hero-avatar:first-child{margin-left:0;}
+.hero-proof-text{font-size:.82rem;color:rgba(255,255,255,.5);}
+.hero-proof-text strong{color:rgba(255,255,255,.8);}
 
-  --bg:              #F3EFE9;
-  --paper:           #FFFFFF;
-  --paper-warm:      #FDFCFA;
-  --border:          #E3DCD5;
-  --border-mid:      #C8BEB4;
+/* App-mockup in hero */
+.hero-app{align-self:end;}
+.app-window{background:var(--cream);border-radius:12px 12px 0 0;box-shadow:var(--shadow-lg);overflow:hidden;transform:perspective(1000px) rotateX(2deg);transform-origin:bottom center;}
+.app-topbar{background:var(--navy);padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.app-topbar-logo{font-family:'Source Serif 4',serif;font-weight:700;font-size:.82rem;color:var(--gold);}
+.app-topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.app-topbar-name{font-size:.72rem;color:rgba(255,255,255,.5);}
+.app-body{padding:16px;}
+.app-toolbar{background:#fff;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px;border:1px solid var(--border);}
+.app-search{flex:1;height:28px;border-radius:6px;background:var(--cream);border:1.5px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px;}
+.app-search-icon{width:12px;height:12px;border-radius:50%;border:1.5px solid #bbb;}
+.app-search-text{font-size:.68rem;color:#bbb;}
+.app-tabs{display:flex;gap:2px;background:var(--cream);border-radius:6px;padding:2px;}
+.app-tab{font-size:.65rem;font-weight:600;padding:3px 10px;border-radius:4px;color:var(--ink-soft);}
+.app-tab.act{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.app-btn-sm{font-size:.68rem;font-weight:600;background:var(--coral);color:#fff;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;}
+.mock-kaart{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:120px 1fr auto;gap:14px;align-items:start;}
+.mock-namen{display:flex;flex-direction:column;gap:1px;}
+.mock-naam-a{font-size:.78rem;font-weight:700;color:var(--ink);font-family:'Source Serif 4',serif;}
+.mock-naam-b{font-size:.7rem;color:var(--ink-soft);}
+.mock-status-pill{font-size:.62rem;background:var(--ok-bg);color:var(--ok);border-radius:4px;padding:2px 6px;font-weight:600;margin-top:6px;display:inline-block;}
+.mock-scores{display:flex;gap:8px;align-items:center;}
+.mock-kolom{display:flex;align-items:center;gap:8px;}
+.mock-kolom+.mock-kolom{padding-left:12px;border-left:1px solid var(--border);}
+.mock-doc-label{font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px;}
+.mock-rings-row{display:flex;gap:4px;}
+.mock-ring-wrap{display:flex;flex-direction:column;align-items:center;}
+.mock-ring-label{font-size:.45rem;text-align:center;color:var(--ink-soft);margin-top:1px;}
+.mock-acties{display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.mock-btn-p{font-size:.6rem;font-weight:600;background:var(--coral);color:#fff;border:none;border-radius:5px;padding:4px 8px;cursor:pointer;}
+.mock-btn-g{font-size:.6rem;font-weight:600;border:1px solid var(--border);background:#fff;color:var(--ink-mid);border-radius:5px;padding:4px 8px;cursor:pointer;}
+.mock-row{display:flex;gap:4px;}
 
-  --ink:             #1A1816;
-  --ink-mid:         #443E38;
-  --ink-soft:        #7A7068;
-  --ink-faint:       #A89E96;
+/* ── Stats ── */
+.stats{background:var(--cream);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:32px;}
+.stats-inner{max-width:1160px;margin:0 auto;display:flex;justify-content:center;gap:80px;}
+.stat{text-align:center;}
+.stat-num{font-family:'IBM Plex Mono',monospace;font-size:2rem;font-weight:700;color:var(--navy);}
+.stat-lbl{font-size:.82rem;color:var(--ink-soft);margin-top:2px;}
 
-  --action:          #C86A3C;
-  --action-hover:    #A85530;
-  --action-light:    #FDF1EB;
-  --action-border:   #E8C4AE;
+/* ── Sections ── */
+.section{padding:96px 32px;}
+.section-inner{max-width:1160px;margin:0 auto;}
+.section-label{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--coral);margin-bottom:12px;}
+.section-sub{font-size:1.05rem;color:var(--ink-soft);max-width:560px;margin-bottom:56px;line-height:1.7;}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.feature-card{background:var(--cream);border-radius:var(--radius);padding:28px 28px 32px;border:1px solid var(--border);transition:all .2s;}
+.feature-card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--gold);}
+.feature-icon{width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:20px;}
+.fi-navy{background:var(--navy);}
+.fi-coral{background:var(--coral-light);}
+.fi-gold{background:rgba(191,160,91,.1);}
+.feature-card h3{margin-bottom:10px;font-size:1.1rem;}
+.feature-card p{font-size:.88rem;line-height:1.6;}
 
-  --ok:              #2A7260;
-  --ok-light:        #EBF6F4;
-  --ok-border:       #A8D8D0;
-  --warn:            #B27820;
-  --warn-light:      #FFF7E6;
-  --warn-border:     #E8D090;
-  --bad:             #A83838;
-  --bad-light:       #FDF0F0;
-  --bad-border:      #E8B8B8;
+/* ── How it works ── */
+.howitworks{background:var(--navy);padding:96px 32px;}
+.howitworks .section-label{color:var(--gold);}
+.howitworks h2{color:#fff;margin-bottom:16px;}
+.howitworks .section-sub{color:rgba(255,255,255,.55);margin-bottom:64px;}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);position:relative;}
+.steps::before{content:'';position:absolute;top:28px;left:calc(100%/8);right:calc(100%/8);height:1px;background:linear-gradient(90deg,transparent,rgba(191,160,91,.3),rgba(191,160,91,.3),transparent);}
+.step{padding:0 20px;}
+.step-num{width:56px;height:56px;border-radius:50%;border:2px solid rgba(191,160,91,.3);display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-family:'IBM Plex Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--gold);}
+.step h3{color:#fff;margin-bottom:10px;font-size:1rem;}
+.step p{font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.7;}
 
-  --gold:            #8A6A10;
-  --gold-light:      #FFF8E0;
-  --gold-border:     #D8B848;
+/* ── Score preview ── */
+.screenshot-section{padding:96px 32px;background:var(--cream);}
+.screenshot-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
+.feat-list{display:flex;flex-direction:column;gap:14px;margin-bottom:36px;}
+.feat-item{display:flex;align-items:flex-start;gap:14px;}
+.feat-icon{width:36px;height:36px;border-radius:8px;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.feat-item h4{font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.feat-item p{font-size:.82rem;margin:0;}
+.score-preview{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:24px;border:1px solid var(--border);}
+.score-top{display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.big-ring{width:72px;height:72px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 230deg,white 230deg 233deg,#B47B00 233deg 285deg,white 285deg 288deg,#C0392B 288deg 360deg);padding:5px;flex-shrink:0;}
+.big-ring-inner{width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.2rem;color:var(--ink);}
+.score-doc-lbl{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;}
+.score-naam{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.05rem;color:var(--ink);}
+.score-datum{font-size:.75rem;color:var(--ink-soft);}
+.score-cats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.score-cat{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.cat-ring{width:44px;height:44px;border-radius:50%;padding:3px;}
+.cat-inner{width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:.65rem;color:var(--ink);}
+.cat-lbl{font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+.r-warn{background:conic-gradient(#2E7D5A 0deg 200deg,white 200deg 203deg,#B47B00 203deg 280deg,white 280deg 283deg,#E5DED5 283deg 360deg);}
+.r-risk{background:conic-gradient(#C0392B 0deg 90deg,white 90deg 93deg,#B47B00 93deg 200deg,white 200deg 203deg,#2E7D5A 203deg 320deg,white 320deg 323deg,#E5DED5 323deg 360deg);}
+.r-ok2{background:conic-gradient(#2E7D5A 0deg 330deg,white 330deg 333deg,#E5DED5 333deg 360deg);}
+.r-ok{background:conic-gradient(#2E7D5A 0deg 360deg);}
+.score-legend{display:flex;gap:14px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--ink-soft);}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
 
-  --score-ok-bg:     #EBF6F4; --score-ok-text:   #1E5A50;
-  --score-warn-bg:   #FFF7E6; --score-warn-text:  #7A5010;
-  --score-bad-bg:    #FDF0F0; --score-bad-text:   #7A2828;
-
-  --font-sans:       'Inter', sans-serif;
-  --font-serif:      'Source Serif 4', serif;
-  --font-mono:       'IBM Plex Mono', monospace;
-
-  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
-  --shadow-lg: 0 8px 24px rgba(0,0,0,.1), 0 4px 8px rgba(0,0,0,.05);
-}
-
-/* ══════════════════════════════════════════════════════════
-   RESET & BASE
-   ══════════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-body {
-  padding-top: 36px;
-  font-family: var(--font-sans);
-  font-size: 15px;
-  color: var(--ink);
-  background: var(--bg);
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ══════════════════════════════════════════════════════════
-   APP SHELL
-   ══════════════════════════════════════════════════════════ */
-.app {
-  height: calc(100vh - 36px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ── Topbar ──────────────────────────────────────────── */
-.topbar {
-  height: 52px;
-  background: var(--nav-bg);
-  border-bottom: 1px solid var(--nav-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-  flex-shrink: 0;
-}
-.topbar-brand {
-  display: flex; align-items: center; gap: 10px;
-}
-.brand-mark {
-  width: 30px; height: 30px;
-  background: var(--action);
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif);
-  font-weight: 700; font-size: .88rem;
-  color: #fff;
-  flex-shrink: 0;
-}
-.brand-name {
-  font-weight: 700; font-size: .95rem;
-  color: #fff; letter-spacing: -.01em;
-}
-.brand-sep {
-  width: 1px; height: 18px;
-  background: var(--nav-border);
-  margin: 0 2px;
-}
-.brand-sub {
-  font-size: .72rem;
-  color: rgba(255,255,255,.35);
-  letter-spacing: .01em;
-}
-.topbar-right {
-  display: flex; align-items: center; gap: 6px;
-}
-.topbar-icon-btn {
-  width: 32px; height: 32px;
-  background: none; border: none;
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  color: rgba(255,255,255,.45);
-  display: flex; align-items: center; justify-content: center;
-  transition: all .15s;
-}
-.topbar-icon-btn:hover {
-  background: rgba(255,255,255,.08);
-  color: rgba(255,255,255,.8);
-}
-.topbar-divider {
-  width: 1px; height: 18px;
-  background: var(--nav-border);
-  margin: 0 6px;
-}
-.topbar-email {
-  font-size: .76rem;
-  color: rgba(255,255,255,.4);
-}
-.topbar-logout {
-  background: none;
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: var(--r-sm);
-  padding: 4px 11px;
-  font-family: inherit; font-size: .75rem; font-weight: 500;
-  color: rgba(255,255,255,.45);
-  cursor: pointer;
-  transition: all .15s;
-  margin-left: 4px;
-}
-.topbar-logout:hover {
-  border-color: rgba(255,255,255,.3);
-  color: rgba(255,255,255,.75);
-}
-
-/* ── Master-detail ───────────────────────────────────── */
-.master-detail {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-/* ── Lijstpanel (links) ──────────────────────────────── */
-.list-panel {
-  width: 288px;
-  flex-shrink: 0;
-  background: var(--paper);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.list-toolbar {
-  padding: 10px 10px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
-}
-.list-search-wrap {
-  flex: 1;
-  position: relative;
-}
-.list-search-icon {
-  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
-  width: 14px; height: 14px;
-  color: var(--ink-faint); pointer-events: none;
-}
-.list-search {
-  width: 100%;
-  padding: 7px 10px 7px 30px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-sm);
-  font-family: inherit; font-size: .82rem;
-  background: var(--bg); color: var(--ink);
-  outline: none; transition: border-color .15s;
-}
-.list-search::placeholder { color: var(--ink-faint); }
-.list-search:focus { border-color: var(--action); }
-.list-nieuw-btn {
-  width: 32px; height: 32px;
-  background: var(--action); color: #fff;
-  border: none; border-radius: var(--r-sm);
-  font-size: 1.3rem; font-weight: 400; line-height: 1;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: background .15s;
-}
-.list-nieuw-btn:hover { background: var(--action-hover); }
-.list-scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 0 12px;
-}
-.list-section {
-  font-size: .62rem; font-weight: 700; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--ink-faint);
-  padding: 12px 14px 4px;
-}
-.list-row {
-  display: block; width: 100%; text-align: left;
-  background: none; border: none; border-left: 3px solid transparent;
-  padding: 9px 14px 9px 11px;
-  cursor: pointer;
-  transition: background .1s, border-color .1s;
-  font-family: inherit;
-}
-.list-row:hover { background: var(--bg); }
-.list-row.act {
-  background: var(--action-light);
-  border-left-color: var(--action);
-}
-.list-row-naam {
-  font-weight: 600; font-size: .88rem;
-  color: var(--ink); line-height: 1.25;
-  margin-bottom: 4px;
-}
-.list-row-chips {
-  display: flex; gap: 4px; flex-wrap: wrap;
-  margin-bottom: 3px;
-}
-.list-row-datum {
-  font-size: .71rem; color: var(--ink-faint);
-}
-
-/* ── Detailpanel (rechts) ────────────────────────────── */
-.detail-panel {
-  flex: 1;
-  min-width: 0;
-  overflow-y: auto;
-  position: relative;
-  background: var(--bg);
-}
-
-/* Right-panel states */
-.rp { display: none; min-height: 100%; }
-.rp.act { display: flex; flex-direction: column; }
-
-/* Gedeelde rp-header */
-.rp-header {
-  background: var(--paper);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 28px;
-  flex-shrink: 0;
-  position: sticky; top: 0; z-index: 10;
-}
-.rp-header-analyse {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 28px;
-}
-.rp-back {
-  background: none; border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 6px 12px; font-family: inherit;
-  font-size: .82rem; color: var(--ink-soft);
-  cursor: pointer; transition: background .15s;
-  white-space: nowrap; flex-shrink: 0;
-}
-.rp-back:hover { background: var(--bg); }
-.rp-header-detail {
-  display: flex; align-items: flex-start;
-  justify-content: space-between; gap: 16px;
-}
-.rp-title {
-  font-family: var(--font-serif);
-  font-size: 1.4rem; font-weight: 600;
-  letter-spacing: -.02em; color: var(--ink);
-  margin: 0 0 5px; line-height: 1.2;
-}
-.rp-title-sm {
-  font-family: var(--font-serif);
-  font-size: 1.05rem; font-weight: 600;
-  color: var(--ink); margin: 0; letter-spacing: -.01em;
-}
-.rp-meta {
-  display: flex; align-items: center; gap: 8px;
-  font-size: .83rem; color: var(--ink-soft);
-}
-.rp-acties {
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-}
-.rp-body {
-  flex: 1;
-  padding: 24px 28px 48px;
-}
-
-/* ══════════════════════════════════════════════════════════
-   KNOPPEN
-   ══════════════════════════════════════════════════════════ */
-.btn-primary {
-  padding: 9px 18px;
-  background: var(--action); color: #fff;
-  border: none; border-radius: var(--r-md);
-  font-family: inherit; font-size: .88rem; font-weight: 600;
-  cursor: pointer; transition: background .15s;
-  white-space: nowrap; display: inline-flex; align-items: center; gap: 7px;
-}
-.btn-primary:hover { background: var(--action-hover); }
-.btn-secondary {
-  padding: 9px 16px;
-  background: var(--paper); color: var(--action);
-  border: 1.5px solid var(--action-border); border-radius: var(--r-md);
-  font-family: inherit; font-size: .88rem; font-weight: 600;
-  cursor: pointer; transition: all .15s;
-  white-space: nowrap; display: inline-flex; align-items: center; gap: 7px;
-}
-.btn-secondary:hover { background: var(--action-light); }
-.btn-ghost {
-  padding: 9px 14px;
-  background: none; color: var(--ink-soft);
-  border: 1px solid var(--border); border-radius: var(--r-md);
-  font-family: inherit; font-size: .85rem; font-weight: 500;
-  cursor: pointer; transition: all .15s;
-}
-.btn-ghost:hover { background: var(--bg); color: var(--ink-mid); }
-.btn-danger {
-  padding: 8px 14px;
-  background: none; color: var(--bad);
-  border: 1px solid var(--bad-border); border-radius: var(--r-md);
-  font-family: inherit; font-size: .85rem; font-weight: 500;
-  cursor: pointer; transition: all .15s;
-}
-.btn-danger:hover { background: var(--bad-light); }
-.icon-btn {
-  background: none; border: none; cursor: pointer;
-  color: var(--ink-soft); padding: 5px; border-radius: var(--r-sm);
-  transition: all .15s; display: flex; align-items: center;
-}
-.icon-btn:hover { background: var(--bg); color: var(--ink); }
-.icon-btn.danger:hover { color: var(--bad); background: var(--bad-light); }
-
-/* ══════════════════════════════════════════════════════════
-   CHIPS
-   ══════════════════════════════════════════════════════════ */
-.chip {
-  display: inline-flex; align-items: center;
-  font-size: .68rem; font-weight: 700;
-  padding: 2px 8px; border-radius: 20px;
-  letter-spacing: .02em; white-space: nowrap;
-}
-.chip-actief   { background: #E8F5EA; color: #1A6B25; }
-.chip-afgerond { background: #E8EEF8; color: #1E3F8A; }
-.chip-grijs    { background: #F0EDE8; color: var(--ink-soft); }
-.chip-ok       { background: var(--score-ok-bg);  color: var(--score-ok-text); }
-.chip-warn     { background: var(--score-warn-bg); color: var(--score-warn-text); }
-.chip-bad      { background: var(--score-bad-bg);  color: var(--score-bad-text); }
-.chip-gold     { background: var(--gold-light); color: var(--gold); border: 1px solid var(--gold-border); }
-.chip-mono     {
-  font-family: var(--font-mono); font-size: .66rem; font-weight: 500;
-  background: #F0EDE8; color: var(--ink-soft);
-  padding: 2px 7px; border-radius: 5px;
-}
-
-/* ══════════════════════════════════════════════════════════
-   DOSSIER DETAIL — VERSIES
-   ══════════════════════════════════════════════════════════ */
-.detail-sectie-kop {
-  font-size: .72rem; font-weight: 700; letter-spacing: .09em;
-  text-transform: uppercase; color: var(--ink-faint);
-  margin: 0 0 12px;
-}
-.versie-list { display: flex; flex-direction: column; gap: 10px; }
-.versie-kaart {
-  background: var(--paper);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 16px 18px;
-  display: flex; align-items: flex-start; gap: 16px;
-  cursor: pointer;
-  transition: border-color .15s, box-shadow .15s;
-  box-shadow: var(--shadow-sm);
-}
-.versie-kaart:hover {
-  border-color: var(--action);
-  box-shadow: 0 4px 16px rgba(200,106,60,.1), var(--shadow-sm);
-}
-.versie-nr {
-  font-family: var(--font-mono); font-size: .72rem; font-weight: 600;
-  color: var(--action-hover); background: var(--action-light);
-  padding: 3px 9px; border-radius: 5px;
-  flex-shrink: 0; margin-top: 2px;
-}
-.versie-body { flex: 1; min-width: 0; }
-.versie-label { font-weight: 600; font-size: .95rem; color: var(--ink); margin: 0 0 3px; }
-.versie-datum { font-size: .78rem; color: var(--ink-soft); margin-bottom: 10px; }
-.versie-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
-.versie-docs  { display: flex; gap: 6px; flex-wrap: wrap; }
-.doc-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: 6px; padding: 2px 8px 2px 7px;
-  font-size: .74rem; color: var(--ink-soft);
-  max-width: 200px;
-}
-.doc-pill-icon { flex-shrink: 0; font-size: .78rem; }
-.doc-pill-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.doc-pill-dl {
-  background: none; border: none; cursor: pointer;
-  font-size: .75rem; color: var(--action); padding: 0 2px;
-  border-radius: 3px; flex-shrink: 0; line-height: 1;
-}
-.doc-pill-dl:hover { background: var(--action); color: #fff; }
-.versie-acties { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-
-/* Status dropdown */
-.status-select {
-  padding: 5px 9px;
-  border: 1.5px solid var(--border); border-radius: var(--r-sm);
-  font-family: inherit; font-size: .82rem;
-  background: var(--bg); cursor: pointer; outline: none;
-}
-.status-select:focus { border-color: var(--action); }
-
-/* ══════════════════════════════════════════════════════════
-   ANALYSEREN — UPLOAD
-   ══════════════════════════════════════════════════════════ */
-.analyse-content {
-  max-width: 600px;
-}
-
-/* Dossier context balk */
-.koppel-actief {
-  background: var(--action-light);
-  border: 1.5px solid var(--action-border);
-  border-radius: var(--r-lg);
-  padding: 14px 18px;
-  margin-bottom: 20px;
-  display: flex; align-items: center; gap: 12px;
-}
-.koppel-actief-icon { font-size: 1.1rem; }
-.koppel-actief-info { flex: 1; }
-.koppel-actief-naam { font-weight: 600; font-size: .93rem; color: var(--action-hover); }
-.koppel-actief-sub  { font-size: .78rem; color: var(--action); margin-top: 1px; }
-.versie-label-input {
-  width: 100%; padding: 8px 11px;
-  border: 1.5px solid var(--action-border); border-radius: var(--r-sm);
-  font-family: inherit; font-size: .85rem;
-  background: rgba(255,255,255,.7); outline: none;
-  margin-top: 9px; display: block;
-}
-.versie-label-input:focus { border-color: var(--action); background: #fff; }
-
-/* Dropzone */
-.dropzone {
-  border: 2px dashed var(--border-mid);
-  border-radius: var(--r-xl);
-  background: var(--paper);
-  padding: 36px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-  margin-bottom: 0;
-}
-.dropzone:hover {
-  border-color: var(--action);
-  background: var(--action-light);
-}
-.drop-icon-ring {
-  width: 48px; height: 48px;
-  background: var(--action);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 14px;
-}
-.drop-icon-ring svg { width: 20px; height: 20px; stroke: #fff; }
-.dropzone h3 {
-  font-family: var(--font-serif); font-weight: 600;
-  font-size: 1rem; margin: 0 0 5px; color: var(--ink);
-}
-.dropzone p { font-size: .83rem; color: var(--ink-soft); margin: 0; }
-
-/* Tray */
-.tray {
-  background: var(--paper);
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-.tray-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  transition: background .1s;
-}
-.tray-item:last-child { border-bottom: none; }
-.tray-item:hover { background: #FAFAF8; }
-.tray-item-icon { font-size: 1rem; flex: none; width: 24px; text-align: center; }
-.tray-item-info { flex: 1; min-width: 0; }
-.tray-item-naam {
-  display: block; font-size: .85rem; font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink);
-}
-.tray-item-sub { font-size: .72rem; color: var(--ink-soft); }
-.tray-type-sel {
-  font-family: inherit; font-size: .76rem; font-weight: 600;
-  padding: 4px 8px;
-  border: 1.5px solid var(--border); border-radius: var(--r-sm);
-  background: var(--bg); cursor: pointer;
-  color: var(--ink-soft); flex: none; max-width: 170px;
-}
-.tray-type-sel:focus { border-color: var(--action); outline: none; }
-.tray-type-sel.primair { border-color: var(--action-border); color: var(--action-hover); background: var(--action-light); }
-.tray-type-sel.bijlage { border-color: var(--border); color: var(--ink-soft); }
-.tray-del {
-  background: none; border: none; cursor: pointer;
-  color: var(--ink-faint); font-size: .88rem;
-  padding: 3px 6px; border-radius: 5px; line-height: 1;
-}
-.tray-del:hover { color: var(--bad); background: var(--bad-light); }
-.tray-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px;
-  border-top: 1.5px solid var(--border);
-  background: #FAFAF8;
-}
-.tray-add {
-  background: none; border: 1.5px dashed var(--border-mid);
-  border-radius: var(--r-sm);
-  font-family: inherit; font-size: .8rem; font-weight: 700;
-  color: var(--ink-soft); cursor: pointer; padding: 5px 14px;
-  transition: all .15s;
-}
-.tray-add:hover { border-color: var(--action); color: var(--action-hover); background: var(--action-light); }
-.tray-wis {
-  background: none; border: none; font-size: .75rem;
-  color: var(--ink-faint); cursor: pointer; padding: 4px 8px; border-radius: 5px;
-}
-.tray-wis:hover { color: var(--bad); background: var(--bad-light); }
-.analyse-btn {
-  display: block; width: 100%; margin-top: 16px;
-  padding: 14px 20px;
-  background: var(--action); color: #fff;
-  border: none; border-radius: var(--r-lg);
-  font-family: inherit; font-size: 1rem; font-weight: 700;
-  cursor: pointer; transition: background .15s;
-}
-.analyse-btn:hover { background: var(--action-hover); }
-.analyse-btn:disabled { background: var(--border-mid); cursor: not-allowed; }
-
-/* ══════════════════════════════════════════════════════════
-   SPLIT VIEW — ANALYSE RESULTAAT (fullscreen overlay)
-   ══════════════════════════════════════════════════════════ */
-#screen-split {
-  display: none;
-  position: fixed;
-  inset: 36px 0 0 0;
-  z-index: 100;
-  flex-direction: column;
-  background: var(--bg);
-}
-#screen-split.act { display: flex; }
-
-.split-hdr {
-  background: var(--paper);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-}
-.split-hdr-top {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px;
-}
-.split-hdr-back {
-  padding: 7px 13px;
-  background: none; border: 1px solid var(--border); border-radius: var(--r-sm);
-  font-family: inherit; font-size: .83rem; color: var(--ink-soft);
-  cursor: pointer; transition: background .15s; white-space: nowrap; flex-shrink: 0;
-}
-.split-hdr-back:hover { background: var(--bg); }
-.split-hdr-docs {
-  flex: 1; display: flex; align-items: flex-end; gap: 0;
-  overflow-x: auto; min-width: 0;
-}
-.split-doc-tab {
-  background: none; border: none;
-  border-bottom: 2.5px solid transparent;
-  padding: 8px 16px; margin-bottom: -1px;
-  cursor: pointer; font-family: inherit; font-size: .83rem; font-weight: 600;
-  color: var(--ink-soft); transition: color .15s, border-color .15s;
-  white-space: nowrap; flex-shrink: 0;
-  display: flex; align-items: center; gap: 7px;
-}
-.split-doc-tab:hover:not(.act) { color: var(--ink-mid); }
-.split-doc-tab.act { color: var(--ink); border-bottom-color: var(--action); }
-.split-doc-tab-type {
-  font-size: .65rem; font-family: var(--font-mono); font-weight: 600;
-  background: var(--action-light); color: var(--action-hover);
-  padding: 1px 6px; border-radius: 4px;
-}
-.split-doc-tab.act .split-doc-tab-type { background: var(--action); color: #fff; }
-.split-hdr-acties {
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  padding-left: 10px; border-left: 1px solid var(--border);
-}
-.split-versielabel {
-  padding: 7px 10px;
-  border: 1px solid var(--border); border-radius: var(--r-sm);
-  font-family: inherit; font-size: .8rem;
-  background: var(--bg); outline: none; width: 200px;
-}
-.split-versielabel:focus { border-color: var(--action); }
-
-.split-body {
-  flex: 1; display: grid;
-  grid-template-columns: 1fr 1fr;
-  overflow: hidden;
-}
-
+/* ── Split-window demo ── */
+.splitdemo{padding:96px 32px;background:var(--white);}
+.splitdemo-inner{max-width:1200px;margin:0 auto;}
+.sd-chrome{background:#f0ede8;border-radius:14px;box-shadow:0 12px 60px rgba(26,37,64,.16);overflow:hidden;border:1px solid var(--border);margin-top:48px;}
+.sd-topbar{background:var(--navy);padding:9px 16px;display:flex;align-items:center;gap:10px;}
+.sd-logo-wrap{display:flex;align-items:center;gap:7px;margin-right:4px;}
+.sd-logo-mark{width:26px;height:26px;background:rgba(191,160,91,.18);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:.78rem;color:var(--gold);}
+.sd-logo-txt{font-family:'Source Serif 4',serif;font-size:.78rem;font-weight:700;color:var(--gold);}
+.sd-org{font-size:.62rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-left:4px;}
+.sd-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 6px;}
+.sd-user{font-size:.68rem;color:rgba(255,255,255,.4);}
+.sd-logout{font-size:.65rem;border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:3px 8px;color:rgba(255,255,255,.45);cursor:pointer;background:none;font-family:'Inter',sans-serif;}
+.sd-toolbar{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:6px;height:44px;}
+.sd-back{font-size:.72rem;color:var(--ink-mid);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;padding:0 8px 0 0;border-right:1px solid var(--border);margin-right:4px;height:100%;}
+.sd-doctab{font-size:.78rem;font-weight:600;padding:0 14px;height:100%;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
+.sd-doctab.act{color:var(--ink);border-bottom-color:var(--coral);}
+.sd-doctab-icon{font-size:.85rem;}
+.sd-actions{margin-left:auto;display:flex;gap:6px;}
+.sd-act-btn{font-size:.68rem;font-weight:600;border-radius:7px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;white-space:nowrap;}
+.sd-act-coral{background:var(--coral);color:#fff;border:none;}
+.sd-act-ghost{background:#fff;color:var(--ink-mid);border:1px solid var(--border);}
+.sd-act-ghost:hover{border-color:var(--navy);color:var(--navy);}
+.sd-body{display:grid;grid-template-columns:1fr 440px;height:520px;}
 /* Doc panel */
-.panel-doc {
-  overflow: auto; background: #6A7A8A;
-  padding: 20px;
-  display: flex; flex-direction: column; align-items: center;
-}
-.mock-pdf-page {
-  width: 100%; max-width: 520px;
-  background: var(--paper);
-  border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.3);
-  padding: 40px 48px;
-  margin-bottom: 12px;
-  min-height: 400px;
-}
-.mock-pdf-titel { font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700; text-align: center; margin-bottom: 7px; }
-.mock-pdf-sub   { text-align: center; font-size: .78rem; color: var(--ink-soft); margin-bottom: 22px; }
-.mock-pdf-sectie { font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; margin: 16px 0 5px; color: var(--ink-mid); }
-.mock-pdf-line  { height: 7px; background: #E8E2DA; border-radius: 3px; margin-bottom: 5px; }
-.mock-pdf-line.kort   { width: 70%; }
-.mock-pdf-line.midden { width: 85%; }
-.mock-pdf-hl    { height: 7px; background: rgba(255,200,80,.55); border-radius: 3px; margin-bottom: 5px; box-shadow: 0 0 0 2px rgba(255,180,40,.25); }
+.sd-doc{overflow:hidden;position:relative;background:#fff;padding:28px 36px;font-family:'Source Serif 4',Georgia,serif;}
+.sd-doc-fade{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,#fff);pointer-events:none;}
+.sd-doc h3{font-size:1.05rem;font-weight:700;color:var(--ink);margin:0 0 4px;}
+.sd-doc p.sd-doc-txt{font-size:.82rem;color:var(--ink-mid);line-height:1.7;margin-bottom:8px;font-family:'Source Serif 4',serif;}
+.sd-art-num{font-size:.78rem;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.sd-highlight{background:#FFF3CD;border-radius:2px;padding:1px 0;}
+.sd-h-orange{background:rgba(200,80,42,.12);border-bottom:1.5px solid var(--coral);border-radius:2px;}
+.sd-para{margin-bottom:14px;}
+.sd-page-num{font-size:.68rem;color:#bbb;text-align:center;margin-top:16px;}
+/* Analysis panel */
+.sd-anal{border-left:1px solid var(--border);background:var(--cream);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.sd-anal-fade{position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,var(--cream));pointer-events:none;z-index:2;}
+.sd-anal-scroll{padding:16px;overflow:hidden;flex:1;}
+.sd-score-box{background:#fff;border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:12px;}
+.sd-score-top{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.sd-score-pct{font-family:'IBM Plex Mono',monospace;font-size:2rem;font-weight:700;color:var(--ink);line-height:1;}
+.sd-score-info{}
+.sd-score-lbl{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px;}
+.sd-score-bar-wrap{width:100%;height:5px;background:var(--cream);border-radius:3px;overflow:hidden;margin-bottom:5px;}
+.sd-score-bar{height:100%;background:var(--coral);border-radius:3px;}
+.sd-score-meta{font-size:.62rem;color:var(--ink-soft);}
+.sd-score-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.sd-pill{font-size:.62rem;font-weight:600;padding:2px 8px;border-radius:10px;}
+.sd-pill-ok{background:var(--ok-bg);color:var(--ok);}
+.sd-pill-warn{background:#FDF3DC;color:var(--warn);}
+.sd-pill-risk{background:#FDECEA;color:var(--risk);}
+.sd-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.sd-section-lbl{font-size:.72rem;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:5px;}
+.sd-section-lbl::before{content:'▸';color:var(--ink-soft);font-size:.6rem;}
+.sd-btn-alles{font-size:.62rem;font-weight:600;background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;color:var(--ink-soft);font-family:'Inter',sans-serif;}
+.sd-samenvatting{background:#fff;border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:10px;}
+.sd-sam-title{font-size:.72rem;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.sd-sam-txt{font-size:.72rem;color:var(--ink-mid);line-height:1.6;}
+.sd-finding-card{background:#fff;border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:8px;border-left:3px solid var(--risk);}
+.sd-finding-card.warn{border-left-color:var(--warn);}
+.sd-finding-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.sd-finding-cb{width:14px;height:14px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;margin-top:1px;}
+.sd-finding-cb.checked{background:var(--coral);border-color:var(--coral);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.5rem;}
+.sd-finding-title{font-size:.72rem;font-weight:700;color:var(--ink);flex:1;}
+.sd-finding-art{font-size:.6rem;font-weight:600;background:#EDF2FB;color:#1A5276;border-radius:4px;padding:1px 6px;flex-shrink:0;}
+.sd-finding-passage{font-size:.65rem;color:var(--ink-soft);text-align:right;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.sd-finding-body{font-size:.7rem;color:var(--ink-mid);line-height:1.6;margin-bottom:6px;}
+.sd-finding-quote{font-size:.68rem;font-style:italic;color:var(--risk);border-left:2px solid var(--risk);padding-left:8px;margin-bottom:8px;}
+.sd-finding-card.warn .sd-finding-quote{color:var(--warn);border-left-color:var(--warn);}
+.sd-suggestie{background:#F0F8F4;border-radius:6px;padding:8px 10px;}
+.sd-sug-lbl{font-size:.58rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ok);margin-bottom:3px;}
+.sd-sug-txt{font-size:.68rem;color:#1E4033;line-height:1.5;}
+.sd-opmerking{width:100%;border:1px solid var(--border);border-radius:6px;font-size:.68rem;padding:5px 8px;margin-top:6px;font-family:'Inter',sans-serif;color:var(--ink-soft);resize:none;height:36px;background:var(--cream);}
 
-/* Analyse panel */
-.panel-analyse {
-  overflow-y: auto;
-  background: var(--bg);
-  padding: 24px 28px;
-}
+/* ── Concept review demo ── */
+.conceptdemo{padding:96px 32px;background:var(--navy);overflow:hidden;}
+.conceptdemo-inner{max-width:1200px;margin:0 auto;}
+.conceptdemo .section-label{color:var(--gold);}
+.conceptdemo h2{color:#fff;margin-bottom:12px;}
+.conceptdemo > .conceptdemo-inner > p{color:rgba(255,255,255,.55);max-width:580px;font-size:1rem;margin-bottom:48px;}
+.cc-chrome{background:#f5f2ec;border-radius:14px;box-shadow:0 16px 64px rgba(0,0,0,.3);overflow:hidden;border:1px solid rgba(255,255,255,.07);}
+.cc-topbar{background:var(--navy-deep);padding:10px 20px;display:flex;align-items:center;gap:12px;}
+.cc-back{font-size:.72rem;color:rgba(255,255,255,.5);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;padding-right:14px;border-right:1px solid rgba(255,255,255,.1);}
+.cc-title{font-size:.85rem;font-weight:600;color:#fff;flex:1;}
+.cc-dl{background:var(--coral);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:6px;}
+.cc-body{display:grid;grid-template-columns:1fr 400px;height:540px;}
+/* Document met track-changes */
+.cc-doc{background:#fff;padding:28px 36px;overflow:hidden;position:relative;font-family:'Source Serif 4',Georgia,serif;}
+.cc-doc-fade{position:absolute;bottom:0;left:0;right:0;height:100px;background:linear-gradient(transparent,#fff);}
+.cc-h1{font-size:.9rem;font-weight:700;color:var(--ink);margin:0 0 12px;text-transform:uppercase;letter-spacing:.03em;}
+.cc-h2{font-size:.85rem;font-weight:700;color:var(--ink);margin:14px 0 6px;}
+.cc-art-num{font-size:.75rem;color:var(--ink-soft);min-width:34px;flex-shrink:0;padding-top:2px;}
+.cc-art-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;}
+.cc-art-txt{font-size:.76rem;color:var(--ink-mid);line-height:1.65;font-family:'Source Serif 4',serif;}
+/* Track-changes: blokken */
+.cc-change-block{flex:1;display:flex;flex-direction:column;gap:3px;}
+.cc-del-block{background:#FEF0EE;border-left:3px solid #C0392B;border-radius:0 4px 4px 0;
+  padding:7px 10px;font-size:.74rem;font-family:'Source Serif 4',serif;
+  line-height:1.65;color:#7B241C;text-decoration:line-through;position:relative;}
+.cc-del-block::before{content:'OUD';position:absolute;top:4px;right:7px;
+  font-size:.5rem;font-weight:700;letter-spacing:.08em;color:#C0392B;font-family:'Inter',sans-serif;text-decoration:none;}
+.cc-ins-block{background:#EAF7EE;border-left:3px solid #27AE60;border-radius:0 4px 4px 0;
+  padding:7px 10px;font-size:.74rem;font-family:'Source Serif 4',serif;
+  line-height:1.65;color:#1A5226;position:relative;}
+.cc-ins-block::before{content:'NIEUW';position:absolute;top:4px;right:7px;
+  font-size:.5rem;font-weight:700;letter-spacing:.08em;color:#27AE60;font-family:'Inter',sans-serif;}
+/* Ongewijzigde tekst inline */
+.cc-del{text-decoration:line-through;color:#C0392B;}
+.cc-ins{color:#1A5226;background:rgba(39,174,96,.12);border-radius:2px;padding:0 2px;}
+/* Sidebar met wijzigingen */
+.cc-sidebar{border-left:1px solid var(--border);background:var(--cream);overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.cc-sidebar-fade{position:absolute;bottom:0;left:0;right:0;height:60px;background:linear-gradient(transparent,var(--cream));z-index:2;pointer-events:none;}
+.cc-sidebar-scroll{padding:16px;overflow:hidden;display:flex;flex-direction:column;gap:12px;}
+.cc-change-card{background:#fff;border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.cc-change-head{padding:12px 14px 8px;}
+.cc-change-title{font-size:.75rem;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.cc-change-desc{font-size:.7rem;color:var(--ink-mid);line-height:1.5;}
+.cc-change-tabs{display:flex;border-top:1px solid var(--border);}
+.cc-tab{flex:1;padding:6px 0;font-size:.67rem;font-weight:700;text-align:center;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .15s;}
+.cc-tab.act{background:var(--coral);color:#fff;}
+.cc-tab:not(.act){background:#fff;color:var(--ink-soft);}
+.cc-tab+.cc-tab{border-left:1px solid var(--border);}
+.cc-change-body{padding:12px 14px;background:#F0F9F4;border-top:1px solid var(--border);}
+.cc-change-body-orig{background:#FDF5F4;}
+.cc-change-txt{font-size:.72rem;color:#1A4A30;line-height:1.6;font-family:'Source Serif 4',serif;}
+.cc-change-txt-orig{font-size:.72rem;color:#5C1B14;line-height:1.6;text-decoration:line-through;font-family:'Source Serif 4',serif;}
 
-/* Score banner */
-.score-banner {
-  background: var(--paper); border: 1.5px solid var(--border);
-  border-radius: var(--r-lg); padding: 16px 18px; margin-bottom: 20px;
-  display: flex; align-items: center; gap: 20px; box-shadow: var(--shadow-sm);
-}
-.mfn-getal {
-  font-family: var(--font-serif); font-size: 2.8rem; font-weight: 700;
-  line-height: 1; color: var(--ok); flex-shrink: 0;
-}
-.mfn-van { font-size: 1.4rem; font-weight: 400; opacity: .4; }
-.mfn-rechts { flex: 1; min-width: 0; }
-.mfn-lbl { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin-bottom: 6px; }
-.mfn-balk { height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
-.mfn-balk-vul { height: 100%; border-radius: 4px; background: var(--ok); }
-.mfn-samen { font-size: .78rem; color: var(--ink-soft); margin-top: 5px; }
-.mfn-issues {
-  display: flex; flex-direction: column; gap: 4px;
-  border-left: 1px solid var(--border); padding-left: 20px; flex-shrink: 0;
-}
-.mfn-issue-item { font-size: .78rem; color: var(--ink-mid); display: flex; align-items: center; gap: 6px; }
-.mfn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.mfn-dot.ok   { background: var(--ok); }
-.mfn-dot.warn { background: var(--warn); }
-.mfn-dot.bad  { background: var(--bad); }
+/* ── AVG / Veiligheid ── */
+.security{padding:80px 32px;background:var(--cream);}
+.security-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
+.security-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.sec-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px 20px;display:flex;gap:12px;align-items:flex-start;}
+.sec-icon{width:38px;height:38px;border-radius:8px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;}
+.sec-card h4{font-size:.85rem;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.sec-card p{font-size:.78rem;color:var(--ink-soft);line-height:1.5;margin:0;}
+.sec-badge-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px;}
+.sec-badge{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:8px 14px;}
+.sec-badge-icon{font-size:1rem;}
+.sec-badge-txt{font-size:.75rem;font-weight:600;color:var(--ink-mid);}
 
-/* Analyse secties */
-.a-sectie { margin-bottom: 14px; }
-.a-sectie-hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 11px 0; border-bottom: 1px solid var(--border);
-  cursor: pointer; user-select: none;
-}
-.a-sectie-hdr:hover .a-sectie-titel { color: var(--action); }
-.a-sectie-titel {
-  font-family: var(--font-serif); font-weight: 600; font-size: 1.02rem;
-  color: var(--ink); transition: color .15s;
-  display: flex; align-items: center; gap: 8px;
-}
-.a-sectie-count {
-  font-family: var(--font-sans); font-size: .7rem; font-weight: 700;
-  padding: 1px 8px; border-radius: 20px;
-}
-.a-chevron { font-size: .8rem; color: var(--ink-soft); transition: transform .2s; }
-.dicht .a-chevron { transform: rotate(-90deg); }
-.a-sectie-body { padding-top: 12px; }
-.dicht .a-sectie-body { display: none; }
-.samenvatting-blok {
-  background: var(--paper); border: 1px solid var(--border);
-  border-radius: var(--r-md); padding: 14px 16px;
-  font-size: .88rem; line-height: 1.65; box-shadow: var(--shadow-sm);
-}
+/* ── PDF rapport ── */
+.pdfdemo{padding:96px 32px;background:var(--cream);}
+.pdfdemo-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:start;}
+.pdf-paper{background:#fff;border-radius:4px;box-shadow:0 4px 24px rgba(0,0,0,.1),0 1px 4px rgba(0,0,0,.06);overflow:hidden;position:relative;}
+.pdf-paper::after{content:'';position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,rgba(255,255,255,.95));pointer-events:none;}
+.pdf-page{padding:40px 48px;font-family:'Source Serif 4',Georgia,serif;}
+.pdf-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:12px;border-bottom:1px solid #ddd;margin-bottom:28px;}
+.pdf-header-org{font-size:.82rem;font-weight:700;color:var(--coral);font-family:'Inter',sans-serif;}
+.pdf-header-date{font-size:.78rem;color:#888;font-family:'Inter',sans-serif;}
+.pdf-title{font-size:1.6rem;font-weight:700;color:var(--ink);margin-bottom:8px;line-height:1.2;}
+.pdf-subtitle{font-size:.78rem;color:var(--ink-mid);margin-bottom:20px;line-height:1.5;font-family:'Inter',sans-serif;}
+.pdf-meta-tbl{width:100%;border:1px solid #eee;border-radius:4px;border-collapse:collapse;margin-bottom:24px;font-family:'Inter',sans-serif;}
+.pdf-meta-tbl th{font-size:.68rem;font-weight:600;color:#888;text-align:left;padding:7px 12px;border-bottom:1px solid #eee;background:#fafafa;}
+.pdf-meta-tbl td{font-size:.78rem;color:var(--ink);padding:8px 12px;vertical-align:top;}
+.pdf-meta-tbl td+td{border-left:1px solid #eee;}
+.pdf-section-title{font-size:.95rem;font-weight:700;color:var(--ink);margin:20px 0 8px;padding-bottom:5px;border-bottom:1px solid #eee;}
+.pdf-body-txt{font-size:.78rem;color:var(--ink-mid);line-height:1.7;margin-bottom:16px;font-family:'Inter',sans-serif;}
+.pdf-mfn-score{font-size:.82rem;font-weight:700;color:var(--risk);margin-bottom:10px;font-family:'Inter',sans-serif;}
+.pdf-checklist{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.pdf-check-item{display:flex;align-items:flex-start;gap:8px;font-size:.75rem;font-family:'Inter',sans-serif;}
+.pdf-check-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;color:#fff;}
+.pdf-dot-ok{background:var(--ok);}
+.pdf-dot-warn{background:var(--warn);}
+.pdf-dot-risk{background:var(--risk);}
+.pdf-check-text{color:var(--ink);line-height:1.4;}
+.pdf-check-sub{font-size:.68rem;color:#888;font-style:italic;margin-top:1px;}
+.pdf-footer-bar{background:#fafafa;border-top:1px solid #eee;padding:8px 48px;display:flex;justify-content:space-between;}
+.pdf-footer-txt{font-size:.62rem;color:#bbb;font-family:'Inter',sans-serif;}
 
-/* Analyse cards */
-.a-card {
-  background: var(--paper); border: 1.5px solid var(--border);
-  border-left: 4px solid var(--border); border-radius: var(--r-md);
-  padding: 12px 14px; margin-bottom: 8px;
-  box-shadow: var(--shadow-sm); cursor: pointer;
-  transition: box-shadow .15s;
-}
-.a-card:hover { box-shadow: 0 4px 12px rgba(200,106,60,.12), var(--shadow-sm); }
-.a-card.ok   { border-left-color: var(--ok); }
-.a-card.warn { border-left-color: var(--warn); }
-.a-card.bad  { border-left-color: var(--bad); }
-.a-card-kop  { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.a-card-label { font-weight: 600; font-size: .9rem; line-height: 1.3; }
-.a-card-badge {
-  font-size: .65rem; font-weight: 700; padding: 2px 7px; border-radius: 20px;
-  white-space: nowrap; flex-shrink: 0; margin-top: 2px;
-  text-transform: uppercase; letter-spacing: .04em;
-}
-.a-card-badge.ok   { background: var(--score-ok-bg);   color: var(--score-ok-text); }
-.a-card-badge.warn { background: var(--score-warn-bg);  color: var(--score-warn-text); }
-.a-card-badge.bad  { background: var(--score-bad-bg);   color: var(--score-bad-text); }
-.a-card-body { font-size: .83rem; color: var(--ink-mid); margin-top: 5px; line-height: 1.5; }
-.a-card-cite {
-  display: inline-block; margin-top: 7px;
-  font-family: var(--font-mono); font-size: .74rem;
-  color: var(--action-hover); background: var(--action-light);
-  padding: 2px 8px; border-radius: 4px;
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.a-card-wet {
-  display: inline-block; margin-left: 6px; font-size: .67rem; font-weight: 700;
-  padding: 1px 6px; border-radius: 20px;
-  background: #E8EEF8; color: #1E3F8A; border: 1px solid #C4D3F0;
-}
-.a-card-suggestie {
-  margin-top: 9px; padding: 9px 11px;
-  background: #F0F7FF; border-left: 3px solid #4A90D9;
-  border-radius: 0 6px 6px 0; font-size: .82rem; color: #1a3a5c;
-}
-.a-card-sug-lbl {
-  font-weight: 700; font-size: .67rem; text-transform: uppercase;
-  letter-spacing: .05em; color: #4A90D9; margin-bottom: 3px;
-}
-.a-card-checkbox-row { display: flex; align-items: flex-start; gap: 10px; }
-.a-card-checkbox-row input[type=checkbox] {
-  margin-top: 2px; width: 16px; height: 16px;
-  accent-color: var(--ok); cursor: pointer; flex-shrink: 0;
-}
-.a-card-checkbox-body { flex: 1; min-width: 0; }
-.a-card-opmerking {
-  width: 100%; margin-top: 8px;
-  font-family: inherit; font-size: .8rem;
-  border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 7px 10px; resize: vertical; min-height: 32px;
-  background: #FCFAF7; color: var(--ink);
-}
-.a-card-opmerking::placeholder { color: var(--ink-faint); }
+/* ── Pricing ── */
+.pricing{padding:96px 32px;}
+.pricing-inner{max-width:1160px;margin:0 auto;}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+.price-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:32px 28px;background:#fff;transition:all .2s;position:relative;}
+.price-card:hover{box-shadow:var(--shadow);}
+.price-card.featured{border-color:var(--navy);background:var(--navy);box-shadow:0 8px 40px rgba(26,37,64,.2);}
+.price-tag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--navy);font-size:.7rem;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
+.price-tier{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px;}
+.price-card.featured .price-tier{color:rgba(255,255,255,.45);}
+.price-amount{font-family:'IBM Plex Mono',monospace;font-size:2.4rem;font-weight:700;color:var(--navy);line-height:1;}
+.price-card.featured .price-amount{color:#fff;}
+.price-amount span{font-size:1rem;font-weight:500;opacity:.6;}
+.price-period{font-size:.78rem;color:var(--ink-soft);margin:4px 0 20px;}
+.price-card.featured .price-period{color:rgba(255,255,255,.4);}
+.price-desc{font-size:.88rem;color:var(--ink-mid);margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border);}
+.price-card.featured .price-desc{color:rgba(255,255,255,.55);border-bottom-color:rgba(255,255,255,.12);}
+.price-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+.price-features li{font-size:.85rem;color:var(--ink-mid);display:flex;align-items:flex-start;gap:8px;}
+.price-features li::before{content:'✓';font-weight:700;color:var(--ok);flex-shrink:0;}
+.price-card.featured .price-features li{color:rgba(255,255,255,.75);}
+.price-card.featured .price-features li::before{color:var(--gold);}
+.price-btn{width:100%;padding:11px;border-radius:8px;font-weight:600;font-size:.88rem;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .15s;}
+.pb-outline{background:none;border:1.5px solid var(--border);color:var(--ink);}
+.pb-outline:hover{border-color:var(--navy);color:var(--navy);}
+.pb-coral{background:var(--coral);color:#fff;}
+.pb-gold{background:var(--gold);color:var(--navy);}
+.pb-gold:hover{opacity:.9;}
 
-/* MfN elementen */
-.mfn-el-list { display: flex; flex-direction: column; gap: 3px; }
-.mfn-el-row {
-  display: flex; align-items: flex-start; gap: 8px;
-  padding: 5px 7px; border-radius: var(--r-sm); font-size: .82rem;
-}
-.mfn-el-row.ok   { background: var(--ok-light); }
-.mfn-el-row.warn { background: var(--warn-light); }
-.mfn-el-row.bad  { background: var(--bad-light); }
-.mfn-el-ic { flex-shrink: 0; width: 16px; font-size: .82rem; padding-top: 1px; font-weight: 700; }
-.mfn-el-row.ok   .mfn-el-ic { color: var(--ok); }
-.mfn-el-row.warn .mfn-el-ic { color: var(--warn); }
-.mfn-el-row.bad  .mfn-el-ic { color: var(--bad); }
-.mfn-el-txt { flex: 1; color: var(--ink); }
-.mfn-el-toe { display: block; font-size: .74rem; color: var(--ink-soft); margin-top: 2px; font-style: italic; }
+/* ── Testimonials ── */
+.testimonials{background:var(--cream);padding:80px 32px;}
+.testimonials-inner{max-width:1160px;margin:0 auto;}
+.testimonials-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px;}
+.testi-card{background:#fff;border-radius:var(--radius);padding:28px;border:1px solid var(--border);display:flex;flex-direction:column;gap:16px;}
+.testi-stars{color:var(--gold);font-size:1rem;letter-spacing:2px;}
+.testi-quote{font-size:.9rem;color:var(--ink-mid);line-height:1.7;flex:1;font-family:'Source Serif 4',serif;font-style:italic;}
+.testi-author{display:flex;align-items:center;gap:12px;}
+.testi-avatar{width:38px;height:38px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:700;color:rgba(255,255,255,.7);flex-shrink:0;}
+.testi-name{font-weight:600;font-size:.85rem;color:var(--ink);}
+.testi-role{font-size:.75rem;color:var(--ink-soft);}
 
-/* Statusbalk split */
-.split-statusbalk {
-  background: var(--paper); border-top: 1px solid var(--border);
-  padding: 8px 18px; display: flex; align-items: center; gap: 12px;
-  font-size: .78rem; color: var(--ink-soft); flex-shrink: 0;
-}
-.split-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
-.split-status-dot.onopgeslagen { background: var(--warn); animation: puls .9s infinite; }
-@keyframes puls { 0%,100%{opacity:1} 50%{opacity:.4} }
+/* ── CTA ── */
+.cta-section{background:linear-gradient(135deg,var(--navy-deep) 0%,var(--navy) 100%);padding:96px 32px;text-align:center;}
+.cta-section h2{color:#fff;margin-bottom:16px;}
+.cta-section > p{color:rgba(255,255,255,.55);font-size:1rem;max-width:480px;margin:0 auto 36px;}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.cta-note{margin-top:20px;font-size:.78rem;color:rgba(255,255,255,.3);}
 
-/* ══════════════════════════════════════════════════════════
-   MODAL
-   ══════════════════════════════════════════════════════════ */
-.modal-backdrop {
-  display: none; position: fixed; inset: 0; z-index: 500;
-  background: rgba(10,20,40,.45);
-  align-items: center; justify-content: center;
-}
-.modal-backdrop.act { display: flex; }
-.modal-card {
-  background: var(--paper); border-radius: var(--r-xl);
-  padding: 32px; width: 100%; max-width: 420px; margin: 16px;
-  box-shadow: var(--shadow-lg);
-}
-.modal-title {
-  font-family: var(--font-serif); font-size: 1.25rem; font-weight: 600;
-  margin: 0 0 22px; letter-spacing: -.01em;
-}
-.form-field { margin-bottom: 14px; }
-.form-label { display: block; font-size: .82rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 5px; }
-.form-input, .form-select {
-  width: 100%; padding: 10px 12px;
-  border: 1.5px solid var(--border); border-radius: var(--r-sm);
-  font-family: inherit; font-size: .93rem;
-  background: var(--bg); color: var(--ink); outline: none;
-}
-.form-input:focus, .form-select:focus { border-color: var(--action); }
-.modal-acties { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
-
-/* ══════════════════════════════════════════════════════════
-   UTIL
-   ══════════════════════════════════════════════════════════ */
-.mt8  { margin-top: 8px; }
-.mt16 { margin-top: 16px; }
-.divider { height: 1px; background: var(--border); margin: 18px 0; }
-
+/* ── Footer ── */
+footer{background:var(--navy-deep);padding:56px 32px 32px;}
+.footer-inner{max-width:1160px;margin:0 auto;}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px;}
+.footer-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.footer-logo-mark{width:32px;height:32px;background:rgba(191,160,91,.15);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;color:var(--gold);}
+.footer-logo-text{font-family:'Source Serif 4',serif;font-weight:700;color:#fff;font-size:1rem;}
+.footer-tagline{font-size:.82rem;color:rgba(255,255,255,.35);line-height:1.6;max-width:260px;}
+.footer-col h4{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);margin-bottom:14px;}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:8px;}
+.footer-col li a{font-size:.83rem;color:rgba(255,255,255,.45);text-decoration:none;transition:color .15s;}
+.footer-col li a:hover{color:rgba(255,255,255,.75);}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.07);padding-top:24px;display:flex;justify-content:space-between;align-items:center;}
+.footer-copy{font-size:.75rem;color:rgba(255,255,255,.25);}
+.footer-legal{display:flex;gap:20px;}
+.footer-legal a{font-size:.75rem;color:rgba(255,255,255,.25);text-decoration:none;}
+.footer-legal a:hover{color:rgba(255,255,255,.5);}
 </style>
 </head>
 <body>
 
-<!-- ══ MOCKUP-BALK ══════════════════════════════════════ -->
-<div class="mockup-bar">
-  <span class="mockup-bar-label">Mockup</span>
-  <button class="mockup-btn act" onclick="toonScreen('detail')">① Dossier detail</button>
-  <button class="mockup-btn"     onclick="toonScreen('analyse')">② Nieuwe versie</button>
-  <button class="mockup-btn"     onclick="toonScreen('split')">③ Analyse-resultaat</button>
-  <button class="mockup-btn"     onclick="toggleModal()">④ Nieuw dossier</button>
-  <span class="mockup-note">Clausula · Master-detail layout — geen sidebar</span>
+<!-- ══ NAVIGATIE ══════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-mark">§</div>
+      <div>
+        <div class="nav-logo-text">Clausula</div>
+        <span class="nav-logo-sub">Juridische toetsing</span>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Functies</a></li>
+      <li><a href="#hoe">Hoe het werkt</a></li>
+      <li><a href="#pricing">Tarieven</a></li>
+      <li><a href="#">Over ons</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#" class="btn btn-ghost-nav">Inloggen</a>
+      <a href="#" class="btn btn-primary">Gratis proberen →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ HERO ═══════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        <span>Nieuw · MfN-koppeling beschikbaar</span>
+      </div>
+      <h1>Elk scheidingsdocument getoetst. <em>Direct.</em></h1>
+      <p class="hero-sub">Clausula analyseert convenanten en ouderschapsplannen op juridische volledigheid, balans en risico's — zodat u méér tijd heeft voor uw cliënten.</p>
+      <div class="hero-btns">
+        <a href="#" class="btn btn-primary btn-primary-lg">Start gratis →</a>
+        <a href="#" class="btn btn-outline-lg">Bekijk een demo</a>
+      </div>
+      <div class="hero-proof">
+        <div class="hero-avatars">
+          <div class="hero-avatar">ML</div>
+          <div class="hero-avatar">SV</div>
+          <div class="hero-avatar">RB</div>
+          <div class="hero-avatar">AK</div>
+        </div>
+        <p class="hero-proof-text"><strong>140+ mediators</strong> gebruiken Clausula dagelijks</p>
+      </div>
+    </div>
+
+    <!-- App-preview -->
+    <div class="hero-app">
+      <div class="app-window">
+        <div class="app-topbar">
+          <div style="width:28px;height:28px;background:rgba(191,160,91,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:.85rem;color:var(--gold);">§</div>
+          <span class="app-topbar-logo">Clausula</span>
+          <div class="app-topbar-right">
+            <span class="app-topbar-name">m.lenders@kantoor.nl</span>
+            <div style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);">ML</div>
+          </div>
+        </div>
+        <div class="app-body">
+          <div class="app-toolbar">
+            <div class="app-search"><div class="app-search-icon"></div><span class="app-search-text">Zoeken…</span></div>
+            <div class="app-tabs">
+              <span class="app-tab act">Actief</span>
+              <span class="app-tab">Afgerond</span>
+              <span class="app-tab">Gearchiveerd</span>
+            </div>
+            <button class="app-btn-sm">+ Nieuw dossier</button>
+          </div>
+
+          <!-- Kaart 1 -->
+          <div class="mock-kaart">
+            <div class="mock-namen">
+              <span class="mock-naam-a">A. Vermeer</span>
+              <span class="mock-naam-b">S. Vermeer-Groen</span>
+              <span class="mock-status-pill">Actief</span>
+            </div>
+            <div class="mock-scores">
+              <!-- Ouderschapsplan -->
+              <div class="mock-kolom">
+                <div style="width:42px;height:42px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 205deg,white 205deg 208deg,#B47B00 208deg 250deg,white 250deg 253deg,#C0392B 253deg 290deg,white 290deg 293deg,#f0f0f0 293deg 360deg);padding:4px;flex-shrink:0;">
+                  <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:.72rem;color:var(--ink);">57%</div>
+                </div>
+                <div>
+                  <div class="mock-doc-label">Ouderschapsplan</div>
+                  <div class="mock-rings-row">
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 300deg,white 300deg 303deg,#f0f0f0 303deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.42rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">30/36</div>
+                      </div><div class="mock-ring-label">VOL</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#C0392B 0deg 130deg,white 130deg 133deg,#2E7D5A 133deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">11</div>
+                      </div><div class="mock-ring-label">JUR</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 270deg,white 270deg 273deg,#f0f0f0 273deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.42rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">9/12</div>
+                      </div><div class="mock-ring-label">MFN</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#B47B00 0deg 100deg,white 100deg 103deg,#f0f0f0 103deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">8</div>
+                      </div><div class="mock-ring-label">BAL</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">✓</div>
+                      </div><div class="mock-ring-label">GRAM</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Convenant -->
+              <div class="mock-kolom">
+                <div style="width:42px;height:42px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 198deg,white 198deg 201deg,#B47B00 201deg 235deg,white 235deg 238deg,#C0392B 238deg 268deg,white 268deg 271deg,#f0f0f0 271deg 360deg);padding:4px;flex-shrink:0;">
+                  <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:.72rem;color:var(--ink);">55%</div>
+                </div>
+                <div>
+                  <div class="mock-doc-label">Convenant</div>
+                  <div class="mock-rings-row">
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 302deg,white 302deg 305deg,#f0f0f0 305deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.42rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">26/31</div>
+                      </div><div class="mock-ring-label">VOL</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#C0392B 0deg 90deg,white 90deg 93deg,#B47B00 93deg 140deg,white 140deg 143deg,#2E7D5A 143deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">10</div>
+                      </div><div class="mock-ring-label">JUR</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 240deg,white 240deg 243deg,#f0f0f0 243deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.42rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">10/15</div>
+                      </div><div class="mock-ring-label">MFN</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#B47B00 0deg 90deg,white 90deg 93deg,#f0f0f0 93deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">7</div>
+                      </div><div class="mock-ring-label">BAL</div>
+                    </div>
+                    <div class="mock-ring-wrap">
+                      <div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 360deg);padding:2px;">
+                        <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">✓</div>
+                      </div><div class="mock-ring-label">GRAM</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-acties">
+              <div class="mock-row">
+                <button class="mock-btn-p">+ Nieuwe versie</button>
+                <div style="width:22px;height:22px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--ink-soft);">🗑</div>
+              </div>
+              <div class="mock-row">
+                <button class="mock-btn-g">📎 4</button>
+                <button class="mock-btn-g">Bekijken</button>
+                <div style="width:22px;height:22px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--ink-soft);">▼</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kaart 2 (dimmed) -->
+          <div class="mock-kaart" style="opacity:.55;">
+            <div class="mock-namen">
+              <span class="mock-naam-a">R. van den Elsen</span>
+              <span class="mock-naam-b">C. Hartog</span>
+              <span class="mock-status-pill">Actief</span>
+            </div>
+            <div class="mock-scores">
+              <div class="mock-kolom">
+                <div style="width:42px;height:42px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 252deg,white 252deg 255deg,#B47B00 255deg 290deg,white 290deg 293deg,#f0f0f0 293deg 360deg);padding:4px;flex-shrink:0;">
+                  <div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:.72rem;color:var(--ink);">70%</div>
+                </div>
+                <div>
+                  <div class="mock-doc-label">Ouderschapsplan</div>
+                  <div class="mock-rings-row">
+                    <div class="mock-ring-wrap"><div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 310deg,white 310deg 360deg);padding:2px;"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">31</div></div><div class="mock-ring-label">VOL</div></div>
+                    <div class="mock-ring-wrap"><div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 360deg);padding:2px;"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">✓</div></div><div class="mock-ring-label">JUR</div></div>
+                    <div class="mock-ring-wrap"><div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 300deg,white 300deg 360deg);padding:2px;"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">10</div></div><div class="mock-ring-label">MFN</div></div>
+                    <div class="mock-ring-wrap"><div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#B47B00 0deg 80deg,white 80deg 360deg);padding:2px;"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.47rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">3</div></div><div class="mock-ring-label">BAL</div></div>
+                    <div class="mock-ring-wrap"><div style="width:24px;height:24px;border-radius:50%;background:conic-gradient(#2E7D5A 0deg 360deg);padding:2px;"><div style="width:100%;height:100%;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.52rem;font-weight:700;font-family:'IBM Plex Mono',monospace;">✓</div></div><div class="mock-ring-label">GRAM</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-acties">
+              <button class="mock-btn-p">+ Nieuwe versie</button>
+              <button class="mock-btn-g">Bekijken</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ STATS ══════════════════════════════════════════ -->
+<div class="stats">
+  <div class="stats-inner">
+    <div class="stat"><div class="stat-num">140+</div><div class="stat-lbl">Actieve mediators</div></div>
+    <div class="stat"><div class="stat-num">3.200+</div><div class="stat-lbl">Documenten geanalyseerd</div></div>
+    <div class="stat"><div class="stat-num">~40 min</div><div class="stat-lbl">Tijdsbesparing per dossier</div></div>
+    <div class="stat"><div class="stat-num">98%</div><div class="stat-lbl">Zou het aanbevelen</div></div>
+  </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     APP
-     ══════════════════════════════════════════════════════ -->
-<div class="app" id="app">
-
-  <!-- ── Topbar ─────────────────────────────────────── -->
-  <header class="topbar">
-    <div class="topbar-brand">
-      <div class="brand-mark">Cl</div>
-      <span class="brand-name">Clausula</span>
-      <div class="brand-sep"></div>
-      <span class="brand-sub">Documentscreening</span>
+<!-- ══ FEATURES ═══════════════════════════════════════ -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <div class="section-label">Functies</div>
+    <h2 style="margin-bottom:16px;">Alles wat u nodig heeft voor een waterdicht dossier</h2>
+    <p class="section-sub">Clausula controleert automatisch op alle juridisch relevante punten — afgestemd op Nederlandse wetgeving en MfN-normen.</p>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feature-icon fi-navy">⚖️</div><h3>Juridische volledigheid</h3><p>Vergelijkt uw document met een checklist op basis van BW Boek 1, Rv art. 815 en de Tremanormen. Elke ontbrekende clausule wordt direct gesignaleerd.</p></div>
+      <div class="feature-card"><div class="feature-icon fi-coral">🔍</div><h3>Risicosignalering</h3><p>Detecteert onevenwichtige bedingen, ontbrekende uitsluitingsclausules en inconsistenties tussen partneralimentatie en pensioenafspraken.</p></div>
+      <div class="feature-card"><div class="feature-icon fi-gold">📊</div><h3>Versievergelijking</h3><p>Upload meerdere versies van hetzelfde document. Clausula toont per versie de score-ontwikkeling, zodat u direct ziet of wijzigingen het document verbeteren.</p></div>
+      <div class="feature-card"><div class="feature-icon fi-navy">📋</div><h3>Multi-document analyse</h3><p>Convenant én ouderschapsplan tegelijk analyseren. Clausula herkent verwijzingen tussen documenten en controleert de onderlinge samenhang.</p></div>
+      <div class="feature-card"><div class="feature-icon fi-coral">✍️</div><h3>Conceptgenerator</h3><p>Selecteer verbeterpunten en laat Clausula een aangepaste versie genereren met track-changes — klaar om te bespreken met uw cliënten.</p></div>
+      <div class="feature-card"><div class="feature-icon fi-gold">📁</div><h3>Dossierbeheer</h3><p>Alle analyses gegroepeerd per cliëntpaar, met versiebeheer en statusbeheer (actief / afgerond / gearchiveerd). Eén overzicht, altijd up-to-date.</p></div>
     </div>
-    <div class="topbar-right">
-      <button class="topbar-icon-btn" title="Instellingen">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
-          <circle cx="10" cy="10" r="3"/>
-          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"/>
-        </svg>
-      </button>
-      <div class="topbar-divider"></div>
-      <span class="topbar-email">alenders@dalstein.nl</span>
-      <button class="topbar-logout">Uitloggen</button>
+  </div>
+</section>
+
+<!-- ══ HOE HET WERKT ══════════════════════════════════ -->
+<section class="howitworks" id="hoe">
+  <div class="section-inner">
+    <div class="section-label">Hoe het werkt</div>
+    <h2>Hoe Clausula werkt</h2>
+    <p class="section-sub">Geen installatie, geen configuratie. Binnen enkele minuten heeft u een volledig screeningsrapport.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Document uploaden</h3>
+        <p>Sleep een convenant, ouderschapsplan of ander scheidingsdocument in het uploadvenster. PDF, Word en gescande documenten worden allemaal ingelezen.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Rapport bekijken</h3>
+        <p>U ziet per document een kwaliteitsscore, MfN-compliantie, juridische bevindingen met wetsartikelen, en een balans- en taalcheck — direct naast het originele document.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Verbeterpunten verwerken</h3>
+        <p>Vink de bevindingen aan die u wilt verbeteren. Per punt wordt een tekstwijziging voorgesteld en verwerkt in een nieuw concept-document met track-changes.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <h3>Exporteren en archiveren</h3>
+        <p>Download het rapport als PDF voor het dossier, of het verbeterde document als Word-bestand. De analyse blijft bewaard voor een volgende versieronde.</p>
+      </div>
     </div>
-  </header>
+  </div>
+</section>
 
-  <!-- ── Master-detail ──────────────────────────────── -->
-  <div class="master-detail">
+<!-- ══ SPLIT-WINDOW DEMO ══════════════════════════════ -->
+<section class="splitdemo">
+  <div class="splitdemo-inner">
+    <div class="section-label">Analyse-interface</div>
+    <h2 style="margin-bottom:12px;">Document en analyse naast elkaar</h2>
+    <p style="max-width:580px;font-size:1rem;">Links het originele document — passages die aandacht vereisen worden direct gemarkeerd. Rechts de bevindingen, met de juridische grondslag, de risicoklasse en een kant-en-klare suggestie voor verbetering.</p>
 
-    <!-- ░░ Lijstpanel (links) ░░░░░░░░░░░░░░░░░░░░░░░░ -->
-    <nav class="list-panel">
-      <div class="list-toolbar">
-        <div class="list-search-wrap">
-          <svg class="list-search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="8.5" cy="8.5" r="5.5"/>
-            <line x1="13" y1="13" x2="17" y2="17" stroke-linecap="round"/>
-          </svg>
-          <input class="list-search" placeholder="Zoeken…" type="text">
+    <div class="sd-chrome">
+
+      <!-- Top bar -->
+      <div class="sd-topbar">
+        <div class="sd-logo-wrap">
+          <div class="sd-logo-mark">§</div>
+          <span class="sd-logo-txt">Clausula</span>
         </div>
-        <button class="list-nieuw-btn" onclick="toggleModal()" title="Nieuw dossier">+</button>
+        <div class="sd-divider"></div>
+        <span class="sd-org">Zorgzaam Scheiden</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <span class="sd-user">mariska@zorgzaamscheiden.nl</span>
+          <button class="sd-logout">Uitloggen</button>
+        </div>
       </div>
 
-      <div class="list-scroll">
-        <div class="list-section">Actief</div>
+      <!-- Toolbar met tabs -->
+      <div class="sd-toolbar">
+        <button class="sd-back">← Terug</button>
+        <div class="sd-doctab" style="gap:5px;">
+          <span class="sd-doctab-icon">📋</span> Ouderschapsplan
+        </div>
+        <div class="sd-doctab act">
+          <span class="sd-doctab-icon">📄</span> Convenant
+        </div>
+        <div class="sd-actions">
+          <button class="sd-act-btn sd-act-coral">+ Genereer concept <span style="background:rgba(255,255,255,.25);border-radius:9px;padding:0 5px;font-size:.6rem;margin-left:2px;">8</span></button>
+          <button class="sd-act-btn sd-act-ghost">+ Bekijk concept</button>
+          <button class="sd-act-btn sd-act-ghost">↓ PDF-rapport</button>
+          <button class="sd-act-btn sd-act-ghost">↓ Word</button>
+        </div>
+      </div>
 
-        <button class="list-row act" id="row-vandenberg" onclick="toonRij(this)">
-          <div class="list-row-naam">Familie Van der Berg</div>
-          <div class="list-row-chips">
-            <span class="chip chip-gold">MfN 12/15</span>
-            <span class="chip chip-warn">2 punten</span>
+      <!-- Body: doc | analyse -->
+      <div class="sd-body">
+
+        <!-- Linker panel: document -->
+        <div class="sd-doc">
+          <div class="sd-para">
+            <div class="sd-art-num">2.6. &nbsp;&nbsp;Einde partneralimentatie</div>
           </div>
-          <div class="list-row-datum">2 uur geleden</div>
-        </button>
-
-        <button class="list-row" onclick="toonRij(this)">
-          <div class="list-row-naam">De Wit</div>
-          <div class="list-row-chips">
-            <span class="chip chip-ok">MfN 15/15</span>
+          <div class="sd-para">
+            <div class="sd-art-num">2.6.1.</div>
+            <p class="sd-doc-txt">Indien de alimentatiegerechtigde hertrouwt, een geregistreerd partnerschap aangaat of duurzaam gaat samenleven met een ander als ware gehuwd of als ware geregistreerd partners, is het in artikel 1:160 BW bepaalde zonder meer van toepassing: de alimentatie eindigt definitief met ingang van de datum van hertrouwen, respectievelijk het laten registreren van het partnerschap, respectievelijk het moment waarop de duurzame samenleving aanvangt.</p>
           </div>
-          <div class="list-row-datum">gisteren</div>
-        </button>
-
-        <button class="list-row" onclick="toonRij(this)">
-          <div class="list-row-naam">Hermans-Koopman</div>
-          <div class="list-row-chips">
-            <span class="chip chip-bad">MfN 7/15</span>
-            <span class="chip chip-bad">5 punten</span>
+          <div class="sd-para">
+            <div class="sd-art-num">2.6.2.</div>
+            <p class="sd-doc-txt">De alimentatieplicht geldt volgens de wettelijke bepalingen (maximaal) de helft van de tijd dat partijen gehuwd zijn geweest, te rekenen vanaf de datum van ontbinding van het huwelijk, met een maximum van 5 jaar. De volgende uitzonderingen gelden:</p>
+            <p class="sd-doc-txt" style="padding-left:16px;">1. Partijen zijn langer dan 15 jaar gehuwd geweest en de alimentatiegerechtigde zal binnen 10 jaar de wettelijke AOW-leeftijd bereiken…</p>
           </div>
-          <div class="list-row-datum">3 dagen geleden</div>
-        </button>
-
-        <button class="list-row" onclick="toonRij(this)">
-          <div class="list-row-naam">Visser</div>
-          <div class="list-row-chips">
-            <span class="chip chip-grijs">Nog geen analyse</span>
+          <div class="sd-para">
+            <div class="sd-art-num">2.6.3.</div>
+            <p class="sd-doc-txt"><span class="sd-h-orange">Voor partijen geldt de standaardregeling, waarbij de alimentatieduur de helft van de duur van het huwelijk bedraagt, welke zal ingaan op de datum van ontbinding van het huwelijk.</span></p>
           </div>
-          <div class="list-row-datum">18 juni</div>
-        </button>
-
-        <div class="list-section">Afgerond</div>
-
-        <button class="list-row" onclick="toonRij(this)">
-          <div class="list-row-naam">Bakker-Janssen</div>
-          <div class="list-row-chips">
-            <span class="chip chip-ok">MfN 14/15</span>
+          <div class="sd-para">
+            <div class="sd-art-num">2.6.4.</div>
+            <p class="sd-doc-txt">Uiterlijk 3 maanden na verstrijken van de termijn van partneralimentatie, kan de alimentatiegerechtigde verlenging van deze termijn vragen…</p>
           </div>
-          <div class="list-row-datum">14 mei</div>
-        </button>
-
-        <button class="list-row" onclick="toonRij(this)">
-          <div class="list-row-naam">Oosterbeek</div>
-          <div class="list-row-chips">
-            <span class="chip chip-ok">MfN 13/15</span>
+          <div class="sd-para" style="margin-top:20px;">
+            <div class="sd-art-num" style="font-size:1rem;font-weight:700;color:var(--ink);">3. &nbsp;&nbsp;&nbsp;VERDELING HUWELIJKSGEMEENSCHAP</div>
           </div>
-          <div class="list-row-datum">2 april</div>
-        </button>
+          <div class="sd-para">
+            <div class="sd-art-num">3.1. &nbsp;&nbsp;Gemeenschap van goederen</div>
+          </div>
+          <div class="sd-para">
+            <div class="sd-art-num">3.1.1.</div>
+            <p class="sd-doc-txt">Partijen zijn gehuwd in gemeenschap van goederen. Alle bezittingen en schulden zijn gezamenlijk bezit. Met uitzondering van nalatenschappen en schenkingen die zijn voorzien van een <span class="sd-highlight">uitsluitingsclausule</span>.</p>
+          </div>
+          <div class="sd-page-num">4 / 12</div>
+          <div class="sd-doc-fade"></div>
+        </div>
 
-      </div><!-- /list-scroll -->
-    </nav><!-- /list-panel -->
+        <!-- Rechter panel: analyse -->
+        <div class="sd-anal">
+          <div class="sd-anal-scroll">
 
-    <!-- ░░ Detailpanel (rechts) ░░░░░░░░░░░░░░░░░░░░░░ -->
-    <main class="detail-panel">
+            <!-- Score header -->
+            <div class="sd-score-box">
+              <div class="sd-score-top">
+                <div class="sd-score-pct">55<span style="font-size:1rem;">%</span></div>
+                <div class="sd-score-info" style="flex:1;">
+                  <div class="sd-score-lbl">Gemiddelde kwaliteitsscore</div>
+                  <div class="sd-score-bar-wrap"><div class="sd-score-bar" style="width:55%;"></div></div>
+                  <div class="sd-score-meta">Volledigheid 84% · Juridisch: 0 hoog · 7 midden · MfN 10/15</div>
+                </div>
+              </div>
+              <div class="sd-score-pills">
+                <span class="sd-pill sd-pill-ok">10 MfN aanwezig</span>
+                <span class="sd-pill sd-pill-warn">4 onvolledig</span>
+                <span class="sd-pill sd-pill-risk">1 ontbreekt</span>
+              </div>
+            </div>
 
-      <!-- ── State: dossier detail ─────────────────── -->
-      <div class="rp act" id="rp-detail">
-        <div class="rp-header">
-          <div class="rp-header-detail">
+            <!-- Samenvatting -->
+            <div class="sd-samenvatting">
+              <div class="sd-section-head">
+                <div class="sd-section-lbl">Samenvatting</div>
+              </div>
+              <p class="sd-sam-txt">Dit echtscheidingsconvenant betreft het huwelijk van Robin Alexander van den Elzen (de man) en Charmely Dorothé Hartog (de vrouw), gesloten op 19-07-2016 te Apeldoorn, met één minderjarig kind (Yalisha, geboren 20-03-2012). Partneralimentatie is vastgesteld op € 189,- bruto per maand. Pensioen wordt via conversie afgewikkeld met een terugvaloptie naar standaardverevening.</p>
+            </div>
+
+            <!-- Juridische juistheid -->
+            <div style="margin-bottom:8px;">
+              <div class="sd-section-head">
+                <div class="sd-section-lbl" style="font-size:.72rem;font-weight:700;color:var(--ink);">Juridische juistheid</div>
+                <button class="sd-btn-alles">Verbeterpunten</button>
+              </div>
+            </div>
+
+            <!-- Finding 1 — rood -->
+            <div class="sd-finding-card">
+              <div class="sd-finding-top">
+                <div class="sd-finding-cb"></div>
+                <span class="sd-finding-title">Partneralimentatie — duur en einddatum</span>
+                <span class="sd-finding-art">art. 1:157 BW</span>
+                <span class="sd-finding-passage">↑ passage</span>
+              </div>
+              <p class="sd-finding-body">Het convenant vermeldt dat de alimentatieduur 'de helft van de duur van het huwelijk' bedraagt. De concrete einddatum ontbreekt. Zonder expliciete einddatum is de bepaling onvoldoende afdwingbaar.</p>
+              <div class="sd-finding-quote">de alimentatieduur de helft van de duur van het huwelijk bedraagt</div>
+              <div class="sd-suggestie">
+                <div class="sd-sug-lbl">💡 Suggestie</div>
+                <p class="sd-sug-txt">De partneralimentatie eindigt uiterlijk op [datum = datum inschrijving echtscheidingsbeschikking + helft huwelijksduur], doch niet later dan vijf jaar na de datum van ontbinding van het huwelijk door inschrijving van de echtscheidingsbeschikking.</p>
+              </div>
+              <textarea class="sd-opmerking" placeholder="Opmerking toevoegen…"></textarea>
+            </div>
+
+            <!-- Finding 2 — oranje, aangevinkt -->
+            <div class="sd-finding-card warn">
+              <div class="sd-finding-top">
+                <div class="sd-finding-cb checked">✓</div>
+                <span class="sd-finding-title">Partneralimentatie — onjuiste verwijzing art. 1:159a BW</span>
+                <span class="sd-finding-art">art. 1:159a BW</span>
+              </div>
+              <p class="sd-finding-body">Artikel 1:159a BW is ingeroepen in een nihilbeding-context, maar dit artikel ziet op indexering, niet op nihilbedingen. De juiste grondslag is art. 1:159 BW.</p>
+            </div>
+
+          </div>
+          <div class="sd-anal-fade"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CONCEPT REVIEW DEMO ════════════════════════════ -->
+<section class="conceptdemo">
+  <div class="conceptdemo-inner">
+    <div class="section-label">Verbeterd concept</div>
+    <h2>Wijzigingen zichtbaar, naast het origineel</h2>
+    <p>Nadat u verbeterpunten heeft geselecteerd, genereert Clausula een nieuw concept. Doorgehaalde tekst is verwijderd, groene tekst is toegevoegd. Rechts ziet u per wijziging een toelichting en kunt u het origineel terugzien. Daarna downloadt u het document als Word-bestand.</p>
+
+    <div class="cc-chrome">
+      <!-- Topbar -->
+      <div class="cc-topbar">
+        <button class="cc-back">← Terug</button>
+        <span class="cc-title">Verbeterd concept — review</span>
+        <button class="cc-dl">↓ Download als Word</button>
+      </div>
+
+      <!-- Body: document + sidebar -->
+      <div class="cc-body">
+
+        <!-- Linker panel: document met track-changes -->
+        <div class="cc-doc">
+
+          <!-- Ongewijzigde context, gedimmd -->
+          <div style="opacity:.45;margin-bottom:14px;">
+            <div class="cc-h1">2. &nbsp;Levensonderhoud</div>
+            <div class="cc-h2">2.3. &nbsp;&nbsp;Partneralimentatie</div>
+            <div class="cc-art-row">
+              <span class="cc-art-num">2.3.2.</span>
+              <span class="cc-art-txt">Partijen stellen de partneralimentatie vast aan de hand van een draagkrachtberekening conform de Tremanormen.</span>
+            </div>
+            <div class="cc-art-row">
+              <span class="cc-art-num">2.3.3.</span>
+              <span class="cc-art-txt">De man is alimentatieplichtige en de vrouw is alimentatiegerechtigde.</span>
+            </div>
+          </div>
+
+          <!-- ── Wijziging 1: art. 2.3.4 ── -->
+          <div class="cc-art-row">
+            <span class="cc-art-num">2.3.4.</span>
+            <div class="cc-change-block">
+              <div class="cc-del-block">Partijen komen overeen dat de alimentatieplichtige aan de alimentatiegerechtigde een partneralimentatie verstrekt van € 189,-, bruto per maand, te voldoen op de 15de van de maand door bijschrijving op een door de ontvanger aan te wijzen rekening. Partijen zijn ermee bekend dat de hiervoor genoemde partneralimentatie belast is bij de ontvanger en bij de betaler als persoonsgebonden aftrek in aanmerking mag worden genomen. De afgebroken zin over het regresrecht is tevens hersteld en volledig uitgeschreven.</div>
+              <div class="cc-ins-block">Partijen komen overeen dat de alimentatieplichtige aan de alimentatiegerechtigde een partneralimentatie verstrekt van € 189,- bruto per maand, te voldoen op de 15de van de maand door bijschrijving op een door de ontvanger aan te wijzen rekening. De partneralimentatie is vastgesteld op € 189,- bruto per maand. Dit bedrag wijkt af van de berekende behoefte van € 3.429,- netto per maand. Dit is het gevolg van de beperkte draagkracht van de alimentatieplichtige na aftrek van zijn eigen noodzakelijke lasten, conform de Tremanormen-berekening d.d. [datum], welke als bijlage aan dit convenant is gehecht. Partijen zijn bewust van dit verschil en aanvaarden dit bedrag als redelijk en billijk.</div>
+            </div>
+          </div>
+
+          <!-- Ongewijzigd tussenartikel -->
+          <div class="cc-art-row" style="opacity:.45;">
+            <span class="cc-art-num">2.3.5.</span>
+            <span class="cc-art-txt">Betaling van de partneralimentatie gaat in op het moment dat de scheiding is ingeschreven in de registers van de burgerlijke stand.</span>
+          </div>
+
+          <!-- ── Wijziging 2: art. 2.3.6 ── -->
+          <div class="cc-art-row">
+            <span class="cc-art-num">2.3.6.</span>
+            <div class="cc-change-block">
+              <div class="cc-del-block">De man en de vrouw zijn bekend met het bepaalde in artikel 1:159a Burgerlijk Wetboek dat een onderlinge gemaakte partneralimentatieafspraak een rechterlijke toewijzing tot verhaal door de gemeente op grond van de Participatiewet niet in de weg staat.</div>
+              <div class="cc-ins-block">Partijen zijn ermee bekend dat de gemeente op grond van de Participatiewet verhaal kan nemen op de alimentatieplichtige voor bijstand verleend aan de alimentatiegerechtigde, tot maximaal het overeengekomen alimentatiebedrag. Indien er bijstand wordt verhaald in de situatie dat de partneralimentatie door de alimentatieplichtige is afgekocht, ontstaat er een regresrecht op de alimentatiegerechtigde. Dit regresrecht beloopt het bedrag dat door de gemeente is verhaald met een maximum van de netto afkoopsom die de alimentatiegerechtigde heeft ontvangen.</div>
+            </div>
+          </div>
+
+          <!-- ── Wijziging 3: nieuw art. 2.3.7 (invoeging) ── -->
+          <div class="cc-art-row">
+            <span class="cc-art-num">2.3.7.</span>
+            <div class="cc-change-block">
+              <div class="cc-ins-block" style="border-left-color:#1A8C50;">Partijen spreken af dat indien de inkomsten van de alimentatieplichtige met meer dan 10% stijgen of dalen ten opzichte van de vastgestelde draagkrachtberekening, de alimentatieplichtige dit onverwijld schriftelijk meldt aan de alimentatiegerechtigde, zodat de bijdrage tijdig kan worden herzien.</div>
+            </div>
+          </div>
+
+          <div class="cc-doc-fade"></div>
+        </div>
+
+        <!-- Rechter sidebar: wijzigingen -->
+        <div class="cc-sidebar">
+          <div class="cc-sidebar-scroll">
+
+            <!-- Wijziging 1 -->
+            <div class="cc-change-card">
+              <div class="cc-change-head">
+                <div class="cc-change-title">Partneralimentatie</div>
+                <div class="cc-change-desc">Onjuiste verwijzing naar art. 1:159a BW verwijderd en vervangen door een correcte passage over het verhaalsrecht van de gemeente op grond van de Participatiewet. De afgebroken zin over het regresrecht is tevens hersteld en volledig uitgeschreven.</div>
+              </div>
+              <div class="cc-change-tabs">
+                <button class="cc-tab act">Aangepast</button>
+                <button class="cc-tab">Origineel</button>
+              </div>
+              <div class="cc-change-body">
+                <p class="cc-change-txt">Partijen zijn ermee bekend dat de gemeente op grond van de Participatiewet verhaal kan nemen op de alimentatieplichtige voor bijstand verleend aan de alimentatiegerechtigde, tot maximaal het overeengekomen alimentatiebedrag. Indien er bijstand wordt verhaald in de situatie dat de partneralimentatie door de alimentatieplichtige is afgekocht, ontstaat er een regresrecht op de alimentatiegerechtigde.</p>
+              </div>
+            </div>
+
+            <!-- Wijziging 2 -->
+            <div class="cc-change-card">
+              <div class="cc-change-head">
+                <div class="cc-change-title">Inkomen van de alimentatieplichtige</div>
+                <div class="cc-change-desc">Actieve meldplicht voor de alimentatieplichtige toegevoegd: bij een inkomenswijziging van meer dan 10% dient dit onverwijld gemeld te worden aan de alimentatiegerechtigde, zodat de bijdrage kan worden aangepast.</div>
+              </div>
+              <div class="cc-change-tabs">
+                <button class="cc-tab act">Aangepast</button>
+                <button class="cc-tab">Origineel</button>
+              </div>
+              <div class="cc-change-body">
+                <p class="cc-change-txt">Partijen spreken af dat indien de inkomsten van de alimentatieplichtige met meer dan 10% stijgen of dalen ten opzichte van de vastgestelde draagkrachtberekening, de alimentatieplichtige dit onverwijld schriftelijk meldt aan de alimentatiegerechtigde, zodat de bijdrage tijdig kan worden herzien.</p>
+              </div>
+            </div>
+
+            <!-- Wijziging 3 -->
+            <div class="cc-change-card">
+              <div class="cc-change-head">
+                <div class="cc-change-title">Einddatum partneralimentatie</div>
+                <div class="cc-change-desc">Concrete einddatum toegevoegd op basis van de huwelijksduur en de standaardregeling (art. 1:157 BW).</div>
+              </div>
+              <div class="cc-change-tabs">
+                <button class="cc-tab act">Aangepast</button>
+                <button class="cc-tab">Origineel</button>
+              </div>
+              <div class="cc-change-body">
+                <p class="cc-change-txt">De partneralimentatieplicht eindigt uiterlijk op [datum = datum inschrijving echtscheidingsbeschikking + helft huwelijksduur], doch niet later dan vijf jaar na de datum van ontbinding van het huwelijk door inschrijving van de echtscheidingsbeschikking in de registers van de burgerlijke stand.</p>
+              </div>
+            </div>
+
+          </div>
+          <div class="cc-sidebar-fade"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ AVG / VEILIGHEID ═══════════════════════════════ -->
+<section class="security" id="veiligheid">
+  <div class="security-inner">
+    <div>
+      <div class="section-label">Veiligheid &amp; privacy</div>
+      <h2 style="margin-bottom:16px;">Volledig AVG-proof,<br>van upload tot archief</h2>
+      <p style="margin-bottom:20px;">Scheidingsdocumenten bevatten bijzonder gevoelige persoonsgegevens. Clausula is ontworpen met privacy als uitgangspunt: uw documenten worden uitsluitend verwerkt ten behoeve van de analyse en nooit gebruikt voor andere doeleinden.</p>
+      <p style="margin-bottom:32px;">Als verwerkingsverantwoordelijke sluit u een verwerkersovereenkomst af met Clausula B.V. Alle verwerking vindt plaats binnen de Europese Economische Ruimte.</p>
+      <div class="sec-badge-row">
+        <div class="sec-badge"><span class="sec-badge-icon">🇪🇺</span><span class="sec-badge-txt">Servers in de EER</span></div>
+        <div class="sec-badge"><span class="sec-badge-icon">🔒</span><span class="sec-badge-txt">TLS 1.3-encryptie</span></div>
+        <div class="sec-badge"><span class="sec-badge-icon">📋</span><span class="sec-badge-txt">Verwerkersovereenkomst</span></div>
+        <div class="sec-badge"><span class="sec-badge-icon">🗑</span><span class="sec-badge-txt">Verwijdering op verzoek</span></div>
+      </div>
+    </div>
+    <div class="security-grid">
+      <div class="sec-card">
+        <div class="sec-icon">🔐</div>
+        <div>
+          <h4>Versleutelde opslag</h4>
+          <p>Documenten worden versleuteld opgeslagen. Niemand buiten uw account heeft toegang tot uw dossiers.</p>
+        </div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">🚫</div>
+        <div>
+          <h4>Geen trainingsdata</h4>
+          <p>Uw documenten worden nooit gebruikt om modellen te trainen of te verbeteren. Verwerking is uitsluitend voor de analyse.</p>
+        </div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">📍</div>
+        <div>
+          <h4>Verwerking in de EU</h4>
+          <p>Alle gegevensverwerking vindt uitsluitend plaats op servers binnen de Europese Economische Ruimte.</p>
+        </div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">🗑</div>
+        <div>
+          <h4>Recht op verwijdering</h4>
+          <p>U kunt een dossier en alle bijbehorende documenten op elk moment volledig en permanent verwijderen.</p>
+        </div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">📄</div>
+        <div>
+          <h4>Verwerkersovereenkomst</h4>
+          <p>Clausula levert een AVG-conforme verwerkersovereenkomst. Download en onderteken direct vanuit uw account.</p>
+        </div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">👤</div>
+        <div>
+          <h4>Toegang per gebruiker</h4>
+          <p>Ieder account heeft alleen toegang tot eigen dossiers. Bij kantooraccounts beheert de beheerder de rechten.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PDF RAPPORT DEMO ═══════════════════════════════ -->
+<section class="pdfdemo">
+  <div class="pdfdemo-inner">
+    <div>
+      <div class="section-label">Export</div>
+      <h2 style="margin-bottom:16px;">Professioneel rapport,<br>klaar voor het dossier</h2>
+      <p style="margin-bottom:28px;">Met één klik genereert Clausula een volledig PDF-rapport — voorzien van uw kantoorlogo. Bevat samenvatting, MfN-compliantiecheck, alle bevindingen met wetsartikelen en een rubriek per categorie. Ook exporteerbaar als Word/RTF voor directe bewerking.</p>
+      <div class="feat-list">
+        <div class="feat-item">
+          <div class="feat-icon" style="background:#EDF2FB;">📄</div>
+          <div><h4>PDF met kantoorbranding</h4><p>Uw naam en logo in de header. Geschikt om direct met cliënten te delen.</p></div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon" style="background:var(--ok-bg);">📝</div>
+          <div><h4>RTF / Word export</h4><p>Bewerkbaar formaat voor de mediator die aantekeningen wil toevoegen.</p></div>
+        </div>
+        <div class="feat-item">
+          <div class="feat-icon" style="background:#FDF3DC;">🔗</div>
+          <div><h4>Wetsartikelen inbegrepen</h4><p>Elke bevinding bevat de juridische grondslag, zodat cliënten begrijpen waarom iets ontbreekt.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF paper mockup -->
+    <div class="pdf-paper">
+      <div class="pdf-page">
+        <div class="pdf-header">
+          <span class="pdf-header-org">Zorgzaam Scheiden</span>
+          <span class="pdf-header-date">01 juli 2026</span>
+        </div>
+
+        <div class="pdf-title">Screeningsrapport</div>
+        <p class="pdf-subtitle">Robin Alexander van den Elzen - Charmely Dorothé Hartog<br>Concept Convenant (1).pdf + Concept Ouderschapsplan (4).pdf + Zorgverdeling (7).pdf</p>
+
+        <table class="pdf-meta-tbl">
+          <tr>
+            <th>Documenttype</th>
+            <th>Partijen</th>
+            <th>Versie</th>
+          </tr>
+          <tr>
+            <td>convenant</td>
+            <td>Robin Alexander van den Elzen &amp; Charmely Dorothé Hartog</td>
+            <td>V1</td>
+          </tr>
+        </table>
+
+        <div class="pdf-section-title">Samenvatting</div>
+        <p class="pdf-body-txt">Dit echtscheidingsconvenant betreft het huwelijk van Robin Alexander van den Elzen (de man) en Charmely Dorothé Hartog (de vrouw), gesloten op 19-07-2016 te Apeldoorn, met één minderjarig kind (Yalisha, geboren 20-03-2012). Het convenant is opgesteld na een mediationtraject begeleid door Mariska Lenders en ondertekend op 30-06-2026 te Deventer. Partneralimentatie is vastgesteld op € 189,- bruto per maand. Pensioen wordt via conversie afgewikkeld met een terugvaloptie naar standaardverevening.</p>
+
+        <div class="pdf-section-title">MfN-compliantie</div>
+        <div class="pdf-mfn-score">9 van 15 vereiste elementen aanwezig (60%)</div>
+        <ul class="pdf-checklist">
+          <li class="pdf-check-item"><div class="pdf-check-dot pdf-dot-ok">✓</div><span class="pdf-check-text">Persoonsgegevens beide partijen (namen, geboortedaten, adressen)</span></li>
+          <li class="pdf-check-item"><div class="pdf-check-dot pdf-dot-ok">✓</div><span class="pdf-check-text">Huwelijksdatum, -gemeente en eventuele huwelijkse voorwaarden</span></li>
+          <li class="pdf-check-item"><div class="pdf-check-dot pdf-dot-ok">✓</div><span class="pdf-check-text">Minderjarige kinderen vermeld (namen, geboortedaten)</span></li>
+          <li class="pdf-check-item"><div class="pdf-check-dot pdf-dot-ok">✓</div><span class="pdf-check-text">Eigen woning: eigendom, bestemming (verkoop/toedeling) en waarde</span></li>
+          <li class="pdf-check-item">
+            <div class="pdf-check-dot pdf-dot-warn">!</div>
             <div>
-              <h1 class="rp-title">Familie Van der Berg</h1>
-              <div class="rp-meta">
-                Marco van der Berg &nbsp;×&nbsp; Elise van der Berg-Smit
-                &nbsp;·&nbsp;
-                <select class="status-select">
-                  <option selected>Actief</option>
-                  <option>Afgerond</option>
-                  <option>Gearchiveerd</option>
-                </select>
-              </div>
+              <div class="pdf-check-text" style="font-weight:600;">Hypotheek: overname of aflossing en ontslag hoofdelijke aansprakelijkheid</div>
+              <div class="pdf-check-sub">Hypotheeknummers en aflossing bij verkoop zijn geregeld, maar een expliciete bepaling over ontslag uit hoofdelijke aansprakelijkheid jegens AEGON ontbreekt.</div>
             </div>
-            <div class="rp-acties">
-              <button class="btn-primary" onclick="toonScreen('analyse')">
-                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                  <line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/>
-                </svg>
-                Nieuwe versie analyseren
-              </button>
-              <button class="btn-danger">
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
-                  <polyline points="3 6 17 6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="12" rx="1.5"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div><!-- /rp-header -->
+          </li>
+          <li class="pdf-check-item"><div class="pdf-check-dot pdf-dot-ok">✓</div><span class="pdf-check-text">Bankrekeningen en spaargeld: verdeling of verrekening</span></li>
+          <li class="pdf-check-item"><div class="pdf-check-dot pdf-dot-ok">✓</div><span class="pdf-check-text">Pensioenverevening conform WVPS art. 2 of schriftelijke afwijking (art. 5 WVPS)</span></li>
+        </ul>
+      </div>
+      <div class="pdf-footer-bar">
+        <span class="pdf-footer-txt">Zorgzaam Scheiden</span>
+        <span class="pdf-footer-txt">Screeningsdatum: 01 juli 2026</span>
+        <span class="pdf-footer-txt">1 / 11</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-        <div class="rp-body">
-          <div class="detail-sectie-kop">Versiehistorie</div>
-          <div class="versie-list">
-
-            <!-- v3 -->
-            <div class="versie-kaart" onclick="toonScreen('split')">
-              <div class="versie-nr">v3</div>
-              <div class="versie-body">
-                <div class="versie-label">Na bespreking 20 juni</div>
-                <div class="versie-datum">Geanalyseerd op 20 juni 2026 om 14:22</div>
-                <div class="versie-chips">
-                  <span class="chip chip-gold">MfN 12/15</span>
-                  <span class="chip chip-warn">2 juridische punten</span>
-                  <span class="chip chip-ok">Volledigheid 13/15</span>
-                </div>
-                <div class="versie-docs">
-                  <span class="doc-pill"><span class="doc-pill-icon">📄</span><span class="doc-pill-name">Convenant_v3.pdf</span><button class="doc-pill-dl">↓</button></span>
-                  <span class="doc-pill"><span class="doc-pill-icon">📊</span><span class="doc-pill-name">Waardebepaling.pdf</span><button class="doc-pill-dl">↓</button></span>
-                  <span class="doc-pill"><span class="doc-pill-icon">📋</span><span class="doc-pill-name">HV_2019.pdf</span><button class="doc-pill-dl">↓</button></span>
-                </div>
-              </div>
-              <div class="versie-acties">
-                <button class="icon-btn" title="RTF exporteren">
-                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 14l-3 3h16l-3-3M10 3v11M7 6l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <button class="icon-btn danger" title="Versie verwijderen">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 17 6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="12" rx="1.5"/></svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- v2 -->
-            <div class="versie-kaart" onclick="toonScreen('split')">
-              <div class="versie-nr">v2</div>
-              <div class="versie-body">
-                <div class="versie-label">Concept na eerste sessie</div>
-                <div class="versie-datum">Geanalyseerd op 10 juni 2026 om 10:07</div>
-                <div class="versie-chips">
-                  <span class="chip chip-warn">MfN 9/15</span>
-                  <span class="chip chip-bad">5 juridische punten</span>
-                </div>
-                <div class="versie-docs">
-                  <span class="doc-pill"><span class="doc-pill-icon">📄</span><span class="doc-pill-name">Convenant_v2_concept.pdf</span><button class="doc-pill-dl">↓</button></span>
-                </div>
-              </div>
-              <div class="versie-acties">
-                <button class="icon-btn" title="RTF exporteren">
-                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 14l-3 3h16l-3-3M10 3v11M7 6l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <button class="icon-btn danger" title="Versie verwijderen">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 17 6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="12" rx="1.5"/></svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- v1 -->
-            <div class="versie-kaart">
-              <div class="versie-nr">v1</div>
-              <div class="versie-body">
-                <div class="versie-label">Initieel concept</div>
-                <div class="versie-datum">Geanalyseerd op 1 juni 2026 om 15:40</div>
-                <div class="versie-chips">
-                  <span class="chip chip-bad">MfN 5/15</span>
-                  <span class="chip chip-bad">9 juridische punten</span>
-                </div>
-                <div class="versie-docs">
-                  <span class="doc-pill"><span class="doc-pill-icon">📄</span><span class="doc-pill-name">Eerste_draft_convenant.docx</span><button class="doc-pill-dl">↓</button></span>
-                </div>
-              </div>
-              <div class="versie-acties">
-                <button class="icon-btn" title="RTF exporteren">
-                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 14l-3 3h16l-3-3M10 3v11M7 6l3-3 3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-                <button class="icon-btn danger" title="Versie verwijderen">
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="3 6 17 6"/><path d="M8 6V4h4v2"/><rect x="5" y="6" width="10" height="12" rx="1.5"/></svg>
-                </button>
-              </div>
-            </div>
-
-          </div><!-- /versie-list -->
-        </div><!-- /rp-body -->
-      </div><!-- /rp-detail -->
-
-
-      <!-- ── State: nieuwe versie analyseren ──────── -->
-      <div class="rp" id="rp-analyse">
-        <div class="rp-header rp-header-analyse">
-          <button class="rp-back" onclick="toonScreen('detail')">← Terug</button>
+<!-- ══ SCORE VOORBEELD ════════════════════════════════ -->
+<section class="screenshot-section">
+  <div class="screenshot-inner">
+    <div>
+      <div class="section-label">Score-dashboard</div>
+      <h2 style="margin-bottom:16px;">In één oogopslag ziet u waar het wringt</h2>
+      <p style="margin-bottom:24px;">De gesegmenteerde cirkels tonen per categorie de verdeling tussen groen (in orde), amber (aandacht) en rood (risico). Klik op een segment voor de onderliggende bevindingen.</p>
+      <div class="feat-list">
+        <div class="feat-item"><div class="feat-icon">📐</div><div><h4>Volledigheid (VOL)</h4><p>Toetst aanwezigheid van alle vereiste secties conform de sjabloonchecklist.</p></div></div>
+        <div class="feat-item"><div class="feat-icon">⚖️</div><div><h4>Juridisch (JUR)</h4><p>Ernst-gewogen signalering: hoog (rood), midden (amber) of laag (groen).</p></div></div>
+        <div class="feat-item"><div class="feat-icon">🤝</div><div><h4>MfN-elementen (MFN)</h4><p>Controleert alle MfN-protocol-verplichte onderdelen.</p></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="score-preview">
+        <div class="score-top">
+          <div class="big-ring"><div class="big-ring-inner">57%</div></div>
           <div>
-            <p class="rp-title-sm">Nieuwe versie analyseren</p>
-            <div class="rp-meta" style="margin-top:2px">Familie Van der Berg</div>
+            <div class="score-doc-lbl">Ouderschapsplan</div>
+            <div class="score-naam">Dossier Vermeer / Vermeer-Groen</div>
+            <div class="score-datum">Versie 2 · 28 jun 2026, 14:32</div>
           </div>
         </div>
-
-        <div class="rp-body">
-          <div class="analyse-content">
-
-            <!-- Dossier context -->
-            <div class="koppel-actief">
-              <div class="koppel-actief-icon">📁</div>
-              <div class="koppel-actief-info">
-                <div class="koppel-actief-naam">Familie Van der Berg</div>
-                <div class="koppel-actief-sub">Versie v4 wordt toegevoegd aan dit dossier</div>
-                <input class="versie-label-input" placeholder="Versielabel (optioneel) — bijv. 'Na overleg 25 juni'" type="text">
-              </div>
-            </div>
-
-            <!-- Dropzone -->
-            <div class="dropzone">
-              <div class="drop-icon-ring">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-              </div>
-              <h3>Sleep documenten hierheen</h3>
-              <p>of klik om bestanden te kiezen</p>
-              <p class="hint" style="font-size:.75rem;margin-top:5px;opacity:.65">PDF, DOCX, JPG — max. 20 MB per bestand</p>
-            </div>
-
-            <!-- Tray -->
-            <div class="mt16">
-              <div class="tray">
-                <div class="tray-item">
-                  <div class="tray-item-icon">📄</div>
-                  <div class="tray-item-info">
-                    <span class="tray-item-naam">Convenant_Van_der_Berg_v4.pdf</span>
-                    <span class="tray-item-sub">Nieuw geüpload · 2,4 MB</span>
-                  </div>
-                  <select class="tray-type-sel primair">
-                    <option selected>Convenant</option>
-                    <option>Ouderschapsplan</option>
-                    <option>Waardebepaling</option>
-                    <option>Huwelijkse Voorwaarden</option>
-                    <option>Pensioenopgave</option>
-                    <option>Overig</option>
-                  </select>
-                  <button class="tray-del">✕</button>
-                </div>
-                <div class="tray-item" style="opacity:.85">
-                  <div class="tray-item-icon">📋</div>
-                  <div class="tray-item-info">
-                    <span class="tray-item-naam">HuwelijkseVoorwaarden_2019.pdf</span>
-                    <span class="tray-item-sub">Uit dossier · 0,8 MB · Bijlage (context)</span>
-                  </div>
-                  <select class="tray-type-sel bijlage">
-                    <option>Convenant</option>
-                    <option>Ouderschapsplan</option>
-                    <option>Waardebepaling</option>
-                    <option selected>Huwelijkse Voorwaarden</option>
-                    <option>Pensioenopgave</option>
-                    <option>Overig</option>
-                  </select>
-                  <button class="tray-del">✕</button>
-                </div>
-                <div class="tray-footer">
-                  <button class="tray-add">+ Document toevoegen</button>
-                  <div style="display:flex;gap:6px;font-size:.75rem;color:var(--ink-soft);align-items:center">
-                    <span>1 primair · 1 bijlage</span>
-                    <button class="tray-wis">Alles wissen</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button class="analyse-btn">Analyseer 1 document →</button>
-
-          </div>
+        <div class="score-cats">
+          <div class="score-cat"><div class="cat-ring r-warn"><div class="cat-inner">30/36</div></div><div class="cat-lbl">VOL</div></div>
+          <div class="score-cat"><div class="cat-ring r-risk"><div class="cat-inner">11</div></div><div class="cat-lbl">JUR</div></div>
+          <div class="score-cat"><div class="cat-ring r-warn"><div class="cat-inner">9/12</div></div><div class="cat-lbl">MFN</div></div>
+          <div class="score-cat"><div class="cat-ring r-ok2"><div class="cat-inner">8</div></div><div class="cat-lbl">BAL</div></div>
+          <div class="score-cat"><div class="cat-ring r-ok"><div class="cat-inner">✓</div></div><div class="cat-lbl">GRAM</div></div>
         </div>
-      </div><!-- /rp-analyse -->
-
-    </main><!-- /detail-panel -->
-  </div><!-- /master-detail -->
-</div><!-- /app -->
-
-
-<!-- ══════════════════════════════════════════════════════
-     SCREEN: Split-view analyse resultaat — FULLSCREEN
-     ══════════════════════════════════════════════════════ -->
-<div id="screen-split">
-
-  <div class="split-hdr">
-    <div class="split-hdr-top">
-      <button class="split-hdr-back" onclick="toonScreen('detail')">← Terug naar dossier</button>
-
-      <div class="split-hdr-docs">
-        <button class="split-doc-tab act">
-          <span class="split-doc-tab-type">Convenant</span>
-          Convenant_v3.pdf
-        </button>
-        <button class="split-doc-tab">
-          <span class="split-doc-tab-type">Waardebepaling</span>
-          Waardebepaling_2025.pdf
-        </button>
-      </div>
-
-      <div class="split-hdr-acties">
-        <input class="split-versielabel" placeholder="Versielabel (optioneel)" type="text" value="Na bespreking 20 juni">
-        <button class="btn-primary" style="font-size:.82rem;padding:7px 14px">Opslaan</button>
-        <button class="btn-ghost" style="font-size:.82rem;padding:7px 12px">↓ RTF export</button>
+        <div class="score-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#2E7D5A;"></div>In orde</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#B47B00;"></div>Aandacht</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#C0392B;"></div>Risico</div>
+        </div>
       </div>
     </div>
   </div>
+</section>
 
-  <div class="split-body">
-
-    <!-- Document panel -->
-    <div class="panel-doc">
-      <div class="mock-pdf-page">
-        <div class="mock-pdf-titel">CONVENANT / VASTSTELLINGSOVEREENKOMST</div>
-        <div class="mock-pdf-sub">Inzake de gevolgen van de echtscheiding tussen<br>Marco van der Berg en Elise van der Berg-Smit</div>
-        <div class="mock-pdf-sectie">Artikel 1 — Partneralimentatie</div>
-        <div class="mock-pdf-line midden"></div>
-        <div class="mock-pdf-line kort"></div>
-        <div class="mock-pdf-hl"></div>
-        <div class="mock-pdf-line midden"></div>
-        <div class="mock-pdf-sectie">Artikel 2 — Kinderalimentatie</div>
-        <div class="mock-pdf-line"></div>
-        <div class="mock-pdf-line midden"></div>
-        <div class="mock-pdf-line kort"></div>
-        <div class="mock-pdf-sectie">Artikel 3 — Pensioenverevening</div>
-        <div class="mock-pdf-line midden"></div>
-        <div class="mock-pdf-line"></div>
-        <div class="mock-pdf-hl"></div>
-        <div class="mock-pdf-sectie">Artikel 4 — Eigen woning</div>
-        <div class="mock-pdf-line"></div>
-        <div class="mock-pdf-line midden"></div>
-        <div class="mock-pdf-line kort"></div>
-        <div class="mock-pdf-line"></div>
-      </div>
+<!-- ══ PRICING ════════════════════════════════════════ -->
+<section class="pricing" id="pricing">
+  <div class="pricing-inner">
+    <div style="text-align:center;margin-bottom:56px;">
+      <div class="section-label" style="text-align:center;">Tarieven</div>
+      <h2>Helder geprijsd, zonder verrassingen</h2>
+      <p style="max-width:460px;margin:12px auto 0;font-size:1rem;">Geen opstartkosten, geen jaarcontract. Betaal per maand, stop wanneer u wilt.</p>
     </div>
-
-    <!-- Analyse panel -->
-    <div class="panel-analyse">
-
-      <div class="score-banner">
-        <div class="mfn-getal">12<span class="mfn-van">/15</span></div>
-        <div class="mfn-rechts">
-          <div class="mfn-lbl">MfN-compliantie · Convenant</div>
-          <div class="mfn-balk"><div class="mfn-balk-vul" style="width:80%"></div></div>
-          <div class="mfn-samen">80% · Goed — 3 elementen incompleet of ontbrekend</div>
-        </div>
-        <div class="mfn-issues">
-          <div class="mfn-issue-item"><div class="mfn-dot ok"></div>12 aanwezig</div>
-          <div class="mfn-issue-item"><div class="mfn-dot warn"></div>2 onvolledig</div>
-          <div class="mfn-issue-item"><div class="mfn-dot bad"></div>1 ontbreekt</div>
-        </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-tier">Starter</div>
+        <div class="price-amount">€ 29<span>/maand</span></div>
+        <div class="price-period">excl. btw · maandelijks opzegbaar</div>
+        <p class="price-desc">Voor mediators die incidenteel documenten willen laten toetsen.</p>
+        <ul class="price-features">
+          <li>5 analyses per maand</li>
+          <li>Convenant + ouderschapsplan</li>
+          <li>PDF-rapport export</li>
+          <li>30 dagen versiegeschiedenis</li>
+          <li>E-mail ondersteuning</li>
+        </ul>
+        <button class="price-btn pb-outline">Start gratis proefperiode</button>
       </div>
-
-      <!-- Samenvatting -->
-      <div class="a-sectie">
-        <div class="a-sectie-hdr">
-          <span class="a-sectie-titel">Samenvatting</span>
-          <span class="a-chevron">▾</span>
-        </div>
-        <div class="a-sectie-body">
-          <div class="samenvatting-blok">
-            Het convenant regelt de gevolgen van de echtscheiding tussen Marco en Elise van der Berg.
-            Partneralimentatie: €850/mnd voor 6 jaar. Kinderalimentatie: €480/mnd per kind conform Tremanormen.
-            De gezamenlijke woning wordt toebedeeld aan Marco; Elise ontvangt een uitkoopsom van €97.500.
-            <strong>Aandachtspunt:</strong> de pensioenverevening ontbeert concrete percentages (WVPS art. 2).
-            Huwelijkse voorwaarden (2019, koude uitsluiting) zijn als context meegeleverd.
-          </div>
-        </div>
+      <div class="price-card featured">
+        <div class="price-tag">Meest gekozen</div>
+        <div class="price-tier">Professioneel</div>
+        <div class="price-amount">€ 79<span>/maand</span></div>
+        <div class="price-period">excl. btw · maandelijks opzegbaar</div>
+        <p class="price-desc">Voor actieve mediators met meerdere dossiers tegelijk.</p>
+        <ul class="price-features">
+          <li>Onbeperkte analyses</li>
+          <li>Multi-document vergelijking</li>
+          <li>Conceptgenerator (track-changes)</li>
+          <li>MfN-protocolvergelijking</li>
+          <li>Onbeperkte versiegeschiedenis</li>
+          <li>Prioriteits-ondersteuning</li>
+        </ul>
+        <button class="price-btn pb-gold">Start gratis proefperiode</button>
       </div>
-
-      <!-- MfN detail -->
-      <div class="a-sectie">
-        <div class="a-sectie-hdr">
-          <span class="a-sectie-titel">
-            MfN-compliantie
-            <span class="a-sectie-count chip chip-warn">2 onvolledig · 1 ontbreekt</span>
-          </span>
-          <span class="a-chevron">▾</span>
-        </div>
-        <div class="a-sectie-body">
-          <div class="mfn-el-list">
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Persoonsgegevens beide partijen</span></div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Huwelijksdatum en huwelijkse voorwaarden</span></div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Minderjarige kinderen vermeld</span></div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Eigen woning: eigendom, bestemming en waarde</span></div>
-            <div class="mfn-el-row warn">
-              <span class="mfn-el-ic">△</span>
-              <span class="mfn-el-txt">Pensioenverevening conform WVPS art. 2
-                <span class="mfn-el-toe">Aanwezig maar zonder concrete percentages of bedragen.</span>
-              </span>
-            </div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Partneralimentatie: bedrag + indexering</span></div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Kinderalimentatie + Tremanormen</span></div>
-            <div class="mfn-el-row warn">
-              <span class="mfn-el-ic">△</span>
-              <span class="mfn-el-txt">Fiscale afwikkeling: fiscaal partnerschap en aanslagen
-                <span class="mfn-el-toe">Fiscaal partnerschap eindatum niet expliciet vermeld.</span>
-              </span>
-            </div>
-            <div class="mfn-el-row bad">
-              <span class="mfn-el-ic">✗</span>
-              <span class="mfn-el-txt">Schulden: verdeling en aansprakelijkheid
-                <span class="mfn-el-toe">Schulden worden in het geheel niet besproken in het convenant.</span>
-              </span>
-            </div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Datum van ondertekening</span></div>
-            <div class="mfn-el-row ok"><span class="mfn-el-ic">✓</span><span class="mfn-el-txt">Handtekeningen beide partijen</span></div>
-          </div>
-        </div>
+      <div class="price-card">
+        <div class="price-tier">Kantoor</div>
+        <div class="price-amount">€ 199<span>/maand</span></div>
+        <div class="price-period">excl. btw · per kantoor · tot 5 gebruikers</div>
+        <p class="price-desc">Voor mediationkantoren met meerdere medewerkers.</p>
+        <ul class="price-features">
+          <li>Alles van Professioneel</li>
+          <li>Tot 5 gebruikers</li>
+          <li>Gedeeld dossieroverzicht</li>
+          <li>Kantoorbranding op rapporten</li>
+          <li>Maandelijkse gebruiksrapportage</li>
+          <li>Dedicated accountmanager</li>
+        </ul>
+        <button class="price-btn pb-outline">Neem contact op</button>
       </div>
-
-      <!-- Volledigheid -->
-      <div class="a-sectie dicht">
-        <div class="a-sectie-hdr" onclick="this.parentElement.classList.toggle('dicht')">
-          <span class="a-sectie-titel">Volledigheid <span class="a-sectie-count chip chip-warn">2 onvolledig · 1 ontbreekt</span></span>
-          <span class="a-chevron">▾</span>
-        </div>
-        <div class="a-sectie-body">
-          <div class="a-card ok"><div class="a-card-kop"><span class="a-card-label">Partneralimentatie</span><span class="a-card-badge ok">Aanwezig</span></div><div class="a-card-body">€850/mnd voor 6 jaar met jaarlijkse indexering — volledig en concreet.</div></div>
-          <div class="a-card warn">
-            <div class="a-card-kop"><span class="a-card-label">Pensioenverevening</span><span class="a-card-badge warn">Onvolledig</span></div>
-            <div class="a-card-body">Regeling aanwezig maar zonder concrete percentages of WVPS-verwijzing.</div>
-            <div class="a-card-cite">"…pensioenrechten worden naar rato verdeeld…"</div>
-            <div class="a-card-suggestie"><div class="a-card-sug-lbl">Suggestie</div>"De pensioenrechten worden conform WVPS art. 2 over de huwelijkse periode gelijkelijk (50/50) verdeeld. Partijen doen hierbij afstand van verdere aanspraken."</div>
-          </div>
-          <div class="a-card bad">
-            <div class="a-card-kop"><span class="a-card-label">Schulden</span><span class="a-card-badge bad">Ontbreekt</span></div>
-            <div class="a-card-body">Het convenant bevat geen bepaling over bestaande schulden of aansprakelijkheid tegenover derden.</div>
-            <div class="a-card-suggestie"><div class="a-card-sug-lbl">Suggestie</div>"Partijen verklaren dat er geen gezamenlijke schulden bestaan, dan wel [specificeer schulden] welke door [naam] worden overgenomen."</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Juridisch -->
-      <div class="a-sectie dicht">
-        <div class="a-sectie-hdr" onclick="this.parentElement.classList.toggle('dicht')">
-          <span class="a-sectie-titel">Juridische juistheid <span class="a-sectie-count chip chip-warn">2 aandachtspunten</span></span>
-          <span class="a-chevron">▾</span>
-        </div>
-        <div class="a-sectie-body">
-          <div class="a-card warn">
-            <div class="a-card-checkbox-row"><input type="checkbox">
-              <div class="a-card-checkbox-body">
-                <div class="a-card-kop"><span class="a-card-label">Pensioenverevening zonder concrete berekening</span><span class="a-card-badge warn">Midden</span></div>
-                <div class="a-card-body">De formulering "naar rato" is juridisch onvoldoende — bij geschil is niet bepaalbaar wat de exacte aanspraken zijn.</div>
-                <div class="a-card-cite">"…pensioenrechten worden naar rato verdeeld…"</div>
-                <span class="a-card-wet">WVPS art. 2</span>
-                <textarea class="a-card-opmerking" placeholder="Opmerking toevoegen…"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="a-card warn">
-            <div class="a-card-checkbox-row"><input type="checkbox">
-              <div class="a-card-checkbox-body">
-                <div class="a-card-kop"><span class="a-card-label">Fiscaal partnerschap: einddatum ontbreekt</span><span class="a-card-badge warn">Midden</span></div>
-                <div class="a-card-body">Niet gespecificeerd tot welke datum partijen fiscaal partners zijn, wat tot aansprakelijkheid kan leiden.</div>
-                <span class="a-card-wet">art. 5a AWR</span>
-                <textarea class="a-card-opmerking" placeholder="Opmerking toevoegen…"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Balans -->
-      <div class="a-sectie dicht">
-        <div class="a-sectie-hdr" onclick="this.parentElement.classList.toggle('dicht')">
-          <span class="a-sectie-titel">Balans tussen partijen <span class="a-sectie-count chip chip-grijs">Geen onevenwichtigheden</span></span>
-          <span class="a-chevron">▾</span>
-        </div>
-        <div class="a-sectie-body">
-          <p style="font-size:.87rem;color:var(--ink-soft);font-style:italic">Geen significante onevenwichtigheden gesignaleerd.</p>
-        </div>
-      </div>
-
-      <!-- Grammatica -->
-      <div class="a-sectie dicht">
-        <div class="a-sectie-hdr" onclick="this.parentElement.classList.toggle('dicht')">
-          <span class="a-sectie-titel">Grammatica &amp; taal</span>
-          <span class="a-chevron">▾</span>
-        </div>
-        <div class="a-sectie-body">
-          <p style="font-size:.87rem;color:var(--ink-soft);font-style:italic">Geen grammaticale opmerkingen.</p>
-        </div>
-      </div>
-
-    </div><!-- /panel-analyse -->
-  </div><!-- /split-body -->
-
-  <div class="split-statusbalk">
-    <div class="split-status-dot onopgeslagen"></div>
-    <span>Niet opgeslagen · Na bespreking 20 juni · Familie Van der Berg v3</span>
-    <span style="margin-left:auto;color:var(--ink-faint)">Analyse: 20 juni 2026 14:22 · claude-sonnet-4-6</span>
-  </div>
-
-</div><!-- /screen-split -->
-
-
-<!-- ══ MODAL: Nieuw dossier ════════════════════════════ -->
-<div class="modal-backdrop" id="modal">
-  <div class="modal-card">
-    <h2 class="modal-title">Nieuw dossier</h2>
-    <div class="form-field">
-      <label class="form-label">Naam dossier <span style="color:var(--bad)">*</span></label>
-      <input class="form-input" placeholder="bijv. Familie De Vries">
-    </div>
-    <div class="form-field">
-      <label class="form-label">Partij A</label>
-      <input class="form-input" placeholder="Voornaam of volledige naam">
-    </div>
-    <div class="form-field">
-      <label class="form-label">Partij B</label>
-      <input class="form-input" placeholder="Voornaam of volledige naam">
-    </div>
-    <div class="form-field">
-      <label class="form-label">Verwacht documenttype</label>
-      <select class="form-select">
-        <option value="">Nog onbekend</option>
-        <option value="convenant">Convenant</option>
-        <option value="ouderschapsplan">Ouderschapsplan</option>
-        <option value="beide">Convenant + Ouderschapsplan</option>
-      </select>
-    </div>
-    <div class="modal-acties">
-      <button class="btn-ghost" onclick="toggleModal()">Annuleren</button>
-      <button class="btn-primary">Dossier aanmaken</button>
     </div>
   </div>
-</div>
+</section>
 
-<script>
-function toonScreen(naam) {
-  const isSplit = naam === 'split';
-  document.getElementById('screen-split').classList.toggle('act', isSplit);
-  document.getElementById('app').style.display = isSplit ? 'none' : 'flex';
+<!-- ══ TESTIMONIALS ═══════════════════════════════════ -->
+<section class="testimonials">
+  <div class="testimonials-inner">
+    <div class="section-label">Ervaringen</div>
+    <h2>Wat mediators zeggen</h2>
+    <div class="testimonials-grid">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">"Clausula vindt dingen die ik na twintig jaar mediaton soms nog over het hoofd zie. Niet als vervanging, maar als een scherpe tweede lezer."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">MV</div>
+          <div><div class="testi-name">Marjan Verhoeven</div><div class="testi-role">Familiemediator MfN, Amsterdam</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">"Het uploaden duurt dertig seconden, het rapport is compleet. Ik bespaar minstens een half uur per dossier — en mijn cliënten krijgen een beter product."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">RB</div>
+          <div><div class="testi-name">Rutger Bos</div><div class="testi-role">Advocaat-mediator, Rotterdam</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-quote">"De vergelijking tussen convenant en ouderschapsplan op samenhang is uniek. We gebruiken Clausula nu kantoorbreed als standaard kwaliteitscheck."</p>
+        <div class="testi-author">
+          <div class="testi-avatar">SK</div>
+          <div><div class="testi-name">Sandra Kok</div><div class="testi-role">Directeur, Mediationkantoor Kok &amp; Partners</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
-  if (!isSplit) {
-    document.querySelectorAll('.rp').forEach(el => el.classList.remove('act'));
-    const rp = document.getElementById('rp-' + naam);
-    if (rp) rp.classList.add('act');
-  }
+<!-- ══ CTA ════════════════════════════════════════════ -->
+<section class="cta-section">
+  <h2>Klaar om elk document<br>met vertrouwen te ondertekenen?</h2>
+  <p>Start vandaag gratis — geen creditcard vereist, geen installatietijd. Uw eerste analyse binnen vijf minuten.</p>
+  <div class="cta-btns">
+    <a href="#" class="btn btn-primary btn-primary-lg">Start gratis →</a>
+    <a href="#" class="btn btn-outline-lg">Plan een demo</a>
+  </div>
+  <p class="cta-note">14 dagen gratis · Daarna maandelijks opzegbaar · AVG-compliant</p>
+</section>
 
-  // Mockup-balk highlight
-  const labels = { detail: '①', analyse: '②', split: '③' };
-  document.querySelectorAll('.mockup-btn').forEach(btn => {
-    btn.classList.toggle('act', btn.textContent.trim().startsWith(labels[naam] || '___'));
-  });
-}
+<!-- ══ FOOTER ══════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-logo">
+          <div class="footer-logo-mark">§</div>
+          <span class="footer-logo-text">Clausula</span>
+        </div>
+        <p class="footer-tagline">Juridische toetsing voor scheidingsmediators. Snel, betrouwbaar en volledig.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul><li><a href="#">Functies</a></li><li><a href="#">Tarieven</a></li><li><a href="#">Roadmap</a></li><li><a href="#">Changelog</a></li></ul>
+      </div>
+      <div class="footer-col">
+        <h4>Bedrijf</h4>
+        <ul><li><a href="#">Over ons</a></li><li><a href="#">Blog</a></li><li><a href="#">Contact</a></li><li><a href="#">Partners</a></li></ul>
+      </div>
+      <div class="footer-col">
+        <h4>Juridisch</h4>
+        <ul><li><a href="#">Privacybeleid</a></li><li><a href="#">Algemene voorwaarden</a></li><li><a href="#">AVG-verklaring</a></li><li><a href="#">Verwerkersovereenkomst</a></li></ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Clausula B.V. · KvK 12345678 · Amsterdam</span>
+      <div class="footer-legal">
+        <a href="#">Privacy</a>
+        <a href="#">Voorwaarden</a>
+        <a href="#">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
 
-function toonRij(el) {
-  document.querySelectorAll('.list-row').forEach(r => r.classList.remove('act'));
-  el.classList.add('act');
-  // Altijd naar detail-state
-  toonScreen('detail');
-}
-
-function toggleModal() {
-  document.getElementById('modal').classList.toggle('act');
-}
-
-// Sluit modal op backdrop-klik
-document.getElementById('modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) toggleModal();
-});
-
-// Chevron toggle voor analyse-secties
-document.querySelectorAll('.a-sectie-hdr').forEach(hdr => {
-  // Alleen sections die geen eigen onclick hebben (volledigheid/juridisch hebben al inline)
-  if (!hdr.getAttribute('onclick')) {
-    hdr.addEventListener('click', () => hdr.parentElement.classList.toggle('dicht'));
-  }
-});
-</script>
 </body>
 </html>

@@ -23,6 +23,28 @@ export default async function handler(req) {
     });
   }
 
+  // ── JWT-verificatie ────────────────────────────────────────────
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return new Response(JSON.stringify({ error: 'Niet geautoriseerd' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'apikey': process.env.SUPABASE_ANON_KEY,
+    },
+  });
+  if (!authCheck.ok) {
+    return new Response(JSON.stringify({ error: 'Sessie verlopen — log opnieuw in' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  // ─────────────────────────────────────────────────────────────
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY niet geconfigureerd' }), {

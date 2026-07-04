@@ -25,7 +25,7 @@ function par(text, { bold = false, italic = false, kleur = false, size = 22 } = 
 }
 
 function vinkje(aan) {
-  return aan ? '\u2611 ' : '\u2610 ';
+  return aan ? '☑ ' : '☐ ';
 }
 
 function regelsVoorItem({ vinkjeAan, koptekst, body, citaat, opmerking }) {
@@ -60,18 +60,34 @@ export default async function handler(req, res) {
 
     body += sectie('Samenvatting', [1], () => par(rapport.samenvatting || '', { size: 22 }));
 
-    body += sectie('Volledigheid', rapport.volledigheid, (v) =>
-      regelsVoorItem({ vinkjeAan: v.afgehandeld, koptekst: `${v.sectie} — ${v.status}`, body: v.toelichting, opmerking: v.opmerking })
-    );
-    body += sectie('Juridische juistheid', rapport.juridisch, (j) =>
-      regelsVoorItem({ vinkjeAan: j.afgehandeld, koptekst: `${j.onderwerp} (${j.ernst})`, body: j.bevinding, citaat: j.citaat, opmerking: j.opmerking })
-    );
-    body += sectie('Balans tussen partijen', rapport.balans, (b) =>
-      regelsVoorItem({ vinkjeAan: b.afgehandeld, koptekst: `${b.signalering} (${b.ernst})`, opmerking: b.opmerking })
-    );
-    body += sectie('Grammatica & taal', rapport.grammatica, (g) =>
-      regelsVoorItem({ vinkjeAan: g.afgehandeld, koptekst: g.locatie, body: `${g.probleem} \u2192 ${g.suggestie}`, opmerking: g.opmerking })
-    );
+    if (Array.isArray(rapport.issues)) {
+      // Nieuw schema v2
+      const DIMLBL = { volledigheid: 'Volledigheid', juridisch: 'Juridisch', balans: 'Balans', grammatica: 'Grammatica' };
+      body += sectie('Verbeterpunten', rapport.issues, (iss) =>
+        regelsVoorItem({
+          vinkjeAan: iss.afgehandeld,
+          koptekst:  `${iss.onderwerp} (${iss.ernst})` +
+            (iss.dimensies?.length ? ' — ' + iss.dimensies.map(d => DIMLBL[d] || d).join(', ') : ''),
+          body:      iss.bevinding,
+          citaat:    iss.aanbeveling ? `Aanbeveling: ${iss.aanbeveling}` : '',
+          opmerking: iss.opmerking,
+        })
+      );
+    } else {
+      // Oud schema (backward compat)
+      body += sectie('Volledigheid', rapport.volledigheid, (v) =>
+        regelsVoorItem({ vinkjeAan: v.afgehandeld, koptekst: `${v.sectie} — ${v.status}`, body: v.toelichting, opmerking: v.opmerking })
+      );
+      body += sectie('Juridische juistheid', rapport.juridisch, (j) =>
+        regelsVoorItem({ vinkjeAan: j.afgehandeld, koptekst: `${j.onderwerp} (${j.ernst})`, body: j.bevinding, citaat: j.citaat, opmerking: j.opmerking })
+      );
+      body += sectie('Balans tussen partijen', rapport.balans, (b) =>
+        regelsVoorItem({ vinkjeAan: b.afgehandeld, koptekst: `${b.signalering} (${b.ernst})`, opmerking: b.opmerking })
+      );
+      body += sectie('Grammatica & taal', rapport.grammatica, (g) =>
+        regelsVoorItem({ vinkjeAan: g.afgehandeld, koptekst: g.locatie, body: `${g.probleem} → ${g.suggestie}`, opmerking: g.opmerking })
+      );
+    }
 
     const rtfDocument =
       '{\\rtf1\\ansi\\ansicpg1252\\deff0' +
