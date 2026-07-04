@@ -650,9 +650,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .issue-filter-bar{display:flex;flex-wrap:wrap;gap:6px;padding:12px 0 8px;border-top:1px solid var(--line);margin-top:12px;}
 .a-filter-dim{font-size:.75rem;font-weight:600;padding:4px 12px;border-radius:20px;
   border:1px solid var(--line);background:transparent;color:var(--ink-soft);cursor:pointer;
-  transition:all .15s;white-space:nowrap;}
+  transition:all .15s;white-space:nowrap;display:inline-flex;flex-direction:column;align-items:center;line-height:1.3;}
 .a-filter-dim:hover{border-color:var(--coral);color:var(--coral);}
 .a-filter-dim.actief{background:#FFF0EB;color:var(--coral-dark);border-color:var(--coral);}
+/* Gekleurde ernst-teller onder de filterknop-naam */
+.a-filter-cnt{display:flex;gap:5px;align-items:center;margin-top:2px;font-size:.67rem;font-weight:700;line-height:1;}
 .dim-badges{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 4px;}
 .dim-badge{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:10px;
   text-transform:uppercase;letter-spacing:.04em;}
@@ -1918,77 +1920,119 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null };
     }
 
-    // Welk dimensie-tabblad is geselecteerd tijdens progressieve render
-    var _activeDimTab     = 'structuur'; // standaard eerste tab
-    var _hasSwitchedAuto  = false;       // auto-switch naar eerste klare dim (één keer)
-
-    // Knight Rider laad-animatie voor een dimensie die nog bezig is
-    const _laadHtml = () =>
-      `<div class="krl-wrap">
-         <div class="krl-lbl">Analyseren…</div>
-         <div class="krl-track"><div class="krl-glow"></div></div>
-       </div>`;
-
-    // Simpele issue-kaart voor progressieve render (zonder checkboxes — die volgen via toonRapport)
-    const _progKaart = (iss) => {
-      const e = iss.ernst || 'laag';
-      const kleur = e === 'hoog' ? 'var(--terra)' : e === 'midden' ? 'var(--amber)' : 'var(--sage)';
-      const ernstBg = e === 'hoog' ? '#FEE2E2' : e === 'midden' ? '#FEF3C7' : '#D1FAE5';
-      return `<div class="prog-kaart" style="border-left-color:${kleur}">
-        <div class="prog-kaart-titel">${escH(iss.onderwerp || '')}
-          <span style="display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;font-size:.7rem;font-weight:700;background:${ernstBg};color:${kleur}">${e.toUpperCase()}</span>
-        </div>
-        ${iss.bevinding  ? `<div class="prog-kaart-bevinding">${escH(iss.bevinding)}</div>` : ''}
-        ${iss.aanbeveling ? `<div class="prog-kaart-bevinding" style="margin-top:6px;color:var(--accent)">💡 ${escH(iss.aanbeveling)}</div>` : ''}
-      </div>`;
-    };
-
-    // Content voor één dimensie-tab (loading of issue-kaarten)
-    const _dimContentHtml = (acc, dim) => {
-      const r = acc?.[dim];
-      if (r === null || r === undefined) return _laadHtml();
-      const issues = Array.isArray(r.issues) ? r.issues : [];
-      if (!issues.length) return `<div class="prog-geen">✓ Geen bevindingen voor dit onderdeel</div>`;
-      return `<div style="padding:0 2px">${issues.map(_progKaart).join('')}</div>`;
-    };
-
-    // Volledige tab-balk + content HTML voor het analyse-panel
-    var _skeletonHtml = (bestandsnaam) => {
-      const acc = _sseAcc?.[bestandsnaam] || {};
-      const act = _activeDimTab;
-      const dimDefs = [
-        { key: 'structuur', lbl: 'Volledigheid'       },
-        { key: 'juridisch', lbl: 'Juridisch'           },
-        { key: 'balans',    lbl: 'Balans & Grammatica' },
-      ];
-      const tabs = dimDefs.map(d => {
-        const r     = acc[d.key];
-        const klaar = r !== null && r !== undefined;
-        const cnt   = klaar ? (Array.isArray(r?.issues) ? r.issues.length : 0) : -1;
-        const cls   = ['dim-tab-btn', d.key === act ? 'actief' : '', klaar ? (cnt > 0 ? 'klaar-issues' : 'klaar-ok') : 'laadt'].filter(Boolean).join(' ');
-        // Loading: naam + mini Knight Rider balk; klaar: naam + badge
-        const inner = klaar
-          ? `${d.lbl} <span class="dim-tab-badge">${cnt > 0 ? cnt : '✓'}</span>`
-          : `${d.lbl}<span class="dim-tab-mini-krl"><span></span></span>`;
-        return `<button class="${cls}" data-dim="${d.key}">${inner}</button>`;
-      }).join('');
-      return `<div class="dim-tabs-bar" id="dimTabsBar">${tabs}</div>` +
-             `<div id="dimTabContent">${_dimContentHtml(acc, act)}</div>`;
-    };
-
-    // Progressieve render: herbouwt het analyse-panel zodra een dimensie klaar is.
-    // Auto-switcht naar de eerste klare dimensie; daarna volgt de gebruikerskeuze.
+    // Progressieve render: toont de eindlayout direct maar met KR-bars op de filterknopjes
+    // van dimensies die nog laden. Gebruikt issueKaart() zodat de kaarten identiek zijn
+    // aan het eindresultaat — toonRapport() hoeft alleen de score/MfN aan te vullen.
     var _renderProgressief = (bestandsnaam) => {
       const _actiefBn = effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam;
       if (bestandsnaam !== _actiefBn) return; // ander doc-tabblad — skip
-      const acc = _sseAcc?.[bestandsnaam];
-      if (!acc) { document.getElementById('analysePanel').innerHTML = _skeletonHtml(bestandsnaam); return; }
-      // Auto-switch naar de eerste dimensie die klaar is (één keer)
-      if (!_hasSwitchedAuto) {
-        const firstDone = ['structuur', 'juridisch', 'balans'].find(k => acc[k] !== null && acc[k] !== undefined);
-        if (firstDone) { _activeDimTab = firstDone; _hasSwitchedAuto = true; }
+      const acc = _sseAcc?.[bestandsnaam] || {};
+
+      // Alle issues die tot nu toe zijn binnengekomen (dedup)
+      const alleI = dedupIssues([
+        Array.isArray(acc.structuur?.issues) ? acc.structuur.issues : [],
+        Array.isArray(acc.juridisch?.issues) ? acc.juridisch.issues : [],
+        Array.isArray(acc.balans?.issues)    ? acc.balans.issues    : [],
+      ]).map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
+
+      // Zet global zodat issueKaart() en de checkbox-handlers kloppen
+      huidigRapport = {
+        ...(huidigRapport || {}),
+        issues:       alleI,
+        samenvatting: acc.structuur?.samenvatting || huidigRapport?.samenvatting || '',
+        mfn_score:    acc.structuur?.mfn_score    || huidigRapport?.mfn_score    || null,
+      };
+
+      // Welke calls zijn nog bezig?
+      const _structuurLoadt = acc.structuur === null;
+      const _juridischLoadt = acc.juridisch === null;
+      const _balansLoadt    = acc.balans    === null;
+
+      const nogBezig = _structuurLoadt || _juridischLoadt || _balansLoadt;
+
+      // Kwaliteitscore (tussenstand) — verberg zolang er nog niets binnen is
+      const pct   = (alleI.length === 0 && nogBezig) ? null : berekenGemiddeldeScore(huidigRapport);
+      const kleur = pct === null ? 'var(--ink-soft)'
+                  : pct >= 80   ? 'var(--sage)'
+                  : pct >= 55   ? 'var(--amber)'
+                  : 'var(--terra)';
+      const hoog   = alleI.filter(i => i.ernst === 'hoog').length;
+      const midden = alleI.filter(i => i.ernst === 'midden').length;
+      const laag   = alleI.filter(i => i.ernst === 'laag').length;
+
+      const scoreHtml = `<div class="tab-status-blok">
+        <div class="mfn-score-kop">
+          <div class="mfn-score-getal" style="color:${kleur}">${pct !== null ? pct : '—'}<span class="mfn-score-van">${pct !== null ? '%' : ''}</span></div>
+          <div class="mfn-score-rechts">
+            <div class="mfn-score-label">${nogBezig ? 'Tussenstand' : 'Algehele kwaliteit'}</div>
+            ${pct !== null ? `<div class="mfn-progress-balk"><div class="mfn-progress-vul" style="width:${pct}%;background:${kleur}"></div></div>` : ''}
+            <div class="mfn-score-samen">${[
+              hoog   > 0 ? `<span style="color:var(--terra);font-weight:700">${hoog} hoog</span>`   : '',
+              midden > 0 ? `<span style="color:var(--amber);font-weight:700">${midden} midden</span>`: '',
+              laag   > 0 ? `<span style="color:var(--sage);font-weight:700">${laag} laag</span>`    : '',
+            ].filter(Boolean).join(' · ') || (nogBezig ? 'Analyseren…' : '—')}</div>
+          </div>
+        </div>
+      </div>`;
+
+      const samenvattingHtml = huidigRapport.samenvatting
+        ? `<div class="samenvatting">${escH(huidigRapport.samenvatting)}</div>` : '';
+
+      // KR-span die inline in een filterknop past
+      const _krSpan = `<span style="display:inline-block;width:36px;height:3px;vertical-align:middle;margin-left:6px;border-radius:2px;overflow:hidden;position:relative;background:var(--line)"><span style="position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:krl-scan 1.5s ease-in-out infinite"></span></span>`;
+
+      // Filter-knopjes — zelfde layout als eindresultaat, KR voor loading dims
+      const dims = ['volledigheid','juridisch','balans','grammatica','conflicten'];
+      const dimCounts = {};
+      dims.forEach(d => { dimCounts[d] = alleI.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d)).length; });
+      const dimLoadt = {
+        volledigheid: _structuurLoadt,
+        juridisch:    _juridischLoadt,
+        balans:       _balansLoadt,
+        grammatica:   _balansLoadt,
+        conflicten:   _balansLoadt,
+      };
+      const sortLabel = _issueSortModus === 'ernst' ? '↕ Ernst (hoog→laag)' : '↕ Documentvolgorde';
+
+      // Helper: gekleurde hoog/midden/laag-teller voor een dimensie
+      const _ernstTeller = (issLijst) => {
+        const h = issLijst.filter(i=>i.ernst==='hoog').length;
+        const m = issLijst.filter(i=>i.ernst==='midden').length;
+        const l = issLijst.filter(i=>i.ernst==='laag').length;
+        const parts = [
+          h ? `<span style="color:var(--terra)">${h}</span>` : '',
+          m ? `<span style="color:var(--amber)">${m}</span>` : '',
+          l ? `<span style="color:var(--sage)">${l}</span>`  : '',
+        ].filter(Boolean).join('<span style="opacity:.25">·</span>');
+        return parts ? `<span class="a-filter-cnt">${parts}</span>` : '';
+      };
+
+      const filterBar = `<div class="issue-filter-bar" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+        <button class="a-filter-dim actief" data-dim="alle" onclick="filterIssues(this)">Alle issues${_ernstTeller(alleI)}</button>
+        ${dims.map(d => {
+          const loading = dimLoadt[d];
+          const dimIss  = alleI.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d));
+          if (!loading && dimIss.length === 0) return ''; // klaar en leeg → verberg
+          return `<button class="a-filter-dim" data-dim="${d}" onclick="filterIssues(this)">${DIM_LABELS[d]}${loading ? _krSpan : _ernstTeller(dimIss)}</button>`;
+        }).join('')}
+        <span style="flex:1"></span>
+        <button class="a-filter-dim" style="opacity:.7;flex-direction:row" onclick="sorteerIssues()" title="Wissel sorteervolgorde">${sortLabel}</button>
+      </div>`;
+
+      // Sorteer issues
+      const gesorteerdeIdx = alleI.map((_, i) => i);
+      if (_issueSortModus === 'volgorde') {
+        gesorteerdeIdx.sort((a, b) => (alleI[a]._origPos ?? a) - (alleI[b]._origPos ?? b));
       }
-      document.getElementById('analysePanel').innerHTML = _skeletonHtml(bestandsnaam);
+      const issuesHtml = alleI.length > 0
+        ? gesorteerdeIdx.map(i => issueKaart(i)).join('')
+        : nogBezig
+          ? `<div class="krl-wrap"><div class="krl-lbl">Analyseren…</div><div class="krl-track"><div class="krl-glow"></div></div></div>`
+          : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
+
+      document.getElementById('analysePanel').innerHTML =
+        scoreHtml + samenvattingHtml + filterBar +
+        `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div></div>`;
     };
 
     // Document-tabs in de meta-balk (multi-doc) of klassieke header (single)
@@ -2024,24 +2068,9 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
          <span class="titel">${escH(_bn)}</span>`;
     }
 
-    document.getElementById('analysePanel').innerHTML = _skeletonHtml(effectieveHoofdItems[0]?.bestandsnaam);
     openSplitView();
-    document.getElementById('scanning').classList.remove('active'); // verberg scan-overlay — skeleton is nu zichtbaar
-
-    // Delegated click-handler voor dimensie-tabs in het analyse-panel.
-    // Eén listener op analysePanel (persisteert na innerHTML-updates van _renderProgressief).
-    // Verwijder eventuele vorige listener van een eerdere analyse.
-    const _ap = document.getElementById('analysePanel');
-    if (_ap._dimTabHandler) _ap.removeEventListener('click', _ap._dimTabHandler);
-    _ap._dimTabHandler = e => {
-      const btn = e.target.closest('.dim-tab-btn');
-      if (!btn) return;
-      const dim = btn.dataset.dim;
-      if (!dim || dim === _activeDimTab) return;
-      _activeDimTab = dim;
-      _renderProgressief(effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam);
-    };
-    _ap.addEventListener('click', _ap._dimTabHandler);
+    document.getElementById('scanning').classList.remove('active'); // verberg scan-overlay
+    _renderProgressief(effectieveHoofdItems[0]?.bestandsnaam); // toon eindlayout direct (alle dims laden nog)
 
     renderDocPanel(''); // asynchroon — blokkeer SSE-loop niet
   }
@@ -2586,10 +2615,12 @@ const DIM_LABELS = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:
 
 // Sorteer-modus voor de issuelijst: 'ernst' (hoog→laag) of 'volgorde' (documentvolgorde)
 let _issueSortModus = 'ernst';
+// Wordt gevuld door toonRapport() zodat sorteerIssues() er buiten scope bij kan
+let _activeerAnalysePanelFn = null;
 
 function sorteerIssues() {
   _issueSortModus = _issueSortModus === 'ernst' ? 'volgorde' : 'ernst';
-  activeerAnalysePanel(huidigRapport);
+  if (_activeerAnalysePanelFn) _activeerAnalysePanelFn(huidigRapport);
 }
 
 function issueKaart(idx) {
@@ -2796,15 +2827,28 @@ async function toonRapport(cls, rp) {
       ? renderMfnScore(drp.mfn_score, mfnFilterKnop)
       : '';
 
+    // Helper: gekleurde hoog/midden/laag-teller voor een set issues
+    const ernstTeller = (issLijst) => {
+      const h = issLijst.filter(i=>i.ernst==='hoog').length;
+      const m = issLijst.filter(i=>i.ernst==='midden').length;
+      const l = issLijst.filter(i=>i.ernst==='laag').length;
+      const parts = [
+        h ? `<span style="color:var(--terra)">${h}</span>` : '',
+        m ? `<span style="color:var(--amber)">${m}</span>` : '',
+        l ? `<span style="color:var(--sage)">${l}</span>`  : '',
+      ].filter(Boolean).join('<span style="opacity:.25">·</span>');
+      return parts ? `<span class="a-filter-cnt">${parts}</span>` : '';
+    };
+
     const filterBar = `<div class="issue-filter-bar" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
-      <button class="a-filter-dim actief" data-dim="alle" onclick="filterIssues(this)">Alle issues (${issues.length})</button>
+      <button class="a-filter-dim actief" data-dim="alle" onclick="filterIssues(this)">Alle issues${ernstTeller(issues)}</button>
       ${dims.map(d => dimCounts[d] > 0
-        ? `<button class="a-filter-dim" data-dim="${d}" onclick="filterIssues(this)">${DIM_LABELS[d]} (${dimCounts[d]})</button>`
+        ? `<button class="a-filter-dim" data-dim="${d}" onclick="filterIssues(this)">${DIM_LABELS[d]}${ernstTeller(issues.filter(i=>Array.isArray(i.dimensies)&&i.dimensies.includes(d)))}</button>`
         : ''
       ).join('')}
       ${mfnHtml ? `<button class="a-filter-dim" data-dim="mfn" onclick="filterIssues(this)">MfN-score</button>` : ''}
       <span style="flex:1"></span>
-      <button class="a-filter-dim" style="opacity:.7" onclick="sorteerIssues()" title="Wissel sorteervolgorde">${sortLabel}</button>
+      <button class="a-filter-dim" style="opacity:.7;flex-direction:row" onclick="sorteerIssues()" title="Wissel sorteervolgorde">${sortLabel}</button>
     </div>`;
 
     // Sorteer issues op modus: ernst (hoog→laag) of originele documentvolgorde
@@ -2827,6 +2871,8 @@ async function toonRapport(cls, rp) {
     document.getElementById('analysePanel').innerHTML = bouwAnalyseHtml(drp);
     updateConceptKnop();
   }
+  // Stel module-level referentie in zodat sorteerIssues() er buiten toonRapport bij kan
+  _activeerAnalysePanelFn = activeerAnalysePanel;
 
   // ── Split-meta: tabs (multi-doc) of klassiek doctype+titel (single) ──
   const metaEl = document.querySelector('.split-meta');
