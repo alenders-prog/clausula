@@ -5398,8 +5398,10 @@ STRIKTE REGELS VOOR zoek_tekst:
 1. Kies de KLEINST MOGELIJKE passage die de problematische tekst bevat — nooit meer dan strikt noodzakelijk.
 2. Neem GEEN aangrenzende zinnen, bullets of alinea's mee die niet gewijzigd worden.
 3. Als alleen één zin of fragment moet worden aangepast, kies dan uitsluitend die zin als zoek_tekst.
-4. vervang_door bevat EXACT dezelfde tekst als zoek_tekst, maar met uitsluitend de benodigde verbetering.
-   Alle overige tekst in zoek_tekst (ongewijzigde zinnen) moet IDENTIEK terugkeren in vervang_door.
+4. Sectietitels, kopjes en artikelnummers (bijv. "23. Geschillen en bemiddeling") worden NOOIT opgenomen in zoek_tekst — tenzij de sectietitel zelf de fout bevat.
+5. zoek_tekst overschrijdt nooit de grens van een alinea of bullet-blok: neem nooit tekst mee uit de volgende sectie of het volgende kopje.
+6. vervang_door bevat EXACT dezelfde tekst als zoek_tekst, maar met uitsluitend de benodigde verbetering.
+   Alle overige tekst in zoek_tekst (ongewijzigde zinnen/bullets) moet IDENTIEK terugkeren in vervang_door.
 
 OVERIGE KERNREGELS:
 5. Behoud EXACT de structuur, nummering en formele toon van het origineel.
@@ -5470,6 +5472,10 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
         const zoek = herstelAnonObj(w.zoek_tekst || '', snapNaarEcht);
         const verv  = herstelAnonObj(w.vervang_door || '', snapNaarEcht);
         if (!zoek || !verv || zoek === verv) continue;
+        // Waarschuw als vervang_door verdacht veel korter is dan zoek_tekst (tekstverlies risico)
+        if (verv.length < zoek.length * 0.6 && zoek.includes('\n')) {
+          console.warn(`[concept] Vervanging is >40% korter dan zoektekst — mogelijk tekstverlies:\nZOEK: ${zoek.slice(0,120)}\nVERV: ${verv.slice(0,120)}`);
+        }
         if (documentTekst.includes(zoek)) {
           documentTekst = documentTekst.replace(zoek, verv);
         } else {
