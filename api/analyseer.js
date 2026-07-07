@@ -352,12 +352,15 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 - midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
 - laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
 
-          // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims
+          // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims maar behoudt echte fouten
           const verificatieplicht =
 `VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
 Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtbaar is":
 1. Doorzoek de VOLLEDIGE documenttekst actief op het beweerde ontbrekende element.
-2. Bij nummering of interne verwijzingen (bijv. "artikel 4.1.1", "artikel 3.2"): controleer of die nummers als sectietitel of koptekst ergens in het document voorkomen. Als ze er staan, is er GEEN issue.
+2. Bij interne verwijzingen (bijv. "artikel 4.1.1", "artikel 3.2"): controleer of dat artikelnummer als sectietitel of koptekst in het document voorkomt.
+   - Artikelnummer BESTAAT in de tekst → rapporteer GEEN issue over ontbrekende nummering.
+   - Artikelnummer BESTAAT NIET in de tekst → rapporteer een issue (verwijzing naar niet-bestaand artikel).
+   - Artikelnummer bestaat, maar de inhoud van dat artikel klopt NIET met wat de verwijzing belooft → rapporteer een issue (onjuiste verwijzing).
 3. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er niet in staat.`;
 
           const sysStructuur =
