@@ -5391,16 +5391,20 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
 `Je bent een ervaren Nederlandse juridische documentschrijver gespecialiseerd in echtscheidingsdocumenten.
 
 WERKWIJZE:
-- Geef per verbeterpunt één tekstvervanging: zoek_tekst (verbatim citaat uit het origineel) en vervang_door (verbeterde versie).
-- Schrijf het document NIET volledig opnieuw — geef uitsluitend de passages die wijzigen.
-- zoek_tekst moet een exact, aaneengesloten citaat zijn van 1-3 zinnen uit het originele document.
-- vervang_door bevat dezelfde passage, maar met de verbetering doorgevoerd.
+- Geef per verbeterpunt één tekstvervanging: zoek_tekst (verbatim citaat) en vervang_door (verbeterde versie).
+- Schrijf het document NIET volledig opnieuw — geef uitsluitend de kleinste passage die de wijziging bevat.
 
-KERNREGELS:
-1. Behoud EXACT de structuur, nummering en formele toon van het origineel buiten de gewijzigde passage.
-2. Pas ALLEEN aan wat nodig is voor het genoemde verbeterpunt.
-3. Gebruik concrete "Suggestie" of "Opmerking mediator" letterlijk als leidraad.
-4. Behoud namen van partijen zoals ze in het origineel staan.`;
+STRIKTE REGELS VOOR zoek_tekst:
+1. Kies de KLEINST MOGELIJKE passage die de problematische tekst bevat — nooit meer dan strikt noodzakelijk.
+2. Neem GEEN aangrenzende zinnen, bullets of alinea's mee die niet gewijzigd worden.
+3. Als alleen één zin of fragment moet worden aangepast, kies dan uitsluitend die zin als zoek_tekst.
+4. vervang_door bevat EXACT dezelfde tekst als zoek_tekst, maar met uitsluitend de benodigde verbetering.
+   Alle overige tekst in zoek_tekst (ongewijzigde zinnen) moet IDENTIEK terugkeren in vervang_door.
+
+OVERIGE KERNREGELS:
+5. Behoud EXACT de structuur, nummering en formele toon van het origineel.
+6. Gebruik concrete "Suggestie" of "Opmerking mediator" letterlijk als leidraad.
+7. Behoud namen van partijen zoals ze in het origineel staan.`;
 
       const conceptTool = {
         name: 'registreer_concept',
