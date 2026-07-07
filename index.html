@@ -1809,7 +1809,7 @@ async function extractText(file, onProgress = () => {}) {
 // de SSE-stream van Anthropic wordt direct doorgestuurd naar de browser.
 // De browser leest de stroom en assembleert de tool-input JSON.
 async function askClaudeForJson(systemPrompt, userContent, tool, maxTokens = 4096, opts = {}) {
-  const { model = 'claude-fable-5', cache = false } = opts;
+  const { model = 'claude-sonnet-4-6', cache = false } = opts;
 
   const systemField = cache
     ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]

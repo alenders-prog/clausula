@@ -158,7 +158,7 @@ ORIGINEEL DOCUMENT:
 ${documentTekst}`;
 
       const { status, body: json } = await anthropicPost(apiKey, {
-        model:       'claude-fable-5',
+        model:       'claude-sonnet-4-6',
         max_tokens:  4096, // per batch van 5: ruim voldoende voor complexe wijzigingen
         temperature: 0,
         system:      systemPrompt,

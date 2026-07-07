@@ -22,7 +22,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 // ── Claude API helper met retry ───────────────────────────────────────────────
 async function askClaudeForJson(systemPrompt, userPrompt, tool, maxTokens = 4096) {
   const body = {
-    model:       'claude-fable-5',
+    model:       'claude-sonnet-4-6',
     max_tokens:  maxTokens,
     system:      systemPrompt,
     messages:    [{ role: 'user', content: userPrompt }],
