@@ -352,6 +352,14 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 - midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
 - laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
 
+          // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims
+          const verificatieplicht =
+`VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
+Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtbaar is":
+1. Doorzoek de VOLLEDIGE documenttekst actief op het beweerde ontbrekende element.
+2. Bij nummering of interne verwijzingen (bijv. "artikel 4.1.1", "artikel 3.2"): controleer of die nummers als sectietitel of koptekst ergens in het document voorkomen. Als ze er staan, is er GEEN issue.
+3. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er niet in staat.`;
+
           const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 DOCUMENTTYPE: ${docTypLabel}
@@ -360,6 +368,8 @@ ${mfnInstructie}
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
 - Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.
+
+${verificatieplicht}
 
 ${ernstCriteria}`;
 
@@ -375,6 +385,8 @@ DOCUMENTTYPE: ${docTypLabel}
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
 - Bij twijfel: geen issue. Speculeer niet.
 
+${verificatieplicht}
+
 ${ernstCriteria}`;
 
           const sysBalansGram =
@@ -386,6 +398,8 @@ DOCUMENTTYPE: ${docTypLabel}
 **issues (conflicten)** — Dimensies ["conflicten"]: tegenstrijdige bepalingen BINNEN het document (artikel X zegt iets anders dan artikel Y over hetzelfde onderwerp).
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
 - Bij twijfel: geen issue. Speculeer niet.
+
+${verificatieplicht}
 
 ${ernstCriteria}`;
 
