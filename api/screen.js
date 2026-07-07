@@ -98,8 +98,9 @@ const issueItem = {
     dimensies:   { type: 'array', items: { type: 'string' } },
     bevinding:   { type: 'string' },
     aanbeveling: { type: 'string' },
+    passage:     { type: 'string', description: 'Verbatim citaat van maximaal 80 tekens uit het document dat het probleem aantoont. Kopieer de exacte tekst, inclusief leestekens.' },
   },
-  required: ['onderwerp', 'ernst', 'dimensies', 'bevinding', 'aanbeveling'],
+  required: ['onderwerp', 'ernst', 'dimensies', 'bevinding', 'aanbeveling', 'passage'],
 };
 
 // ── Stap 2a: structuur-tool ───────────────────────────────────────────────────
@@ -234,26 +235,28 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn.
-Per issue: dimensies altijd ["volledigheid"]. Ernst: hoog = volledig ontbreekt, midden = onvolledig, laag = aandachtspunt.
+Per issue: dimensies altijd ["volledigheid"]. Ernst (wees terughoudend met 'hoog'): hoog = verplichte sectie volledig afwezig én direct onuitvoerbaar daardoor, midden = ontbreekt of onvolledig maar herstelbaar (standaard voor de meeste issues), laag = aandachtspunt of kleine onvolledigheid.
 
 STRIKTE REGELS:
 - Geef alleen bevindingen die daadwerkelijk uit het document blijken. Speculeer niet.
 - Bij twijfel of een sectie ontbreekt of onvolledig is: geef GEEN issue.
-- Aanwezige en correcte secties worden NIET gerapporteerd.`;
+- Aanwezige en correcte secties worden NIET gerapporteerd.
+- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document. Bij een ontbrekende sectie: geef de dichtstbijzijnde gerelateerde passage.`;
 
     const sysJuridisch =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
 
 **issues (juridisch)** — Controleer op: partneralimentatie (art. 1:157-160 BW), kinderalimentatie (art. 1:404 BW, Tremanormen), pensioenverevening (WVPS), woning (art. 3:170 BW), belasting, vermogen (art. 1:94 BW), schulden, gezag en zorgregeling.
 
-Per issue: dimensies altijd ["juridisch"]. Ernst: hoog = evident ongeldig/wettelijk vereiste ontbreekt, midden = juridisch risico/onduidelijkheid, laag = best practice.
+Per issue: dimensies altijd ["juridisch"]. Ernst (wees terughoudend met 'hoog'): hoog = evidente wettelijke overtreding of volstrekte onuitvoerbaarheid (hoge drempel), midden = juridisch risico of onduidelijkheid die aanpassing verdient (standaard voor de meeste issues), laag = best practice of verbetersuggestie zonder urgent rechtsgevolg.
 
 STRIKTE REGELS:
 - Gebruik uitsluitend wetsartikelen uit de WETSARTIKELEN-sectie, of die je met absolute zekerheid kent.
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
 - Geef alleen bevindingen die daadwerkelijk uit het document blijken. Speculeer niet.
 - Bij twijfel of een formulering juridisch correct of gangbaar is: geef GEEN issue.
-- Standaardclausules die in de WETSARTIKELEN-sectie als correct zijn gemarkeerd, nooit als fout aanmerken.`;
+- Standaardclausules die in de WETSARTIKELEN-sectie als correct zijn gemarkeerd, nooit als fout aanmerken.
+- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document dat het juridische probleem aantoont.`;
 
     const sysBalansGram =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op evenwichtigheid en taal.
@@ -265,7 +268,8 @@ Per issue: dimensies ["balans"] of ["grammatica"].
 
 STRIKTE REGELS:
 - Geef alleen bevindingen die daadwerkelijk uit het document blijken. Speculeer niet.
-- Bij twijfel of iets onevenwichtig of fout is: geef GEEN issue.`;
+- Bij twijfel of iets onevenwichtig of fout is: geef GEEN issue.
+- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document dat het probleem illustreert.`;
 
     const [structuurR, juridischR, balansGramR] = await Promise.all([
       askClaudeForJson(sysStructuur,

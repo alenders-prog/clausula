@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kantoor aanmelden — Documentscreening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF6F0; --paper:#FFFFFF; --line:#E8E1D6;
+    --ink:#2B2825; --ink-soft:#6B6358;
+    --coral:#E8714A; --coral-dark:#C75A38; --terra:#C75D4D;
+    --sage:#5C8C6A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;min-height:100vh;background:var(--bg);display:flex;align-items:center;
+    justify-content:center;font-family:'IBM Plex Sans',sans-serif;color:var(--ink);}
+
+  .wrap{width:100%;max-width:460px;padding:32px 24px;}
+
+  .logo{text-align:center;margin-bottom:36px;}
+  .logo h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.8rem;margin:0 0 4px;letter-spacing:-.01em;}
+  .logo p{margin:0;color:var(--ink-soft);font-size:.95rem;}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:32px;}
+  .card h2{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.25rem;margin:0 0 24px;}
+
+  .sectie-label{font-size:.78rem;font-weight:600;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--ink-soft);margin:20px 0 12px;
+    padding-bottom:6px;border-bottom:1px solid var(--line);}
+  .sectie-label:first-of-type{margin-top:0;}
+
+  label{display:block;font-size:.88rem;font-weight:600;color:var(--ink-soft);margin-bottom:6px;}
+  input{width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:8px;
+    font-family:inherit;font-size:.97rem;color:var(--ink);background:var(--bg);
+    outline:none;transition:border-color .15s;margin-bottom:16px;}
+  input:focus{border-color:var(--coral);}
+
+  button{width:100%;padding:13px;background:var(--coral);color:#fff;border:none;
+    border-radius:10px;font-size:1rem;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:background .15s;margin-top:4px;}
+  button:hover{background:var(--coral-dark);}
+  button:disabled{background:#D8CFC2;cursor:not-allowed;}
+
+  .fout{margin-top:16px;padding:12px 14px;border-radius:8px;
+    background:#FCEFEC;border:1px solid #F0C8BE;color:var(--terra);font-size:.9rem;}
+  .ok{margin-top:16px;padding:12px 14px;border-radius:8px;
+    background:#EDF4EF;border:1px solid #B8D4C0;color:var(--sage);font-size:.9rem;}
+
+  .login-link{text-align:center;margin-top:20px;font-size:.88rem;color:var(--ink-soft);}
+  .login-link a{color:var(--coral);text-decoration:none;font-weight:600;}
+  .login-link a:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">
+    <h1>Documentscreening</h1>
+    <p>Nieuw kantoor aanmelden</p>
+  </div>
+  <div class="card">
+    <h2>Account aanmaken</h2>
+
+    <div class="sectie-label">Kantoor</div>
+    <label for="kantoorNaam">Naam van het kantoor</label>
+    <input type="text" id="kantoorNaam" placeholder="bijv. Dalstein Mediation" autocomplete="organization">
+
+    <div class="sectie-label">Jouw gegevens</div>
+    <label for="naam">Jouw naam</label>
+    <input type="text" id="naam" placeholder="Voor- en achternaam" autocomplete="name">
+
+    <label for="email">E-mailadres</label>
+    <input type="email" id="email" placeholder="naam@kantoor.nl" autocomplete="email">
+
+    <label for="wachtwoord">Wachtwoord <span style="font-weight:400">(min. 8 tekens)</span></label>
+    <input type="password" id="wachtwoord" placeholder="••••••••" autocomplete="new-password">
+
+    <button id="registreerBtn">Kantoor aanmelden</button>
+    <div class="fout" id="fout" style="display:none;"></div>
+    <div class="ok"  id="ok"   style="display:none;"></div>
+  </div>
+  <p class="login-link">Al een account? <a href="login.html">Inloggen</a></p>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+'use strict';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Al ingelogd? Direct doorsturen.
+db.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.replace('index.html');
+});
+
+async function registreer() {
+  const kantoorNaam = document.getElementById('kantoorNaam').value.trim();
+  const naam        = document.getElementById('naam').value.trim();
+  const email       = document.getElementById('email').value.trim();
+  const wachtwoord  = document.getElementById('wachtwoord').value;
+  const foutEl      = document.getElementById('fout');
+  const okEl        = document.getElementById('ok');
+  const btn         = document.getElementById('registreerBtn');
+
+  foutEl.style.display = 'none';
+  okEl.style.display   = 'none';
+
+  if (!kantoorNaam || !naam || !email || !wachtwoord) {
+    foutEl.textContent   = 'Vul alle velden in.';
+    foutEl.style.display = 'block';
+    return;
+  }
+  if (wachtwoord.length < 8) {
+    foutEl.textContent   = 'Wachtwoord moet minimaal 8 tekens zijn.';
+    foutEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Bezig...';
+
+  let orgId = null;
+  try {
+    // Stap 1: organisatie aanmaken (server-side, omzeilt RLS)
+    const orgRes  = await fetch('/api/registreer', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ kantoorNaam }),
+    });
+    const orgData = await orgRes.json();
+    if (!orgRes.ok) throw new Error(orgData.error || 'Kantoor aanmaken mislukt.');
+    orgId = orgData.organisatie_id;
+
+    // Stap 2: gebruiker aanmaken (browser-side signUp)
+    // De trigger _maak_gebruikersprofiel() pikt user_metadata op
+    const { error: authErr } = await db.auth.signUp({
+      email,
+      password: wachtwoord,
+      options: {
+        data: { naam, organisatie_id: orgId, rol: 'admin' },
+      },
+    });
+    if (authErr) throw authErr;
+
+    okEl.textContent   = 'Kantoor aangemeld! Je wordt doorgestuurd naar de inlogpagina…';
+    okEl.style.display = 'block';
+    setTimeout(() => window.location.replace('login.html'), 2000);
+
+  } catch (e) {
+    foutEl.textContent   = e.message || 'Registratie mislukt. Probeer opnieuw.';
+    foutEl.style.display = 'block';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = 'Kantoor aanmelden';
+  }
+}
+
+document.getElementById('registreerBtn').addEventListener('click', registreer);
+document.addEventListener('keydown', e => { if (e.key === 'Enter') registreer(); });
+</script>
+</body>
+</html>

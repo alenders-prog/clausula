@@ -67,18 +67,18 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-
 /* App-mockup in hero */
 .hero-app{align-self:end;}
 .app-window{background:var(--cream);border-radius:12px 12px 0 0;box-shadow:var(--shadow-lg);overflow:hidden;transform:perspective(1000px) rotateX(2deg);transform-origin:bottom center;}
-.app-topbar{background:var(--navy);padding:10px 16px;display:flex;align-items:center;gap:10px;}
-.app-topbar-logo{font-family:'Source Serif 4',serif;font-weight:700;font-size:.82rem;color:var(--gold);}
+.app-topbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;}
+.app-topbar-logo{font-family:'Source Serif 4',serif;font-weight:700;font-size:.82rem;color:var(--navy);}
 .app-topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
-.app-topbar-name{font-size:.72rem;color:rgba(255,255,255,.5);}
+.app-topbar-name{font-size:.72rem;color:var(--ink-soft);}
 .app-body{padding:16px;}
-.app-toolbar{background:#fff;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px;border:1px solid var(--border);}
-.app-search{flex:1;height:28px;border-radius:6px;background:var(--cream);border:1.5px solid var(--border);display:flex;align-items:center;padding:0 10px;gap:6px;}
-.app-search-icon{width:12px;height:12px;border-radius:50%;border:1.5px solid #bbb;}
-.app-search-text{font-size:.68rem;color:#bbb;}
-.app-tabs{display:flex;gap:2px;background:var(--cream);border-radius:6px;padding:2px;}
-.app-tab{font-size:.65rem;font-weight:600;padding:3px 10px;border-radius:4px;color:var(--ink-soft);}
-.app-tab.act{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.app-toolbar{background:var(--navy);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.app-search{flex:1;height:28px;border-radius:6px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;padding:0 10px;gap:6px;}
+.app-search-icon{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);}
+.app-search-text{font-size:.68rem;color:rgba(255,255,255,.4);}
+.app-tabs{display:flex;gap:2px;background:rgba(255,255,255,.1);border-radius:6px;padding:2px;}
+.app-tab{font-size:.65rem;font-weight:600;padding:3px 10px;border-radius:4px;color:rgba(255,255,255,.5);}
+.app-tab.act{background:rgba(255,255,255,.18);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .app-btn-sm{font-size:.68rem;font-weight:600;background:var(--coral);color:#fff;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;}
 .mock-kaart{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:grid;grid-template-columns:120px 1fr auto;gap:14px;align-items:start;}
 .mock-namen{display:flex;flex-direction:column;gap:1px;}
@@ -163,24 +163,24 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-
 .splitdemo{padding:96px 32px;background:var(--white);}
 .splitdemo-inner{max-width:1200px;margin:0 auto;}
 .sd-chrome{background:#f0ede8;border-radius:14px;box-shadow:0 12px 60px rgba(26,37,64,.16);overflow:hidden;border:1px solid var(--border);margin-top:48px;}
-.sd-topbar{background:var(--navy);padding:9px 16px;display:flex;align-items:center;gap:10px;}
+.sd-topbar{background:#fff;border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:10px;}
 .sd-logo-wrap{display:flex;align-items:center;gap:7px;margin-right:4px;}
-.sd-logo-mark{width:26px;height:26px;background:rgba(191,160,91,.18);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:.78rem;color:var(--gold);}
-.sd-logo-txt{font-family:'Source Serif 4',serif;font-size:.78rem;font-weight:700;color:var(--gold);}
-.sd-org{font-size:.62rem;color:rgba(255,255,255,.3);letter-spacing:.1em;text-transform:uppercase;margin-left:4px;}
-.sd-divider{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 6px;}
-.sd-user{font-size:.68rem;color:rgba(255,255,255,.4);}
-.sd-logout{font-size:.65rem;border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:3px 8px;color:rgba(255,255,255,.45);cursor:pointer;background:none;font-family:'Inter',sans-serif;}
-.sd-toolbar{background:#fff;border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:6px;height:44px;}
-.sd-back{font-size:.72rem;color:var(--ink-mid);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;padding:0 8px 0 0;border-right:1px solid var(--border);margin-right:4px;height:100%;}
-.sd-doctab{font-size:.78rem;font-weight:600;padding:0 14px;height:100%;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;color:var(--ink-soft);cursor:pointer;white-space:nowrap;}
-.sd-doctab.act{color:var(--ink);border-bottom-color:var(--coral);}
+.sd-logo-mark{width:26px;height:26px;background:var(--navy);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:.78rem;color:var(--gold);}
+.sd-logo-txt{font-family:'Source Serif 4',serif;font-size:.78rem;font-weight:700;color:var(--navy);}
+.sd-org{font-size:.62rem;color:var(--ink-soft);letter-spacing:.1em;text-transform:uppercase;margin-left:4px;}
+.sd-divider{width:1px;height:18px;background:var(--border);margin:0 6px;}
+.sd-user{font-size:.68rem;color:var(--ink-soft);}
+.sd-logout{font-size:.65rem;border:1px solid var(--border);border-radius:5px;padding:3px 8px;color:var(--ink-mid);cursor:pointer;background:none;font-family:'Inter',sans-serif;}
+.sd-toolbar{background:var(--navy);border-bottom:1px solid rgba(255,255,255,.08);padding:0 16px;display:flex;align-items:center;gap:6px;height:44px;}
+.sd-back{font-size:.72rem;color:rgba(245,241,232,.7);background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;padding:0 8px 0 0;border-right:1px solid rgba(255,255,255,.15);margin-right:4px;height:100%;}
+.sd-doctab{font-size:.78rem;font-weight:600;padding:0 14px;height:100%;display:flex;align-items:center;gap:7px;border-bottom:2px solid transparent;color:rgba(245,241,232,.5);cursor:pointer;white-space:nowrap;}
+.sd-doctab.act{color:#F5F1E8;border-bottom-color:var(--gold);}
 .sd-doctab-icon{font-size:.85rem;}
 .sd-actions{margin-left:auto;display:flex;gap:6px;}
 .sd-act-btn{font-size:.68rem;font-weight:600;border-radius:7px;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;white-space:nowrap;}
 .sd-act-coral{background:var(--coral);color:#fff;border:none;}
-.sd-act-ghost{background:#fff;color:var(--ink-mid);border:1px solid var(--border);}
-.sd-act-ghost:hover{border-color:var(--navy);color:var(--navy);}
+.sd-act-ghost{background:transparent;color:rgba(245,241,232,.8);border:1px solid rgba(245,241,232,.25);}
+.sd-act-ghost:hover{border-color:rgba(245,241,232,.5);color:#F5F1E8;}
 .sd-body{display:grid;grid-template-columns:1fr 440px;height:520px;}
 /* Doc panel */
 .sd-doc{overflow:hidden;position:relative;background:#fff;padding:28px 36px;font-family:'Source Serif 4',Georgia,serif;}
@@ -448,11 +448,11 @@ footer{background:var(--navy-deep);padding:56px 32px 32px;}
     <div class="hero-app">
       <div class="app-window">
         <div class="app-topbar">
-          <div style="width:28px;height:28px;background:rgba(191,160,91,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:.85rem;color:var(--gold);">§</div>
+          <div style="width:28px;height:28px;background:var(--navy);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;font-size:.85rem;color:var(--gold);">§</div>
           <span class="app-topbar-logo">Clausula</span>
           <div class="app-topbar-right">
             <span class="app-topbar-name">m.lenders@kantoor.nl</span>
-            <div style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:rgba(255,255,255,.5);">ML</div>
+            <div style="width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:var(--ink-mid);">ML</div>
           </div>
         </div>
         <div class="app-body">

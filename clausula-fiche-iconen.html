@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clausula — fiche-iconen</title>
+<style>
+  /* ============================================================
+     KNIP-EN-PLAK BLOK 1: fiche-styling
+     --clausula-navy: vervang door je eigen brand-variabele
+     ============================================================ */
+  :root {
+    --clausula-navy: #1F3A5F;
+    --sev-hoog: #C0392B;
+    --sev-midden: #D68910;
+    --sev-laag: #1E8449;
+    --sev-midden-tekst: #B9770E;
+  }
+
+  .fiche {
+    display: flex;
+    border: 1px solid #E3E1DA;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .fiche-icoon {
+    flex: 0 0 32px;
+    background: var(--clausula-navy);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fiche-icoon svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+  }
+  .fiche-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .fiche-kop {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+    padding: 4px 0;
+    text-transform: uppercase;
+  }
+  .kop-hoog   { background: var(--sev-hoog); }
+  .kop-midden { background: var(--sev-midden); }
+  .kop-laag   { background: var(--sev-laag); }
+  .fiche-cellen { display: flex; flex: 1; font-size: 13px; font-weight: 600; text-align: center; }
+  .fiche-cellen .cel { flex: 1; padding: 5px 0; }
+  .fiche-cellen .cel + .cel { border-left: 1px solid #EEECE6; }
+  .cel.hoog   { color: var(--sev-hoog); }
+  .cel.midden { color: var(--sev-midden-tekst); }
+  .cel.laag   { color: var(--sev-laag); }
+  .cel .van   { color: #A6A399; font-weight: 400; }
+
+  /* Demo-opmaak (niet nodig in Clausula) */
+  body { font-family: system-ui, sans-serif; background: #F4F2EC; margin: 0; padding: 32px; }
+  h1 { font-size: 18px; font-weight: 600; color: #1F3A5F; }
+  h2 { font-size: 13px; font-weight: 600; color: #6B6960; text-transform: uppercase; letter-spacing: 0.05em; margin: 32px 0 12px; }
+  .paneel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 760px; }
+  .los { display: flex; gap: 16px; align-items: center; }
+  .los .fiche-icoon { flex: none; width: 48px; height: 48px; border-radius: 8px; }
+  .los .fiche-icoon svg { width: 26px; height: 26px; }
+  .los figure { margin: 0; text-align: center; }
+  .los figcaption { font-size: 11px; color: #6B6960; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Clausula — fiche-iconen (variant A, navy flankblok)</h1>
+
+<!-- ============================================================
+     KNIP-EN-PLAK BLOK 2: de zes iconen als inline SVG
+     Stroke-based, currentColor, viewBox 0 0 24 24.
+     Kleur en grootte stuur je via .fiche-icoon (color / width).
+     ============================================================ -->
+
+<h2>Fiches op ware grootte</h2>
+<div class="paneel">
+
+  <!-- JURIDISCH — hamer -->
+  <div class="fiche">
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3l6 6-3 3-6-6z"/>
+        <path d="M12.5 10.5L20 18"/>
+        <path d="M3 21h9"/>
+      </svg>
+    </div>
+    <div class="fiche-body">
+      <div class="fiche-kop kop-midden">Juridisch</div>
+      <div class="fiche-cellen"><span class="cel midden">2</span><span class="cel laag">2</span></div>
+    </div>
+  </div>
+
+  <!-- CONFLICTEN — bliksem -->
+  <div class="fiche">
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 3L6 13h5l-1 8 7-10h-5l1-8z"/>
+      </svg>
+    </div>
+    <div class="fiche-body">
+      <div class="fiche-kop kop-hoog">Conflicten</div>
+      <div class="fiche-cellen"><span class="cel midden">3</span><span class="cel laag">3</span></div>
+    </div>
+  </div>
+
+  <!-- VOLLEDIGHEID — checklist -->
+  <div class="fiche">
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 5.5L5 7l3-3"/>
+        <path d="M11 5.5h9"/>
+        <path d="M3.5 12.5L5 14l3-3"/>
+        <path d="M11 12.5h9"/>
+        <path d="M4 19.5h3"/>
+        <path d="M11 19.5h9"/>
+      </svg>
+    </div>
+    <div class="fiche-body">
+      <div class="fiche-kop kop-midden">Volledigheid</div>
+      <div class="fiche-cellen"><span class="cel midden">1</span><span class="cel laag">1</span></div>
+    </div>
+  </div>
+
+  <!-- BALANS — weegschaal -->
+  <div class="fiche">
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v16"/>
+        <path d="M7 20h10"/>
+        <path d="M5 7h14"/>
+        <path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7"/>
+        <path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7"/>
+      </svg>
+    </div>
+    <div class="fiche-body">
+      <div class="fiche-kop kop-hoog">Balans</div>
+      <div class="fiche-cellen"><span class="cel midden">1</span><span class="cel laag">3</span></div>
+    </div>
+  </div>
+
+  <!-- GRAMMATICA — tekst met spellcheck-golf -->
+  <div class="fiche">
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 5h16"/>
+        <path d="M4 10h12"/>
+        <path d="M3.5 17c1.4-1.8 2.8-1.8 4.25 0s2.8 1.8 4.25 0 2.8-1.8 4.25 0 2.8 1.8 4.25 0"/>
+      </svg>
+    </div>
+    <div class="fiche-body">
+      <div class="fiche-kop kop-midden">Grammatica</div>
+      <div class="fiche-cellen"><span class="cel midden">3</span><span class="cel laag">3</span></div>
+    </div>
+  </div>
+
+  <!-- MFN — certificaat met rozet -->
+  <div class="fiche">
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/>
+        <path d="M7 8h9"/>
+        <path d="M7 12h5"/>
+        <circle cx="16.5" cy="15" r="2.75"/>
+        <path d="M14.8 17.2l-.8 4 2.5-1.7 2.5 1.7-.8-4"/>
+      </svg>
+    </div>
+    <div class="fiche-body">
+      <div class="fiche-kop kop-midden">MfN</div>
+      <div class="fiche-cellen"><span class="cel midden">10 <span class="van">/ 12</span></span></div>
+    </div>
+  </div>
+
+</div>
+
+<h2>Iconen uitvergroot (controle op detailniveau)</h2>
+<div class="los">
+  <figure>
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3l6 6-3 3-6-6z"/><path d="M12.5 10.5L20 18"/><path d="M3 21h9"/>
+      </svg>
+    </div>
+    <figcaption>Juridisch</figcaption>
+  </figure>
+  <figure>
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 3L6 13h5l-1 8 7-10h-5l1-8z"/>
+      </svg>
+    </div>
+    <figcaption>Conflicten</figcaption>
+  </figure>
+  <figure>
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 5.5L5 7l3-3"/><path d="M11 5.5h9"/><path d="M3.5 12.5L5 14l3-3"/><path d="M11 12.5h9"/><path d="M4 19.5h3"/><path d="M11 19.5h9"/>
+      </svg>
+    </div>
+    <figcaption>Volledigheid</figcaption>
+  </figure>
+  <figure>
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4v16"/><path d="M7 20h10"/><path d="M5 7h14"/><path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7"/><path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7"/>
+      </svg>
+    </div>
+    <figcaption>Balans</figcaption>
+  </figure>
+  <figure>
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 5h16"/><path d="M4 10h12"/><path d="M3.5 17c1.4-1.8 2.8-1.8 4.25 0s2.8 1.8 4.25 0 2.8-1.8 4.25 0 2.8 1.8 4.25 0"/>
+      </svg>
+    </div>
+    <figcaption>Grammatica</figcaption>
+  </figure>
+  <figure>
+    <div class="fiche-icoon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/><path d="M7 8h9"/><path d="M7 12h5"/><circle cx="16.5" cy="15" r="2.75"/><path d="M14.8 17.2l-.8 4 2.5-1.7 2.5 1.7-.8-4"/>
+      </svg>
+    </div>
+    <figcaption>MfN</figcaption>
+  </figure>
+</div>
+
+</body>
+</html>

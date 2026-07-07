@@ -347,10 +347,10 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
             (contextTekst ? `\n\nBIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}` : '');
 
           const ernstCriteria =
-`Ernst-criteria (verplicht toepassen):
-- hoog: juridisch onhoudbaar of raakt uitvoerbaarheid; kan direct financieel of rechtsgevolg hebben (bijv. WVPS-verplichting volledig afwezig, nihilbeding zonder wettelijke grond, alimentatiebedrag ontbreekt terwijl kinderen minderjarig zijn).
-- midden: inhoudelijk onjuist of onvolledig, maar herstelbaar zonder volledige heronderhandeling (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent).
-- laag: stijl, verduidelijking of kleine onvolledigheid zonder directe juridische gevolgen (bijv. vage verwijzing, spelling, overbodige herhaling).`;
+`Ernst-criteria (verplicht toepassen — wees terughoudend met 'hoog'):
+- hoog: reserveer dit uitsluitend voor evidente wettelijke overtreding of volstrekte onuitvoerbaarheid; het document kan zo NIET worden gepasseerd of vastgelegd (bijv. verplichte WVPS-afstand volledig afwezig zonder vervangende regeling, nihilbeding kinderalimentatie voor minderjarigen zonder draagkrachtberekening).
+- midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
+- laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
 
           const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
