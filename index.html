@@ -5391,26 +5391,23 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
 `Je bent een ervaren Nederlandse juridische documentschrijver gespecialiseerd in echtscheidingsdocumenten.
 
 WERKWIJZE:
-- Schrijf in document_tekst het VOLLEDIGE document opnieuw — alle artikelen, alle tekst, niets weglaten.
-- Verwerk alle opgegeven verbeterpunten erin.
-- In wijzigingen: beschrijf per verbeterpunt wat je hebt gewijzigd. Voeg ook originele_tekst en aangepaste_tekst toe als korte passages (1-3 zinnen) voor de kaartweergave.
+- Geef per verbeterpunt één tekstvervanging: zoek_tekst (verbatim citaat uit het origineel) en vervang_door (verbeterde versie).
+- Schrijf het document NIET volledig opnieuw — geef uitsluitend de passages die wijzigen.
+- zoek_tekst moet een exact, aaneengesloten citaat zijn van 1-3 zinnen uit het originele document.
+- vervang_door bevat dezelfde passage, maar met de verbetering doorgevoerd.
 
 KERNREGELS:
-1. Behoud EXACT de structuur, nummering en formele toon van het origineel.
+1. Behoud EXACT de structuur, nummering en formele toon van het origineel buiten de gewijzigde passage.
 2. Pas ALLEEN aan wat nodig is voor het genoemde verbeterpunt.
 3. Gebruik concrete "Suggestie" of "Opmerking mediator" letterlijk als leidraad.
 4. Behoud namen van partijen zoals ze in het origineel staan.`;
 
       const conceptTool = {
         name: 'registreer_concept',
-        description: 'Geeft het volledige aangepaste document terug met een overzicht van de wijzigingen',
+        description: 'Geeft per verbeterpunt een tekstvervanging terug (zoek_tekst + vervang_door); het document hoeft niet volledig te worden herschreven.',
         input_schema: {
           type: 'object',
           properties: {
-            document_tekst: {
-              type: 'string',
-              description: 'Het VOLLEDIGE herschreven document — alle artikelen, alle tekst, niets weglaten',
-            },
             wijzigingen: {
               type: 'array',
               items: {
@@ -5419,14 +5416,14 @@ KERNREGELS:
                   item_nr:          { type: 'integer' },
                   artikel:          { type: 'string' },
                   wat_gewijzigd:    { type: 'string', description: 'Korte samenvatting van de aanpassing' },
-                  originele_tekst:  { type: 'string', description: 'Korte passage uit het origineel (voor kaartweergave)' },
-                  aangepaste_tekst: { type: 'string', description: 'Corresponderende passage in het nieuwe document' },
+                  zoek_tekst:       { type: 'string', description: 'Exacte verbatim passage uit het originele document (1-3 zinnen) die vervangen wordt' },
+                  vervang_door:     { type: 'string', description: 'Verbeterde versie van diezelfde passage' },
                 },
-                required: ['item_nr', 'artikel', 'wat_gewijzigd'],
+                required: ['item_nr', 'artikel', 'wat_gewijzigd', 'zoek_tekst', 'vervang_door'],
               },
             },
           },
-          required: ['document_tekst', 'wijzigingen'],
+          required: ['wijzigingen'],
         },
       };
 
@@ -5457,13 +5454,43 @@ ${itemsTekst}
 ORIGINEEL DOCUMENT:
 ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 
-      const data = await askClaudeForJson(systeemPrompt, userTekst, conceptTool, 32000);
-      if (!data?.document_tekst) throw new Error('Geen document ontvangen van Claude. Probeer opnieuw.');
+      // max_tokens laag houden: alleen vervangingen, geen volledig document (~1500 tokens voor 8 issues)
+      const data = await askClaudeForJson(systeemPrompt, userTekst, conceptTool, 6000);
+      const wijzigingenRaw = Array.isArray(data?.wijzigingen) ? data.wijzigingen : [];
+      if (!wijzigingenRaw.length) throw new Error('Claude gaf geen wijzigingen terug. Probeer opnieuw.');
 
-      // Herstel namen/PII — document_tekst direct van Claude, geen patching meer nodig
-      const documentTekst   = herstelAnonObj(data.document_tekst, snapNaarEcht);
-      const wijzigingenRaw  = Array.isArray(data.wijzigingen) ? data.wijzigingen : [];
-      const wijzigingenEcht = herstelAnonObj(wijzigingenRaw, snapNaarEcht);
+      // Pas de vervangingen toe op het originele document (client-side, geen full-rewrite nodig)
+      let documentTekst = snapOrigineel;
+      for (const w of wijzigingenRaw) {
+        // De-anonimiseer zoek_tekst en vervang_door zodat ze overeenkomen met snapOrigineel (echte namen)
+        const zoek = herstelAnonObj(w.zoek_tekst || '', snapNaarEcht);
+        const verv  = herstelAnonObj(w.vervang_door || '', snapNaarEcht);
+        if (!zoek || !verv || zoek === verv) continue;
+        if (documentTekst.includes(zoek)) {
+          documentTekst = documentTekst.replace(zoek, verv);
+        } else {
+          // Fallback: normaliseer witruimte en probeer opnieuw
+          const normZoek = zoek.replace(/\s+/g, ' ').trim();
+          const normDoc  = documentTekst.replace(/\s+/g, ' ');
+          if (normDoc.includes(normZoek)) {
+            // Bouw een regex die meerdere witruimtes matcht
+            const escaped = normZoek.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+');
+            try { documentTekst = documentTekst.replace(new RegExp(escaped), verv); }
+            catch { console.warn('[concept] Regex-vervanging mislukt:', normZoek.slice(0, 60)); }
+          } else {
+            console.warn('[concept] Passage niet gevonden (overgeslagen):', normZoek.slice(0, 80));
+          }
+        }
+      }
+
+      // Normaliseer veldnamen: zoek_tekst/vervang_door → originele_tekst/aangepaste_tekst
+      // zodat pasWijzigingenToeInDocx en de kaartweergave ongewijzigd blijven.
+      const wijzigingenGenorm = wijzigingenRaw.map(w => ({
+        ...w,
+        originele_tekst:  w.originele_tekst  ?? w.zoek_tekst    ?? '',
+        aangepaste_tekst: w.aangepaste_tekst ?? w.vervang_door   ?? '',
+      }));
+      const wijzigingenEcht = herstelAnonObj(wijzigingenGenorm, snapNaarEcht);
 
       // Opslaan per documenttype — zodat convenant en ouderschapsplan elk hun eigen concept hebben
       const conceptData = {
