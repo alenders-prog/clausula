@@ -478,7 +478,17 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
    - Bij TWIJFEL of het artikel ergens gedefinieerd is → rapporteer GEEN issue.
    - Alleen bij ABSOLUTE ZEKERHEID dat het nummer nergens als definitie, sectie of genummerd lid voorkomt → rapporteer een issue.
    OPGELET: het feit dat "4.1.1" in de verwijzingstekst zelf staat ("de in artikel 4.1.1 vermelde...") telt NIET als bewijs dat het artikel bestaat. Zoek naar een APARTE definitieplek.
-3. SECTIENUMMERING — EXTRA REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…), ga er dan vanuit dat hogere nummers (bv. "punt 21") eveneens bestaan, ook als de tekst-extractie de nummers niet altijd bij de koptekst plaatst. Maak in dat geval GEEN issue over een "ontbrekend" puntgetal.
+3. SECTIENUMMERING — ABSOLUTE REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft
+   (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…):
+   a. Ga er dan ALTIJD vanuit dat hogere sectienummers (bv. "punt 21", "artikel 15") eveneens bestaan.
+   b. Maak NOOIT een issue over een "ontbrekend" of "niet-aantoonbaar" puntgetal.
+   c. Maak NOOIT een issue over een "onduidelijke verwijzing" naar een sectienummer — als het document
+      genummerd is, zijn verwijzingen als "punt 21 Financiële afspraken" per definitie correct.
+   d. Maak NOOIT een issue dat de nummering "niet zichtbaar" is of dat een sectienummer "niet als
+      koptekst is opgenomen" — tekst-extractie kan sectienummers losmaken van hun koptekst. Dat is
+      een extractie-artefact, GEEN documentfout.
+   e. Enige uitzondering: als NERGENS in het document ook maar één sectienummer zichtbaar is (dus ook
+      punt 1, 2, 3 ontbreken volledig), dan mag je de nummering in twijfel trekken.
 4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.`;
 
           // Gecombineerd: één blok → één cache-entry voor alle 3 calls + heranalyse
