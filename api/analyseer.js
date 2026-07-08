@@ -433,9 +433,18 @@ HV-C. REFERENTIE — Verwijst convenant expliciet naar huwelijkse voorwaarden (d
 MfN-VEREISTE ELEMENTEN (${docTypLabel}):
 ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 
-          const docBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}` +
-            (contextTekst ? `\n\nBIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}` : '');
+          // ── Documenten opsplitsen: hoofdtekst vs. bijlagen (context) ───────────────
+          // contextBlok en stabielGedeeld zijn identiek voor alle 3 calls van hetzelfde document
+          // én voor heranalyse → maximale cache-efficiency (cache-hit binnen 5-minuten-window).
+          // Anthropic-caching: max 4 breakpoints per request.
+          //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek(4) = precies 4.
+          const documentBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}`;
+          const contextBlok  = contextTekst
+            ? `BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`
+            : null;
 
+          // Gedeeld regelsblok — identiek voor alle 3 calls + heranalyse → gecached in user-content
+          // (voorheen in elke system prompt herhaald → aparte cache-entries per call-type)
           const ernstCriteria =
 `Ernst-criteria (verplicht toepassen — wees terughoudend met 'hoog'):
 - hoog: reserveer dit uitsluitend voor evidente wettelijke overtreding of volstrekte onuitvoerbaarheid; het document kan zo NIET worden gepasseerd of vastgelegd (bijv. verplichte WVPS-afstand volledig afwezig zonder vervangende regeling, nihilbeding kinderalimentatie voor minderjarigen zonder draagkrachtberekening).
@@ -472,6 +481,10 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
 3. SECTIENUMMERING — EXTRA REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…), ga er dan vanuit dat hogere nummers (bv. "punt 21") eveneens bestaan, ook als de tekst-extractie de nummers niet altijd bij de koptekst plaatst. Maak in dat geval GEEN issue over een "ontbrekend" puntgetal.
 4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.`;
 
+          // Gecombineerd: één blok → één cache-entry voor alle 3 calls + heranalyse
+          const stabielGedeeld = `${pseudonimiseringNota}\n\n${verificatieplicht}\n\n${ernstCriteria}`;
+
+          // System prompts: alleen call-specifieke instructies (gedeelde regels in stabielGedeeld)
           const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 DOCUMENTTYPE: ${docTypLabel}
@@ -479,13 +492,7 @@ ${mfnInstructie}
 
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
 - Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.
-
-${pseudonimiseringNota}
-
-${verificatieplicht}
-
-${ernstCriteria}`;
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.`;
 
           const sysJuridisch =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
@@ -497,13 +504,7 @@ DOCUMENTTYPE: ${docTypLabel}
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
-- Bij twijfel: geen issue. Speculeer niet.
-
-${pseudonimiseringNota}
-
-${verificatieplicht}
-
-${ernstCriteria}`;
+- Bij twijfel: geen issue. Speculeer niet.`;
 
           const sysBalansGram =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op evenwichtigheid en taal.
@@ -513,15 +514,12 @@ DOCUMENTTYPE: ${docTypLabel}
 **issues (grammatica)** — Dimensies ["grammatica"]: vage verwijzingen, inconsistente datums/bedragen, onduidelijke bewoording.
 **issues (conflicten)** — Dimensies ["conflicten"]: tegenstrijdige bepalingen BINNEN het document (artikel X zegt iets anders dan artikel Y over hetzelfde onderwerp).
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
-- Bij twijfel: geen issue. Speculeer niet.
-
-${pseudonimiseringNota}
-
-${verificatieplicht}
-
-${ernstCriteria}`;
+- Bij twijfel: geen issue. Speculeer niet.`;
 
           const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
+
+          // Helper om gecachede contextblok als array te leveren (leeg als geen bijlagen)
+          const mkCtx = () => contextBlok ? [{ text: contextBlok, cache: true }] : [];
 
           // Helper: roep Claude aan en stuur SSE zodra het klaar is; vang max_tokens af
           const callMetSse = (clodeFn, type) =>
@@ -538,20 +536,29 @@ ${ernstCriteria}`;
             );
 
           // 3 parallelle Sonnet-calls — elk gefocust op één dimensie
+          // Cache-volgorde per call (max 4 breakpoints incl. system):
+          //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek blok(4)
+          // Bij heranalyse (zelfde doc-type binnen 5 min): hits op sys + contextBlok + stabielGedeeld
           const [structuurR, juridischR, balansR] = await Promise.all([
             callMetSse(() => askClaude(sysStructuur, [
+              ...mkCtx(),
+              { text: stabielGedeeld, cache: true },
               { text: `VERWACHTE SECTIES:\n${checklistTekst}`, cache: true },
-              { text: docBlok },
+              { text: documentBlok },
             ], maakStructuurTool(heeftMfn), heeftMfn ? 6000 : 2000), 'structuur'),
 
             callMetSse(() => askClaude(sysJuridisch, [
+              ...mkCtx(),
+              { text: stabielGedeeld, cache: true },
               { text: stabielBlokWet, cache: true },
-              { text: docBlok },
+              { text: documentBlok },
             ], juridischTool, 5500), 'juridisch'),
 
-            callMetSse(() => askClaude(sysBalansGram,
-              docBlok,
-              balansGramTool, 5000), 'balans'),
+            callMetSse(() => askClaude(sysBalansGram, [
+              ...mkCtx(),
+              { text: stabielGedeeld, cache: true },
+              { text: documentBlok },
+            ], balansGramTool, 5000), 'balans'),
           ]);
 
           // ── Stap 4: Haiku-consolidatie — samenvoegen semantisch verwante issues ──
