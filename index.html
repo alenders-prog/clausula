@@ -5026,6 +5026,7 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
   if (!wijzigingen?.length) return origineelTekst;
   let tekst    = origineelTekst;
   const _gezien = new Set();
+  let _toegepast = 0, _gemist = 0;
 
   for (const w of wijzigingen) {
     const orig  = (w.originele_tekst  || w.zoek_tekst   || '').trim();
@@ -5065,7 +5066,11 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
         try { match = new RegExp(e2, 'i').exec(tekst); } catch { /* negeer */ }
       }
     }
-    if (!match) { console.warn('[tekst-heranalyse] Niet gevonden:', normOrig.slice(0, 60)); continue; }
+    if (!match) {
+      console.warn('[tekst-heranalyse] Niet gevonden:', normOrig.slice(0, 60));
+      _gemist++;
+      continue;
+    }
 
     const regelStart = tekst.lastIndexOf('\n', match.index - 1) + 1;
     const prefix     = tekst.slice(regelStart, match.index).match(/^([\t ]*[●•◦▪\-\*>][\t ]*)/)?.[1] ?? '';
@@ -5080,7 +5085,9 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
 
     tekst = tekst.slice(0, regelStart) + geformat + tekst.slice(match.index + match[0].length);
     console.log('[tekst-heranalyse] Vervangen:', normOrig.slice(0, 60));
+    _toegepast++;
   }
+  console.info(`[tekst-heranalyse] ${_toegepast} wijziging(en) toegepast, ${_gemist} niet gevonden`);
   return tekst;
 }
 

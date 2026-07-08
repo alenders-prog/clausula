@@ -125,14 +125,16 @@ function preGroepeerOpPrefix(issues) {
   const sleutelwoorden = (s) =>
     new Set(normOnd(s).split(/\s+/).filter(w => w.length >= 5 && !STOPWOORDEN.has(w)));
 
-  // Gecombineerde check: A óf B
+  // Gecombineerde check: A óf B — drempel bewust hoog om "titel ≠ inhoud"-artefacten te voorkomen
   const zijnVerwant = (ondA, ondB) => {
-    if (lcpLen(ondA, ondB) >= 15) return true;
+    // Langste gemeenschappelijke prefix van ≥20 tekens → zeker hetzelfde onderwerp
+    if (lcpLen(ondA, ondB) >= 20) return true;
+    // Minstens 3 significante overlappende sleutelwoorden (was 2 → te breed)
     const kA = sleutelwoorden(ondA);
     const kB = sleutelwoorden(ondB);
     let raak = 0;
     for (const w of kA) if (kB.has(w)) raak++;
-    return raak >= 2;
+    return raak >= 3;
   };
 
   const resultaat = [];
@@ -156,13 +158,20 @@ function preGroepeerOpPrefix(issues) {
 
     if (groep.length === 1) { resultaat.push(groep[0]); continue; }
 
-    // Merge: zwaarste ernst, gecombineerde dimensies, meest informatieve teksten
+    // Merge: zwaarste ernst, gecombineerde dimensies, meest informatieve teksten.
+    // BELANGRIJK: titel (onderwerp) moet altijd bij de bevinding horen die we kiezen —
+    // anders krijg je "titel van A, inhoud van B" (verwarrend voor de gebruiker).
     const merged = { ...groep[0] };
     for (let k = 1; k < groep.length; k++) {
       const o = groep[k];
       if ((ERNST_ORD[o.ernst] ?? 1) < (ERNST_ORD[merged.ernst] ?? 1)) merged.ernst = o.ernst;
       merged.dimensies  = [...new Set([...(merged.dimensies  || []), ...(o.dimensies  || [])])];
-      if ((o.bevinding   || '').length > (merged.bevinding   || '').length) merged.bevinding   = o.bevinding;
+      // Als de andere bevinding langer/informatiever is → neem ook zijn onderwerp mee
+      if ((o.bevinding || '').length > (merged.bevinding || '').length) {
+        merged.bevinding  = o.bevinding;
+        merged.onderwerp  = o.onderwerp;   // titel volgt de bevinding die we tonen
+        merged.passage    = o.passage || merged.passage;
+      }
       if ((o.aanbeveling || '').length > (merged.aanbeveling || '').length) merged.aanbeveling = o.aanbeveling;
       if (!merged.passage && o.passage) merged.passage = o.passage;
     }
