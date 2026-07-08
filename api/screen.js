@@ -283,12 +283,16 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     const pseudoNota = `
 PSEUDONIEMEN (tijdelijk door Clausula ingevoerd ter privacy-bescherming — GEEN ontbrekende data):
 - PERSOON_A, PERSOON_B, PERSOON_C, KIND_1 enz. → echte namen van partijen/kinderen
-- [POSTCODE] → echte Nederlandse postcode (bijv. "7607 CW")
-- [TEL]      → echt telefoonnummer
-- [EMAIL]    → echt e-mailadres
-- [BSN]      → echt BSN-nummer (bewust gemaskeerd voor privacy)
+- [POSTCODE]   → echte Nederlandse postcode (bijv. "7607 CW")
+- [WOONPLAATS] → echte woonplaatsnaam (bijv. "Almelo")
+- [ADRES]      → echt straatadres incl. huisnummer (bijv. "Grotestraat 140")
+- [TEL]        → echt telefoonnummer
+- [EMAIL]      → echt e-mailadres
+- [BSN]        → echt BSN-nummer (bewust gemaskeerd voor privacy)
 Meld NOOIT een issue over ontbrekende, niet-ingevulde of anonieme gegevens op basis
 van bovenstaande aanduidingen — de echte waarden staan WEL in het originele document.
+Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsnamen of straatnamen die je
+in het document aantreft — schrijf altijd [WOONPLAATS] resp. [ADRES] als plaatshouder.
 
 NAMEN IN HET DOCUMENT: Alle eigennamen (partijen, kinderen, mediator, notaris, advocaten)
 die als gewone tekst in het document staan zijn echte ingevulde namen — geen plaatshouders.

@@ -2080,8 +2080,24 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
         continue;
       }
     }
-    // Tekst-item (heranalyse-modus): tekst al vooraf berekend, geen bestand nodig
+    // Tekst-item (heranalyse-modus): tekst al vooraf berekend, geen bestand nodig voor analyse.
+    // Wel het originele PDF downloaden voor weergave in de documentviewer (item.tekst blijft leidend).
     if (!bestand && item.tekst != null) {
+      if (!bestand && item._origStorageInfo) {
+        try {
+          const { data: signed, error: sErr } = await db.storage
+            .from('documenten').createSignedUrl(item._origStorageInfo.pad, 3600);
+          if (!sErr) {
+            const resp = await fetch(signed.signedUrl);
+            if (resp.ok) {
+              const blob = await resp.blob();
+              item.bestand = new File([blob], item._origStorageInfo.naam, { type: blob.type });
+            }
+          }
+        } catch (e) {
+          console.warn('[heranalyse] Weergave-PDF downloaden mislukt:', item._origStorageInfo.naam, e.message);
+        }
+      }
       resolvedItems.push({ ...item });
       continue;
     }
@@ -4169,7 +4185,8 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
 
 // ── Concept genereren ────────────────────────────────
 
-// Houd bij welke aangevinkte items er zijn voor de conceptknop
+// Houd bij welke aangevinkte items er zijn voor de conceptknop.
+// Reflecteert ook de "bezig"-status als er een generatie loopt voor het huidige doctype.
 function updateConceptKnop() {
   const btn   = document.getElementById('genereerConceptBtn');
   const badge = document.getElementById('conceptBadge');
@@ -4177,7 +4194,23 @@ function updateConceptKnop() {
   const items = verzamelAangevinkt();
   const n = items.length;
   badge.textContent = n;
-  btn.style.display = n > 0 ? 'inline-flex' : 'none';
+
+  if (n === 0) { btn.style.display = 'none'; return; }
+
+  // Controleer of er een actieve generatie loopt voor het huidige doctype
+  const huidigDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const isBezig = [..._generaties.values()].some(
+    g => g.docType === huidigDocType && g.status === 'bezig'
+  );
+
+  btn.style.display   = 'inline-flex';
+  btn.disabled        = isBezig;
+  btn.title           = isBezig ? 'Concept wordt gegenereerd…' : '';
+  // Vervang alleen het tekstgedeelte (laat de badge-span staan)
+  const tekstNode = btn.childNodes[0];
+  if (tekstNode?.nodeType === Node.TEXT_NODE) {
+    tekstNode.textContent = isBezig ? '⏳ Genereren… ' : '✦ Genereer concept ';
+  }
 }
 
 function verzamelAangevinkt() {
@@ -4938,8 +4971,18 @@ function anonimiseerTekst(tekst, naarAnon) {
   //   Claude de placeholder zelf, niet de inhoud).
   // - BSN wél maskeren: uniek persoonskenmerk, nooit nodig voor analyse-inhoud.
   t = t.replace(/\b\d{9}\b/g, '[BSN]');
-  // Nederlandse postcodes: 1234AB of 1234 AB
+  // Nederlandse postcodes: 1234AB of 1234 AB (vervang VOOR woonplaats-detectie)
   t = t.replace(/\b\d{4}\s?[A-Z]{2}\b/g, '[POSTCODE]');
+  // Woonplaats direct na [POSTCODE]: "[POSTCODE] Almelo" → "[POSTCODE] [WOONPLAATS]"
+  // In NL-adressen staat de woonplaats altijd direct achter de postcode
+  t = t.replace(/(\[POSTCODE\])\s+([A-Z][a-zA-ZÀ-ÿ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿ\-]{2,})?)/g,
+    (_, ph, _stad) => `${ph} [WOONPLAATS]`);
+  // Woonplaats na "wonende te / woonachtig te / gevestigd te"
+  t = t.replace(/\b(woonachtig|wonende?|gevestigd|gedomicilieerd)\s+te\s+(?!\[)([A-Z][a-zA-ZÀ-ÿ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿ\-]{2,})?)/gi,
+    (_, prefix, _stad) => `${prefix} te [WOONPLAATS]`);
+  // Nederlandse straatnamen + huisnummer: "Grotestraat 140", "Kerkweg 23a", "Lange Dreef 12"
+  // Vangt samengestelde woorden eindigend op gangbare straat-suffixen + huisnummer
+  t = t.replace(/\b\w+(?:straat|laan|weg|plein|park|singel|gracht|kade|dijk|hof|dreef|steeg|boulevard|allee)\s+\d+[a-zA-Z]?\b/gi, '[ADRES]');
   // Telefoonnummers: 06-xxxxxxxx, 0xx-xxxxxxx, +31-formaten, met spaties/streepjes
   t = t.replace(/(?<!\d)(?:0[1-9]\d{1,2}[-.\s]?\d{6,8}|\+31[-.\s]?[1-9]\d{8}|06[-.\s]?\d{8})(?!\d)/g, '[TEL]');
   // E-mailadressen
@@ -5845,6 +5888,9 @@ function renderConceptChips() {
       renderConceptChips();
     });
   });
+
+  // Synchroniseer de genereer-knop met de huidige generatiestatus
+  updateConceptKnop();
 }
 
 // Extraheer de tekst van één documenttype uit de gecombineerde _document_tekst.
@@ -6510,6 +6556,11 @@ function _startHeranalyse() {
     const acceptatieMap   = genEntry?.acceptatie       ?? conceptSupabase?.acceptatie       ?? {};
     const bestandsnaam    = (pending?.bestandsnaam || DOC_TYPES.find(d => d.value === docType)?.label || docType) + '.txt';
 
+    // Origineel Storage-doc voor weergave in de documentviewer tijdens heranalyse
+    // (analyse gebruikt item.tekst; viewer heeft een File nodig)
+    const origDoc = origBestanden.find(d => (d.type || raadDocType(d.naam || '')) === docType);
+    const _origStorageInfo = origDoc ? { pad: origDoc.pad, naam: origDoc.naam } : null;
+
     if (origineelTekst && alleWijzigingen) {
       // Filter: alleen geaccepteerde (niet-afgewezen) wijzigingen
       const geaccepteerd = alleWijzigingen.filter((_, i) => acceptatieMap[i] !== 'afgewezen');
@@ -6527,6 +6578,7 @@ function _startHeranalyse() {
         type: docType,
         bestandsnaam,
         storageInfo: null,
+        _origStorageInfo,            // ← alleen voor weergave in documentviewer
         fromStorage: false,
       });
     } else {
@@ -6540,6 +6592,7 @@ function _startHeranalyse() {
           type: docType,
           bestandsnaam,
           storageInfo: null,
+          _origStorageInfo,
           fromStorage: false,
         });
       } else {

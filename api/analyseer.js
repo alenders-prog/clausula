@@ -445,11 +445,18 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
           // Waarschuwing over pseudonimisering — voorkomt valse format-validatiefouten
           const pseudonimiseringNota =
 `PSEUDONIMISERING — VERPLICHTE UITSLUITINGSREGEL:
-Het document is vóór verzending automatisch pseudonimiseerd. Namen, IBAN-nummers, rekeningnummers en andere identificerende gegevens zijn vervangen door nep-maar-realistische placeholders.
+Het document is vóór verzending automatisch pseudonimiseerd. Namen, adressen, postcodes, woonplaatsen, IBAN-nummers en andere identificerende gegevens zijn vervangen door placeholders:
+  [PERSOON_A] / [KIND_1] / … → namen van partijen en kinderen
+  [ADRES]      → straatadres incl. huisnummer (bijv. "Grotestraat 140")
+  [WOONPLAATS] → woonplaatsnaam (bijv. "Almelo")
+  [POSTCODE]   → Nederlandse postcode
+  [BSN] / [TEL] / [EMAIL] / [IBAN] → overige persoonsgegevens
 GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
-- Maak GEEN issue aan als een IBAN-nummer, rekeningnummer of BSN niet het verwachte formaat heeft — dit is hoogstwaarschijnlijk een pseudoniem.
-- Maak GEEN issue aan als persoonsnamen iets afwijken van eerdere vermeldingen — de pseudonimisering kan per vermelding licht variëren.
-- Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau (bijv. twee verschillende IBAN-nummers voor dezelfde partij over het document), maar nooit omdat het getal zelf technisch ongeldig is.`;
+- Maak GEEN issue aan als een IBAN-nummer, rekeningnummer of BSN niet het verwachte formaat heeft.
+- Maak GEEN issue aan als persoonsnamen iets afwijken van eerdere vermeldingen.
+- Maak GEEN issue over een ontbrekende of generieke woonplaats of adres — het [ADRES]/[WOONPLAATS] staat WEL in het originele document.
+- Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau.
+Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — schrijf altijd [WOONPLAATS] resp. [ADRES].`;
 
           // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims maar behoudt echte fouten
           const verificatieplicht =
