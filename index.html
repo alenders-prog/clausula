@@ -15,7 +15,7 @@
   --blue:#4A90D9;
   --nav-bg:#1B3050; --nav-border:#243F68;
   --brass:#BFA05B; --seal-bg:rgba(191,160,91,.08);
-  --status-ok:#2A7260; --status-aandacht:#D4890A; --status-risico:#C82020;
+  --status-ok:#2A7260; --status-aandacht:#E07200; --status-risico:#C82020;
   --action-light:#FDF1EB; --action-border:#E8C4AE;
   --ok:#2A7260; --ok-light:#EBF6F4; --ok-border:#A8D8D0;
   --warn:#D4890A; --warn-light:#FFF7E6; --warn-border:#E8D090;
@@ -251,7 +251,7 @@ button.secundair:hover{background:#FFF1EA;}
   text-align:center;padding:4px 0;text-transform:uppercase;
   white-space:nowrap;overflow:hidden;}
 .v2-dim-chip-top.kop-hoog  {background:#C0392B;}
-.v2-dim-chip-top.kop-midden{background:#D68910;}
+.v2-dim-chip-top.kop-midden{background:#E07200;}
 .v2-dim-chip-top.kop-laag  {background:#1E8449;}
 /* Cellen — fiche flex-structuur, H/M/L uitlijning behouden */
 .v2-dim-chip-bot{display:flex;flex:1;text-align:center;}
@@ -570,13 +570,21 @@ button.primair:hover{background:var(--coral-dark);}
 /* Wijziging-kaart */
 .change-card{background:var(--paper);border:1px solid var(--line);
   border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;
-  transition:border-color .15s;}
+  transition:border-color .15s,background .15s,opacity .15s;}
 .change-card:hover,.change-card.act{border-color:var(--coral);}
 .change-card.act{box-shadow:0 0 0 2px rgba(232,113,74,.18);}
+/* Accept/reject staten */
+.change-card.geaccepteerd{border-color:#4caf50;background:#f6fdf7;cursor:default;}
+.change-card.geaccepteerd:hover{border-color:#4caf50;}
+.change-card.afgewezen{border-color:#ccc;background:#f8f8f8;opacity:.65;cursor:default;}
+.change-card.afgewezen:hover{border-color:#ccc;}
 .change-card-kop{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
 .change-artikel{font-weight:600;font-size:.88rem;color:var(--ink);}
 .change-niet-toegepast{margin-left:auto;font-size:.72rem;font-weight:600;
   color:#b45309;background:#fef3c7;border:1px solid #fbbf24;
+  border-radius:4px;padding:1px 6px;white-space:nowrap;cursor:help;}
+.change-al-verwerkt{margin-left:auto;font-size:.72rem;font-weight:600;
+  color:#4b7c5c;background:#f0fbf4;border:1px solid #c3e8d4;
   border-radius:4px;padding:1px 6px;white-space:nowrap;cursor:help;}
 .change-beschrijving{font-size:.82rem;color:var(--ink-soft);margin-bottom:10px;
   line-height:1.5;}
@@ -592,11 +600,43 @@ button.primair:hover{background:var(--coral-dark);}
 .change-tekst.oud{background:#FFF3E0;color:#7B3F00;}
 .change-ook{margin-top:8px;font-size:.76rem;color:var(--coral-dark);
   padding:5px 8px;background:#FFF1EA;border-radius:5px;}
+/* Accept/reject actiebalk onderaan elke kaart */
+.change-actie-rij{display:flex;align-items:center;gap:8px;margin-top:12px;
+  padding-top:10px;border-top:1px solid var(--line);}
+.btn-accepteer,.btn-afwijs{flex:1;padding:6px 0;border-radius:7px;border:1px solid;
+  font-size:.78rem;font-weight:700;cursor:pointer;transition:background .12s,color .12s;}
+.btn-accepteer{background:#f0fdf4;border-color:#86efac;color:#15803d;}
+.btn-accepteer:hover{background:#dcfce7;}
+.btn-afwijs{background:#fafafa;border-color:#e5e7eb;color:#6b7280;}
+.btn-afwijs:hover{background:#f3f4f6;}
+.btn-ongedaan{font-size:.75rem;color:var(--ink-soft);background:none;border:none;
+  cursor:pointer;text-decoration:underline;margin-left:auto;padding:2px 4px;}
+.btn-ongedaan:hover{color:var(--ink);}
+.change-status-label{font-size:.75rem;font-weight:700;padding:3px 8px;border-radius:5px;}
+.change-status-label.geacc{background:#dcfce7;color:#15803d;}
+.change-status-label.afgew{background:#f3f4f6;color:#6b7280;}
+/* Bulk-acties balk bovenaan de wijzigingen-lijst */
+.changes-bulk-rij{display:flex;align-items:center;gap:8px;margin-bottom:12px;
+  padding:8px 10px;background:var(--paper);border:1px solid var(--line);
+  border-radius:8px;font-size:.78rem;}
+.changes-bulk-rij .bulk-teller{flex:1;color:var(--ink-soft);}
+.btn-bulk{padding:4px 10px;border-radius:6px;border:1px solid;font-size:.75rem;
+  font-weight:700;cursor:pointer;background:none;}
+.btn-bulk.accepteer{border-color:#86efac;color:#15803d;}
+.btn-bulk.accepteer:hover{background:#f0fdf4;}
+.btn-bulk.afwijs{border-color:#e5e7eb;color:#6b7280;}
+.btn-bulk.afwijs:hover{background:#f3f4f6;}
+/* Header-knoppen in concept review */
+.concept-review-acties{display:flex;gap:8px;align-items:center;margin-left:auto;}
+.btn-heranalyseer{padding:7px 16px;border-radius:8px;border:1px solid var(--nav-border);
+  background:var(--nav-bg);color:#fff;font-size:.83rem;font-weight:700;cursor:pointer;}
+.btn-heranalyseer:hover{background:#243F68;}
+.btn-heranalyseer:disabled{opacity:.45;cursor:default;}
 
 /* ── Concept-generatie statuschips ───────────────── */
-#conceptGenChips{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;}
-.cgen-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;
-  padding:4px 10px;border-radius:20px;white-space:nowrap;}
+#conceptGenChips{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;max-width:340px;}
+.cgen-chip{display:inline-flex;align-items:center;gap:4px;font-size:.73rem;font-weight:600;
+  padding:3px 8px;border-radius:20px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;}
 .cgen-chip.bezig{background:#FFF1EA;color:var(--coral-dark);}
 .cgen-chip.klaar{background:#F0FBF4;color:#1e6e4a;cursor:pointer;border:1px solid #c3e8d4;}
 .cgen-chip.klaar:hover{background:#e0f5ea;}
@@ -784,14 +824,14 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   font-family:system-ui,-apple-system,sans-serif;
   text-align:center;padding:4px 0;text-transform:uppercase;white-space:nowrap;overflow:hidden;}
 .a-fiche-kop.kop-hoog  {background:#C0392B;}
-.a-fiche-kop.kop-midden{background:#D68910;}
+.a-fiche-kop.kop-midden{background:#E07200;}
 .a-fiche-kop.kop-laag  {background:#1E8449;}
 .a-fiche-kop.kop-load  {background:var(--line);color:var(--ink-mid);}
 .a-fiche-hml{display:flex;flex:1;text-align:center;}
 .a-fiche-h,.a-fiche-m,.a-fiche-l{flex:1;min-width:0;display:flex;align-items:center;
   justify-content:center;font-size:.7rem;font-weight:800;line-height:1;padding:5px 0;}
 .a-fiche-h{color:#C0392B;border-right:1px solid #EEECE6;}
-.a-fiche-m{color:#B9770E;border-right:1px solid #EEECE6;}
+.a-fiche-m{color:#BF5900;border-right:1px solid #EEECE6;}
 .a-fiche-l{color:#1E8449;}
 
 /* Basis tab-knop: eenvoudig (Alle issues, MfN, sorteer) */
@@ -874,6 +914,41 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   animation:zweep-kleur 2s linear infinite;pointer-events:none;}
 .a-filter-ring>.a-filter-dim{border-color:transparent;box-shadow:none;}
 .a-filter-ring>.a-filter-dim:hover{transform:none;border-color:transparent;box-shadow:none;color:var(--ink-mid);}
+
+/* ── Lopende rand op fiche-chips tijdens analyse ──────────── */
+@keyframes skeleton-sweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@property --fiche-zweep{syntax:'<angle>';initial-value:0deg;inherits:false;}
+@keyframes fiche-zweep{to{--fiche-zweep:360deg;}}
+.a-fiche-ring{position:relative;display:flex;border-radius:8px;}
+.a-fiche-ring::before{
+  content:'';position:absolute;inset:-2px;border-radius:9px;padding:2px;z-index:0;
+  background:conic-gradient(
+    from var(--fiche-zweep),
+    transparent            0deg 120deg,
+    rgba(200,106,60,.18) 140deg,
+    rgba(200,106,60,.95) 200deg,
+    rgba(200,106,60,.95) 280deg,
+    rgba(200,106,60,.18) 330deg,
+    transparent          350deg 360deg
+  );
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:destination-out;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  animation:fiche-zweep 2s linear infinite;pointer-events:none;}
+.a-fiche-ring>.a-fiche-chip{position:relative;z-index:1;border-color:transparent!important;box-shadow:none!important;width:100%;}
+/* Loading: H/M/L rij zelfde hoogte als geladen staat, skeleton-stijl */
+.a-fiche-chip--laden .a-fiche-hml{min-height:24px;}
+.a-fiche-chip--laden .a-fiche-h,
+.a-fiche-chip--laden .a-fiche-m,
+.a-fiche-chip--laden .a-fiche-l{
+  color:transparent;
+  /* Skeleton-balk zodat de rij zichtbaar aanwezig is */
+  background:linear-gradient(90deg,var(--line) 30%,#EDE9E3 50%,var(--line) 70%);
+  background-size:200% 100%;
+  animation:skeleton-sweep 1.6s ease-in-out infinite;
+  border-radius:3px;
+  margin:5px 3px;}
 .dim-badges{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 4px;}
 .dim-badge{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:10px;
   text-transform:uppercase;letter-spacing:.04em;}
@@ -884,7 +959,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .ernst-badge{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;
   text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;margin-left:4px;}
 .ernst-badge.sev-hoog{background:#FCEFEC;color:#C82020;}
-.ernst-badge.sev-midden{background:#FFF7E0;color:#D4890A;}
+.ernst-badge.sev-midden{background:#FFF3E6;color:#BF5900;}
 .ernst-badge.sev-laag{background:#EDF4EF;color:#2A7260;}
 .verouderd-rapport{padding:20px;background:#FFF8F4;border:1px solid #F0DCCB;
   border-radius:10px;color:var(--ink-soft);font-size:.93rem;line-height:1.6;}
@@ -901,7 +976,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 /* aanwezig = OK → groene linkerrand */
 .card.sev-laag{border-left-color:var(--status-ok);}
 .card.status-aanwezig{border-left-color:var(--status-ok);}
-.card.sev-midden,.card.status-onvolledig{border-left-color:#D4890A;}
+.card.sev-midden,.card.status-onvolledig{border-left-color:#E07200;}
 .card.sev-hoog,.card.status-ontbreekt{border-left-color:#C82020;}
 .card.heeft-passage{cursor:pointer;}
 /* Hover/actief: alleen oranje rand voor kaarten MET een aandachtspunt (data-ok=0) */
@@ -1443,9 +1518,9 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         placeholder="Versielabel (optioneel)" style="display:none">
       <button class="secundair" id="genereerConceptBtn" style="display:none">✦ Genereer concept <span id="conceptBadge" class="concept-badge">0</span></button>
       <button class="secundair" id="bekijkConceptBtn"   style="display:none">✦ Bekijk concept</button>
+      <button class="secundair" id="heranalyseBadgeBtn" style="display:none">🔄 Heranalyse <span id="heranalyseBadgeTeller" class="concept-badge">0</span></button>
       <span id="conceptGenChips"></span>
       <button class="secundair" id="downloadPdfBtn">↓ PDF-rapport</button>
-      <button class="secundair" id="downloadBtn">↓ Word</button>
       <span class="opslagstatus" id="opslagStatus"></span>
     </div>
   </div>
@@ -1456,12 +1531,16 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 </div>
 
 
+
 <!-- ═══ Concept-review (full-screen) ════════════════════ -->
 <div class="concept-review" id="conceptReview" style="display:none">
   <div class="concept-review-header">
     <button class="back-btn" id="conceptReviewBackBtn">← Terug</button>
     <span class="concept-review-titel">Verbeterd concept — review</span>
-    <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
+    <div class="concept-review-acties">
+      <button class="btn-heranalyseer" id="conceptHeranalyseerBtn" title="Pas geaccepteerde wijzigingen toe en analyseer opnieuw als nieuwe versie">🔄 Nieuwe versie</button>
+      <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
+    </div>
   </div>
   <div class="concept-review-body">
     <div class="concept-doc-panel" id="conceptDocPanel"></div>
@@ -2001,6 +2080,11 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
         continue;
       }
     }
+    // Tekst-item (heranalyse-modus): tekst al vooraf berekend, geen bestand nodig
+    if (!bestand && item.tekst != null) {
+      resolvedItems.push({ ...item });
+      continue;
+    }
     if (!bestand) continue;
     resolvedItems.push({ ...item, bestand });
   }
@@ -2018,11 +2102,16 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
     const pad       = item.storageInfo?.pad;
 
     let tekst;
-    const isPdf      = item.bestand.name.toLowerCase().endsWith('.pdf');
+    const isPdf      = item.bestand?.name?.toLowerCase().endsWith('.pdf') ?? false;
     const isHoofdDoc = HOOFD_TYPES.has(item.type);
     const cachedTekst = (pad && tekstPerPad.has(pad)) ? tekstPerPad.get(pad) : null;
 
-    if (cachedTekst !== null) {
+    if (item.tekst != null) {
+      // Heranalyse-modus: tekst al voorberekend (zelfde extractiebasis als originele analyse)
+      onProgress(`${prefix}Verbeterde tekst ✓`);
+      tekst = item.tekst;
+      // Niet cachen — dit is een éénmalige heranalyse-tekst
+    } else if (cachedTekst !== null) {
       // Tekst al bekend uit deze sessie of eerder opgeslagen rapport
       onProgress(`${prefix}Tekst uit cache…`);
       tekst = cachedTekst;
@@ -2168,7 +2257,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     // (toegankelijk door zowel de SSE-loop als de tab-klik-handler)
     var _sseAcc = {};
     for (const item of effectieveHoofdItems) {
-      _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null };
+      _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null, consolidatie: null };
     }
 
     // Progressieve render: toont de eindlayout direct maar met KR-bars op de filterknopjes
@@ -2179,12 +2268,17 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       if (bestandsnaam !== _actiefBn) return; // ander doc-tabblad — skip
       const acc = _sseAcc?.[bestandsnaam] || {};
 
-      // Alle issues die tot nu toe zijn binnengekomen (dedup)
-      const alleI = dedupIssues([
-        Array.isArray(acc.structuur?.issues) ? acc.structuur.issues : [],
-        Array.isArray(acc.juridisch?.issues) ? acc.juridisch.issues : [],
-        Array.isArray(acc.balans?.issues)    ? acc.balans.issues    : [],
-      ]).map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
+      // Alle issues die tot nu toe zijn binnengekomen
+      // Als consolidatie al klaar is: gebruik die; anders browser-side dedup
+      const alleI = (
+        Array.isArray(acc.consolidatie?.issues) && acc.consolidatie.issues.length
+          ? acc.consolidatie.issues
+          : dedupIssues([
+              Array.isArray(acc.structuur?.issues) ? acc.structuur.issues : [],
+              Array.isArray(acc.juridisch?.issues) ? acc.juridisch.issues : [],
+              Array.isArray(acc.balans?.issues)    ? acc.balans.issues    : [],
+            ])
+      ).map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
 
       // Zet global zodat issueKaart() en de checkbox-handlers kloppen
       huidigRapport = {
@@ -2216,7 +2310,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 
       // Donut als conic-gradient ring (zelfde visuele taal als dimensie-cirkels en tabs)
       const _segs = _totaal > 0
-        ? [{ kleur:'#C82020',n:hoog },{ kleur:'#D4890A',n:midden },{ kleur:'#2A7260',n:laag }]
+        ? [{ kleur:'#C82020',n:hoog },{ kleur:'#E07200',n:midden },{ kleur:'#2A7260',n:laag }]
         : [];
       const _grad = _totaal > 0 ? maakGrad(_segs) : 'var(--line) 0deg 360deg';
       const _centerTxt = nogBezig && _totaal === 0
@@ -2288,7 +2382,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       // Bouw fiche-chip dimensie-filter (live — loading state mogelijk)
       const _dimKaart = (d, dimIss, loading) => {
         if (loading) {
-          return `<button class="a-fiche-chip" data-dim="${d}" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-body"><span class="a-fiche-kop kop-load">${DIM_LABELS[d]}</span><span class="a-fiche-hml"><span class="a-fiche-h"></span><span class="a-fiche-m"></span><span class="a-fiche-l"></span></span></span></button>`;
+          return `<div class="a-fiche-ring"><button class="a-fiche-chip a-fiche-chip--laden" data-dim="${d}" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-body"><span class="a-fiche-kop kop-load">${DIM_LABELS[d]}</span><span class="a-fiche-hml"><span class="a-fiche-h">0</span><span class="a-fiche-m">0</span><span class="a-fiche-l">0</span></span></span></button></div>`;
         }
         const h = dimIss.filter(i=>i.ernst==='hoog').length;
         const m = dimIss.filter(i=>i.ernst==='midden').length;
@@ -2371,7 +2465,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   // ── SSE-stream lezen ──────────────────────────────────────────────────────
   let _serverData;
   let _maxTokensWaarschuwing = false;
-  const _totaalEvents = effectieveHoofdItems.length * 3;
+  const _totaalEvents = effectieveHoofdItems.length * 4; // 3 analyse-calls + 1 consolidatie per document
   let _eventsKlaar = 0;
 
   try {
@@ -2431,6 +2525,15 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
             _eventsKlaar++;
             onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
             break;
+          case 'consolidatie':
+            // Server heeft semantisch verwante issues samengevoegd — gebruik dit als definitieve lijst
+            if (_sseAcc[_bn]) {
+              _sseAcc[_bn].consolidatie = herstelAnonObj(_data.result, naarEcht);
+              _renderProgressief(_bn); // herrender met geconsolideerde issues
+            }
+            _eventsKlaar++;
+            onProgress('Stap 2 van 2 — Analyseren…', Math.round((_eventsKlaar / _totaalEvents) * 95));
+            break;
           case 'max_tokens':
             _maxTokensWaarschuwing = true;
             // Zet een leeg resultaat zodat het betreffende tabblad "klaar" toont
@@ -2460,12 +2563,20 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     const s   = acc.structuur || { issues: [], samenvatting: '', mfn_score: null };
     const j   = acc.juridisch || { issues: [] };
     const b   = acc.balans    || { issues: [] };
-    const alleIssues = dedupIssues([
-      Array.isArray(s.issues) ? s.issues : [],
-      Array.isArray(j.issues) ? j.issues : [],
-      Array.isArray(b.issues) ? b.issues : [],
-    ]);
-    console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues na dedup`);
+    // Gebruik server-geconsolideerde issues als die zijn binnengekomen;
+    // anders browser-side dedup als fallback (bijv. bij netwerk-onderbreking).
+    let alleIssues;
+    if (Array.isArray(acc.consolidatie?.issues) && acc.consolidatie.issues.length) {
+      alleIssues = acc.consolidatie.issues.map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
+      console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues (server-geconsolideerd)`);
+    } else {
+      alleIssues = dedupIssues([
+        Array.isArray(s.issues) ? s.issues : [],
+        Array.isArray(j.issues) ? j.issues : [],
+        Array.isArray(b.issues) ? b.issues : [],
+      ]);
+      console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues (browser-dedup fallback)`);
+    }
     return {
       doc_type:     item.type,
       bestandsnaam: item.bestandsnaam,
@@ -3149,7 +3260,7 @@ async function toonRapport(cls, rp) {
 
     // Donut als conic-gradient ring (zelfde visuele taal als dimensie-cirkels en tabs)
     const _segs2 = totaal > 0
-      ? [{ kleur:'#C82020',n:hoog },{ kleur:'#D4890A',n:midden },{ kleur:'#2A7260',n:laag }]
+      ? [{ kleur:'#C82020',n:hoog },{ kleur:'#E07200',n:midden },{ kleur:'#2A7260',n:laag }]
       : [];
     const _grad2 = totaal > 0 ? maakGrad(_segs2) : 'var(--line) 0deg 360deg';
     const _center2 = totaal > 0
@@ -3281,11 +3392,19 @@ async function toonRapport(cls, rp) {
         huidigeDocIdx = idx;
         metaEl.querySelectorAll('.doc-tab').forEach(b => b.classList.toggle('actief', b === btn));
         // Update huidigRapport zodat kaart-klik/checkboxen het juiste doc raken
+        // Bewaar in-sessie _concepts (nog niet opgeslagen, zitten niet op rp maar op vorige huidigRapport)
+        const _voorgaandConcepten = huidigRapport?._concepts;
         huidigRapport = { ...rp, ...huidigeDocumenten[idx] };
+        // Herstel _concepts als rp die niet heeft (in-sessie gegenereerd, nog niet in Supabase)
+        if (!huidigRapport._concepts && _voorgaandConcepten) {
+          huidigRapport._concepts = _voorgaandConcepten;
+        }
         activeerAnalysePanel(huidigRapport);
         // Toon "Bekijk concept" alleen als er een concept is voor dit document-type
         const tabDocType   = huidigeDocumenten[idx]?.doc_type || '';
-        const tabConcept   = rp._concepts?.[tabDocType] || (tabDocType === (huidigeClassificatie?.doc_type) ? rp._concept : null);
+        const tabConcept   = huidigRapport._concepts?.[tabDocType]
+                          || rp._concepts?.[tabDocType]
+                          || (tabDocType === (huidigeClassificatie?.doc_type) ? rp._concept : null);
         const bekijkBtn    = document.getElementById('bekijkConceptBtn');
         if (bekijkBtn) bekijkBtn.style.display = tabConcept ? 'inline-flex' : 'none';
         // Wissel het document-viewer naar het bestand van dit tabblad
@@ -4047,21 +4166,6 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
   }
 });
 
-// ── Download Word ─────────────────────────────────────
-document.getElementById('downloadBtn').addEventListener('click', () => {
-  try {
-    const rtf  = buildRtf(huidigeBestandsnaam, huidigeClassificatie, huidigRapport);
-    const blob = new Blob([rtf], { type: 'application/rtf' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `screening-${(huidigeBestandsnaam||'rapport').replace(/\.[^.]+$/,'').replace(/[^a-z0-9_-]+/gi,'_')}.rtf`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    document.getElementById('opslagStatus').textContent = 'Download mislukt: ' + err.message;
-  }
-});
 
 // ── Concept genereren ────────────────────────────────
 
@@ -4106,6 +4210,102 @@ function verzamelAangevinkt() {
 }
 
 // ── DOCX-wijzigingen: voor download én concept-review ─
+// ── Schone DOCX-vervanging (voor heranalyse — géén track-changes markup) ──────
+// Vervangt tekst direct in de alinea, zodat LlamaParse/Claude de eindtekst
+// ziet zonder <w:del>/<w:ins> artefacten die de analyse vertroebelen.
+function vervangInDocxXmlSchoon(xml, wijzigingen) {
+  const wNs   = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const xmlNs = 'http://www.w3.org/XML/1998/namespace';
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, 'application/xml');
+  const paras  = Array.from(xmlDoc.getElementsByTagNameNS(wNs, 'p'));
+
+  const norm     = s => s.replace(/\s+/g, ' ').toLowerCase().trim();
+  const paraTxt  = p => Array.from(p.getElementsByTagNameNS(wNs, 't')).map(t => t.textContent).join('');
+  const paraRPr  = p => p.getElementsByTagNameNS(wNs, 'r')[0]?.getElementsByTagNameNS(wNs, 'rPr')[0] || null;
+
+  function maakRun(tekst, rPr) {
+    const r = xmlDoc.createElementNS(wNs, 'w:r');
+    if (rPr) r.appendChild(rPr.cloneNode(true));
+    const t = xmlDoc.createElementNS(wNs, 'w:t');
+    t.setAttributeNS(xmlNs, 'xml:space', 'preserve');
+    t.textContent = tekst;
+    r.appendChild(t);
+    return r;
+  }
+
+  const verwerkt = new Set();
+
+  for (const w of wijzigingen) {
+    const oudNorm  = norm(w.originele_tekst || '');
+    const nieuwTxt = (w.aangepaste_tekst ?? '').trim();
+    if (!oudNorm) continue;
+
+    for (let pIdx = 0; pIdx < paras.length; pIdx++) {
+      if (verwerkt.has(pIdx)) continue;
+      const para = paras[pIdx];
+      const txt       = paraTxt(para);
+      const normTxt   = norm(txt);
+      const _bulletPfx = txt.match(/^([\t ]*[●•◦▪\-\*>][\t ]+)/)?.[1] ?? '';
+      const normNoBul  = _bulletPfx ? norm(txt.slice(_bulletPfx.length)) : normTxt;
+
+      let zoekNorm = oudNorm;
+      let gevonden = normTxt.includes(zoekNorm) || normNoBul.includes(zoekNorm);
+      if (!gevonden && oudNorm.length > 80) { zoekNorm = oudNorm.slice(0, 80); gevonden = normTxt.includes(zoekNorm) || normNoBul.includes(zoekNorm); }
+      if (!gevonden && oudNorm.length > 40) { zoekNorm = oudNorm.slice(0, 40); gevonden = normTxt.includes(zoekNorm) || normNoBul.includes(zoekNorm); }
+      if (!gevonden) continue;
+
+      const pPr = para.getElementsByTagNameNS(wNs, 'pPr')[0] || null;
+      const rPr = paraRPr(para);
+
+      // Directe vervanging — geen track-changes, alleen eindtekst
+      while (para.firstChild) para.removeChild(para.firstChild);
+      if (pPr) para.appendChild(pPr.cloneNode(true));
+      if (nieuwTxt) {
+        // Bewaar bullet-prefix als die aanwezig was
+        const volledigeTxt = _bulletPfx ? _bulletPfx + nieuwTxt : nieuwTxt;
+        para.appendChild(maakRun(volledigeTxt, rPr));
+      }
+      // nieuwTxt leeg → alinea verwijderd (blijft als lege alinea met alleen pPr)
+
+      verwerkt.add(pIdx);
+
+      // Verwijder eventuele vervolg-alinea's van dezelfde wijziging (multi-para match)
+      // Identificeer ze door te kijken of de volgende alinea's ook in oudNorm voorkomen
+      if (zoekNorm.length < oudNorm.length) {
+        // Ingekort zoeken → mogelijk meerdere alinea's betrokken; verwijder volgende leeg
+        for (let qIdx = pIdx + 1; qIdx < Math.min(pIdx + 6, paras.length); qIdx++) {
+          if (verwerkt.has(qIdx)) break;
+          const qTxt = norm(paraTxt(paras[qIdx]));
+          if (!qTxt || !oudNorm.slice(zoekNorm.length).includes(qTxt.slice(0, 30))) break;
+          const qPr = paras[qIdx].getElementsByTagNameNS(wNs, 'pPr')[0] || null;
+          while (paras[qIdx].firstChild) paras[qIdx].removeChild(paras[qIdx].firstChild);
+          if (qPr) paras[qIdx].appendChild(qPr.cloneNode(true));
+          verwerkt.add(qIdx);
+        }
+      }
+      break;
+    }
+  }
+
+  return new XMLSerializer().serializeToString(xmlDoc);
+}
+
+async function pasWijzigingenToeSchoon(docxBlob, wijzigingen) {
+  if (!wijzigingen?.length) return docxBlob;
+  if (!window.JSZip) throw new Error('JSZip niet geladen');
+  const zip = new window.JSZip();
+  await zip.loadAsync(docxBlob);
+  const xmlStr      = await zip.file('word/document.xml').async('string');
+  const modifiedXml = vervangInDocxXmlSchoon(xmlStr, wijzigingen);
+  zip.file('word/document.xml', modifiedXml);
+  return zip.generateAsync({
+    type:     'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+// ── DOCX met track-changes (voor download/weergave in Word) ───────────────────
 // Opent de DOCX-Blob via JSZip, past tekst op paragraaf-niveau aan en retourneert
 // een nieuwe Blob. Behoudt paragraaf-opmaak (w:pPr), verliest run-opmaak in gewijzigde alinea's.
 async function pasWijzigingenToeInDocx(docxBlob, wijzigingen) {
@@ -4119,6 +4319,110 @@ async function pasWijzigingenToeInDocx(docxBlob, wijzigingen) {
   const modifiedXml = vervangInDocxXml(xmlStr, wijzigingen);
 
   zip.file('word/document.xml', modifiedXml);
+  return zip.generateAsync({
+    type:     'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+// Voegt een paraaf-voettekst toe aan een DOCX-blob.
+// Indeling: [paraaf man: ____]  [paraaf vrouw: ____]  [paginanummer]
+// Werkt op alle pagina's via w:footerReference type="default".
+// Verwijdert ook eventuele "paraaf man:" / "paraaf vrouw:" alinea's uit de body
+// die als PDF-conversie artefact in het document kunnen voorkomen.
+async function voegVoettekstToeAanDocx(docxBlob) {
+  if (!window.JSZip) return docxBlob;
+  const zip = new window.JSZip();
+  await zip.loadAsync(docxBlob);
+
+  const relId  = 'rIdClausulaFooter';
+  const streep = '_______________';
+
+  // Gebruik dezelfde labels als in het document (niet de partijnamen)
+  const labelM = 'paraaf man:';
+  const labelV = 'paraaf vrouw:';
+
+  // 1. Footer XML — links "paraaf man:", midden "paraaf vrouw:", rechts paginanummer
+  const ftrXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:p>
+    <w:pPr>
+      <w:jc w:val="left"/>
+      <w:tabs>
+        <w:tab w:val="center" w:pos="4680"/>
+        <w:tab w:val="right" w:pos="9360"/>
+      </w:tabs>
+    </w:pPr>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">${labelM} ${streep}</w:t></w:r>
+    <w:r><w:tab/></w:r>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">${labelV} ${streep}</w:t></w:r>
+    <w:r><w:tab/></w:r>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>1</w:t></w:r>
+    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>
+  </w:p>
+</w:ftr>`;
+  zip.file('word/footer1.xml', ftrXml);
+
+  // 2. Relatie toevoegen aan word/_rels/document.xml.rels
+  const relsPath = 'word/_rels/document.xml.rels';
+  let relsXml = (await zip.file(relsPath)?.async('string'))
+    ?? '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
+  if (!relsXml.includes(relId)) {
+    relsXml = relsXml.replace(
+      '</Relationships>',
+      `<Relationship Id="${relId}" ` +
+      `Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" ` +
+      `Target="footer1.xml"/></Relationships>`
+    );
+    zip.file(relsPath, relsXml);
+  }
+
+  // 3. Verwijder "paraaf man:" / "paraaf vrouw:" alinea's uit de body (PDF-artefacten)
+  //    en voeg w:footerReference toe aan w:sectPr
+  let docXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+  // Verwijder alinea's die uitsluitend paraaf-labels bevatten
+  docXml = docXml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (match) => {
+    // Extraheer alle w:t tekst uit deze alinea
+    const wTTeksten = [];
+    const tRgx = /<w:(?:del)?[Tt](?:\s[^>]*)?>([^<]*)<\/w:(?:del)?[Tt]>/g;
+    let m2;
+    while ((m2 = tRgx.exec(match)) !== null) wTTeksten.push(m2[1]);
+    const tekst = wTTeksten.join('').toLowerCase().trim();
+
+    // Alleen verwijderen als de alinea vrijwel uitsluitend "paraaf man:" / "paraaf vrouw:" bevat
+    if (!/paraaf\s+(?:man|vrouw)/i.test(tekst)) return match;
+    const restTekst = tekst
+      .replace(/paraaf\s+(?:man|vrouw)\s*/gi, '')
+      .replace(/[:\s_\-\/]/g, '');
+    return restTekst.length > 8 ? match : ''; // Bewaar als er andere inhoud in zit
+  });
+
+  if (!docXml.includes(relId)) {
+    const ftrRef = `<w:footerReference w:type="default" r:id="${relId}"/>`;
+    if (docXml.includes('</w:sectPr>')) {
+      docXml = docXml.replace('</w:sectPr>', ftrRef + '</w:sectPr>');
+    } else {
+      docXml = docXml.replace('</w:body>', `<w:sectPr>${ftrRef}</w:sectPr></w:body>`);
+    }
+  }
+  zip.file('word/document.xml', docXml);
+
+  // 4. Content-type voor footer1.xml registreren
+  let ctXml = (await zip.file('[Content_Types].xml')?.async('string')) ?? '';
+  if (ctXml && !ctXml.includes('footer1.xml')) {
+    ctXml = ctXml.replace(
+      '</Types>',
+      '<Override PartName="/word/footer1.xml" ' +
+      'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>' +
+      '</Types>'
+    );
+    zip.file('[Content_Types].xml', ctXml);
+  }
+
   return zip.generateAsync({
     type:     'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -4168,7 +4472,8 @@ function vervangInDocxXml(xml, wijzigingen) {
     return norm(txt).length;
   }
 
-  const toegepasteIdx = new Set(); // bijhouden welke wijziging-indices gevonden zijn
+  const toegepasteIdx   = new Set(); // bijhouden welke wijziging-indices gevonden zijn
+  const alVerwerktIdx   = new Set(); // tekst al verwijderd door een eerdere wijziging
 
   for (let wIdx = 0; wIdx < wijzigingen.length; wIdx++) {
     const w        = wijzigingen[wIdx];
@@ -4179,24 +4484,66 @@ function vervangInDocxXml(xml, wijzigingen) {
     for (let pIdx = 0; pIdx < paras.length; pIdx++) {
       if (verwerkt.has(pIdx)) continue;
       const para = paras[pIdx];
-      if (para.getElementsByTagNameNS(wNs, 'del').length) continue;
+      if (para.getElementsByTagNameNS(wNs, 'del').length) {
+        // Alinea is al verwijderd door een eerder issue — check of onze tekst erin zat
+        if (!alVerwerktIdx.has(wIdx) && !toegepasteIdx.has(wIdx)) {
+          const delTkst = Array.from(para.getElementsByTagNameNS(wNs, 'delText'))
+            .map(t => t.textContent).join('');
+          const normDel = norm(delTkst);
+          const zoekKort = oudNorm.length > 40 ? oudNorm.slice(0, 40) : oudNorm;
+          if (normDel.includes(zoekKort)) alVerwerktIdx.add(wIdx);
+        }
+        continue;
+      }
 
       const txt     = paraTxt(para);
       const normTxt = norm(txt);
+      // PDF-geconverteerde DOCX heeft vaak ●/•/▪ als letterlijk teken vóór de tekst.
+      // Sla dit op voor positiebepaling na een bullet-vrije zoekopdracht.
+      const _bulletPfx   = txt.match(/^([\t ]*[●•◦▪\-\*>][\t ]+)/)?.[1] ?? '';
+      const normTxtNoBul = _bulletPfx ? norm(txt.slice(_bulletPfx.length)) : normTxt;
 
       // Progressief kortere zoekterm
       let zoekNorm = oudNorm;
       let gevonden = normTxt.includes(zoekNorm);
-      if (!gevonden && oudNorm.length > 80) { zoekNorm = oudNorm.slice(0, 80); gevonden = normTxt.includes(zoekNorm); }
-      if (!gevonden && oudNorm.length > 40) { zoekNorm = oudNorm.slice(0, 40); gevonden = normTxt.includes(zoekNorm); }
+      if (!gevonden) { gevonden = normTxtNoBul.includes(zoekNorm); } // bullet-vrij proberen
+      if (!gevonden && oudNorm.length > 80) { zoekNorm = oudNorm.slice(0, 80); gevonden = normTxt.includes(zoekNorm) || normTxtNoBul.includes(zoekNorm); }
+      if (!gevonden && oudNorm.length > 40) { zoekNorm = oudNorm.slice(0, 40); gevonden = normTxt.includes(zoekNorm) || normTxtNoBul.includes(zoekNorm); }
+      // Extra fallback: verwijder hoofdletter-tokens die niet in déze alinea voorkomen.
+      // Treedt op als herstelAnonObj "Maikel Egberts" teruggeeft maar het document hier
+      // alleen "Maikel" heeft (pseudo-naam sloeg achternaam-loze vermelding niet op).
+      if (!gevonden) {
+        const origWoorden = (w.originele_tekst || '').trim().split(/\s+/);
+        const gefilterd   = origWoorden.filter(wd =>
+          !/^[A-Z]/.test(wd) || wd.length <= 3 || normTxt.includes(wd.toLowerCase()) || normTxtNoBul.includes(wd.toLowerCase())
+        );
+        if (gefilterd.length !== origWoorden.length && gefilterd.length >= 4) {
+          const gefNorm = norm(gefilterd.join(' '));
+          const zoekGef = gefNorm.length > 80 ? gefNorm.slice(0, 80) : gefNorm;
+          if (normTxt.includes(zoekGef) || normTxtNoBul.includes(zoekGef)) { zoekNorm = zoekGef; gevonden = true; }
+          else if (gefNorm.length > 40 && (normTxt.includes(gefNorm.slice(0, 40)) || normTxtNoBul.includes(gefNorm.slice(0, 40)))) {
+            zoekNorm = gefNorm.slice(0, 40); gevonden = true;
+          }
+        }
+      }
       if (!gevonden) continue;
       toegepasteIdx.add(wIdx); // wijziging gevonden en verwerkt
 
-      // Positie in ruwe tekst
-      const idx     = txt.toLowerCase().indexOf(zoekNorm);
-      let txtVoor   = idx >= 0 ? txt.slice(0, idx) : '';
-      let txtOud    = idx >= 0 ? txt.slice(idx, idx + zoekNorm.length) : txt;
-      let txtNa     = idx >= 0 ? txt.slice(idx + zoekNorm.length) : '';
+      // Positie in ruwe tekst — probeer eerst normaal, dan met bullet-offset
+      let idx = txt.toLowerCase().indexOf(zoekNorm);
+      if (idx < 0 && _bulletPfx) {
+        const idxNoBul = txt.slice(_bulletPfx.length).toLowerCase().indexOf(zoekNorm);
+        if (idxNoBul >= 0) idx = idxNoBul + _bulletPfx.length;
+      }
+      let txtVoor = idx >= 0 ? txt.slice(0, idx) : '';
+      // Als zoekNorm ingekort is (< oudNorm), markeer alles vanaf de match tot eind van de alinea.
+      // Dit voorkomt dat door de inkorting slechts 40/80 tekens worden doorgehaald terwijl de
+      // originele_tekst verder loopt (de rest volgt in de multi-alinea-loop hieronder).
+      const _delEind = idx >= 0
+        ? (zoekNorm.length < oudNorm.length ? txt.length : idx + zoekNorm.length)
+        : txt.length;
+      let txtOud  = idx >= 0 ? txt.slice(idx, _delEind) : txt;
+      let txtNa   = idx >= 0 ? txt.slice(_delEind) : '';
 
       // Hele alinea markeren als match aan begin staat en zin loopt door
       if (!txtVoor.trim() && txtNa.trim()) { txtOud = txt; txtNa = ''; }
@@ -4219,6 +4566,7 @@ function vervangInDocxXml(xml, wijzigingen) {
 
       // ── Multi-alinea: markeer volgende alinea's als verwijderd totdat
       //    de volledige originele_tekst-lengte gedekt is ────────────────
+      // Stop bij sectie-headers en bij alinea's die geen deel zijn van originele_tekst.
       let gedekt      = norm(txtOud).length;
       let lastDelPara = para;
       let lastRPr     = rPr;
@@ -4231,6 +4579,17 @@ function vervangInDocxXml(xml, wijzigingen) {
             nextIdx++;
             continue;
           }
+          const nextTekst = paraTxt(nextPara).trim();
+          const nextNorm  = norm(nextTekst);
+
+          // Stop bij genummerde sectie-headers (bv. "3. Identiteitsbewijzen" / "3.1. Titel")
+          if (/^\d+(\.\d+)*\.?\s+[A-Z]/.test(nextTekst)) break;
+
+          // Stop als de volgende alinea GEEN overlap heeft met originele_tekst
+          // (gedeelde sleutelwoorden ≥8 tekens). Voorkomt drift naar volgende secties.
+          const _kw = (nextNorm.match(/\b[a-z]{8,}\b/g) || []).filter((w,i,a)=>a.indexOf(w)===i);
+          if (_kw.length > 0 && !_kw.some(w => oudNorm.includes(w))) break;
+
           const nextRPr = paraRPr(nextPara);
           gedekt += markeerVolleAlineaAlsDel(nextPara, nextRPr || lastRPr);
           verwerkt.add(nextIdx);
@@ -4257,8 +4616,9 @@ function vervangInDocxXml(xml, wijzigingen) {
     }
   }
 
-  // Maak de toegepaste set beschikbaar voor de UI (side-channel)
+  // Maak de sets beschikbaar voor de UI (side-channel)
   _toegepasteWijzigingIdx = toegepasteIdx;
+  _alVerwerktWijzigingIdx = alVerwerktIdx;
 
   return new XMLSerializer().serializeToString(xmlDoc);
 }
@@ -4465,7 +4825,16 @@ let _conceptDocumentTekst  = '';
 let _conceptWijzigingen    = [];
 let _conceptOriginelePdf   = null;  // origineel PDF-bestand voor Adobe DOCX-conversie
 let _conceptGewijzigdDocx  = null;  // DOCX met track-changes in geheugen (voor download)
+// Map<idx → 'geaccepteerd'|'afgewezen'|undefined> — per-wijziging beslissing (undefined = pending)
+let _wijzigingAcceptatie   = new Map();
+// Wachtrij voor heranalyse: { [doc_type]: File } — gevuld per document, analyse start als alle docs klaar zijn
+let _heranalysePending     = {};
+// Doc-type van het concept dat momenteel in review is (vastgelegd bij openen, niet bij klikken)
+let _conceptDocType        = '';
+// ID van de _generaties-entry die momenteel in review is (voor persisteren acceptatie)
+let _conceptGenId          = null;
 let _toegepasteWijzigingIdx = null; // Set van indices die daadwerkelijk in DOCX zijn aangebracht
+let _alVerwerktWijzigingIdx = null; // Set van indices waarvan de tekst al via een ander issue verwijderd was
 
 // ── Pseudonimisering (AVG) ────────────────────────────
 // Bouwt twee maps:
@@ -4648,6 +5017,72 @@ const TC_D0 = '\x02D\x02', TC_D1 = '\x02/D\x02'; // oud tekst (doorgestreept)
 const TC_I0 = '\x02I\x02', TC_I1 = '\x02/I\x02'; // nieuwe tekst (groen)
 
 function escRx(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Pas wijzigingen direct toe op platte tekst (géén DOCX-manipulatie).
+// Input: de-pseudonimiseerde tekst + de-pseudonimiseerde wijzigingen (zoals opgeslagen in _generaties).
+// Gebruikt dezelfde regex-logica als de concept-generatie → eerlijke vergelijking bij heranalyse.
+// De caller pseudonimiseert de output daarna vóór verzending naar de server.
+function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
+  if (!wijzigingen?.length) return origineelTekst;
+  let tekst    = origineelTekst;
+  const _gezien = new Set();
+
+  for (const w of wijzigingen) {
+    const orig  = (w.originele_tekst  || w.zoek_tekst   || '').trim();
+    const aangp = (w.aangepaste_tekst || w.vervang_door  || '').trim();
+    if (!orig || !aangp || orig === aangp) continue;
+
+    const fp = aangp.replace(/\s+/g, ' ').slice(0, 200);
+    if (_gezien.has(fp)) continue;
+    _gezien.add(fp);
+
+    const normOrig = orig
+      .split(/\r?\n/)
+      .map(r => r.replace(/^[\t ]*[●•◦▪\-\*>][\t ]*/, '').replace(/^[\t ]+/, '').trimEnd())
+      .filter(r => r.length > 0)
+      .join(' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    if (!normOrig || normOrig.length < 5) continue;
+
+    const zoekBasis = normOrig.length > 600 ? normOrig.slice(0, 600) : normOrig;
+    const escaped   = zoekBasis.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const patroon   = escaped.replace(/ /g, '\\s+[●•◦▪\\-\\*>]*\\s*');
+
+    let match = null;
+    try { match = new RegExp(patroon, 'i').exec(tekst); } catch { continue; }
+
+    if (!match) {
+      // Fallback: verwijder tokens die niet in de tekst voorkomen (pseudo-artefacten)
+      const woorden   = orig.trim().split(/\s+/);
+      const gefilterd = woorden.filter(wd =>
+        !/^[A-Z]/.test(wd) || wd.length <= 3 || tekst.toLowerCase().includes(wd.toLowerCase())
+      );
+      if (gefilterd.length !== woorden.length && gefilterd.length >= 4) {
+        const n2 = gefilterd.join(' ').replace(/\s{2,}/g, ' ').trim();
+        const e2 = n2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+[●•◦▪\\-\\*>]*\\s*');
+        try { match = new RegExp(e2, 'i').exec(tekst); } catch { /* negeer */ }
+      }
+    }
+    if (!match) { console.warn('[tekst-heranalyse] Niet gevonden:', normOrig.slice(0, 60)); continue; }
+
+    const regelStart = tekst.lastIndexOf('\n', match.index - 1) + 1;
+    const prefix     = tekst.slice(regelStart, match.index).match(/^([\t ]*[●•◦▪\-\*>][\t ]*)/)?.[1] ?? '';
+    const geformat   = aangp
+      .split(/\r?\n/)
+      .map(r => {
+        const s = r.replace(/^[\t ]*[●•◦▪\-\*>][\t ]*/, '').replace(/^[\t ]+/, '').trimEnd();
+        return s ? prefix + s : '';
+      })
+      .filter(r => r.length > 0)
+      .join('\n');
+
+    tekst = tekst.slice(0, regelStart) + geformat + tekst.slice(match.index + match[0].length);
+    console.log('[tekst-heranalyse] Vervangen:', normOrig.slice(0, 60));
+  }
+  return tekst;
+}
 
 // Markeer wijzigingen in de ORIGINELE tekst met track-changes-markers.
 // Zoekt originele_tekst (oud) in origineelTekst — betrouwbaarder dan zoeken in gewijzigde tekst.
@@ -4861,6 +5296,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
   _conceptOriginelePdf       = pdfBestand;
   _conceptGewijzigdDocx      = null;  // reset — wordt opnieuw aangemaakt bij rendering
   _toegepasteWijzigingIdx    = null;  // reset — wordt ingesteld door vervangInDocxXml
+  _alVerwerktWijzigingIdx    = null;  // reset — wordt ingesteld door vervangInDocxXml
 
   const docPanel = document.getElementById('conceptDocPanel');
   const wijzigingenVoorRender = _conceptWijzigingen; // snapshot — voorkomt stale closure
@@ -5052,17 +5488,24 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
       const w   = _conceptWijzigingen[idx];
       // Alleen kaarten met originele_tekst kunnen "niet toegepast" zijn
       if (!w?.originele_tekst) return;
-      const badge = card.querySelector('.change-niet-toegepast');
+      // Verwijder bestaande badges
+      card.querySelectorAll('.change-niet-toegepast, .change-al-verwerkt').forEach(b => b.remove());
       if (_toegepasteWijzigingIdx.has(idx)) {
-        if (badge) badge.remove();
+        // Correct gevonden en toegepast — geen badge nodig
+      } else if (_alVerwerktWijzigingIdx instanceof Set && _alVerwerktWijzigingIdx.has(idx)) {
+        // Tekst was al verwijderd door een eerder issue — informatieve badge, geen waarschuwing
+        const b = document.createElement('span');
+        b.className = 'change-al-verwerkt';
+        b.title = 'Deze tekst is al meegenomen via een andere wijziging hierboven';
+        b.textContent = '↑ via ander issue';
+        card.querySelector('.change-card-kop')?.appendChild(b);
       } else {
-        if (!badge) {
-          const b = document.createElement('span');
-          b.className = 'change-niet-toegepast';
-          b.title = 'Originele tekst niet gevonden in document — wijziging niet ingevuld';
-          b.textContent = '⚠ niet in doc';
-          card.querySelector('.change-card-kop')?.appendChild(b);
-        }
+        // Echt niet gevonden — waarschuwing
+        const b = document.createElement('span');
+        b.className = 'change-niet-toegepast';
+        b.title = 'Originele tekst niet gevonden in document — wijziging niet ingevuld';
+        b.textContent = '⚠ niet in doc';
+        card.querySelector('.change-card-kop')?.appendChild(b);
       }
     });
   }
@@ -5126,11 +5569,43 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
       return { w, origIdx, pos: pos === -1 ? Infinity : pos };
     }).sort((a, b) => a.pos - b.pos);
 
-    let html = '<h3>Wijzigingen</h3>';
+    // Helper: bouw actiebalk-HTML voor één kaart op basis van huidige acceptatie-status
+    const bouwActieBalk = (idx) => {
+      const status = _wijzigingAcceptatie.get(idx);
+      if (status === 'geaccepteerd') {
+        return `<div class="change-actie-rij">
+          <span class="change-status-label geacc">✓ Geaccepteerd</span>
+          <button class="btn-ongedaan" data-idx="${idx}" data-actie="reset">↩ Ongedaan maken</button>
+        </div>`;
+      }
+      if (status === 'afgewezen') {
+        return `<div class="change-actie-rij">
+          <span class="change-status-label afgew">✗ Afgewezen — niet in export</span>
+          <button class="btn-ongedaan" data-idx="${idx}" data-actie="reset">↩ Ongedaan maken</button>
+        </div>`;
+      }
+      return `<div class="change-actie-rij">
+        <button class="btn-accepteer" data-idx="${idx}" data-actie="geaccepteerd">✓ Accepteer</button>
+        <button class="btn-afwijs"    data-idx="${idx}" data-actie="afgewezen">✗ Afwijzen</button>
+      </div>`;
+    };
+
+    const n = gesorteerd.length;
+    let html = `<h3>Wijzigingen</h3>
+      <div class="changes-bulk-rij">
+        <span class="bulk-teller" id="changesBulkTeller">${n} wijzigingen — nog te beoordelen</span>
+        <button class="btn-bulk accepteer" id="bulkAccepteerBtn">✓ Alle accepteren</button>
+        <button class="btn-bulk afwijs"    id="bulkAfwijsBtn">✗ Alle afwijzen</button>
+      </div>`;
+
     gesorteerd.forEach(({ w, origIdx: idx }) => {
       const heeftNieuw = !!w.aangepaste_tekst;
       const heeftOud  = !!w.originele_tekst;
-      html += `<div class="change-card" data-idx="${idx}">
+      // Herstel CSS-klasse op basis van opgeslagen acceptatie (bij heropenen)
+      const herstelStatus = _wijzigingAcceptatie.get(idx);
+      const herstelKlasse = herstelStatus === 'geaccepteerd' ? ' geaccepteerd'
+                          : herstelStatus === 'afgewezen'    ? ' afgewezen' : '';
+      html += `<div class="change-card${herstelKlasse}" data-idx="${idx}">
         <div class="change-card-kop">
           <span class="change-artikel">${escH(w.artikel || '–')}</span>
         </div>
@@ -5146,6 +5621,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
         ${w.ook_aangepast?.length
           ? `<div class="change-ook">Vanwege samenhang ook aangepast: ${escH(w.ook_aangepast.join(', '))}</div>`
           : ''}
+        ${bouwActieBalk(idx)}
       </div>`;
     });
     changesPanel.innerHTML = html;
@@ -5162,7 +5638,11 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
         highlightConceptPassage(passage || '', actiefModus);
       };
 
-      card.addEventListener('click', activeerKaart);
+      card.addEventListener('click', e => {
+        // Klik op actie-knoppen niet doorbubbling naar card-activering
+        if (e.target.closest('.change-actie-rij')) return;
+        activeerKaart();
+      });
 
       card.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -5176,6 +5656,110 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
           activeerKaart();
         });
       });
+    });
+
+    // ── Accept / afwijs / bulk via event-delegation op changesPanel ────────
+    // (herbruikbaar na hertekenen van actiebalk, zonder opnieuw te binden)
+    const bijwerkTeller = () => {
+      const alle  = _conceptWijzigingen.length;
+      const geacc = [..._wijzigingAcceptatie.values()].filter(v => v === 'geaccepteerd').length;
+      const afgew = [..._wijzigingAcceptatie.values()].filter(v => v === 'afgewezen').length;
+      const open  = alle - geacc - afgew;
+      const tel   = document.getElementById('changesBulkTeller');
+      if (tel) {
+        const delen = [];
+        if (geacc) delen.push(`<span style="color:#15803d;font-weight:700">✓ ${geacc} geaccepteerd</span>`);
+        if (afgew) delen.push(`<span style="color:#6b7280;font-weight:700">✗ ${afgew} afgewezen</span>`);
+        if (open)  delen.push(`${open} onbeoordeeld`);
+        tel.innerHTML = delen.join(' · ') || `${alle} wijzigingen`;
+      }
+      // Download-knop: toon hoeveel wijzigingen er mee worden genomen
+      const dlBtn = document.getElementById('conceptDownloadBtn');
+      if (dlBtn) {
+        const meegenomen = alle - afgew;
+        dlBtn.textContent = afgew > 0
+          ? `↓ Download als Word (${meegenomen}/${alle})`
+          : '↓ Download als Word';
+      }
+    };
+
+    // Debounced Supabase-opslag van acceptatie (cross-device persistentie)
+    let _acceptatieSaveTimer = null;
+    const _planAcceptatieSave = () => {
+      clearTimeout(_acceptatieSaveTimer);
+      _acceptatieSaveTimer = setTimeout(async () => {
+        if (!huidigeId || !_conceptDocType) return;
+        if (!huidigRapport?._concepts?.[_conceptDocType]) return;
+        try {
+          await db.from('screeningen')
+            .update({ rapport: huidigRapport })
+            .eq('id', huidigeId);
+        } catch (e) { console.warn('[acceptatie] Supabase-opslag mislukt:', e.message); }
+      }, 1500);
+    };
+
+    const setWijzigingStatus = (idx, status) => {
+      _wijzigingAcceptatie.set(idx, status);
+      // Persisteer in de _generaties-entry zodat heropenen de keuzes bewaart (zelfde sessie)
+      if (_conceptGenId != null) {
+        const genEntry = _generaties.get(_conceptGenId);
+        if (genEntry) {
+          if (!genEntry.acceptatie) genEntry.acceptatie = {};
+          if (status === undefined) delete genEntry.acceptatie[idx];
+          else genEntry.acceptatie[idx] = status;
+        }
+      }
+      // Persisteer ook in huidigRapport → Supabase (andere computer / na herstart)
+      if (_conceptDocType && huidigRapport?._concepts?.[_conceptDocType]) {
+        if (!huidigRapport._concepts[_conceptDocType].acceptatie)
+          huidigRapport._concepts[_conceptDocType].acceptatie = {};
+        if (status === undefined)
+          delete huidigRapport._concepts[_conceptDocType].acceptatie[idx];
+        else
+          huidigRapport._concepts[_conceptDocType].acceptatie[idx] = status;
+        _planAcceptatieSave();
+      }
+      // Herteken alleen de actiebalk van deze kaart
+      const card = changesPanel.querySelector(`.change-card[data-idx="${idx}"]`);
+      if (!card) return;
+      card.classList.remove('geaccepteerd', 'afgewezen');
+      if (status === 'geaccepteerd') card.classList.add('geaccepteerd');
+      if (status === 'afgewezen')    card.classList.add('afgewezen');
+      const actieRij = card.querySelector('.change-actie-rij');
+      if (actieRij) actieRij.outerHTML = bouwActieBalk(idx);
+      bijwerkTeller();
+      // Reset gecachte DOCX — nieuwe keuze vereist opnieuw aanmaken
+      _conceptGewijzigdDocx = null;
+    };
+
+    // Event-delegation: alle actie-clicks via één listener
+    changesPanel.addEventListener('click', e => {
+      const knop = e.target.closest('[data-actie]');
+      if (!knop) return;
+      e.stopPropagation();
+      const idx    = parseInt(knop.dataset.idx, 10);
+      const actie  = knop.dataset.actie;
+      setWijzigingStatus(idx, actie === 'reset' ? undefined : actie);
+    });
+
+    // Bulk-knoppen
+    document.getElementById('bulkAccepteerBtn')?.addEventListener('click', () => {
+      _conceptWijzigingen.forEach((_, i) => setWijzigingStatus(i, 'geaccepteerd'));
+    });
+    document.getElementById('bulkAfwijsBtn')?.addEventListener('click', () => {
+      _conceptWijzigingen.forEach((_, i) => setWijzigingStatus(i, 'afgewezen'));
+    });
+
+    bijwerkTeller();
+
+    // Herstel eerder gemaakte keuzes (bijv. na terug + opnieuw openen)
+    _wijzigingAcceptatie.forEach((status, idx) => {
+      const card = changesPanel.querySelector(`.change-card[data-idx="${idx}"]`);
+      if (!card || !status) return;
+      card.classList.toggle('geaccepteerd', status === 'geaccepteerd');
+      card.classList.toggle('afgewezen',    status === 'afgewezen');
+      const actieRij = card.querySelector('.change-actie-rij');
+      if (actieRij) actieRij.outerHTML = bouwActieBalk(idx);
     });
   }
 
@@ -5212,14 +5796,16 @@ function renderConceptChips() {
   if (!wrap) return;
   if (!_generaties.size) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = [..._generaties.entries()].map(([id, g]) => {
+    // Toon alleen het documenttype als chip-label; volledige naam als tooltip
+    const korteLabel = g.naam.split(' · ')[0] || g.naam;
     if (g.status === 'bezig') {
-      return `<span class="cgen-chip bezig"><span class="cgen-spin">⟳</span> ${escH(g.naam)} genereren…</span>`;
+      return `<span class="cgen-chip bezig" title="${escH(g.naam)} — wordt gegenereerd"><span class="cgen-spin">⟳</span> ${escH(korteLabel)}…</span>`;
     }
     if (g.status === 'klaar') {
-      return `<span class="cgen-chip klaar" data-genid="${id}" title="Klik om te bekijken">✓ ${escH(g.naam)} klaar — bekijk</span>`;
+      return `<span class="cgen-chip klaar" data-genid="${id}" title="${escH(g.naam)} — klik om te bekijken">✓ ${escH(korteLabel)}</span>`;
     }
     if (g.status === 'fout') {
-      return `<span class="cgen-chip fout" data-genid="${id}" title="${escH(g.fout)}">✗ ${escH(g.naam)} mislukt</span>`;
+      return `<span class="cgen-chip fout" data-genid="${id}" title="${escH(g.naam)}: ${escH(g.fout)}">✗ ${escH(korteLabel)}</span>`;
     }
     return '';
   }).join('');
@@ -5229,8 +5815,13 @@ function renderConceptChips() {
     chip.addEventListener('click', () => {
       const g = _generaties.get(Number(chip.dataset.genid));
       if (!g) return;
-      _generaties.delete(Number(chip.dataset.genid));
-      renderConceptChips();
+      // Chip NIET verwijderen — gebruiker moet concept meerdere keren kunnen bekijken
+      _conceptDocType = g.docType || '';
+      _conceptGenId   = Number(chip.dataset.genid);
+      // Herstel eerder gemaakte acceptatie/afwijzing-keuzes
+      _wijzigingAcceptatie = new Map(
+        Object.entries(g.acceptatie || {}).map(([k, v]) => [parseInt(k, 10), v])
+      );
       if (g.screeningId && huidigeId !== g.screeningId) {
         // Navigeer naar het juiste document en open dan de review
         laadScreening(g.screeningId, splitOrigin).then(() =>
@@ -5379,7 +5970,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
 
   // Registreer generatie en toon chip — niet-blokkerend
   const genId = ++_genTeller;
-  _generaties.set(genId, { naam: snapNaam, screeningId: snapId, status: 'bezig' });
+  _generaties.set(genId, { naam: snapNaam, screeningId: snapId, docType: snapDocType, status: 'bezig' });
   renderConceptChips();
 
   // Start op de achtergrond — geen await, geen modal
@@ -5393,20 +5984,28 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
 WERKWIJZE:
 - Geef per verbeterpunt één tekstvervanging: zoek_tekst (verbatim citaat) en vervang_door (verbeterde versie).
 - Schrijf het document NIET volledig opnieuw — geef uitsluitend de kleinste passage die de wijziging bevat.
+- Eén wijziging per fout. Meerdere losse fouten = meerdere aparte wijzigingen.
 
 STRIKTE REGELS VOOR zoek_tekst:
-1. Kies de KLEINST MOGELIJKE passage die de problematische tekst bevat — nooit meer dan strikt noodzakelijk.
-2. Neem GEEN aangrenzende zinnen, bullets of alinea's mee die niet gewijzigd worden.
-3. Als alleen één zin of fragment moet worden aangepast, kies dan uitsluitend die zin als zoek_tekst.
-4. Sectietitels, kopjes en artikelnummers (bijv. "23. Geschillen en bemiddeling") worden NOOIT opgenomen in zoek_tekst — tenzij de sectietitel zelf de fout bevat.
-5. zoek_tekst overschrijdt nooit de grens van een alinea of bullet-blok: neem nooit tekst mee uit de volgende sectie of het volgende kopje.
-6. vervang_door bevat EXACT dezelfde tekst als zoek_tekst, maar met uitsluitend de benodigde verbetering.
-   Alle overige tekst in zoek_tekst (ongewijzigde zinnen/bullets) moet IDENTIEK terugkeren in vervang_door.
+1. Kies de KLEINST MOGELIJKE passage: bij voorkeur één zin of één bullet. Nooit meer dan strikt noodzakelijk.
+2. Neem GEEN aangrenzende zinnen, bullets of alinea's mee die NIET gewijzigd worden.
+3. Als een zin verwijderd moet worden: zoek_tekst = uitsluitend díe zin, vervang_door = "" (lege string).
+4. Als een zin gewijzigd moet worden terwijl een ANDERE zin in dezelfde alinea ongewijzigd blijft:
+   maak zoek_tekst = alleen de te wijzigen zin, niet de hele alinea.
+5. Sectietitels, kopjes en artikelnummers worden NOOIT opgenomen in zoek_tekst, tenzij die zelf de fout bevatten.
+6. zoek_tekst overschrijdt nooit de grens van een alinea of artikel.
+
+ABSOLUTE VERBODEN (nooit overtreden):
+- NOOIT tekst uit zoek_tekst weglaten in vervang_door die ongewijzigd blijft.
+  ✗ FOUT:  zoek_tekst="Zin A. Zin B. Zin C."  vervang_door="Zin A verbeterd. Zin C." ← Zin B verdwenen!
+  ✓ GOED:  zoek_tekst="Zin A."  vervang_door="Zin A verbeterd."  [aparte wijziging voor Zin B indien nodig]
+- NOOIT meerdere niet-samenhangende problemen samenvoegen in één grote zoek_tekst/vervang_door.
+- NOOIT inhoud van aangrenzende artikelen of alinea's meenemen in zoek_tekst.
 
 OVERIGE KERNREGELS:
-5. Behoud EXACT de structuur, nummering en formele toon van het origineel.
-6. Gebruik concrete "Suggestie" of "Opmerking mediator" letterlijk als leidraad.
-7. Behoud namen van partijen zoals ze in het origineel staan.`;
+- Behoud EXACT de structuur, nummering en formele toon van het origineel.
+- Gebruik concrete "Suggestie" of "Opmerking mediator" letterlijk als leidraad.
+- Behoud namen van partijen zoals ze in het origineel staan.`;
 
       const conceptTool = {
         name: 'registreer_concept',
@@ -5465,32 +6064,97 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
       const wijzigingenRaw = Array.isArray(data?.wijzigingen) ? data.wijzigingen : [];
       if (!wijzigingenRaw.length) throw new Error('Claude gaf geen wijzigingen terug. Probeer opnieuw.');
 
-      // Pas de vervangingen toe op het originele document (client-side, geen full-rewrite nodig)
+      // Pas de vervangingen toe op het originele document
+      // Strategie: gebruik originele_tekst (rechterpaneel) voor zoeken — preciezer dan zoek_tekst.
+      // Zoek genormaliseerd: strip bullets/enters per regel, zodat opmaakverschillen geen probleem zijn.
+      // Behoudt de bullet-prefix van de gevonden regel en past die toe op elke regel van aangepaste_tekst.
       let documentTekst = snapOrigineel;
+      const _gezienAangp = new Set(); // dedup: zelfde aangepaste_tekst niet twee keer toepassen
+
       for (const w of wijzigingenRaw) {
-        // De-anonimiseer zoek_tekst en vervang_door zodat ze overeenkomen met snapOrigineel (echte namen)
-        const zoek = herstelAnonObj(w.zoek_tekst || '', snapNaarEcht);
-        const verv  = herstelAnonObj(w.vervang_door || '', snapNaarEcht);
-        if (!zoek || !verv || zoek === verv) continue;
-        // Waarschuw als vervang_door verdacht veel korter is dan zoek_tekst (tekstverlies risico)
-        if (verv.length < zoek.length * 0.6 && zoek.includes('\n')) {
-          console.warn(`[concept] Vervanging is >40% korter dan zoektekst — mogelijk tekstverlies:\nZOEK: ${zoek.slice(0,120)}\nVERV: ${verv.slice(0,120)}`);
+        // Gebruik originele_tekst/aangepaste_tekst; val terug op zoek_tekst/vervang_door als afwezig
+        const orig  = herstelAnonObj((w.originele_tekst  || w.zoek_tekst   || ''), snapNaarEcht).trim();
+        const aangp = herstelAnonObj((w.aangepaste_tekst || w.vervang_door  || ''), snapNaarEcht).trim();
+        if (!orig || !aangp || orig === aangp) continue;
+
+        // Dedup — zelfde verbetering nooit tweemaal aanbrengen
+        const fp = aangp.replace(/\s+/g, ' ').slice(0, 200);
+        if (_gezienAangp.has(fp)) {
+          console.warn('[concept] Overgeslagen — zelfde aangepaste_tekst al verwerkt:', aangp.slice(0, 60));
+          continue;
         }
-        if (documentTekst.includes(zoek)) {
-          documentTekst = documentTekst.replace(zoek, verv);
-        } else {
-          // Fallback: normaliseer witruimte en probeer opnieuw
-          const normZoek = zoek.replace(/\s+/g, ' ').trim();
-          const normDoc  = documentTekst.replace(/\s+/g, ' ');
-          if (normDoc.includes(normZoek)) {
-            // Bouw een regex die meerdere witruimtes matcht
-            const escaped = normZoek.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+');
-            try { documentTekst = documentTekst.replace(new RegExp(escaped), verv); }
-            catch { console.warn('[concept] Regex-vervanging mislukt:', normZoek.slice(0, 60)); }
-          } else {
-            console.warn('[concept] Passage niet gevonden (overgeslagen):', normZoek.slice(0, 80));
+        _gezienAangp.add(fp);
+
+        // Normaliseer originele_tekst: strip bullets + leading whitespace per regel,
+        // voeg regels samen met één spatie → vergelijkbaar met "platte" documenttekst
+        const normOrig = orig
+          .split(/\r?\n/)
+          .map(r => r.replace(/^[\t ]*[●•◦▪\-\*>][\t ]*/, '').replace(/^[\t ]+/, '').trimEnd())
+          .filter(r => r.length > 0)
+          .join(' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+
+        if (!normOrig || normOrig.length < 5) continue;
+
+        // Bouw zoekregex: elke spatie in normOrig matcht whitespace + eventuele bullets in document.
+        // Voorbeeld: "Zin A. Zin B." vindt ook "Zin A.\n●Zin B." in het document.
+        const zoekBasis = normOrig.length > 600 ? normOrig.slice(0, 600) : normOrig;
+        const escaped   = zoekBasis.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const patroon   = escaped.replace(/ /g, '\\s+[●•◦▪\\-\\*>]*\\s*');
+
+        let match = null;
+        try {
+          match = new RegExp(patroon, 'i').exec(documentTekst);
+        } catch {
+          console.warn('[concept] Regex-opbouw mislukt voor:', zoekBasis.slice(0, 60));
+          continue;
+        }
+
+        // Extra fallback: verwijder hoofdletter-tokens die niet in het document staan
+        // (bv. achternaam "Egberts" teruggesteld door herstelAnonObj maar niet in dit tekstdeel)
+        if (!match) {
+          const origWoordenPT = orig.trim().split(/\s+/);
+          const gefilterdPT   = origWoordenPT.filter(wd =>
+            !/^[A-Z]/.test(wd) || wd.length <= 3 || documentTekst.toLowerCase().includes(wd.toLowerCase())
+          );
+          if (gefilterdPT.length !== origWoordenPT.length && gefilterdPT.length >= 4) {
+            const normOrig2   = gefilterdPT.join(' ').replace(/\s{2,}/g, ' ').trim();
+            const zoekBasis2  = normOrig2.length > 600 ? normOrig2.slice(0, 600) : normOrig2;
+            const escaped2    = zoekBasis2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const patroon2    = escaped2.replace(/ /g, '\\s+[●•◦▪\\-\\*>]*\\s*');
+            try { match = new RegExp(patroon2, 'i').exec(documentTekst); }
+            catch { /* negeer */ }
           }
         }
+
+        if (!match) {
+          console.warn('[concept] Originele tekst niet gevonden (overgeslagen):', normOrig.slice(0, 80));
+          continue;
+        }
+
+        // Extraheer bullet-prefix: zoek terug naar het begin van de regel waar de match start
+        const regelStartIdx = documentTekst.lastIndexOf('\n', match.index - 1) + 1;
+        const prefix = documentTekst.slice(regelStartIdx, match.index)
+          .match(/^([\t ]*[●•◦▪\-\*>][\t ]*)/)?.[1] ?? '';
+
+        // Formatteer aangepaste_tekst: strip eigen bullets, plak de document-prefix voor elke regel
+        const geformat = aangp
+          .split(/\r?\n/)
+          .map(r => {
+            const schoon = r.replace(/^[\t ]*[●•◦▪\-\*>][\t ]*/, '').replace(/^[\t ]+/, '').trimEnd();
+            return schoon ? prefix + schoon : '';
+          })
+          .filter(r => r.length > 0)
+          .join('\n');
+
+        // Vervang: van regelstart (incl. eventuele bullet-prefix) t/m einde van de regex-match
+        documentTekst =
+          documentTekst.slice(0, regelStartIdx) +
+          geformat +
+          documentTekst.slice(match.index + match[0].length);
+
+        console.log('[concept] Vervangen item', w.item_nr ?? '?', '»', normOrig.slice(0, 60));
       }
 
       // Normaliseer veldnamen: zoek_tekst/vervang_door → originele_tekst/aangepaste_tekst
@@ -5517,19 +6181,23 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
         } catch (e) { console.warn('Concept opslaan mislukt:', e.message); }
       }
 
-      // Chip bijwerken (sla ook origineelTekst op voor de diff-weergave)
-      _generaties.set(genId, { naam: snapNaam, screeningId: snapId, status: 'klaar', documentTekst, origineelTekst: snapOrigineel, wijzigingen: wijzigingenEcht, bestand: snapBestand });
+      // Chip bijwerken (sla ook origineelTekst en docType op voor de diff-weergave / heranalyse)
+      _generaties.set(genId, { naam: snapNaam, screeningId: snapId, status: 'klaar', docType: snapDocType, documentTekst, origineelTekst: snapOrigineel, wijzigingen: wijzigingenEcht, bestand: snapBestand });
       renderConceptChips();
 
       // Als gebruiker nog op hetzelfde document zit → direct openen
       if (huidigeId === snapId) {
         if (!huidigRapport._concepts) huidigRapport._concepts = {};
         huidigRapport._concepts[snapDocType] = { ...conceptData, origineel_tekst: snapOrigineel };
+        // Toon "Bekijk concept" alleen als de actieve tab overeenkomt met het gegenereerde doctype
+        const _activeDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
         const bekijkBtn = document.getElementById('bekijkConceptBtn');
-        if (bekijkBtn) bekijkBtn.style.display = 'inline-flex';
+        if (bekijkBtn) bekijkBtn.style.display = _activeDocType === snapDocType ? 'inline-flex' : 'none';
+        _conceptDocType = snapDocType;
+        _conceptGenId   = genId;          // nieuw concept: lege acceptatie (genEntry.acceptatie nog {})
+        _wijzigingAcceptatie = new Map();  // schone lei voor nieuw gegenereerd concept
         toonConceptReview(documentTekst, wijzigingenEcht, snapBestand, snapOrigineel);
-        // Chip verdwijnt na autoopen
-        setTimeout(() => { _generaties.delete(genId); renderConceptChips(); }, 100);
+        // Chip NIET verwijderen — gebruiker moet concept opnieuw kunnen bekijken
       }
     } catch (err) {
       _generaties.set(genId, { naam: snapNaam, screeningId: snapId, status: 'fout', fout: err.message });
@@ -5549,6 +6217,23 @@ document.getElementById('bekijkConceptBtn').addEventListener('click', () => {
   const pdfVoorReview = huidigePrimaireBest[huidigeDocIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
     || huidigePrimaireBest[huidigeDocIdx]?.[0] || null;
+  _conceptDocType = docType;
+  // Zoek meest recente _generaties-entry voor dit doctype om acceptatie te herstellen
+  const matchGen = [..._generaties.entries()]
+    .filter(([, g]) => g.docType === docType && g.screeningId === huidigeId && g.status === 'klaar')
+    .sort((a, b) => b[0] - a[0])[0];
+  if (matchGen) {
+    _conceptGenId = matchGen[0];
+    _wijzigingAcceptatie = new Map(
+      Object.entries(matchGen[1].acceptatie || {}).map(([k, v]) => [parseInt(k, 10), v])
+    );
+  } else {
+    _conceptGenId = null;
+    // Herstel van Supabase-opgeslagen acceptatie (andere computer of na herstart)
+    _wijzigingAcceptatie = new Map(
+      Object.entries(concept.acceptatie || {}).map(([k, v]) => [parseInt(k, 10), v])
+    );
+  }
   toonConceptReview(concept.document_tekst, concept.wijzigingen || [], pdfVoorReview, concept.origineel_tekst || null);
 });
 
@@ -5557,9 +6242,130 @@ document.getElementById('conceptReviewBackBtn').addEventListener('click', () => 
   document.getElementById('conceptReview').style.display = 'none';
 });
 
-// Download-knop: geeft DOCX terug met wijzigingen toegepast
-// Gebruikt de DOCX die Adobe al heeft gegenereerd tijdens de analyse (geen extra API-call).
-// Fallback: nieuwe Adobe-conversie als DOCX niet meer in geheugen zit.
+// Hulpfunctie: geeft de gefiltreerde wijzigingenlijst terug (afgewezen weggelaten)
+function _geaccepteerdeWijzigingen() {
+  return _conceptWijzigingen.filter((_, i) => _wijzigingAcceptatie.get(i) !== 'afgewezen');
+}
+
+// ── Opschonen van PDF-conversieartefacten ─────────────────────────────────────
+// Adobe PDF Services plaatst paginavoetteksten ("paraaf man: paraaf vrouw:")
+// en paginanummers ("9/15") als gewone bodytekst in de gegenereerde DOCX.
+// Deze functie verwijdert die artefacten zodat het conceptdocument er netjes
+// uitziet en LlamaParse ze niet meeanalyseert bij de heranalyse.
+async function cleanupDocxArtefacten(docxBlob) {
+  if (!window.JSZip) return docxBlob;
+  const zip = new window.JSZip();
+  await zip.loadAsync(docxBlob);
+  const xmlStr = await zip.file('word/document.xml').async('string');
+
+  const wNs   = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const xmlNs = 'http://www.w3.org/XML/1998/namespace';
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+  const body   = xmlDoc.getElementsByTagNameNS(wNs, 'body')[0];
+  if (!body) return docxBlob;
+
+  const paras = Array.from(body.childNodes).filter(n =>
+    n.nodeType === 1 && n.localName === 'p');
+
+  // Patronen die als artefact gelden
+  const isArtefact = (tekst) => {
+    const t = tekst.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!t) return false;
+    // Paraaf-voetregels (in diverse varianten)
+    if (/\bparaaf\s+(man|vrouw)\b/.test(t)) return true;
+    // Paginanummers "N/M" (bv. "9/15") of losstaand getal ≤ 3 cijfers
+    if (/^\d{1,3}\/\d{1,3}$/.test(t)) return true;
+    return false;
+  };
+
+  // Herstel sectienummers: als een heading-alinea geen getal vooraf heeft,
+  // maar de vorige niet-lege alinea WEL een losse "N." bevat → voeg samen.
+  // (Adobe splitst soms "5." als aparte alinea vóór de koptekst)
+  const alleParas = Array.from(body.getElementsByTagNameNS(wNs, 'p'));
+  let teVerwijderen = new Set();
+
+  for (let i = 0; i < alleParas.length; i++) {
+    const para = alleParas[i];
+    const tekst = Array.from(para.getElementsByTagNameNS(wNs, 't'))
+      .map(t => t.textContent).join('');
+
+    if (isArtefact(tekst)) {
+      teVerwijderen.add(para);
+      continue;
+    }
+
+    // Herstel gesplitst sectienummer: "5." als lege alinea direct voor heading
+    // Patroon: korte alinea die alleen "N." of "N" bevat, gevolgd door heading
+    if (/^\d{1,2}\.?\s*$/.test(tekst.trim()) && i + 1 < alleParas.length) {
+      const volgende = alleParas[i + 1];
+      const styleEl  = volgende.getElementsByTagNameNS(wNs, 'pStyle')[0];
+      const isHeading = styleEl && /heading|kop|titel/i.test(styleEl.getAttribute('w:val') || '');
+      if (isHeading) {
+        // Prepend het cijfer aan de volgende heading
+        const num    = tekst.trim().replace(/\.$/, '');
+        const rPr   = volgende.getElementsByTagNameNS(wNs, 'rPr')[0] || null;
+        const newRun = xmlDoc.createElementNS(wNs, 'w:r');
+        if (rPr) newRun.appendChild(rPr.cloneNode(true));
+        const newT  = xmlDoc.createElementNS(wNs, 'w:t');
+        newT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
+        newT.textContent = num + '. ';
+        newRun.appendChild(newT);
+        // Voeg toe vóór het eerste run in de volgende heading
+        const eersteRun = volgende.getElementsByTagNameNS(wNs, 'r')[0];
+        const pPrEl     = volgende.getElementsByTagNameNS(wNs, 'pPr')[0];
+        if (eersteRun) {
+          volgende.insertBefore(newRun, eersteRun);
+        } else if (pPrEl) {
+          volgende.insertBefore(newRun, pPrEl.nextSibling);
+        } else {
+          volgende.appendChild(newRun);
+        }
+        teVerwijderen.add(para);   // verwijder de losstaande "5." alinea
+      }
+    }
+  }
+
+  for (const p of teVerwijderen) {
+    try { body.removeChild(p); } catch (_) { /* al verwijderd of ander parent */ }
+  }
+
+  zip.file('word/document.xml', new XMLSerializer().serializeToString(xmlDoc));
+  return zip.generateAsync({
+    type:     'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+}
+
+// Hulpfunctie: bouw gewijzigde DOCX op basis van huidige acceptatie-keuzes.
+// schoon=true → geen track-changes markup (voor heranalyse zodat LlamaParse/Claude
+//                de eindtekst ziet, niet de del/ins-rommel).
+// schoon=false (default) → track-changes bewaard (voor download/weergave in Word).
+async function _bouwExportDocx(meldBtn, schoon = false) {
+  const pdfBestand = _conceptOriginelePdf
+    || huidigePrimaireBest[huidigeDocIdx]?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
+    || huidigePrimaireBest[huidigeDocIdx]?.[0]
+    || null;
+
+  let origDocx = pdfBestand ? docxPerBestandsnaam.get(pdfBestand.name) : null;
+  if (!origDocx && pdfBestand) {
+    if (meldBtn) meldBtn('⏳ PDF converteren…');
+    origDocx = await adobeConverteerPdf(pdfBestand, msg => { if (meldBtn) meldBtn(`⏳ ${msg}`); });
+    // Verwijder paginavoetteksten en -nummers die Adobe als bodytekst invoegt
+    if (meldBtn) meldBtn('⏳ Document opschonen…');
+    origDocx = await cleanupDocxArtefacten(origDocx);
+    docxPerBestandsnaam.set(pdfBestand.name, origDocx);
+  }
+  if (!origDocx) throw new Error('Geen Word-bestand beschikbaar. Genereer het concept opnieuw.');
+
+  if (meldBtn) meldBtn('⏳ Wijzigingen verwerken…');
+  const gefilterd = _geaccepteerdeWijzigingen();
+  return schoon
+    ? pasWijzigingenToeSchoon(origDocx, gefilterd)
+    : pasWijzigingenToeInDocx(origDocx, gefilterd);
+}
+
+// Download-knop: exporteert alleen geaccepteerde wijzigingen (afgewezen worden overgeslagen).
 document.getElementById('conceptDownloadBtn').addEventListener('click', async () => {
   if (!_conceptDocumentTekst) return;
 
@@ -5569,28 +6375,22 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
   try {
     btn.disabled = true;
 
-    // ── DOCX ophalen: al in geheugen van de rendering, of opnieuw aanmaken ──
-    let gewijzigdDocx = _conceptGewijzigdDocx;  // rendering heeft dit al aangemaakt
+    // Als er geen acceptatie-keuzes zijn gemaakt → gebruik gecachte DOCX
+    // Anders opnieuw bouwen zodat de filtering klopt
+    const heeftKeuzes = _wijzigingAcceptatie.size > 0;
+    let gewijzigdDocx = (!heeftKeuzes && _conceptGewijzigdDocx) ? _conceptGewijzigdDocx : null;
 
     if (!gewijzigdDocx) {
-      // Niet in geheugen (bijv. na paginaherlaad) → opnieuw opbouwen
-      const pdfBestand = _conceptOriginelePdf
-        || huidigePrimaireBest[huidigeDocIdx]?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
-        || huidigePrimaireBest[huidigeDocIdx]?.[0]
-        || null;
-
-      let origDocx = pdfBestand ? docxPerBestandsnaam.get(pdfBestand.name) : null;
-      if (!origDocx && pdfBestand) {
-        btn.textContent = '⏳ PDF converteren…';
-        origDocx = await adobeConverteerPdf(pdfBestand, msg => { btn.textContent = `⏳ ${msg}`; });
-        docxPerBestandsnaam.set(pdfBestand.name, origDocx);
+      gewijzigdDocx = await _bouwExportDocx(t => { btn.textContent = t; });
+      // Alleen cachen als alle wijzigingen zijn meegenomen (geen afwijzingen)
+      if (_geaccepteerdeWijzigingen().length === _conceptWijzigingen.length) {
+        _conceptGewijzigdDocx = gewijzigdDocx;
       }
-      if (!origDocx) throw new Error('Geen Word-bestand beschikbaar. Genereer het concept opnieuw.');
-
-      btn.textContent = '⏳ Wijzigingen verwerken…';
-      gewijzigdDocx = await pasWijzigingenToeInDocx(origDocx, _conceptWijzigingen);
-      _conceptGewijzigdDocx = gewijzigdDocx;
     }
+
+    // ── Voettekst met paraaf-regels toevoegen ────────────
+    btn.textContent = '⏳ Voettekst toevoegen…';
+    gewijzigdDocx = await voegVoettekstToeAanDocx(gewijzigdDocx);
 
     // ── Downloaden ────────────────────────────────────────
     const docTypeLabel = DOC_TYPES.find(d => d.value === (huidigeClassificatie?.doc_type || ''))?.label || 'Concept';
@@ -5612,6 +6412,167 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
     btn.textContent = origLabel;
   }
 });
+
+// ── "Nieuwe versie" knop: pas geaccepteerde wijzigingen toe en analyseer opnieuw ──
+document.getElementById('conceptHeranalyseerBtn').addEventListener('click', async () => {
+  if (!_conceptDocumentTekst) return;
+
+  const btn  = document.getElementById('conceptHeranalyseerBtn');
+  const dlBtn = document.getElementById('conceptDownloadBtn');
+  const origLabel = btn.textContent;
+
+  const geacc = _geaccepteerdeWijzigingen();
+  const afgew = _conceptWijzigingen.length - geacc.length;
+
+  const bevestig = afgew > 0
+    ? confirm(`Je hebt ${afgew} wijziging${afgew !== 1 ? 'en' : ''} afgewezen.\nDe nieuwe versie wordt geanalyseerd zonder die wijzigingen. Doorgaan?`)
+    : confirm('Het aangepaste document wordt opnieuw geanalyseerd als nieuwe versie. Doorgaan?');
+  if (!bevestig) return;
+
+  try {
+    btn.disabled = true;
+    if (dlBtn) dlBtn.disabled = true;
+
+    // Bestandsnaam voor nieuwe versie — gebruik _conceptDocType (niet huidigeClassificatie)
+    const _herNaamType  = _conceptDocType || huidigeClassificatie?.doc_type || '';
+    const _herLabel     = DOC_TYPES.find(d => d.value === _herNaamType)?.label || 'Concept';
+    const dossierDeel   = huidigDossierNaam ? ` — ${huidigDossierNaam}` : '';
+    const nieuweNaam    = `${_herLabel}${dossierDeel} (herzien)`;
+
+    // Sla op in heranalyse-wachtrij: genId + naam (tekst wordt in _startHeranalyse berekend)
+    // De DOCX-download via conceptDownloadBtn werkt los hiervan — die bouwt on-demand.
+    const huidigeDocType = _conceptDocType || huidigeClassificatie?.doc_type || 'onbekend';
+    _heranalysePending[huidigeDocType] = { genId: _conceptGenId, bestandsnaam: nieuweNaam };
+
+    // Sluit concept-review en reset acceptatie
+    document.getElementById('conceptReview').style.display = 'none';
+    _wijzigingAcceptatie = new Map();
+    _conceptGewijzigdDocx = null;
+
+    // Badge bijwerken — gebruiker start heranalyse zelf via de toolbar-knop
+    _bijwerkHeranalyseBadge();
+
+  } catch (err) {
+    alert('Heranalyse mislukt: ' + err.message);
+  } finally {
+    btn.textContent = origLabel;
+    btn.disabled    = false;
+    if (dlBtn) dlBtn.disabled = false;
+  }
+});
+
+// ── Heranalyse-wachtrij helpers ──────────────────────
+function _startHeranalyse() {
+  // Gewijzigde documenten (via "Nieuwe versie" voorbereid)
+  const pendingEntries = Object.entries(_heranalysePending); // [[docType, File], ...]
+  if (!pendingEntries.length) return;
+
+  const pendingTypes  = new Set(Object.keys(_heranalysePending));
+  const nieuweItems   = [];
+
+  // 1. Alle originele docs die NIET herzien zijn → laden vanuit Supabase Storage
+  //    (zelfde manier als bij een gewone "Nieuwe versie" vanuit het dossier)
+  const origBestanden = huidigRapport?._document_bestanden || [];
+  for (const doc of origBestanden) {
+    const docType = doc.type || raadDocType(doc.naam || '');
+    if (!pendingTypes.has(docType)) {
+      nieuweItems.push({
+        id: trayUid(),
+        bestand: null,
+        type: docType,
+        bestandsnaam: doc.naam,
+        storageInfo: { pad: doc.pad, naam: doc.naam },
+        fromStorage: true,
+      });
+    }
+  }
+
+  // 2. Herziene docs → tekst-gebaseerde analyse
+  // De verbeterde tekst wordt berekend vanuit origineelTekst + geaccepteerde wijzigingen
+  // (zelfde extractiebasis als de originele analyse → eerlijke vergelijking).
+  const { naarAnon: herNaarAnon } = bouwAnonMap(huidigeClassificatie || {});
+
+  for (const [docType, pending] of pendingEntries) {
+    // Haal concept-data op: eerst in-memory _generaties, daarna Supabase-opgeslagen rapport
+    const genId    = pending?.genId;
+    const genEntry = (genId != null) ? _generaties.get(genId) : null;
+    const conceptSupabase = huidigRapport?._concepts?.[docType];
+
+    const origineelTekst  = genEntry?.origineelTekst  ?? conceptSupabase?.origineel_tekst  ?? null;
+    const alleWijzigingen = genEntry?.wijzigingen      ?? conceptSupabase?.wijzigingen      ?? null;
+    const acceptatieMap   = genEntry?.acceptatie       ?? conceptSupabase?.acceptatie       ?? {};
+    const bestandsnaam    = (pending?.bestandsnaam || DOC_TYPES.find(d => d.value === docType)?.label || docType) + '.txt';
+
+    if (origineelTekst && alleWijzigingen) {
+      // Filter: alleen geaccepteerde (niet-afgewezen) wijzigingen
+      const geaccepteerd = alleWijzigingen.filter((_, i) => acceptatieMap[i] !== 'afgewezen');
+
+      // Pas toe op tekst (géén DOCX, zelfde extractie als origineel)
+      const verbeterdeTekst = pasWijzigingenToeTekst(origineelTekst, geaccepteerd);
+
+      // Pseudonimiseer vóór verzending naar server
+      const pseudoTekst = anonimiseerTekst(verbeterdeTekst, herNaarAnon);
+
+      nieuweItems.push({
+        id: trayUid(),
+        bestand: null,
+        tekst: pseudoTekst,          // ← analyseDocument gebruikt dit direct (geen extractie)
+        type: docType,
+        bestandsnaam,
+        storageInfo: null,
+        fromStorage: false,
+      });
+    } else {
+      // Fallback: volledig verbeterde tekst uit Supabase (alles geaccepteerd)
+      const fallbackTekst = genEntry?.documentTekst ?? conceptSupabase?.document_tekst ?? null;
+      if (fallbackTekst) {
+        nieuweItems.push({
+          id: trayUid(),
+          bestand: null,
+          tekst: anonimiseerTekst(fallbackTekst, herNaarAnon),
+          type: docType,
+          bestandsnaam,
+          storageInfo: null,
+          fromStorage: false,
+        });
+      } else {
+        console.warn('[heranalyse] Geen tekst gevonden voor', docType, '— doc wordt overgeslagen');
+      }
+    }
+  }
+
+  tray.length = 0;
+  nieuweItems.forEach(item => tray.push(item));
+  _heranalysePending = {};
+  _bijwerkHeranalyseBadge();
+  closeSplitView();
+  schakelRechts('rp-analyse');
+  setTimeout(() => {
+    trayRender();
+    // Versielabel voorstellen: huidige label + "— Herzien [datum]"
+    const datum        = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
+    const huidigLabel  = huidigRapport?._versie_label || huidigDossierNaam || '';
+    const versieLabelEl = document.getElementById('versieLabelInput');
+    if (versieLabelEl) {
+      versieLabelEl.value = huidigLabel ? `${huidigLabel} — Herzien ${datum}` : `Herzien ${datum}`;
+    }
+    const versieInputHeader = document.getElementById('versieLabelHeaderInput');
+    if (versieInputHeader) versieInputHeader.style.display = 'block';
+  }, 80);
+}
+
+function _bijwerkHeranalyseBadge() {
+  const btn    = document.getElementById('heranalyseBadgeBtn');
+  const teller = document.getElementById('heranalyseBadgeTeller');
+  if (!btn) return;
+  const n = Object.keys(_heranalysePending).length;
+  if (n === 0) { btn.style.display = 'none'; return; }
+  if (teller) teller.textContent = n;
+  btn.style.display = 'inline-flex';
+}
+
+// Badge-knop: opent analyse-paneel met voorbereide bestanden
+document.getElementById('heranalyseBadgeBtn')?.addEventListener('click', _startHeranalyse);
 
 // ── Master-detail navigatie ───────────────────────────
 function schakelRechts(rpId) {
@@ -7019,10 +7980,10 @@ async function laadScreening(id, origin = 'main') {
 
     voegStandaardveldenToe(data.rapport);
     await toonRapport(data.classificatie, data.rapport);
-    // Toon "Bekijk concept" als er een concept is voor het eerste (actieve) document-type
-    // Gebruik rDocsSorted[0] zodat dit overeenkomt met de gesorteerde tab-volgorde
-    const eersteDocType = rDocsSorted?.[0]?.doc_type || data.classificatie?.doc_type || '';
-    const heeftConcept = !!(data.rapport._concepts?.[eersteDocType] || data.rapport._concept);
+    // Toon "Bekijk concept" op basis van het ACTIEVE tabblad (niet altijd het eerste)
+    // huidigeDocIdx is al gezet door de tab-click handler hierboven (of 0 bij single-doc)
+    const actieveDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || data.classificatie?.doc_type || '';
+    const heeftConcept   = !!(data.rapport._concepts?.[actieveDocType] || data.rapport._concept);
     const bekijkBtn = document.getElementById('bekijkConceptBtn');
     if (bekijkBtn) bekijkBtn.style.display = heeftConcept ? 'inline-flex' : 'none';
   } catch (err) { alert('Kon de analyse niet laden: ' + err.message); }

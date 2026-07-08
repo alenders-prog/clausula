@@ -78,20 +78,26 @@ KERNREGELS:
 1. Geef ALLEEN de gewijzigde passages terug — herschrijf NOOIT het volledige document.
 2. Behoud de formele toon, nummering en stijl van het origineel in de aangepaste tekst.
 3. Verwijder NOOIT volledige artikelen of secties tenzij een verbeterpunt dit expliciet vereist.
-4. Als een aanpassing logische gevolgen heeft voor een ander artikel, vermeld dat dan in ook_aangepast.
+4. Als een aanpassing logische gevolgen heeft voor een ander artikel, vermeld dat dan in ook_aangepast. Wijzig die andere artikelen NIET — alleen noemen, niet aanpassen.
 5. Als een verbeterpunt een concrete "Suggestie" bevat, gebruik die formulering letterlijk tenzij het de samenhang schaadt.
 6. Gebruik NIET de termen "Partij A" of "Partij B" als het origineel concrete namen gebruikt — behoud die namen.
+7. Genereer per verbeterpunt PRECIES ÉÉN item in wijzigingen. Kies voor originele_tekst de KLEINSTE aaneengesloten passage:
+   • Betreft het één bullet-punt of één zin → gebruik uitsluitend die ene bullet of zin (plus eventueel de directe verklarende zin erna als die onlosmakelijk deel uitmaakt van hetzelfde punt).
+   • Nooit aangrenzende bullet-punten, andere alinea's of andere secties toevoegen aan originele_tekst.
+   • Concreet voorbeeld: bevinding over "Hemelvaartsdag" → originele_tekst = uitsluitend de Hemelvaartsdag-regel; NIET ook de Koningsdag-regel of naburige regels.
+8. Als de bevinding betrekking heeft op een specifieke sectie of artikel, pas dan UITSLUITEND tekst uit DIEZELFDE sectie aan. Raak tekst uit andere secties nooit aan.
+9. Het woord 'CONCEPT' of 'DRAFT' in de documenttekst is een documentwatermerk — neem dit NOOIT op in originele_tekst en verander nooit een passage die met 'CONCEPT' begint.
 
 VERVANGING VAN BESTAANDE TEKST (meest gebruikelijk):
-7. Vul originele_tekst met de EXACTE woordelijke tekst uit het document (inclusief nummering, spaties en leestekens).
-   De tekst wordt letterlijk gezocht — elke afwijking betekent dat de wijziging niet toegepast kan worden.
-   Neem minimaal één volledige zin op. Laat invoeg_na leeg ("").
+10. Vul originele_tekst met de EXACTE woordelijke tekst uit het document (inclusief nummering, spaties en leestekens).
+    De tekst wordt letterlijk gezocht — elke afwijking betekent dat de wijziging niet toegepast kan worden.
+    Neem minimaal één volledige zin op. Laat invoeg_na leeg ("").
 
 INVOEGEN VAN NIEUWE SECTIES (alleen als het verbeterpunt een nieuw artikel/sectie vereist):
-8. Laat originele_tekst leeg ("").
-   Vul invoeg_na met de EXACTE tekst van het laatste woord/zin van het artikel NA welke ingevoegd wordt.
-   Vul aangepaste_tekst met de volledige nieuwe sectietekst (inclusief nummering).
-   Dit is alleen voor inhoud die volledig NIEUW is en niet al ergens in het document staat.`;
+11. Laat originele_tekst leeg ("").
+    Vul invoeg_na met de EXACTE tekst van het laatste woord/zin van het artikel NA welke ingevoegd wordt.
+    Vul aangepaste_tekst met de volledige nieuwe sectietekst (inclusief nummering).
+    Dit is alleen voor inhoud die volledig NIEUW is en niet al ergens in het document staat.`;
 
   // ── Tool-definitie ────────────────────────────────────────────────
   // Alleen wijzigingen ophalen — NIET het volledige document herschrijven.
@@ -217,36 +223,110 @@ ${documentTekst}`;
     };
 
     // ── Reconstructie ────────────────────────────────────────────────────
-    let docTekst = documentTekst;
-    let toegepast = 0;
+    // Probleem bij sequentieel toepassen: vervanging A wijzigt de tekst, waarna
+    // vervanging B z'n originele_tekst niet meer exact vindt en de regex-fallback
+    // een veel groter stuk kan matchen (cascade-effect).
+    //
+    // Oplossing: posities bepalen in het ORIGINELE document, overlappen detecteren,
+    // dan in OMGEKEERDE volgorde toepassen (achter→voor zodat posities stabiel blijven).
 
+    // Validatie 1: verwijder wijzigingen met een identieke aangepaste_tekst (dubbele toepassing).
+    // Dit vangt het geval dat Claude dezelfde correctie in meerdere secties wil toepassen,
+    // terwijl slechts één sectie het daadwerkelijke probleem bevat.
+    const _gezienAangepast = new Set();
+    const gevalideerdWijzigingen = [];
     for (const w of wijzigingen) {
       if (w.aangepaste_tekst == null) continue;
+      // Gebruik de eerste 300 genormaliseerde tekens als fingerprint
+      const fp = normaliseer(w.aangepaste_tekst).slice(0, 300);
+      if (fp && _gezienAangepast.has(fp)) {
+        console.warn(`[genereer-concept] item ${w.item_nr} overgeslagen — identieke aangepaste_tekst als eerder item (dubbele toepassing): "${w.aangepaste_tekst.slice(0, 60)}…"`);
+        continue;
+      }
+      if (fp) _gezienAangepast.add(fp);
 
-      const heeftInvoegNa   = w.invoeg_na?.trim();
-      const heeftOrigineel  = w.originele_tekst?.trim();
+      // Validatie 2: skip als originele_tekst een documentwatermerk bevat.
+      // PDF-extractie plaatst 'CONCEPT' of 'DRAFT' soms midden in de tekst;
+      // als dit in originele_tekst zit, is het een foutief groot bereik.
+      if (/\bCONCEPT\b|\bDRAFT\b/i.test(w.originele_tekst || '')) {
+        console.warn(`[genereer-concept] item ${w.item_nr} overgeslagen — originele_tekst bevat documentwatermerk: "${(w.originele_tekst || '').slice(0, 80)}…"`);
+        continue;
+      }
+
+      // Validatie 3: skip als originele_tekst over een sectie-/artikelgrens gaat.
+      // Herkend doordat na de eerste regel een sectieheader-patroon verschijnt:
+      // "3. Identiteitsbewijzen", "Artikel 4.1 ..." etc. (cijfer + punt + hoofdletter).
+      const _origRegels = (w.originele_tekst || '').split(/\r?\n/);
+      const _beslaat_meerdere_secties = _origRegels.length > 2 &&
+        _origRegels.slice(1).some(r => /^\s*\d+\.\s+[A-Z]/.test(r.trim()));
+      if (_beslaat_meerdere_secties) {
+        console.warn(`[genereer-concept] item ${w.item_nr} overgeslagen — originele_tekst beslaat meerdere secties: "${(w.originele_tekst || '').slice(0, 80)}…"`);
+        continue;
+      }
+
+      gevalideerdWijzigingen.push(w);
+    }
+
+    // Stap 1: zoek positie van elke wijziging in het ORIGINELE document
+    const gepositioneerd = [];
+    for (const w of gevalideerdWijzigingen) {
+      if (w.aangepaste_tekst == null) continue;
+      const heeftInvoegNa  = w.invoeg_na?.trim();
+      const heeftOrigineel = w.originele_tekst?.trim();
 
       if (heeftInvoegNa) {
-        // ── INVOEGING: nieuwe sectie toevoegen na ankertekst ──────────
-        const pos = vindPositie(docTekst, w.invoeg_na);
+        const pos = vindPositie(documentTekst, w.invoeg_na);
         if (pos) {
-          docTekst = docTekst.slice(0, pos.end) + '\n\n' + w.aangepaste_tekst + docTekst.slice(pos.end);
-          toegepast++;
+          gepositioneerd.push({ ...w, _start: pos.end, _end: pos.end, _invoeg: true });
         } else {
           console.warn(`[genereer-concept] invoeg_na niet gevonden voor item ${w.item_nr}: "${w.invoeg_na?.slice(0, 60)}…"`);
         }
       } else if (heeftOrigineel) {
-        // ── VERVANGING: bestaande tekst vervangen ────────────────────
-        const pos = vindPositie(docTekst, w.originele_tekst);
+        const pos = vindPositie(documentTekst, w.originele_tekst);
         if (pos) {
-          docTekst = docTekst.slice(0, pos.start) + w.aangepaste_tekst + docTekst.slice(pos.end);
-          toegepast++;
+          // Validatie 2: skip als de match begint bij een CONCEPT-watermerk.
+          // PDF-extractie plaatst 'CONCEPT' soms direct voor sectietekst;
+          // een match hier wijst op een foutieve passages-selectie door Claude.
+          const matchBegin = documentTekst.slice(pos.start, Math.min(pos.start + 8, pos.end)).toUpperCase();
+          if (matchBegin.startsWith('CONCEPT') || matchBegin.startsWith('DRAFT')) {
+            console.warn(`[genereer-concept] item ${w.item_nr} overgeslagen — match begint bij documentwatermerk: "${documentTekst.slice(pos.start, pos.start + 60)}…"`);
+          } else {
+            gepositioneerd.push({ ...w, _start: pos.start, _end: pos.end, _invoeg: false });
+          }
         } else {
           console.warn(`[genereer-concept] originele_tekst niet gevonden voor item ${w.item_nr}: "${w.originele_tekst?.slice(0, 60)}…"`);
         }
       }
     }
-    console.log(`[genereer-concept] ${toegepast}/${wijzigingen.length} wijzigingen toegepast in reconstructie`);
+
+    // Stap 2: sorteer op positie in het document
+    gepositioneerd.sort((a, b) => a._start - b._start || a._end - b._end);
+
+    // Stap 3: verwijder overlappende vervangingen (eerste wint bij conflict)
+    const gefilterd = [];
+    let _maxEind = -1;
+    for (const w of gepositioneerd) {
+      if (w._invoeg || w._start >= _maxEind) {
+        gefilterd.push(w);
+        if (!w._invoeg) _maxEind = w._end;
+      } else {
+        console.warn(`[genereer-concept] item ${w.item_nr} overgeslagen — overlapt eerder bereik (pos ${w._start} < eind ${_maxEind}): "${(w.originele_tekst || '').slice(0, 60)}…"`);
+      }
+    }
+
+    // Stap 4: pas toe in OMGEKEERDE volgorde (achter→voor) zodat posities stabiel blijven
+    let docTekst = documentTekst;
+    let toegepast = 0;
+
+    for (const w of [...gefilterd].reverse()) {
+      if (w._invoeg) {
+        docTekst = docTekst.slice(0, w._start) + '\n\n' + w.aangepaste_tekst + docTekst.slice(w._start);
+      } else {
+        docTekst = docTekst.slice(0, w._start) + w.aangepaste_tekst + docTekst.slice(w._end);
+      }
+      toegepast++;
+    }
+    console.log(`[genereer-concept] ${toegepast}/${wijzigingen.length} wijzigingen toegepast (${gevalideerdWijzigingen.length} na dedup-validatie, ${gepositioneerd.length} gevonden in doc, ${gefilterd.length} na overlap-filter)`);
 
     return res.status(200).json({
       documentTekst: docTekst,

@@ -24,6 +24,7 @@ async function askClaudeForJson(systemPrompt, userPrompt, tool, maxTokens = 4096
   const body = {
     model:       'claude-sonnet-4-6',
     max_tokens:  maxTokens,
+    temperature: 0.2,   // Lage temperatuur = consistentere resultaten voor juridische analyse
     system:      systemPrompt,
     messages:    [{ role: 'user', content: userPrompt }],
     tools:       [tool],
@@ -230,7 +231,73 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     const docTypLabel = docType === 'ouderschapsplan' ? 'Ouderschapsplan' : 'Echtscheidingsconvenant';
     const docTekstBlok = `DOCUMENTTEKST:\n${documentTekst}`;
 
+    // ── Pre-extractie: begrippen die meerdere keren voorkomen (voor cross-sectie check) ──
+    // Gebruikt een venster van ±200 tekens rondom elke treffer zodat de volledige zin
+    // altijd meezit, ongeacht hoe de PDF-extractor regels heeft afgekapt.
+    const herhalingenBlok = (() => {
+      const begrippen = [
+        { patroon: /zomervakantie/i,      label: 'Zomervakantie' },
+        { patroon: /herfstvakantie/i,     label: 'Herfstvakantie' },
+        { patroon: /kerstvakantie/i,      label: 'Kerstvakantie' },
+        { patroon: /meivakantie/i,        label: 'Meivakantie' },
+        { patroon: /voorjaarsvakantie/i,  label: 'Voorjaarsvakantie' },
+        { patroon: /kinderalimentatie/i,  label: 'Kinderalimentatie' },
+        { patroon: /partneralimentatie/i, label: 'Partneralimentatie' },
+        { patroon: /indexering/i,         label: 'Indexering' },
+        { patroon: /peildatum/i,          label: 'Peildatum' },
+        { patroon: /ingangsdatum/i,       label: 'Ingangsdatum' },
+      ];
+      const blokken = [];
+      const tekst = documentTekst;
+
+      for (const { patroon, label } of begrippen) {
+        // Venster-extractie: zoek via exec (geeft positie), snij ±200 tekens uit,
+        // vouw witruimte/regeleinden samen → volledige zin altijd aanwezig.
+        const zoekRgx = new RegExp(patroon.source, 'gi');
+        const hits = [];
+        let m;
+        while ((m = zoekRgx.exec(tekst)) !== null && hits.length < 6) {
+          const start  = Math.max(0, m.index - 200);
+          const end    = Math.min(tekst.length, m.index + m[0].length + 200);
+          const venster = tekst.slice(start, end).replace(/\s+/g, ' ').trim();
+          // Voorkom haast-identieke overlappende treffers
+          if (!hits.some(h => h.slice(0, 60) === venster.slice(0, 60))) {
+            hits.push(venster);
+          }
+        }
+        if (hits.length >= 2) {
+          blokken.push(
+            `${label} (${hits.length}×):\n` +
+            hits.map((h, n) => `  [${n + 1}] ${h}`).join('\n')
+          );
+        }
+      }
+
+      return blokken.length > 0
+        ? `\nHERHALINGEN — vergelijk de vermeldingen per begrip op tegenstrijdige waarden:\n${blokken.join('\n\n')}\n`
+        : '';
+    })();
+
     // ── 3. Drie parallelle analyse-calls ───────────────────────────────────
+    // Uitleg over pseudoniemen die aan alle systeem-prompts wordt toegevoegd
+    const pseudoNota = `
+PSEUDONIEMEN (tijdelijk door Clausula ingevoerd ter privacy-bescherming — GEEN ontbrekende data):
+- PERSOON_A, PERSOON_B, PERSOON_C, KIND_1 enz. → echte namen van partijen/kinderen
+- [POSTCODE] → echte Nederlandse postcode (bijv. "7607 CW")
+- [TEL]      → echt telefoonnummer
+- [EMAIL]    → echt e-mailadres
+- [BSN]      → echt BSN-nummer (bewust gemaskeerd voor privacy)
+Meld NOOIT een issue over ontbrekende, niet-ingevulde of anonieme gegevens op basis
+van bovenstaande aanduidingen — de echte waarden staan WEL in het originele document.
+
+NAMEN IN HET DOCUMENT: Alle eigennamen (partijen, kinderen, mediator, notaris, advocaten)
+die als gewone tekst in het document staan zijn echte ingevulde namen — geen plaatshouders.
+Een zin als "begeleid door Mariska Lenders" of "mr. J. de Vries" bevat een echte naam.
+Meld NOOIT dat een naam "als plaatshouder opgenomen" of "niet ingevuld" is als het een
+normale met hoofdletter gespelde eigennaam is. Echte (onverborgen) plaatshouders zijn
+herkenbaar aan tekens zoals [NAAM], <naam mediator>, ____________ of BLOKLETTERS die
+duidelijk een invulveld aanduiden — niet een gewone eigennaam.`;
+
     const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 
@@ -241,7 +308,8 @@ STRIKTE REGELS:
 - Geef alleen bevindingen die daadwerkelijk uit het document blijken. Speculeer niet.
 - Bij twijfel of een sectie ontbreekt of onvolledig is: geef GEEN issue.
 - Aanwezige en correcte secties worden NIET gerapporteerd.
-- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document. Bij een ontbrekende sectie: geef de dichtstbijzijnde gerelateerde passage.`;
+- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document. Bij een ontbrekende sectie: geef de dichtstbijzijnde gerelateerde passage.
+${pseudoNota}`;
 
     const sysJuridisch =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
@@ -256,7 +324,8 @@ STRIKTE REGELS:
 - Geef alleen bevindingen die daadwerkelijk uit het document blijken. Speculeer niet.
 - Bij twijfel of een formulering juridisch correct of gangbaar is: geef GEEN issue.
 - Standaardclausules die in de WETSARTIKELEN-sectie als correct zijn gemarkeerd, nooit als fout aanmerken.
-- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document dat het juridische probleem aantoont.`;
+- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document dat het juridische probleem aantoont.
+${pseudoNota}`;
 
     const sysBalansGram =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op evenwichtigheid en taal.
@@ -264,12 +333,20 @@ STRIKTE REGELS:
 **issues (balans)** — Onevenwichtigheden: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering.
 **issues (grammatica)** — Taalfouten die juridische betekenis raken: tegenstrijdige zinnen, vage verwijzingen, inconsistente bedragen/datums.
 
+CROSS-SECTIE TEGENSTRIJDIGHEDEN (verplichte stap — gebruik de HERHALINGEN-sectie):
+In de gebruikersprompt staat een HERHALINGEN-blok met alle vermeldingen per begrip.
+Vergelijk de vermeldingen [1], [2], ... per begrip: als dezelfde term op twee plekken andere aantallen weken, bedragen of regels geeft, is dat een tegenstrijdigheid.
+- Voorbeeld: zomervakantie [1] "ieder 3 weken" vs. [2] "niet langer dan twee weken aaneengesloten" → directe tegenstrijdigheid (dimensie: ["grammatica"], ernst: midden).
+- Hetzelfde voor bedragen, datums, periodes of indexering die op twee plekken anders staat.
+Meld elke gevonden tegenstrijdigheid als apart issue, ook als de passages ver uit elkaar staan.
+
 Per issue: dimensies ["balans"] of ["grammatica"].
 
 STRIKTE REGELS:
 - Geef alleen bevindingen die daadwerkelijk uit het document blijken. Speculeer niet.
 - Bij twijfel of iets onevenwichtig of fout is: geef GEEN issue.
-- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document dat het probleem illustreert.`;
+- Vul passage altijd in met een verbatim citaat (max 80 tekens) uit het document dat het probleem illustreert.
+${pseudoNota}`;
 
     const [structuurR, juridischR, balansGramR] = await Promise.all([
       askClaudeForJson(sysStructuur,
@@ -279,7 +356,7 @@ STRIKTE REGELS:
         `WETSARTIKELEN:\n${wetTekst || '(geen)'}\n\n${docTekstBlok}`,
         juridischTool, 6000),
       askClaudeForJson(sysBalansGram,
-        `WETSARTIKELEN:\n${wetTekst || '(geen)'}\n\n${docTekstBlok}`,
+        `WETSARTIKELEN:\n${wetTekst || '(geen)'}${herhalingenBlok}\n${docTekstBlok}`,
         balansGramTool, 6000),
     ]);
 

@@ -91,6 +91,87 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
   throw lastErr;
 }
 
+// ── Pre-groepeer issues op gedeelde onderwerp-tekst ──────────────────────────
+// Twee strategieën om verwante issues te detecteren:
+//   A. LCP ≥ 15 tekens (genormaliseerd, op woordgrens afgekapt)
+//      → vangt "Kinderalimentatie — volledig afwezig" + "Kinderalimentatie: bedrag …"
+//   B. ≥ 2 gedeelde significante woorden (≥5 tekens, geen stopwoorden)
+//      → vangt "Nihilbeding kinderalimentatie …" + "Kinderalimentatie nihilbeding …"
+//        (zelfde woorden, andere volgorde — LCP = 0 maar overlap = 2 woorden)
+function preGroepeerOpPrefix(issues) {
+  const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
+
+  // Veelvoorkomende woorden die NIET als onderscheidend gelden
+  const STOPWOORDEN = new Set([
+    'de','het','een','van','en','in','op','bij','voor','met','aan','is','zijn',
+    'als','tot','te','om','door','of','zonder','naar','dat','niet','er','die',
+    'dit','ook','maar','dan','zo','nu','wel','nog','al','geen','elke','alle',
+    'heeft','wordt','worden','heeft','werd','waren','zijn','over','naar','onder',
+  ]);
+
+  const normOnd = (s) => (s || '').toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Strategie A: Longest Common Prefix (afgekapt op woordgrens)
+  const lcpLen = (a, b) => {
+    const na = normOnd(a), nb = normOnd(b);
+    let i = 0;
+    while (i < na.length && i < nb.length && na[i] === nb[i]) i++;
+    while (i > 0 && na[i - 1] !== ' ') i--;
+    return i;
+  };
+
+  // Strategie B: significante woorden ophalen (≥5 tekens, geen stopwoord)
+  const sleutelwoorden = (s) =>
+    new Set(normOnd(s).split(/\s+/).filter(w => w.length >= 5 && !STOPWOORDEN.has(w)));
+
+  // Gecombineerde check: A óf B
+  const zijnVerwant = (ondA, ondB) => {
+    if (lcpLen(ondA, ondB) >= 15) return true;
+    const kA = sleutelwoorden(ondA);
+    const kB = sleutelwoorden(ondB);
+    let raak = 0;
+    for (const w of kA) if (kB.has(w)) raak++;
+    return raak >= 2;
+  };
+
+  const resultaat = [];
+  const gebruikt  = new Set();
+
+  for (let i = 0; i < issues.length; i++) {
+    if (gebruikt.has(i)) continue;
+    const ref   = issues[i];
+    const groep = [{ ...ref }];
+    gebruikt.add(i);
+
+    for (let j = i + 1; j < issues.length; j++) {
+      if (gebruikt.has(j)) continue;
+      const cand = issues[j];
+      if (zijnVerwant(ref.onderwerp, cand.onderwerp)) {
+        groep.push({ ...cand });
+        gebruikt.add(j);
+        console.log(`[consolidatie] merge: "${ref.onderwerp}" ↔ "${cand.onderwerp}"`);
+      }
+    }
+
+    if (groep.length === 1) { resultaat.push(groep[0]); continue; }
+
+    // Merge: zwaarste ernst, gecombineerde dimensies, meest informatieve teksten
+    const merged = { ...groep[0] };
+    for (let k = 1; k < groep.length; k++) {
+      const o = groep[k];
+      if ((ERNST_ORD[o.ernst] ?? 1) < (ERNST_ORD[merged.ernst] ?? 1)) merged.ernst = o.ernst;
+      merged.dimensies  = [...new Set([...(merged.dimensies  || []), ...(o.dimensies  || [])])];
+      if ((o.bevinding   || '').length > (merged.bevinding   || '').length) merged.bevinding   = o.bevinding;
+      if ((o.aanbeveling || '').length > (merged.aanbeveling || '').length) merged.aanbeveling = o.aanbeveling;
+      if (!merged.passage && o.passage) merged.passage = o.passage;
+    }
+    resultaat.push(merged);
+  }
+
+  return resultaat;
+}
+
 // ── MfN-elementen ─────────────────────────────────────────────────────────────
 const MFN_ELEMENTEN = {
   convenant: [
@@ -352,16 +433,27 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 - midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
 - laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
 
+          // Waarschuwing over pseudonimisering — voorkomt valse format-validatiefouten
+          const pseudonimiseringNota =
+`PSEUDONIMISERING — VERPLICHTE UITSLUITINGSREGEL:
+Het document is vóór verzending automatisch pseudonimiseerd. Namen, IBAN-nummers, rekeningnummers en andere identificerende gegevens zijn vervangen door nep-maar-realistische placeholders.
+GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
+- Maak GEEN issue aan als een IBAN-nummer, rekeningnummer of BSN niet het verwachte formaat heeft — dit is hoogstwaarschijnlijk een pseudoniem.
+- Maak GEEN issue aan als persoonsnamen iets afwijken van eerdere vermeldingen — de pseudonimisering kan per vermelding licht variëren.
+- Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau (bijv. twee verschillende IBAN-nummers voor dezelfde partij over het document), maar nooit omdat het getal zelf technisch ongeldig is.`;
+
           // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims maar behoudt echte fouten
           const verificatieplicht =
 `VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
 Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtbaar is":
 1. Doorzoek de VOLLEDIGE documenttekst actief op het beweerde ontbrekende element.
-2. Bij interne verwijzingen (bijv. "artikel 4.1.1", "artikel 3.2"): controleer of dat artikelnummer als sectietitel of koptekst in het document voorkomt.
-   - Artikelnummer BESTAAT in de tekst → rapporteer GEEN issue over ontbrekende nummering.
-   - Artikelnummer BESTAAT NIET in de tekst → rapporteer een issue (verwijzing naar niet-bestaand artikel).
-   - Artikelnummer bestaat, maar de inhoud van dat artikel klopt NIET met wat de verwijzing belooft → rapporteer een issue (onjuiste verwijzing).
-3. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er niet in staat.`;
+2. Bij interne verwijzingen (bijv. "de in artikel 4.1.1 vermelde ...", "zie artikel 3.2"):
+   Zoek of het gerefereerde artikelnummer ELDERS in het document voorkomt — als sectietitel, koptekst, nummeringsprefix van een lid of sub-artikel (bijv. "4.1.1" of "4.1.1." aan het begin van een alinea of opsommingspunt), of andere onderdelen van de documentstructuur BUITEN de verwijzingstekst zelf.
+   - Artikelnummer komt ERGENS ANDERS in het document voor → rapporteer GEEN issue.
+   - Bij TWIJFEL of het artikel ergens gedefinieerd is → rapporteer GEEN issue.
+   - Alleen bij ABSOLUTE ZEKERHEID dat het nummer nergens als definitie, sectie of genummerd lid voorkomt → rapporteer een issue.
+   OPGELET: het feit dat "4.1.1" in de verwijzingstekst zelf staat ("de in artikel 4.1.1 vermelde...") telt NIET als bewijs dat het artikel bestaat. Zoek naar een APARTE definitieplek.
+3. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.`;
 
           const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
@@ -371,6 +463,8 @@ ${mfnInstructie}
 **issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
 - Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.
+
+${pseudonimiseringNota}
 
 ${verificatieplicht}
 
@@ -388,6 +482,8 @@ DOCUMENTTYPE: ${docTypLabel}
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
 - Bij twijfel: geen issue. Speculeer niet.
 
+${pseudonimiseringNota}
+
 ${verificatieplicht}
 
 ${ernstCriteria}`;
@@ -401,6 +497,8 @@ DOCUMENTTYPE: ${docTypLabel}
 **issues (conflicten)** — Dimensies ["conflicten"]: tegenstrijdige bepalingen BINNEN het document (artikel X zegt iets anders dan artikel Y over hetzelfde onderwerp).
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
 - Bij twijfel: geen issue. Speculeer niet.
+
+${pseudonimiseringNota}
 
 ${verificatieplicht}
 
@@ -423,7 +521,7 @@ ${ernstCriteria}`;
             );
 
           // 3 parallelle Sonnet-calls — elk gefocust op één dimensie
-          await Promise.all([
+          const [structuurR, juridischR, balansR] = await Promise.all([
             callMetSse(() => askClaude(sysStructuur, [
               { text: `VERWACHTE SECTIES:\n${checklistTekst}`, cache: true },
               { text: docBlok },
@@ -438,6 +536,103 @@ ${ernstCriteria}`;
               docBlok,
               balansGramTool, 5000), 'balans'),
           ]);
+
+          // ── Stap 4: Haiku-consolidatie — samenvoegen semantisch verwante issues ──
+          // Na de 3 parallelle calls combineert Haiku issues die over hetzelfde
+          // onderwerp gaan maar anders geformuleerd zijn (cross-call dedup).
+          const _alleIssuesRaw = [
+            ...(Array.isArray(structuurR?.issues) ? structuurR.issues : []),
+            ...(Array.isArray(juridischR?.issues) ? juridischR.issues : []),
+            ...(Array.isArray(balansR?.issues)    ? balansR.issues    : []),
+          ];
+
+          // Stap 4a: algoritmische prefix-dedup (snel, geen AI benodigd)
+          const _preGroepeerd = preGroepeerOpPrefix(_alleIssuesRaw);
+          console.log(`[analyseer] ${doc.bestandsnaam}: ${_alleIssuesRaw.length} → ${_preGroepeerd.length} issues na prefix-dedup`);
+
+          if (_preGroepeerd.length > 1) {
+            try {
+              // Haiku geeft alleen INDICES terug (welke issues bij elkaar horen).
+              // De server doet de merge zelf — output is ~50-100 tokens i.p.v. 3000+.
+              const n = _preGroepeerd.length;
+              const groeperenTool = {
+                name: 'groepeer_issues',
+                description: 'Geeft per groep samenhangende issues de indices terug.',
+                input_schema: {
+                  type: 'object',
+                  properties: {
+                    groepen: {
+                      type: 'array',
+                      description: `Elke subarray bevat 0-based indices van issues die samengevoegd moeten worden. Elke index 0–${n - 1} staat in precies één groep.`,
+                      items: { type: 'array', items: { type: 'integer', minimum: 0, maximum: n - 1 } },
+                    },
+                  },
+                  required: ['groepen'],
+                },
+              };
+
+              const consolidatieSys =
+`Je ontvangt ${n} juridische issues van een ${docTypLabel}. Groepeer issues die over hetzelfde juridische onderwerp gaan.
+
+SAMENVOEGEN als: issues hetzelfde probleem beschrijven, ook al verschilt de formulering.
+NIET SAMENVOEGEN als: de onderwerpen duidelijk verschillend zijn.
+
+Geef voor elke groep de indices terug (0-based). Elk getal 0–${n - 1} staat in precies één groep.`;
+
+              const groeperenRes = await askClaude(
+                consolidatieSys,
+                JSON.stringify(_preGroepeerd.map((iss, idx) => ({
+                  idx,
+                  onderwerp: iss.onderwerp,
+                  dim:       iss.dimensies,
+                  fragment:  (iss.bevinding || '').slice(0, 150),
+                }))),
+                groeperenTool,
+                400, // puur indices — tientallen tokens
+                'claude-haiku-4-5-20251001'
+              );
+
+              const groepen = Array.isArray(groeperenRes?.groepen) ? groeperenRes.groepen : null;
+              if (groepen) {
+                const ERNST_C = { hoog: 0, midden: 1, laag: 2 };
+                const geconsolideerd = [];
+                const _verwerkt = new Set();
+
+                for (const groep of groepen) {
+                  const geldige = groep.filter(i => Number.isInteger(i) && i >= 0 && i < n && !_verwerkt.has(i));
+                  if (!geldige.length) continue;
+                  geldige.forEach(i => _verwerkt.add(i));
+                  const issuesInGroep = geldige.map(i => _preGroepeerd[i]);
+                  if (issuesInGroep.length === 1) { geconsolideerd.push(issuesInGroep[0]); continue; }
+                  // Merge: zwaarste ernst, gecombineerde dimensies, langste teksten
+                  const merged = { ...issuesInGroep[0] };
+                  for (let k = 1; k < issuesInGroep.length; k++) {
+                    const o = issuesInGroep[k];
+                    if ((ERNST_C[o.ernst] ?? 1) < (ERNST_C[merged.ernst] ?? 1)) merged.ernst = o.ernst;
+                    merged.dimensies  = [...new Set([...(merged.dimensies || []), ...(o.dimensies || [])])];
+                    if ((o.bevinding   || '').length > (merged.bevinding   || '').length) merged.bevinding   = o.bevinding;
+                    if ((o.aanbeveling || '').length > (merged.aanbeveling || '').length) merged.aanbeveling = o.aanbeveling;
+                    if (!merged.passage && o.passage) merged.passage = o.passage;
+                    console.log(`[consolidatie] Haiku merge: "${merged.onderwerp}" ↔ "${o.onderwerp}"`);
+                  }
+                  geconsolideerd.push(merged);
+                }
+                // Veiligheidsnet: voeg niet-verwerkte issues toe
+                for (let i = 0; i < n; i++) {
+                  if (!_verwerkt.has(i)) geconsolideerd.push(_preGroepeerd[i]);
+                }
+                if (geconsolideerd.length) {
+                  sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: geconsolideerd } });
+                }
+              }
+            } catch (err) {
+              console.warn(`[analyseer] consolidatie mislukt voor ${doc.bestandsnaam}:`, err.message);
+              // Fallback: prefix-dedup resultaat als gedeeltelijke consolidatie sturen
+              if (_preGroepeerd.length < _alleIssuesRaw.length) {
+                sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: _preGroepeerd } });
+              }
+            }
+          }
 
           console.log(`[analyseer] ${doc.bestandsnaam}: klaar`);
         };
