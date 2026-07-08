@@ -456,13 +456,14 @@ GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
 `VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
 Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtbaar is":
 1. Doorzoek de VOLLEDIGE documenttekst actief op het beweerde ontbrekende element.
-2. Bij interne verwijzingen (bijv. "de in artikel 4.1.1 vermelde ...", "zie artikel 3.2"):
-   Zoek of het gerefereerde artikelnummer ELDERS in het document voorkomt — als sectietitel, koptekst, nummeringsprefix van een lid of sub-artikel (bijv. "4.1.1" of "4.1.1." aan het begin van een alinea of opsommingspunt), of andere onderdelen van de documentstructuur BUITEN de verwijzingstekst zelf.
+2. Bij interne verwijzingen (bijv. "de in artikel 4.1.1 vermelde ...", "zie punt 21", "zie artikel 3.2"):
+   Zoek of het gerefereerde nummer ELDERS in het document voorkomt — als sectietitel, koptekst, nummeringsprefix van een lid of sub-artikel (bijv. "4.1.1" of "4.1.1." aan het begin van een alinea of opsommingspunt), of andere onderdelen van de documentstructuur BUITEN de verwijzingstekst zelf.
    - Artikelnummer komt ERGENS ANDERS in het document voor → rapporteer GEEN issue.
    - Bij TWIJFEL of het artikel ergens gedefinieerd is → rapporteer GEEN issue.
    - Alleen bij ABSOLUTE ZEKERHEID dat het nummer nergens als definitie, sectie of genummerd lid voorkomt → rapporteer een issue.
    OPGELET: het feit dat "4.1.1" in de verwijzingstekst zelf staat ("de in artikel 4.1.1 vermelde...") telt NIET als bewijs dat het artikel bestaat. Zoek naar een APARTE definitieplek.
-3. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.`;
+3. SECTIENUMMERING — EXTRA REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…), ga er dan vanuit dat hogere nummers (bv. "punt 21") eveneens bestaan, ook als de tekst-extractie de nummers niet altijd bij de koptekst plaatst. Maak in dat geval GEEN issue over een "ontbrekend" puntgetal.
+4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.`;
 
           const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
