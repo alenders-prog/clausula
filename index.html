@@ -3521,12 +3521,13 @@ async function toonRapport(cls, rp) {
         huidigeDocIdx = idx;
         metaEl.querySelectorAll('.doc-tab').forEach(b => b.classList.toggle('actief', b === btn));
         // Update huidigRapport zodat kaart-klik/checkboxen het juiste doc raken
-        // Bewaar in-sessie _concepts (nog niet opgeslagen, zitten niet op rp maar op vorige huidigRapport)
+        // Bewaar in-sessie _concepts (nog niet opgeslagen, zitten niet op rp maar op huidigRapport)
         const _voorgaandConcepten = huidigRapport?._concepts;
         huidigRapport = { ...rp, ...huidigeDocumenten[idx] };
-        // Herstel _concepts als rp die niet heeft (in-sessie gegenereerd, nog niet in Supabase)
-        if (!huidigRapport._concepts && _voorgaandConcepten) {
-          huidigRapport._concepts = _voorgaandConcepten;
+        // Merge: in-sessie concepten overschrijven opgeslagen (Supabase) zodat vers gegenereerde
+        // concepten bewaard blijven ook als rp al _concepts heeft van een eerdere opslag.
+        if (_voorgaandConcepten) {
+          huidigRapport._concepts = { ...(huidigRapport._concepts || {}), ..._voorgaandConcepten };
         }
         activeerAnalysePanel(huidigRapport);
         // Toon "Bekijk concept" alleen als er een concept is voor dit document-type
@@ -6116,7 +6117,9 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   }
 
   // Controleer of er al een concept is voor dit documenttype — vraag bevestiging
-  const bestaandConcept = huidigRapport._concepts?.[huidigDocType] || huidigRapport._concept;
+  // Legacy _concept terugval alleen als het actieve doctype overeenkomt met de hoofdclassificatie
+  const bestaandConcept = huidigRapport._concepts?.[huidigDocType]
+    || (huidigDocType === (huidigeClassificatie?.doc_type || '') ? huidigRapport._concept : null);
   if (bestaandConcept) {
     const datum = bestaandConcept.gegenereerd_op
       ? new Date(bestaandConcept.gegenereerd_op).toLocaleString('nl-NL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
@@ -6387,7 +6390,7 @@ document.getElementById('bekijkConceptBtn').addEventListener('click', () => {
   // Actieve tab-doctype (multi-doc) of hoofdclassificatie (enkelvoudig)
   const docType  = (huidigeDocumenten[huidigeDocIdx]?.doc_type) || huidigeClassificatie?.doc_type || '';
   const concept  = huidigRapport?._concepts?.[docType]   // nieuw: per doctype
-                || huidigRapport?._concept;               // oud: terugvaloptie
+                || (docType === (huidigeClassificatie?.doc_type || '') ? huidigRapport?._concept : null); // oud: alleen zelfde doctype
   if (!concept) return;
   const pdfVoorReview = huidigePrimaireBest[huidigeDocIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
@@ -8169,7 +8172,8 @@ async function laadScreening(id, origin = 'main') {
     // Toon "Bekijk concept" op basis van het ACTIEVE tabblad (niet altijd het eerste)
     // huidigeDocIdx is al gezet door de tab-click handler hierboven (of 0 bij single-doc)
     const actieveDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || data.classificatie?.doc_type || '';
-    const heeftConcept   = !!(data.rapport._concepts?.[actieveDocType] || data.rapport._concept);
+    const heeftConcept   = !!(data.rapport._concepts?.[actieveDocType]
+      || (actieveDocType === (data.classificatie?.doc_type || '') ? data.rapport._concept : null));
     const bekijkBtn = document.getElementById('bekijkConceptBtn');
     if (bekijkBtn) bekijkBtn.style.display = heeftConcept ? 'inline-flex' : 'none';
   } catch (err) { alert('Kon de analyse niet laden: ' + err.message); }
