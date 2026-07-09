@@ -699,19 +699,6 @@ button.primair:hover{background:var(--coral-dark);}
 .panel-doc.tekst-modus p{margin:0 0 4px;}
 .panel-doc.tekst-modus .doc-br{height:10px;}
 .panel-doc.tekst-modus .doc-leeg{color:var(--ink-soft);font-style:italic;}
-.tekst-viewer-label{font-size:11px;color:var(--ink-soft);padding:4px 0 14px;
-  border-bottom:1px dashed var(--border-clr);margin-bottom:14px;font-style:italic;}
-
-/* ── Heranalyse-vergelijking: categoriekaarten ──── */
-.her-kat{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;
-  letter-spacing:.04em;padding:2px 8px;border-radius:10px;margin-bottom:5px;text-transform:uppercase;}
-.her-kat-nieuw   {background:#E8F4FD;color:#1A6FA8;border:1px solid #B3D4F0;}
-.her-kat-aanwezig{background:#FEF9EC;color:#8A6202;border:1px solid #F0DFA0;}
-.her-kat-opgelost{background:#EBF7EE;color:#1E7E3A;border:1px solid #A8DFB5;}
-.card.her-opgelost{opacity:.5;border-left-color:#8AC97C;}
-.her-sectie-kop{font-size:10.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.07em;
-  text-transform:uppercase;padding:10px 0 3px;border-bottom:1px solid var(--border-clr);
-  margin:6px 0 8px;}
 .pdf-pagina{position:relative;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.3);flex-shrink:0;}
 .pdf-pagina canvas{display:block;}
 .textLayer{position:absolute;inset:0;overflow:hidden;line-height:1;user-select:text;}
@@ -1542,8 +1529,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         placeholder="Versielabel (optioneel)" style="display:none">
       <button class="secundair" id="genereerConceptBtn" style="display:none">✦ Genereer concept <span id="conceptBadge" class="concept-badge">0</span></button>
       <button class="secundair" id="bekijkConceptBtn"   style="display:none">✦ Bekijk concept</button>
-      <button class="secundair" id="herzienDocxBtn"     style="display:none">↓ Herzien DOCX</button>
-      <button class="secundair" id="heranalyseBadgeBtn" style="display:none">✓ Controleer verbeteringen <span id="heranalyseBadgeTeller" class="concept-badge">0</span></button>
       <span id="conceptGenChips"></span>
       <button class="secundair" id="downloadPdfBtn">↓ PDF-rapport</button>
       <span class="opslagstatus" id="opslagStatus"></span>
@@ -1563,7 +1548,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     <button class="back-btn" id="conceptReviewBackBtn">← Terug</button>
     <span class="concept-review-titel">Verbeterd concept — review</span>
     <div class="concept-review-acties">
-      <button class="btn-heranalyseer" id="conceptHeranalyseerBtn" title="Pas geaccepteerde wijzigingen toe en zet klaar voor heranalyse">✓ Verwerk wijzigingen</button>
       <div class="concept-download-wrap">
         <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
         <span id="conceptDownloadMsg" class="concept-download-msg" style="display:none">
@@ -2215,8 +2199,6 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   const effectieveHoofdItems    = (hoofdItems.length ? hoofdItems : resolvedItems)
     .slice().sort((a, b) => (_HOOFD_VOLGORDE[a.type] ?? 9) - (_HOOFD_VOLGORDE[b.type] ?? 9));
   const effectieveContextItems  = hoofdItems.length ? contextItems  : [];
-  // Heranalyse-modus: sla de de-pseudo herziene tekst op voor documentviewer (links)
-  huidigeHeranalyseTeksten = effectieveHoofdItems.map(h => h._displayTekst || null);
   const heeftHV = resolvedItems.some(i => i.type === 'huwelijkse_voorwaarden');
 
   // Mapping item.id → documentDeel
@@ -2763,9 +2745,6 @@ function escH(s) {
 
 async function renderDocPanel(searchText) {
   const panel = document.getElementById('documentPanel');
-  // Heranalyse-modus: toon herziene tekst ipv origineel PDF
-  const herTekst = huidigeHeranalyseTeksten[huidigeDocIdx] || null;
-  if (herTekst) { toonHeranalyseTekst(panel, herTekst, searchText); return; }
   if (!huidigeBestandenLijst.length) { toonTekstFallback(panel, searchText); return; }
 
   if (!docPanelGereed) {
@@ -2931,33 +2910,6 @@ function highlightInDocx(searchText) {
   if (eersteEl) eersteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-// Toont de herziene tekst (de-pseudonymiseerd) als tekstviewer links
-// Werkt identiek aan toonTekstFallback maar met een "herziene versie"-label bovenaan.
-function toonHeranalyseTekst(panel, tekst, searchText) {
-  panel.classList.add('tekst-modus');
-  panel.innerHTML = ''; // Altijd opnieuw renderen (tekst wisselt per tab)
-  const zoek = (searchText || '').trim();
-  const re   = zoek ? new RegExp(zoek.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
-  let html = '<div class="tekst-viewer-label">📝 Herziene versie — wijzigingen verwerkt</div>';
-  let eersteMatch = true;
-  for (const regel of tekst.split('\n')) {
-    if (!regel.trim()) { html += '<div class="doc-br"></div>'; continue; }
-    if (!re) { html += `<p>${escH(regel)}</p>`; continue; }
-    let inhoud = '', li = 0, match; re.lastIndex = 0;
-    while ((match = re.exec(regel)) !== null) {
-      inhoud += escH(regel.slice(li, match.index));
-      const id = eersteMatch ? ' id="eerste-match"' : '';
-      inhoud += `<mark class="hl-match"${id}>${escH(match[0])}</mark>`;
-      li = match.index + match[0].length; eersteMatch = false;
-    }
-    inhoud += escH(regel.slice(li));
-    html += `<p>${inhoud}</p>`;
-  }
-  panel.innerHTML = html;
-  const el = panel.querySelector('#eerste-match');
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
 function toonTekstFallback(panel, searchText) {
   panel.classList.add('tekst-modus');
   const tekst = huidigRapport?._document_tekst || '';
@@ -2998,8 +2950,6 @@ let huidigeDocumenten    = []; // per-doc rapporten bij multi-doc analyse
 let huidigeDocIdx        = 0;  // index van actief tabblad
 let gewenstDocIdx        = 0;  // gewenst tab-index bij openen vanuit dossierkaart
 let huidigePrimaireBest  = []; // [[File], ...] per primair document
-let huidigeHeranalyseTeksten = []; // [displayTekst|null, ...] — herziene tekst per tab (alleen bij heranalyse)
-let _heranalyseOrigineel     = null; // { docType: [issues] } — originele issues vóór heranalyse
 
 function voegStandaardveldenToe(rapport) {
   const vulaan = r => {
@@ -3144,79 +3094,6 @@ function sorteerIssues() {
   });
 }
 
-// ── Heranalyse: issues vergelijken met origineel ─────────────────────────────
-// Berekent word-overlap (Jaccard) tussen twee bevinding-strings.
-function _gelijkenisBevinding(a, b) {
-  const woorden = s => new Set(
-    (s || '').toLowerCase().replace(/[.,;:!?()\[\]]/g, '').split(/\s+/).filter(w => w.length > 3)
-  );
-  const sa = woorden(a), sb = woorden(b);
-  if (!sa.size || !sb.size) return 0;
-  const overlap = [...sa].filter(w => sb.has(w)).length;
-  return overlap / Math.max(sa.size, sb.size);
-}
-
-// Labelt elke heranalyse-issue als 'nieuw', 'aanwezig' of 'opgelost'.
-// Opgeloste issues (uit het origineel) worden toegevoegd aan het einde van de lijst.
-function vergelijkMetOrigineel(rapport) {
-  if (!_heranalyseOrigineel) return;
-  const docs = rapport.documenten?.length
-    ? rapport.documenten
-    : [{ doc_type: rapport.doc_type || huidigeClassificatie?.doc_type, issues: rapport.issues }];
-
-  for (const doc of docs) {
-    const origIssues = _heranalyseOrigineel[doc.doc_type] || [];
-    const herIssues  = Array.isArray(doc.issues) ? doc.issues : [];
-    const gebruiktOrig = new Set();
-
-    const aanwezig = [], nieuw = [];
-    for (const hi of herIssues) {
-      let bestIdx = -1, bestScore = 0;
-      for (let i = 0; i < origIssues.length; i++) {
-        if (gebruiktOrig.has(i)) continue;
-        const score = _gelijkenisBevinding(hi.bevinding, origIssues[i].bevinding);
-        if (score > bestScore) { bestScore = score; bestIdx = i; }
-      }
-      if (bestScore >= 0.42) {
-        gebruiktOrig.add(bestIdx);
-        aanwezig.push({ ...hi, _herKat: 'aanwezig' });
-      } else {
-        nieuw.push({ ...hi, _herKat: 'nieuw' });
-      }
-    }
-    const opgelost = origIssues
-      .filter((_, i) => !gebruiktOrig.has(i))
-      .map(oi => ({ ...oi, _herKat: 'opgelost', afgehandeld: true }));
-
-    doc.issues = [...nieuw, ...aanwezig, ...opgelost];
-  }
-  // Sync terug naar huidigRapport als het een single-doc-rapport was
-  if (!rapport.documenten?.length && docs[0]) rapport.issues = docs[0].issues;
-}
-
-// Sectiekoppen invoegen in de gerenderde issuelijst na het renderen
-function _insertHerKopjes() {
-  const lijst = document.getElementById('issuesLijst');
-  if (!lijst) return;
-  const kaarten = [...lijst.querySelectorAll('.card[data-herkat]')];
-  if (!kaarten.length) return;
-  // Verwijder bestaande kopjes
-  lijst.querySelectorAll('.her-sectie-kop').forEach(el => el.remove());
-  let laasteKat = null;
-  for (const kaart of kaarten) {
-    const kat = kaart.dataset.herkat;
-    if (kat !== laasteKat) {
-      laasteKat = kat;
-      const kop = document.createElement('div');
-      kop.className = 'her-sectie-kop';
-      kop.textContent = kat === 'nieuw' ? '🆕 Nieuw gevonden'
-        : kat === 'aanwezig' ? '⚠️ Nog aanwezig'
-        : '✅ Opgelost';
-      lijst.insertBefore(kop, kaart);
-    }
-  }
-}
-
 function issueKaart(idx) {
   const issue = huidigRapport.issues[idx];
   if (!issue || typeof issue !== 'object') return ''; // defensief: sla ongeldige items over
@@ -3226,20 +3103,12 @@ function issueKaart(idx) {
   const dimIcns      = (issue.dimensies || [])
     .map(d => `<span class="card-dim-icn" title="${DIM_LABELS[d]||d}">${DIM_SVG_ICONS[d]||''}</span>`)
     .join('');
-  // Heranalyse-categorie badge (alleen bij heranalyse)
-  const kat = issue._herKat;
-  const katBadge = kat === 'nieuw'    ? '<div><span class="her-kat her-kat-nieuw">🆕 Nieuw gevonden</span></div>'
-                 : kat === 'aanwezig' ? '<div><span class="her-kat her-kat-aanwezig">⚠️ Nog aanwezig</span></div>'
-                 : kat === 'opgelost' ? '<div><span class="her-kat her-kat-opgelost">✅ Opgelost</span></div>'
-                 : '';
-  const herKlasse = kat === 'opgelost' ? ' her-opgelost' : '';
   return `
-  <div class="card ${ernstKlas}${heeftPassage ? ' heeft-passage' : ''}${herKlasse}" data-issue-idx="${idx}" data-dims='${JSON.stringify(issue.dimensies||[])}' data-ok="${isOk?'1':'0'}" data-herkat="${kat||''}">
+  <div class="card ${ernstKlas}${heeftPassage ? ' heeft-passage' : ''}" data-issue-idx="${idx}" data-dims='${JSON.stringify(issue.dimensies||[])}' data-ok="${isOk?'1':'0'}">
     <div class="item-row">
       <input type="checkbox" ${issue.afgehandeld?'checked':''}
         onchange="huidigRapport.issues[${idx}].afgehandeld=this.checked;updateConceptKnop();autoSlaOp()">
       <div class="item-body">
-        ${katBadge}
         <div class="card-kop">
           <div class="label">${escH(issue.onderwerp)}<span class="ernst-badge ${ernstKlas}">${issue.ernst}</span></div>
           ${dimIcns ? `<span class="card-dim-icns">${dimIcns}</span>` : ''}
@@ -3554,9 +3423,6 @@ async function toonRapport(cls, rp) {
                           || (tabDocType === (huidigeClassificatie?.doc_type) ? rp._concept : null);
         const bekijkBtn    = document.getElementById('bekijkConceptBtn');
         if (bekijkBtn) bekijkBtn.style.display = tabConcept ? 'inline-flex' : 'none';
-        // Herzien DOCX-knop: toon alleen als er een verwerkte versie is voor dit tabblad
-        const herzBtn = document.getElementById('herzienDocxBtn');
-        if (herzBtn) herzBtn.style.display = _herzienDocxPerDocType[tabDocType] ? 'inline-flex' : 'none';
         // Wissel het document-viewer naar het bestand van dit tabblad
         const bestVoorTab = huidigePrimaireBest[idx];
         if (bestVoorTab?.length) {
@@ -3674,9 +3540,6 @@ function closeSplitView() {
   huidigeDocumenten        = [];
   huidigeDocIdx            = 0;
   huidigePrimaireBest      = [];
-  huidigeHeranalyseTeksten = [];
-  _heranalyseOrigineel     = null;
-  _herzienDocxPerDocType   = {};
   // Reset split-meta naar klassieke modus
   const metaEl = document.querySelector('.split-meta');
   if (metaEl) {
@@ -5004,10 +4867,6 @@ let _conceptOriginelePdf   = null;  // origineel PDF-bestand voor Adobe DOCX-con
 let _conceptGewijzigdDocx  = null;  // DOCX met track-changes in geheugen (voor download)
 // Map<idx → 'geaccepteerd'|'afgewezen'|undefined> — per-wijziging beslissing (undefined = pending)
 let _wijzigingAcceptatie   = new Map();
-// Wachtrij voor heranalyse: { [doc_type]: {genId, bestandsnaam} }
-let _heranalysePending     = {};
-// Opgeslagen herziene DOCX per docType — beschikbaar na "Verwerk wijzigingen" voor toolbar-download
-let _herzienDocxPerDocType = {};
 
 // Zijn alle wijzigingen beantwoord (geaccepteerd of afgewezen)?
 function _alleWijzigingenBeantwoord() {
@@ -6641,222 +6500,6 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
   }
 });
 
-// ── "Verwerk wijzigingen" knop: sla herziene DOCX op, zet klaar voor heranalyse ──
-document.getElementById('conceptHeranalyseerBtn').addEventListener('click', async () => {
-  if (!_conceptDocumentTekst) return;
-
-  const btn      = document.getElementById('conceptHeranalyseerBtn');
-  const origLabel = btn.textContent;
-
-  try {
-    btn.disabled = true;
-    btn.textContent = '⏳ Verwerken…';
-
-    // Bestandsnaam voor nieuwe versie
-    const huidigeDocType = _conceptDocType || huidigeClassificatie?.doc_type || 'onbekend';
-    const _herLabel  = DOC_TYPES.find(d => d.value === huidigeDocType)?.label || 'Concept';
-    const dossierDeel = huidigDossierNaam ? ` — ${huidigDossierNaam}` : '';
-    const nieuweNaam  = `${_herLabel}${dossierDeel} (herzien)`;
-
-    // Genereer en sla de herziene DOCX op (schoon = true, geen track-changes)
-    // zodat de toolbar-downloadknop hem later kan aanbieden
-    try {
-      const herzienBlob = await _bouwExportDocx(null, true);
-      _herzienDocxPerDocType[huidigeDocType] = { blob: herzienBlob, naam: `${_herLabel}${dossierDeel} (herzien).docx` };
-    } catch (e) {
-      // DOCX-generatie optioneel — heranalyse werkt ook zonder
-      console.warn('[verwerk] DOCX-generatie mislukt (niet-fataal):', e.message);
-    }
-
-    // Sla op in heranalyse-wachtrij
-    _heranalysePending[huidigeDocType] = { genId: _conceptGenId, bestandsnaam: nieuweNaam };
-
-    // Sluit concept-review (acceptatie bewaren — gebruiker kan review nog openen)
-    document.getElementById('conceptReview').style.display = 'none';
-    _conceptGewijzigdDocx = null;
-
-    // Toolbar bijwerken: herzien DOCX-knop + heranalyse-badge
-    _bijwerkToolbarNaVerwerken(huidigeDocType);
-    _bijwerkHeranalyseBadge();
-
-  } catch (err) {
-    alert('Verwerken mislukt: ' + err.message);
-  } finally {
-    btn.textContent = origLabel;
-    btn.disabled    = false;
-  }
-});
-
-// Bijwerken van toolbar-knoppen na "Verwerk wijzigingen"
-function _bijwerkToolbarNaVerwerken(docType) {
-  // Herzien DOCX-knop: toon alleen als het actieve tabblad overeenkomt
-  const actief = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
-  const herzBtn = document.getElementById('herzienDocxBtn');
-  if (herzBtn) herzBtn.style.display = _herzienDocxPerDocType[actief] ? 'inline-flex' : 'none';
-}
-
-// ── Heranalyse-wachtrij helpers ──────────────────────
-function _startHeranalyse() {
-  // Gewijzigde documenten (via "Controleer verbeteringen" voorbereid)
-  const pendingEntries = Object.entries(_heranalysePending); // [[docType, {genId,bestandsnaam}], ...]
-  if (!pendingEntries.length) return;
-
-  // Sla de originele issues op vóór de heranalyse — voor vergelijking achteraf
-  _heranalyseOrigineel = {};
-  const bronDocs = huidigeDocumenten.length ? huidigeDocumenten : (huidigRapport ? [huidigRapport] : []);
-  for (const doc of bronDocs) {
-    const dt = doc.doc_type || huidigeClassificatie?.doc_type;
-    if (dt) _heranalyseOrigineel[dt] = (doc.issues || []).map(i => ({ ...i }));
-  }
-
-  const pendingTypes  = new Set(Object.keys(_heranalysePending));
-  const nieuweItems   = [];
-
-  // 1. Alle originele docs die NIET herzien zijn → laden vanuit Supabase Storage
-  //    (zelfde manier als bij een gewone "Nieuwe versie" vanuit het dossier)
-  const origBestanden = huidigRapport?._document_bestanden || [];
-  for (const doc of origBestanden) {
-    const docType = doc.type || raadDocType(doc.naam || '');
-    if (!pendingTypes.has(docType)) {
-      nieuweItems.push({
-        id: trayUid(),
-        bestand: null,
-        type: docType,
-        bestandsnaam: doc.naam,
-        storageInfo: { pad: doc.pad, naam: doc.naam },
-        fromStorage: true,
-      });
-    }
-  }
-
-  // 2. Herziene docs → tekst-gebaseerde analyse
-  // De verbeterde tekst wordt berekend vanuit origineelTekst + geaccepteerde wijzigingen
-  // (zelfde extractiebasis als de originele analyse → eerlijke vergelijking).
-  const { naarAnon: herNaarAnon } = bouwAnonMap(huidigeClassificatie || {});
-
-  for (const [docType, pending] of pendingEntries) {
-    // Haal concept-data op: eerst in-memory _generaties, daarna Supabase-opgeslagen rapport
-    const genId    = pending?.genId;
-    const genEntry = (genId != null) ? _generaties.get(genId) : null;
-    const conceptSupabase = huidigRapport?._concepts?.[docType];
-
-    const origineelTekst  = genEntry?.origineelTekst  ?? conceptSupabase?.origineel_tekst  ?? null;
-    const alleWijzigingen = genEntry?.wijzigingen      ?? conceptSupabase?.wijzigingen      ?? null;
-    const acceptatieMap   = genEntry?.acceptatie       ?? conceptSupabase?.acceptatie       ?? {};
-    const bestandsnaam    = (pending?.bestandsnaam || DOC_TYPES.find(d => d.value === docType)?.label || docType) + '.txt';
-
-    // Origineel Storage-doc voor weergave in de documentviewer tijdens heranalyse
-    // (analyse gebruikt item.tekst; viewer heeft een File nodig)
-    const origDoc = origBestanden.find(d => (d.type || raadDocType(d.naam || '')) === docType);
-    const _origStorageInfo = origDoc ? { pad: origDoc.pad, naam: origDoc.naam } : null;
-
-    if (origineelTekst && alleWijzigingen) {
-      // Filter: alleen geaccepteerde (niet-afgewezen) wijzigingen
-      const geaccepteerd = alleWijzigingen.filter((_, i) => acceptatieMap[i] !== 'afgewezen');
-
-      // Pas toe op tekst (géén DOCX, zelfde extractie als origineel)
-      const verbeterdeTekst = pasWijzigingenToeTekst(origineelTekst, geaccepteerd);
-
-      // Pseudonimiseer vóór verzending naar server
-      const pseudoTekst = anonimiseerTekst(verbeterdeTekst, herNaarAnon);
-
-      nieuweItems.push({
-        id: trayUid(),
-        bestand: null,
-        tekst: pseudoTekst,          // ← analyseDocument gebruikt dit direct (geen extractie)
-        _displayTekst: verbeterdeTekst, // ← de-pseudo, voor documentviewer links
-        type: docType,
-        bestandsnaam,
-        storageInfo: null,
-        fromStorage: false,
-      });
-    } else {
-      // Fallback: volledig verbeterde tekst uit Supabase (alles geaccepteerd)
-      const fallbackTekst = genEntry?.documentTekst ?? conceptSupabase?.document_tekst ?? null;
-      if (fallbackTekst) {
-        nieuweItems.push({
-          id: trayUid(),
-          bestand: null,
-          tekst: anonimiseerTekst(fallbackTekst, herNaarAnon),
-          _displayTekst: fallbackTekst, // ← de-pseudo voor viewer
-          type: docType,
-          bestandsnaam,
-          storageInfo: null,
-          fromStorage: false,
-        });
-      } else {
-        console.warn('[heranalyse] Geen tekst gevonden voor', docType, '— doc wordt overgeslagen');
-      }
-    }
-  }
-
-  tray.length = 0;
-  nieuweItems.forEach(item => tray.push(item));
-  _heranalysePending = {};
-  _bijwerkHeranalyseBadge();
-  closeSplitView();
-  schakelRechts('rp-analyse');
-  setTimeout(() => {
-    trayRender();
-    // Versielabel voorstellen: huidige label + "— Herzien [datum]"
-    const datum        = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' });
-    const huidigLabel  = huidigRapport?._versie_label || huidigDossierNaam || '';
-    const versieLabelEl = document.getElementById('versieLabelInput');
-    if (versieLabelEl) {
-      versieLabelEl.value = huidigLabel ? `${huidigLabel} — Herzien ${datum}` : `Herzien ${datum}`;
-    }
-    const versieInputHeader = document.getElementById('versieLabelHeaderInput');
-    if (versieInputHeader) versieInputHeader.style.display = 'block';
-  }, 80);
-}
-
-function _bijwerkHeranalyseBadge() {
-  const btn    = document.getElementById('heranalyseBadgeBtn');
-  const teller = document.getElementById('heranalyseBadgeTeller');
-  if (!btn) return;
-  const n = Object.keys(_heranalysePending).length;
-  if (n === 0) { btn.style.display = 'none'; return; }
-  if (teller) teller.textContent = n;
-  btn.style.display = 'inline-flex';
-}
-
-// "↓ Herzien DOCX" knop in toolbar: download de opgeslagen herziene versie
-document.getElementById('herzienDocxBtn')?.addEventListener('click', async () => {
-  const actief = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
-  const entry  = _herzienDocxPerDocType[actief];
-  if (!entry) return;
-  const btn = document.getElementById('herzienDocxBtn');
-  const origLabel = btn.textContent;
-  try {
-    btn.disabled = true;
-    btn.textContent = '⏳ Downloaden…';
-    const url = URL.createObjectURL(entry.blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = entry.naam; a.click();
-    URL.revokeObjectURL(url);
-  } catch (err) {
-    alert('Download mislukt: ' + err.message);
-  } finally {
-    btn.textContent = origLabel;
-    btn.disabled = false;
-  }
-});
-
-// "Controleer verbeteringen" knop in toolbar: confirm-dialog, dan heranalyse starten
-document.getElementById('heranalyseBadgeBtn')?.addEventListener('click', () => {
-  const docs = Object.keys(_heranalysePending);
-  if (!docs.length) return;
-  const docLabels = docs
-    .map(dt => DOC_TYPES.find(d => d.value === dt)?.label || dt)
-    .map(l => `• ${l} (herzien)`)
-    .join('\n');
-  const ok = confirm(
-    `Heranalyse uitvoeren?\n\nDe geaccepteerde wijzigingen worden gecontroleerd op:\n${docLabels}\n\n` +
-    `Je ziet daarna welke issues zijn opgelost, nog aanwezig of nieuw gevonden zijn.`
-  );
-  if (ok) _startHeranalyse();
-});
-
 // ── Master-detail navigatie ───────────────────────────
 function schakelRechts(rpId) {
   document.querySelectorAll('.rp').forEach(el => el.classList.remove('act'));
@@ -7128,11 +6771,7 @@ analyseBtn.addEventListener('click', async () => {
     docPanelGereed        = false;
     huidigeBestandsnaam   = samenstellenBestandsnaam(classificatie, tray.map(i => ({ name: i.bestandsnaam })));
     voegStandaardveldenToe(rapport);
-    // Na heranalyse: vergelijk issues met origineel en label ze ✅/⚠️/🆕
-    if (_heranalyseOrigineel) vergelijkMetOrigineel(rapport);
     await toonRapport(classificatie, rapport);
-    // Sectiekoppen invoegen na render (heranalyse-modus)
-    if (_heranalyseOrigineel) { _insertHerKopjes(); _heranalyseOrigineel = null; }
     geslaagd = true;
   } catch (err) {
     errorBox.textContent   = 'Kon de documenten niet analyseren: ' + err.message;
@@ -8190,8 +7829,6 @@ async function laadScreening(id, origin = 'main') {
     huidigePdfDocCache       = {};
     docPanelGereed           = false;
     huidigeBestandenLijst    = [];
-    huidigeHeranalyseTeksten = []; // Reset: geen herziene tekst tonen bij opgeslagen analyse
-    _herzienDocxPerDocType   = {}; // Reset: geen herziene DOCX van vorige sessie
 
     // Bestanden ophalen uit Storage (backward compat: enkel of meerdere)
     const bestandenMeta = data.rapport._document_bestanden
