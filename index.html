@@ -627,11 +627,16 @@ button.primair:hover{background:var(--coral-dark);}
 .btn-bulk.afwijs{border-color:#e5e7eb;color:#6b7280;}
 .btn-bulk.afwijs:hover{background:#f3f4f6;}
 /* Header-knoppen in concept review */
-.concept-review-acties{display:flex;gap:8px;align-items:center;margin-left:auto;}
+.concept-review-acties{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap;}
 .btn-heranalyseer{padding:7px 16px;border-radius:8px;border:1px solid var(--nav-border);
   background:var(--nav-bg);color:#fff;font-size:.83rem;font-weight:700;cursor:pointer;}
 .btn-heranalyseer:hover{background:#243F68;}
 .btn-heranalyseer:disabled{opacity:.45;cursor:default;}
+/* Waarschuwing + download-disabled state */
+.concept-download-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.concept-download-msg{font-size:.74rem;color:#b05000;background:#FFF3E5;
+  border:1px solid #FECBA0;border-radius:6px;padding:3px 9px;white-space:nowrap;}
+.primair.download-pending{opacity:.45;cursor:not-allowed;}
 
 /* ── Concept-generatie statuschips ───────────────── */
 #conceptGenChips{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;max-width:340px;}
@@ -1537,7 +1542,8 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         placeholder="Versielabel (optioneel)" style="display:none">
       <button class="secundair" id="genereerConceptBtn" style="display:none">✦ Genereer concept <span id="conceptBadge" class="concept-badge">0</span></button>
       <button class="secundair" id="bekijkConceptBtn"   style="display:none">✦ Bekijk concept</button>
-      <button class="secundair" id="heranalyseBadgeBtn" style="display:none">🔄 Heranalyse <span id="heranalyseBadgeTeller" class="concept-badge">0</span></button>
+      <button class="secundair" id="herzienDocxBtn"     style="display:none">↓ Herzien DOCX</button>
+      <button class="secundair" id="heranalyseBadgeBtn" style="display:none">✓ Controleer verbeteringen <span id="heranalyseBadgeTeller" class="concept-badge">0</span></button>
       <span id="conceptGenChips"></span>
       <button class="secundair" id="downloadPdfBtn">↓ PDF-rapport</button>
       <span class="opslagstatus" id="opslagStatus"></span>
@@ -1557,8 +1563,13 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     <button class="back-btn" id="conceptReviewBackBtn">← Terug</button>
     <span class="concept-review-titel">Verbeterd concept — review</span>
     <div class="concept-review-acties">
-      <button class="btn-heranalyseer" id="conceptHeranalyseerBtn" title="Pas geaccepteerde wijzigingen toe en controleer welke issues zijn opgelost">✓ Controleer verbeteringen</button>
-      <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
+      <button class="btn-heranalyseer" id="conceptHeranalyseerBtn" title="Pas geaccepteerde wijzigingen toe en zet klaar voor heranalyse">✓ Verwerk wijzigingen</button>
+      <div class="concept-download-wrap">
+        <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
+        <span id="conceptDownloadMsg" class="concept-download-msg" style="display:none">
+          ⚠️ Beantwoord eerst alle wijzigingen
+        </span>
+      </div>
     </div>
   </div>
   <div class="concept-review-body">
@@ -3543,6 +3554,9 @@ async function toonRapport(cls, rp) {
                           || (tabDocType === (huidigeClassificatie?.doc_type) ? rp._concept : null);
         const bekijkBtn    = document.getElementById('bekijkConceptBtn');
         if (bekijkBtn) bekijkBtn.style.display = tabConcept ? 'inline-flex' : 'none';
+        // Herzien DOCX-knop: toon alleen als er een verwerkte versie is voor dit tabblad
+        const herzBtn = document.getElementById('herzienDocxBtn');
+        if (herzBtn) herzBtn.style.display = _herzienDocxPerDocType[tabDocType] ? 'inline-flex' : 'none';
         // Wissel het document-viewer naar het bestand van dit tabblad
         const bestVoorTab = huidigePrimaireBest[idx];
         if (bestVoorTab?.length) {
@@ -3662,6 +3676,7 @@ function closeSplitView() {
   huidigePrimaireBest      = [];
   huidigeHeranalyseTeksten = [];
   _heranalyseOrigineel     = null;
+  _herzienDocxPerDocType   = {};
   // Reset split-meta naar klassieke modus
   const metaEl = document.querySelector('.split-meta');
   if (metaEl) {
@@ -4989,8 +5004,29 @@ let _conceptOriginelePdf   = null;  // origineel PDF-bestand voor Adobe DOCX-con
 let _conceptGewijzigdDocx  = null;  // DOCX met track-changes in geheugen (voor download)
 // Map<idx → 'geaccepteerd'|'afgewezen'|undefined> — per-wijziging beslissing (undefined = pending)
 let _wijzigingAcceptatie   = new Map();
-// Wachtrij voor heranalyse: { [doc_type]: File } — gevuld per document, analyse start als alle docs klaar zijn
+// Wachtrij voor heranalyse: { [doc_type]: {genId, bestandsnaam} }
 let _heranalysePending     = {};
+// Opgeslagen herziene DOCX per docType — beschikbaar na "Verwerk wijzigingen" voor toolbar-download
+let _herzienDocxPerDocType = {};
+
+// Zijn alle wijzigingen beantwoord (geaccepteerd of afgewezen)?
+function _alleWijzigingenBeantwoord() {
+  if (!_conceptWijzigingen.length) return false;
+  return _conceptWijzigingen.every((_, i) => {
+    const s = _wijzigingAcceptatie.get(i);
+    return s === 'geaccepteerd' || s === 'afgewezen';
+  });
+}
+
+// Update download-knop state + waarschuwing in concept review
+function _updateConceptDownloadState() {
+  const btn = document.getElementById('conceptDownloadBtn');
+  const msg = document.getElementById('conceptDownloadMsg');
+  if (!btn) return;
+  const ok = _alleWijzigingenBeantwoord();
+  btn.classList.toggle('download-pending', !ok);
+  if (msg) msg.style.display = ok ? 'none' : '';
+}
 // Doc-type van het concept dat momenteel in review is (vastgelegd bij openen, niet bij klikken)
 let _conceptDocType        = '';
 // ID van de _generaties-entry die momenteel in review is (voor persisteren acceptatie)
@@ -5907,6 +5943,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
       const actieRij = card.querySelector('.change-actie-rij');
       if (actieRij) actieRij.outerHTML = bouwActieBalk(idx);
       bijwerkTeller();
+      _updateConceptDownloadState();
       // Reset gecachte DOCX — nieuwe keuze vereist opnieuw aanmaken
       _conceptGewijzigdDocx = null;
     };
@@ -5943,6 +5980,8 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
   }
 
   document.getElementById('conceptReview').style.display = 'flex';
+  // Initialiseer download-knop staat (disabled als nog niets beantwoord)
+  _updateConceptDownloadState();
 }
 
 // Sla concept op in het huidige rapport (in-memory + Supabase als er een id is)
@@ -6549,9 +6588,14 @@ async function _bouwExportDocx(meldBtn, schoon = false) {
     : pasWijzigingenToeInDocx(origDocx, gefilterd);
 }
 
-// Download-knop: exporteert alleen geaccepteerde wijzigingen (afgewezen worden overgeslagen).
+// Download-knop: alleen actief als alle wijzigingen beantwoord zijn.
 document.getElementById('conceptDownloadBtn').addEventListener('click', async () => {
   if (!_conceptDocumentTekst) return;
+  // Blokkeer download als nog niet alle wijzigingen beantwoord zijn
+  if (!_alleWijzigingenBeantwoord()) {
+    _updateConceptDownloadState(); // zorg dat waarschuwing zichtbaar is
+    return;
+  }
 
   const btn = document.getElementById('conceptDownloadBtn');
   const origLabel = btn.textContent;
@@ -6597,44 +6641,59 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
   }
 });
 
-// ── "Controleer verbeteringen" knop: pas wijzigingen toe en analyseer direct opnieuw ──
+// ── "Verwerk wijzigingen" knop: sla herziene DOCX op, zet klaar voor heranalyse ──
 document.getElementById('conceptHeranalyseerBtn').addEventListener('click', async () => {
   if (!_conceptDocumentTekst) return;
 
-  const btn  = document.getElementById('conceptHeranalyseerBtn');
-  const dlBtn = document.getElementById('conceptDownloadBtn');
+  const btn      = document.getElementById('conceptHeranalyseerBtn');
   const origLabel = btn.textContent;
 
   try {
     btn.disabled = true;
-    if (dlBtn) dlBtn.disabled = true;
+    btn.textContent = '⏳ Verwerken…';
 
-    // Bestandsnaam voor nieuwe versie — gebruik _conceptDocType (niet huidigeClassificatie)
-    const _herNaamType  = _conceptDocType || huidigeClassificatie?.doc_type || '';
-    const _herLabel     = DOC_TYPES.find(d => d.value === _herNaamType)?.label || 'Concept';
-    const dossierDeel   = huidigDossierNaam ? ` — ${huidigDossierNaam}` : '';
-    const nieuweNaam    = `${_herLabel}${dossierDeel} (herzien)`;
-
-    // Sla op in heranalyse-wachtrij: genId + naam (tekst wordt in _startHeranalyse berekend)
+    // Bestandsnaam voor nieuwe versie
     const huidigeDocType = _conceptDocType || huidigeClassificatie?.doc_type || 'onbekend';
+    const _herLabel  = DOC_TYPES.find(d => d.value === huidigeDocType)?.label || 'Concept';
+    const dossierDeel = huidigDossierNaam ? ` — ${huidigDossierNaam}` : '';
+    const nieuweNaam  = `${_herLabel}${dossierDeel} (herzien)`;
+
+    // Genereer en sla de herziene DOCX op (schoon = true, geen track-changes)
+    // zodat de toolbar-downloadknop hem later kan aanbieden
+    try {
+      const herzienBlob = await _bouwExportDocx(null, true);
+      _herzienDocxPerDocType[huidigeDocType] = { blob: herzienBlob, naam: `${_herLabel}${dossierDeel} (herzien).docx` };
+    } catch (e) {
+      // DOCX-generatie optioneel — heranalyse werkt ook zonder
+      console.warn('[verwerk] DOCX-generatie mislukt (niet-fataal):', e.message);
+    }
+
+    // Sla op in heranalyse-wachtrij
     _heranalysePending[huidigeDocType] = { genId: _conceptGenId, bestandsnaam: nieuweNaam };
 
-    // Sluit concept-review en reset acceptatie
+    // Sluit concept-review (acceptatie bewaren — gebruiker kan review nog openen)
     document.getElementById('conceptReview').style.display = 'none';
-    _wijzigingAcceptatie = new Map();
     _conceptGewijzigdDocx = null;
 
-    // Direct heranalyse starten — geen extra knopklik nodig
-    _startHeranalyse();
+    // Toolbar bijwerken: herzien DOCX-knop + heranalyse-badge
+    _bijwerkToolbarNaVerwerken(huidigeDocType);
+    _bijwerkHeranalyseBadge();
 
   } catch (err) {
-    alert('Heranalyse mislukt: ' + err.message);
+    alert('Verwerken mislukt: ' + err.message);
   } finally {
     btn.textContent = origLabel;
     btn.disabled    = false;
-    if (dlBtn) dlBtn.disabled = false;
   }
 });
+
+// Bijwerken van toolbar-knoppen na "Verwerk wijzigingen"
+function _bijwerkToolbarNaVerwerken(docType) {
+  // Herzien DOCX-knop: toon alleen als het actieve tabblad overeenkomt
+  const actief = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const herzBtn = document.getElementById('herzienDocxBtn');
+  if (herzBtn) herzBtn.style.display = _herzienDocxPerDocType[actief] ? 'inline-flex' : 'none';
+}
 
 // ── Heranalyse-wachtrij helpers ──────────────────────
 function _startHeranalyse() {
@@ -6761,8 +6820,42 @@ function _bijwerkHeranalyseBadge() {
   btn.style.display = 'inline-flex';
 }
 
-// Badge-knop: opent analyse-paneel met voorbereide bestanden
-document.getElementById('heranalyseBadgeBtn')?.addEventListener('click', _startHeranalyse);
+// "↓ Herzien DOCX" knop in toolbar: download de opgeslagen herziene versie
+document.getElementById('herzienDocxBtn')?.addEventListener('click', async () => {
+  const actief = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const entry  = _herzienDocxPerDocType[actief];
+  if (!entry) return;
+  const btn = document.getElementById('herzienDocxBtn');
+  const origLabel = btn.textContent;
+  try {
+    btn.disabled = true;
+    btn.textContent = '⏳ Downloaden…';
+    const url = URL.createObjectURL(entry.blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = entry.naam; a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Download mislukt: ' + err.message);
+  } finally {
+    btn.textContent = origLabel;
+    btn.disabled = false;
+  }
+});
+
+// "Controleer verbeteringen" knop in toolbar: confirm-dialog, dan heranalyse starten
+document.getElementById('heranalyseBadgeBtn')?.addEventListener('click', () => {
+  const docs = Object.keys(_heranalysePending);
+  if (!docs.length) return;
+  const docLabels = docs
+    .map(dt => DOC_TYPES.find(d => d.value === dt)?.label || dt)
+    .map(l => `• ${l} (herzien)`)
+    .join('\n');
+  const ok = confirm(
+    `Heranalyse uitvoeren?\n\nDe geaccepteerde wijzigingen worden gecontroleerd op:\n${docLabels}\n\n` +
+    `Je ziet daarna welke issues zijn opgelost, nog aanwezig of nieuw gevonden zijn.`
+  );
+  if (ok) _startHeranalyse();
+});
 
 // ── Master-detail navigatie ───────────────────────────
 function schakelRechts(rpId) {
@@ -8098,6 +8191,7 @@ async function laadScreening(id, origin = 'main') {
     docPanelGereed           = false;
     huidigeBestandenLijst    = [];
     huidigeHeranalyseTeksten = []; // Reset: geen herziene tekst tonen bij opgeslagen analyse
+    _herzienDocxPerDocType   = {}; // Reset: geen herziene DOCX van vorige sessie
 
     // Bestanden ophalen uit Storage (backward compat: enkel of meerdere)
     const bestandenMeta = data.rapport._document_bestanden
