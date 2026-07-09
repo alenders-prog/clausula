@@ -4836,9 +4836,22 @@ function markeerWijzigingenInDom(container, wijzigingen) {
     outer: for (const zoek of kandidaten) {
       for (const el of individ) {
         if (!el.isConnected) continue;
-        if (!norm(el.textContent).includes(zoek)) continue;
-        // Gevonden — hele element markeren (behoudt originele opmaak en case)
-        el.innerHTML = `<del class="cdoc-del">${el.innerHTML}</del> <ins class="cdoc-ins">${escH(vervang)}</ins>`;
+        const elNorm = norm(el.textContent);
+        if (!elNorm.includes(zoek)) continue;
+
+        const matchRatio = zoek.length / Math.max(elNorm.length, 1);
+        if (matchRatio >= 0.75) {
+          // Wijziging dekt het grootste deel van de alinea — markeer alles
+          el.innerHTML = `<del class="cdoc-del">${el.innerHTML}</del> <ins class="cdoc-ins">${escH(vervang)}</ins>`;
+        } else {
+          // Inline vervanging: alleen de matching passage doorstrepen, rest behouden
+          const pos = elNorm.indexOf(zoek);
+          const raw = el.textContent;
+          el.innerHTML = escH(raw.slice(0, pos))
+            + `<del class="cdoc-del">${escH(raw.slice(pos, pos + zoek.length))}</del>`
+            + `<ins class="cdoc-ins">${escH(vervang)}</ins>`
+            + escH(raw.slice(pos + zoek.length));
+        }
         el.dataset.gewijzigd = 'true';
         el.style.cssText += ';' + stijl;
         gevonden = true;
