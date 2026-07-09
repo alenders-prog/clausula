@@ -6790,11 +6790,12 @@ function zetDossierContext(id, naam) {
   trayRender();
 }
 
-// "← Terug": terug naar het dossier-detail (of leeg als geen dossier)
+// "← Terug": terug naar dossierlijst, herlaad zodat analyses zichtbaar zijn
 document.getElementById('vcWisBtn').addEventListener('click', () => {
-  schakelRechts('rp-home');
   tray.length = 0;
   trayRender();
+  schakelRechts('rp-home');
+  laadDossiers(); // Herlaad vanuit Supabase — anders toont de grid stale data
 });
 
 // ── Document-tray ─────────────────────────────────────
