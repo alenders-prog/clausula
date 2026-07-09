@@ -8082,11 +8082,12 @@ async function laadScreening(id, origin = 'main') {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    huidigeId             = data.id;
-    huidigeBestandsnaam   = data.bestandsnaam;
-    huidigePdfDocCache    = {};
-    docPanelGereed        = false;
-    huidigeBestandenLijst = [];
+    huidigeId                = data.id;
+    huidigeBestandsnaam      = data.bestandsnaam;
+    huidigePdfDocCache       = {};
+    docPanelGereed           = false;
+    huidigeBestandenLijst    = [];
+    huidigeHeranalyseTeksten = []; // Reset: geen herziene tekst tonen bij opgeslagen analyse
 
     // Bestanden ophalen uit Storage (backward compat: enkel of meerdere)
     const bestandenMeta = data.rapport._document_bestanden
