@@ -433,15 +433,24 @@ HV-C. REFERENTIE — Verwijst convenant expliciet naar huwelijkse voorwaarden (d
 MfN-VEREISTE ELEMENTEN (${docTypLabel}):
 ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 
-          // ── Documenten opsplitsen: hoofdtekst vs. bijlagen (context) ───────────────
+          // ── Documenten opsplitsen: hoofdtekst vs. bijlagen + andere hoofddocs (context) ──
           // contextBlok en stabielGedeeld zijn identiek voor alle 3 calls van hetzelfde document
           // én voor heranalyse → maximale cache-efficiency (cache-hit binnen 5-minuten-window).
           // Anthropic-caching: max 4 breakpoints per request.
           //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek(4) = precies 4.
           const documentBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}`;
-          const contextBlok  = contextTekst
-            ? `BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`
-            : null;
+
+          // Andere hoofddocumenten (bijv. OP bij Convenant en vice versa) als kruisreferentie-context,
+          // zodat Claude externe verwijzingen kan verifiëren ("zie het ouderschapsplan").
+          const andereHoofdDocs = effectiefHoofd.filter(d => d !== doc);
+          const kruisRefTekst = andereHoofdDocs
+            .map(d => `=== ${(d.type || 'DOCUMENT').toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
+            .join('\n\n');
+
+          const contextBlokDelen = [];
+          if (contextTekst)  contextBlokDelen.push(`BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`);
+          if (kruisRefTekst) contextBlokDelen.push(`ANDERE DOCUMENTEN IN DIT DOSSIER (gebruik voor kruisverwijzingen — NIET apart analyseren):\n${kruisRefTekst}`);
+          const contextBlok = contextBlokDelen.length ? contextBlokDelen.join('\n\n') : null;
 
           // Gedeeld regelsblok — identiek voor alle 3 calls + heranalyse → gecached in user-content
           // (voorheen in elke system prompt herhaald → aparte cache-entries per call-type)
@@ -472,11 +481,21 @@ Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — 
 `VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
 Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtbaar is":
 1. Doorzoek de VOLLEDIGE documenttekst actief op het beweerde ontbrekende element.
-2. Bij interne verwijzingen (bijv. "de in artikel 4.1.1 vermelde ...", "zie punt 21", "zie artikel 3.2"):
+2. Bij INTERNE verwijzingen (bijv. "de in artikel 4.1.1 vermelde ...", "zie punt 21", "zie artikel 3.2"):
    Zoek of het gerefereerde nummer ELDERS in het document voorkomt — als sectietitel, koptekst, nummeringsprefix van een lid of sub-artikel (bijv. "4.1.1" of "4.1.1." aan het begin van een alinea of opsommingspunt), of andere onderdelen van de documentstructuur BUITEN de verwijzingstekst zelf.
    - Artikelnummer komt ERGENS ANDERS in het document voor → rapporteer GEEN issue.
    - Bij TWIJFEL of het artikel ergens gedefinieerd is → rapporteer GEEN issue.
    - Alleen bij ABSOLUTE ZEKERHEID dat het nummer nergens als definitie, sectie of genummerd lid voorkomt → rapporteer een issue.
+2b. Bij EXTERNE verwijzingen naar een ander document in dit dossier (bijv. "zie het ouderschapsplan",
+    "conform het convenant", "zoals bepaald in bijlage X", "afspraken staan in het OP"):
+    Raadpleeg ANDERE DOCUMENTEN IN DIT DOSSIER om te verifiëren of de gerefereerde afspraak
+    of bepaling daadwerkelijk in dat andere document staat.
+    - Ander document aanwezig ÉN bevat de beweerde afspraak/bepaling → rapporteer GEEN issue over
+      het ontbreken van die inhoud in het TE ANALYSEREN DOCUMENT. Rapporteer hooguit als 'laag'
+      dat de verwijzing explicieter of formeler kan (bijv. bijlage-nummer toevoegen).
+    - Ander document aanwezig maar bevat de afspraak NIET → rapporteer het ontbreken in DÁT document
+      (niet in het te analyseren document — de verwijzing zelf is dan correct).
+    - Ander document ontbreekt volledig in het dossier → rapporteer dat het als bijlage/onderdeel ontbreekt.
    OPGELET: het feit dat "4.1.1" in de verwijzingstekst zelf staat ("de in artikel 4.1.1 vermelde...") telt NIET als bewijs dat het artikel bestaat. Zoek naar een APARTE definitieplek.
 3. SECTIENUMMERING — ABSOLUTE REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft
    (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…):
