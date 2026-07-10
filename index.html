@@ -699,6 +699,18 @@ button.primair:hover{background:var(--coral-dark);}
 
 /* ── Document-panel ───────────────────────────────── */
 .panel-doc{overflow:auto;background:#888;padding:20px;display:flex;flex-direction:column;align-items:center;}
+/* Passage-banner: sticky bovenin het doc-panel als tekst niet in canvas gevonden kan worden */
+.passage-banner{display:none;position:sticky;top:0;z-index:30;align-self:stretch;
+  background:#FFF9F0;border-bottom:2px solid var(--coral);
+  padding:9px 16px 10px;box-shadow:0 2px 8px rgba(0,0,0,.10);}
+.passage-banner.zichtbaar{display:block;}
+.passage-banner-kop{font-size:.72rem;font-weight:700;color:var(--coral-dark);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.passage-banner-tekst{font-size:.85rem;color:var(--ink);line-height:1.55;
+  font-style:italic;word-break:break-word;}
+.passage-banner-sluiten{float:right;background:none;border:none;cursor:pointer;
+  font-size:.9rem;color:var(--ink-soft);padding:0 0 0 8px;line-height:1;margin-top:1px;}
+.passage-banner-sluiten:hover{color:var(--ink);}
 .panel-doc.tekst-modus{background:var(--paper);padding:32px;display:block;align-items:unset;
   font-size:.93rem;line-height:1.75;}
 .panel-doc.tekst-modus p{margin:0 0 4px;}
@@ -2132,12 +2144,14 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
       // Tekst al bekend uit deze sessie of eerder opgeslagen rapport
       onProgress(`${prefix}Tekst uit cache…`);
       tekst = cachedTekst;
-      // Probeer ook het DOCX-blob te laden als dat nog niet in geheugen zit
+      // Probeer ook het DOCX-blob te laden als dat nog niet in geheugen zit.
+      // Alleen cachen voor concept-review; visuele weergave blijft altijd PDF.js.
       if (isPdf && isHoofdDoc && !docxPerBestandsnaam.has(item.bestand.name)) {
         adobeConverteerPdf(item.bestand, () => {}).then(blob => {
           docxPerBestandsnaam.set(item.bestand.name, blob);
-          docPanelGereed = false; // force re-render met mammoth zodra blob klaar is
-          renderDocPanel(''); // direct opnieuw renderen — panel is nu zichtbaar
+          // Geen renderDocPanel() hier — het panel toont al de PDF.js-canvas en
+          // re-renderen veroorzaakt een flicker + dubbele font-warnings zonder enig
+          // visueel verschil (renderDocPanel gebruikt docxPerBestandsnaam niet voor display).
         }).catch(() => {/* stil falen — viewer valt terug op PDF.js */});
       }
     } else {
@@ -3466,9 +3480,38 @@ function isGehighlightd() {
             document.querySelector('mark.hl-match'));
 }
 
+// Toon of verberg de passage-banner bovenin het doc-panel (voor gescande documenten
+// waarbij de tekst niet in de PDF-canvas gemarkeerd kan worden).
+function toonPassageBanner(passage) {
+  const panel = document.getElementById('documentPanel');
+  if (!panel) return;
+  let banner = panel.querySelector('.passage-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.className = 'passage-banner';
+    banner.innerHTML =
+      `<button class="passage-banner-sluiten" title="Sluiten">✕</button>
+       <div class="passage-banner-kop">📌 Relevante passage</div>
+       <div class="passage-banner-tekst"></div>`;
+    banner.querySelector('.passage-banner-sluiten').addEventListener('click', () => {
+      banner.classList.remove('zichtbaar');
+    });
+    panel.prepend(banner);
+  }
+  if (passage) {
+    banner.querySelector('.passage-banner-tekst').textContent = passage;
+    banner.classList.add('zichtbaar');
+  } else {
+    banner.classList.remove('zichtbaar');
+  }
+}
+
 // Probeer de passage te vinden; als het niet lukt, probeer progressief kortere substrings.
 // Stopswoorden overslaan voor een betekenisvolle eerste treffer.
 async function zoekEnScrollNaarPassage(passage) {
+  // Verberg vorige banner bij nieuwe zoekopdracht
+  toonPassageBanner('');
+
   await renderDocPanel(passage);
   if (isGehighlightd()) return;
 
@@ -3489,7 +3532,9 @@ async function zoekEnScrollNaarPassage(passage) {
     if (isGehighlightd()) return;
   }
 
-  // Niets gevonden — toch de zoekterm doorgeven zodat de UI niet 'actief' toont zonder resultaat
+  // Niets gevonden (gescand document of passage niet letterlijk in viewer) —
+  // toon de passage als tekstbanner bovenin het doc-panel.
+  if (passage?.trim()) toonPassageBanner(passage);
 }
 
 // ── Klik op kaart → passage markeren ─────────────────
