@@ -469,13 +469,13 @@ button.primair{padding:9px 20px;background:var(--coral);color:#fff;border:none;
 button.primair:hover{background:var(--coral-dark);}
 
 /* ── Concept review full-screen ─────────────────────── */
-.concept-review{position:fixed;inset:0;z-index:600;background:var(--bg);
+.concept-review{position:fixed;top:76px;left:0;right:0;bottom:0;z-index:600;background:var(--bg);
   display:flex;flex-direction:column;}
 .concept-review-header{display:flex;align-items:center;gap:16px;
-  padding:12px 24px;background:var(--paper);border-bottom:1px solid var(--line);
-  flex-shrink:0;}
+  padding:10px 20px;background:var(--nav-bg);border-bottom:1px solid var(--nav-border);
+  flex-shrink:0;min-height:52px;}
 .concept-review-titel{flex:1;font-family:'Source Serif 4',serif;font-weight:600;
-  font-size:1.05rem;color:var(--ink);}
+  font-size:1.05rem;color:rgba(245,241,232,.9);}
 .concept-review-body{display:flex;flex:1;overflow:hidden;}
 
 /* Document-preview paneel (links) */
@@ -632,11 +632,16 @@ button.primair:hover{background:var(--coral-dark);}
   background:var(--nav-bg);color:#fff;font-size:.83rem;font-weight:700;cursor:pointer;}
 .btn-heranalyseer:hover{background:#243F68;}
 .btn-heranalyseer:disabled{opacity:.45;cursor:default;}
-/* Waarschuwing + download-disabled state */
-.concept-download-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-.concept-download-msg{font-size:.74rem;color:#b05000;background:#FFF3E5;
-  border:1px solid #FECBA0;border-radius:6px;padding:3px 9px;white-space:nowrap;}
+/* Download-disabled state + hover-tooltip */
+.concept-download-wrap{position:relative;display:flex;align-items:center;}
 .primair.download-pending{opacity:.45;cursor:not-allowed;}
+.primair.download-pending::after{
+  content:'⚠ Beantwoord eerst alle wijzigingen';
+  position:absolute;right:0;bottom:calc(100% + 8px);
+  background:#1B3050;color:#F5F1E8;border-radius:6px;
+  padding:5px 10px;font-size:.74rem;white-space:nowrap;
+  pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;}
+.primair.download-pending:hover::after{opacity:1;}
 
 /* ── Concept-generatie statuschips ───────────────── */
 #conceptGenChips{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;max-width:340px;}
@@ -1550,9 +1555,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     <div class="concept-review-acties">
       <div class="concept-download-wrap">
         <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
-        <span id="conceptDownloadMsg" class="concept-download-msg" style="display:none">
-          ⚠️ Beantwoord eerst alle wijzigingen
-        </span>
       </div>
     </div>
   </div>
@@ -4877,14 +4879,12 @@ function _alleWijzigingenBeantwoord() {
   });
 }
 
-// Update download-knop state + waarschuwing in concept review
+// Update download-knop state; tooltip via CSS ::after op .download-pending
 function _updateConceptDownloadState() {
   const btn = document.getElementById('conceptDownloadBtn');
-  const msg = document.getElementById('conceptDownloadMsg');
   if (!btn) return;
   const ok = _alleWijzigingenBeantwoord();
   btn.classList.toggle('download-pending', !ok);
-  if (msg) msg.style.display = ok ? 'none' : '';
 }
 // Doc-type van het concept dat momenteel in review is (vastgelegd bij openen, niet bij klikken)
 let _conceptDocType        = '';
@@ -5638,7 +5638,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
     // Sorteer wijzigingen op positie in het originele document
     const bronTekstSort = (origineelTekst || documentTekst || '').toLowerCase().replace(/\s+/g, ' ');
     const gesorteerd = [..._conceptWijzigingen].map((w, origIdx) => {
-      const zoek = (w.originele_tekst || w.artikel || '').slice(0, 60).toLowerCase().replace(/\s+/g, ' ').trim();
+      const zoek = (w.originele_tekst || w.zoek_tekst || w.invoeg_na || w.artikel || '').slice(0, 80).toLowerCase().replace(/\s+/g, ' ').trim();
       const pos  = zoek ? bronTekstSort.indexOf(zoek) : -1;
       return { w, origIdx, pos: pos === -1 ? Infinity : pos };
     }).sort((a, b) => a.pos - b.pos);
@@ -6038,6 +6038,19 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   const snapDocType = huidigDocType;
   const snapAangevinkt = aangevinkt;
   const snapOrigineel  = origineleTekst;
+  // Andere documenten als referentiecontext (bijv. OP bij Convenant en vice versa)
+  const snapAndere = huidigeDocumenten
+    .filter((_, i) => i !== huidigeDocIdx)
+    .map(doc => {
+      const tekst = haalDocTypeTekst(volledigeTekst, doc.doc_type);
+      if (!tekst || tekst === volledigeTekst) return '';
+      const label = DOC_TYPES.find(d => d.value === doc.doc_type)?.label || doc.doc_type;
+      // Maximaal 4000 tekens per document zodat de prompt niet te groot wordt
+      const excerpt = tekst.length > 4000 ? tekst.slice(0, 4000) + '\n[...]' : tekst;
+      return `=== ${label.toUpperCase()} (ALLEEN TER REFERENTIE — dit document NIET aanpassen) ===\n${excerpt}`;
+    })
+    .filter(Boolean)
+    .join('\n\n');
   // Origineel PDF-bestand voor Adobe DOCX-conversie
   const snapBestand    = huidigePrimaireBest[huidigeDocIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
@@ -6083,6 +6096,7 @@ ABSOLUTE VERBODEN (nooit overtreden):
   ✓ GOED:  zoek_tekst="Zin A."  vervang_door="Zin A verbeterd."  [aparte wijziging voor Zin B indien nodig]
 - NOOIT meerdere niet-samenhangende problemen samenvoegen in één grote zoek_tekst/vervang_door.
 - NOOIT inhoud van aangrenzende artikelen of alinea's meenemen in zoek_tekst.
+- NOOIT twee aparte wijzigingen maken voor hetzelfde artikel of dezelfde passage. Als meerdere verbeterpunten dezelfde tekstpassage raken: combineer alles in één zoek_tekst + vervang_door.
 
 OVERIGE KERNREGELS:
 - Behoud EXACT de structuur, nummering en formele toon van het origineel.
@@ -6103,7 +6117,7 @@ OVERIGE KERNREGELS:
                   item_nr:          { type: 'integer' },
                   artikel:          { type: 'string' },
                   wat_gewijzigd:    { type: 'string', description: 'Korte samenvatting van de aanpassing' },
-                  zoek_tekst:       { type: 'string', description: 'Exacte verbatim passage uit het originele document (1-3 zinnen) die vervangen wordt' },
+                  zoek_tekst:       { type: 'string', description: 'Exacte verbatim passage uit het originele document die vervangen wordt. MAXIMAAL 1-2 aaneengesloten zinnen uit DEZELFDE alinea. Nooit een alinea-grens overschrijden. Als twee verbeterpunten hetzelfde artikel raken: combineer ze in één item met één zoek_tekst/vervang_door.' },
                   vervang_door:     { type: 'string', description: 'Verbeterde versie van diezelfde passage' },
                 },
                 required: ['item_nr', 'artikel', 'wat_gewijzigd', 'zoek_tekst', 'vervang_door'],
@@ -6134,11 +6148,11 @@ OVERIGE KERNREGELS:
 
       const userTekst =
 `DOCUMENTTYPE: ${snapDocType}
-
+${snapAndere ? `\nANDERE DOCUMENTEN (alleen ter referentie voor context en samenhang — UITSLUITEND het "TE VERBETEREN DOCUMENT" hieronder aanpassen):\n${snapAndere}\n` : ''}
 TE VERWERKEN VERBETERPUNTEN (${snapAangevinkt.length} stuks):
 ${itemsTekst}
 
-ORIGINEEL DOCUMENT:
+TE VERBETEREN DOCUMENT:
 ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 
       // max_tokens laag houden: alleen vervangingen, geen volledig document (~1500 tokens voor 8 issues)
