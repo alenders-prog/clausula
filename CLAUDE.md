@@ -57,3 +57,28 @@ Claude wordt aangeroepen via `askClaudeForJson()` in `screen.js` — altijd met 
 ## Git
 
 Nooit automatisch pushen. Alleen pushen als de gebruiker dat expliciet vraagt.
+
+## Skills bijhouden
+
+Skills in `.claude/skills/` leggen non-obvieuze kennis vast die niet direct uit de code
+af te lezen is. Ze worden **niet automatisch bijgewerkt** — dit moet expliciet gebeuren.
+
+**Bijwerkregel (verplicht toepassen):**
+Na elke wijziging aan de bestanden hieronder — controleer of de bijbehorende skill(s)
+bijgewerkt moeten worden en doe dat **in dezelfde sessie, vóór de commit**:
+
+| Gewijzigd bestand | Betrokken skill(s) |
+|---|---|
+| `api/analyseer.js` | `screening-categorien`, `document-model` |
+| `api/genereer-concept.js` | `concept-generatie` |
+| `api/export-docx.js` | `concept-generatie` |
+| `index.html` — analyse-flow | `screening-categorien`, `document-model` |
+| `index.html` — concept-flow | `concept-generatie` |
+
+Update de skill alleen als de wijziging **non-obvieuze** kennis toevoegt of verandert
+(veldnamen, algoritmen, valkuilen, designbeslissingen). Triviale fixes hoeven niet.
+
+Als code en skill **afwijken**: meld dit altijd expliciet aan de gebruiker.
+
+De PostToolUse hook in `.claude/settings.json` geeft een automatisch signaal bij edits
+op de API-bestanden — reageer daarop door de skill te beoordelen.

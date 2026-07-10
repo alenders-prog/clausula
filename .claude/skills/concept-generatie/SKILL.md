@@ -56,10 +56,59 @@ Deze regels staan in de systeemprompt van de `genereerConceptBtn` handler:
 3. **Nooit tekst weglaten** uit `zoek_tekst` die ongewijzigd blijft in `vervang_door`.
    - ✗ FOUT: `zoek_tekst="Zin A. Zin B. Zin C."`, `vervang_door="Zin A. Zin C."` — Zin B verdwijnt!
    - ✓ GOED: `zoek_tekst="Zin B."`, `vervang_door="Zin B verbeterd."`
-4. Sectietitels en artikelnummers alleen in `zoek_tekst` als die zelf de fout bevatten.
-5. `vervang_door=""` (lege string) als een zin verwijderd moet worden.
+4. **Nooit ongewijzigde zinnen als buffer in `zoek_tekst` opnemen.** Als alleen Zin B verandert, mag `zoek_tekst` niet ook Zin A (voor) of Zin C (na) bevatten — ook als ze in `vervang_door` letterlijk worden herhaald. De track-changes-weergave markeert de hele `zoek_tekst` als `<del>`, waardoor ongewijzigde zinnen ten onrechte als doorgestreept verschijnen.
+5. **Bij een toevoeging (nieuwe zin invoegen):** gebruik als `zoek_tekst` uitsluitend de zin waarvóór of waarna ingevoegd wordt.
+   - ✗ FOUT: `zoek_tekst="[Zin A]. [Zin B]."`, `vervang_door="[Zin A]. [NIEUW]. [Zin B]."`
+   - ✓ GOED: `zoek_tekst="[Zin B]."`, `vervang_door="[NIEUW]. [Zin B]."` (invoegen vóór Zin B)
+6. Sectietitels en artikelnummers alleen in `zoek_tekst` als die zelf de fout bevatten.
+7. `vervang_door=""` (lege string) als een zin verwijderd moet worden.
+8. **KRITIEK — alinea met meerdere zinnen, slechts één bedrag/getal/datum wijzigt:**
+   `zoek_tekst` = uitsluitend de zin MET dat bedrag/getal. NOOIT de omliggende zinnen meenemen.
+   - ✗ FOUT: `zoek_tekst="Zin A €462,-. Zin B. Zin C."`, `vervang_door="Zin A €463,-."` → Zin B en C verdwijnen!
+   - ✓ GOED: `zoek_tekst="Zin A €462,-."`, `vervang_door="Zin A €463,-."` — prompt heeft dit expliciet als ABSOLUTE VERBODEN.
 
 ---
+
+## Vangnet: wijzigingenSanitized (code-level)
+
+Na ontvangst van `wijzigingenRaw` van Claude, vóór toepassing, loopt er een sanitatie-stap
+(`wijzigingenSanitized`) die het "te veel weggehaald"-patroon automatisch herstelt:
+
+```
+zoek.length >= vervang.length * 1.4 + 40  AND  zinnen.length >= 2
+→ zoek_tekst getrimd tot de zin waarvan de eerste 7 woorden overeenkomen met vervang_door
+```
+
+**Wanneer triggered**: Claude levert `zoek_tekst` = volledige alinea (3+ zinnen), `vervang_door` = 1 zin.  
+**Wat het doet**: zoek_tekst → alleen de gewijzigde zin; vervang_door blijft ongewijzigd.  
+**Wanneer NIET ingrijpen**: als geen zin in zoek_tekst overeenkomt (eerste 7 woorden) met vervang_door.  
+**Let op**: `wijzigingenSanitized` wordt doorgegeven aan `wijzigingenGefilterd` (zie hieronder) — de
+"Origineel"-tab toont de gecorrigeerde (kortere) originele_tekst.
+
+## Cross-document filter: wijzigingenGefilterd (code-level)
+
+Na `wijzigingenSanitized` loopt een **cross-document filter** die wijzigingen verwijdert waarvan
+`zoek_tekst` niet letterlijk terugkomt in `snapOrigineel` (het huidige document).
+
+**Probleem dat dit oplost**: bij multi-doc analyse (convenant + ouderschapsplan) geeft Claude
+soms `zoek_tekst` met tekst die ALLEEN in het referentiedocument staat. Die wijziging
+kan niet worden toegepast → orange "niet-toegepast" badge, verwarrend voor de gebruiker.
+
+**Werking**:
+```
+// _normDoc = GEANONIMISEERDE snapOrigineel (met nep-namen — zelfde "taal" als zoek_tekst)
+anker = normZoek.slice(0, 40)  (eerste 40 chars, normalized)
+new RegExp(anker.replace(/ /g, '\\s+')).test(_normDoc)
+→ false: verwijder wijziging + console.warn
+```
+
+**Valkuil (opgelost 2025-07)**: `_normDoc` moet de GEANONIMISEERDE versie van `snapOrigineel`
+zijn (`anonimiseerTekst(snapOrigineel, snapNaarAnon)`). Als `_normDoc` echte namen bevat maar
+`zoek_tekst` nep-namen, matcht de anker nooit — legitieme wijzigingen met een persoonsnaam
+aan het begin worden dan onterecht gefilterd. De fix zit in het concept-generatie-blok in `index.html`.
+
+**Volgorde volledige pipeline**:
+`wijzigingenRaw` → `wijzigingenSanitized` (te-veel-weggehaald trim) → `wijzigingenGefilterd` (cross-doc filter) → `wijzigingenGenorm` (veldnamen normaliseren) → `wijzigingenEcht` (de-anonimiseren) → display/opslag
 
 ## Pseudonimisering round-trip
 
@@ -69,11 +118,16 @@ worden ze opnieuw gepseudonimiseerd via `anonimiseerTekst(t, snapNaarAnon)`.
 Claude's output (`wijzigingenRaw`) wordt daarna ge-de-pseudonimiseerd via
 `herstelAnonObj(wijzigingenGenorm, snapNaarEcht)` **vóórdat** het concept wordt opgeslagen.
 
-> **Valkuil**: als de de-pseudonimisering wordt overgeslagen, bevatten opgeslagen wijzigingen
-> `[PERSOON_A]` placeholders in plaats van echte namen.
+**Nep-namen ipv placeholders (vanaf 2025-07):**
+- Persoonsnamen worden als nep-namen verstuurd (bijv. "Thomas Bergman") — niet als `[PERSOON_A]`.
+- `snapNaarEcht` bevat `"Thomas Bergman" → "Martijn Jasperse"` én legacy `"[PERSOON_A]" → "Martijn Jasperse"`.
+- `herstelAnonObj` herkent nep-namen (case-insensitief regex) én legacy bracket-placeholders (exact + fuzzy).
 
-Cross-document referentie-context (`snapAndere`) wordt **niet** de-pseudonimiseerd — die
-tekst blijft gepseudonimiseerd in de prompt zodat geen echte namen naar de server gaan.
+> **Valkuil**: als de de-pseudonimisering wordt overgeslagen, bevatten opgeslagen wijzigingen
+> nep-namen (bijv. "Thomas Bergman") in plaats van echte namen.
+
+`snapAndere` (het andere document, nu NIET meer gebruikt in analyse) wordt ook niet
+de-pseudonimiseerd — als het toch wordt meegegeven, bevat het nep-namen.
 
 ---
 
@@ -179,6 +233,30 @@ Stopt bij eerste treffer (`break outer`). Nooit meer dan één element per wijzi
 |---------|------|--------|
 | `pasWijzigingenToeInDocx()` | Track-changes voor weergave en download | OOXML met `<w:del>`/`<w:ins>` |
 | `vervangInDocxXmlSchoon()` | Schone vervanging voor heranalyse | Gewone tekst, geen markup |
+
+### Valkuil in `vervangInDocxXml` — "te veel weggehaald"
+
+`vervangInDocxXml` heeft een conditie die de **volledige OOXML-alinea (`<w:p>`)** als `<w:del>` markeert
+wanneer de match aan het begin staat en er tekst na volgt:
+
+```js
+// VOOR (bug):
+if (!txtVoor.trim() && txtNa.trim()) { txtOud = txt; txtNa = ''; }
+
+// NA (fix):
+if (!txtVoor.trim() && txtNa.trim() && zoekNorm.length < oudNorm.length) {
+  txtOud = txt; txtNa = '';
+}
+```
+
+**Wanneer dit probleem optreedt**: `zoek_tekst` = eerste zin van een alinea met 3 zinnen.
+- De match staat aan het begin (`idx=0`), de andere 2 zinnen volgen in `txtNa`
+- Vóór de fix: conditie vuurt → alle 3 zinnen in `<w:del>` (ook zinnen B en C verdwijnen!)
+- Na de fix: conditie vuurt ALLEEN als `zoekNorm` ingekort was (multi-alinea-geval)
+
+**Twee code paths** voor track-changes weergave:
+1. `markeerWijzigingenInDom` (HTML viewer) — had dit probleem NIET (werkt op DOM-niveau)
+2. `vervangInDocxXml` (DOCX viewer/download) — had dit probleem WEL (OOXML-niveau)
 
 De schone variant mag **nooit** `<w:del>`/`<w:ins>` bevatten — Claude ziet die anders als
 letterlijke tekst bij heranalyse.

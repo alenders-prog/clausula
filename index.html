@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
@@ -526,9 +526,9 @@ button.primair:hover{background:var(--coral-dark);}
   border-radius:2px;padding:0 2px;font-style:normal;font-weight:500;}
 
 /* ── docx-preview: A4-pagina-weergave ───────────────────── */
-/* Het paneel zelf is de grijze "buiten-de-pagina" achtergrond  */
-/* De sectie binnen docx-render wordt behandeld als wit A4-vel  */
-.concept-doc-panel .docx-render{
+/* Geldt voor concept-doc-panel (concept-review) én #documentPanel (upload DOCX) */
+.concept-doc-panel .docx-render,
+#documentPanel .docx-render{
   background:#fff !important;
   max-width:794px !important;   /* A4 bij 96 dpi                   */
   width:794px !important;
@@ -544,12 +544,21 @@ button.primair:hover{background:var(--coral-dark);}
   box-sizing:border-box !important;
 }
 /* Alinea-opmaak binnen docx-preview */
-.concept-doc-panel .docx-render p{margin:0 0 .5em;}
+.concept-doc-panel .docx-render p,
+#documentPanel .docx-render p{margin:0 0 .5em;}
 /* Meer ruimte tussen opsommingsteken en tekst                  */
 .concept-doc-panel .docx-render p[style*="text-indent"],
-.concept-doc-panel .docx-render li{
-  padding-left:.4em;
-  margin-bottom:.35em;
+.concept-doc-panel .docx-render li,
+#documentPanel .docx-render p[style*="text-indent"],
+#documentPanel .docx-render li{
+  padding-left:.6em;
+  margin-bottom:.45em;
+}
+/* Bullet-marker: kleiner en lichter zodat hij niet zwaarder weegt dan de tekst */
+.concept-doc-panel .docx-render li::marker,
+#documentPanel .docx-render li::marker{
+  font-size:.72em;
+  color:#555;
 }
 /* ── Track-changes kleuren ─────────────────────────────── */
 .concept-doc-panel .docx-render ins,
@@ -1769,7 +1778,7 @@ const rapportTool = {
                           description: 'Welke dimensies dit issue raakt. Minimaal één.' },
             bevinding:   { type: 'string', description: 'Wat er mis is.' },
             aanbeveling: { type: 'string', description: 'Wat de mediator concreet moet doen om dit op te lossen.' },
-            passage:     { type: 'string', description: 'Verbatim citaat van maximaal 80 tekens uit het document dat het probleem aantoont. Kopieer de exacte tekst.' },
+            passage:     { type: 'string', description: 'Verbatim citaat van DE ZIN OF BULLET die de fout bevat (niet de voorgaande zin als context). Max 120 tekens. Kopieer de exacte tekst.' },
           },
           required: ['onderwerp','ernst','dimensies','bevinding','aanbeveling','passage'],
         },
@@ -2147,7 +2156,11 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
       // Probeer ook het DOCX-blob te laden als dat nog niet in geheugen zit.
       // Alleen cachen voor concept-review; visuele weergave blijft altijd PDF.js.
       if (isPdf && isHoofdDoc && !docxPerBestandsnaam.has(item.bestand.name)) {
-        adobeConverteerPdf(item.bestand, () => {}).then(blob => {
+        adobeConverteerPdf(item.bestand, () => {}).then(async blob => {
+          // Verwijder pagina-voettekst artefacten vóór opslaan zodat de download-flow
+          // de cache altijd al opgeschoond aantreft en cleanupDocxArtefacten niet nogmaals
+          // hoeft te draaien (vermijdt dubbele voettekst in export).
+          blob = await cleanupDocxArtefacten(blob);
           docxPerBestandsnaam.set(item.bestand.name, blob);
           // Geen renderDocPanel() hier — het panel toont al de PDF.js-canvas en
           // re-renderen veroorzaakt een flicker + dubbele font-warnings zonder enig
@@ -2790,20 +2803,55 @@ async function renderDocPanel(searchText) {
         huidigePdfDocCache[bestand.name] = pdfDoc;
         await renderPdfPaginas(panel, pdfDoc, gen);
       } else if (naam.endsWith('.docx')) {
-        // DOCX: mammoth HTML-rendering (geen PDF.js beschikbaar voor .docx)
-        const mammothOpties = {
-          convertImage: mammoth.images.imgElement(img =>
-            img.read('base64').then(b64 => ({ src: `data:${img.contentType};base64,${b64}` }))
-          ),
-        };
-        const buf    = await bestand.arrayBuffer();
+        // DOCX: docx-preview voor visueel correcte A4-weergave (zelfde als Word).
+        // Mammoth wordt alleen nog gebruikt als fallback als docx-preview niet geladen is.
+        const buf  = await bestand.arrayBuffer();
         if (gen !== renderGeneratie) return;
-        const result = await mammoth.convertToHtml({ arrayBuffer: buf }, mammothOpties);
-        if (gen !== renderGeneratie) return;
-        const div    = document.createElement('div');
-        div.className = 'docx-inhoud';
-        div.innerHTML = result.value;
+        const blob = new Blob([buf], {
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
+        const div  = document.createElement('div');
         panel.appendChild(div);
+
+        if (typeof window.docx?.renderAsync === 'function') {
+          try {
+            await window.docx.renderAsync(blob, div, null, {
+              renderChanges: false,   // geen track-changes in normale weergave
+              inWrapper:     false,
+              ignoreWidth:   true,    // breedte via CSS
+              ignoreHeight:  true,
+              ignoreFonts:   false,
+              breakPages:    false,   // doorlopende scroll
+              useBase64URL:  false,
+              className:     'docx-render',
+            });
+            if (gen !== renderGeneratie) return;
+            // Post-processing: bullet-spatiëring (opsommingsteken en tekst aan elkaar)
+            div.querySelectorAll('.docx-render p, .docx-render li').forEach(p => {
+              if (!/^[●•◦▪▸►▶‣⁃◉○\-–]\S/.test(p.textContent.trim())) return;
+              const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT, null, false);
+              let node;
+              while ((node = walker.nextNode())) {
+                if (/^[●•◦▪▸►▶‣⁃◉○\-–]\S/.test(node.textContent)) {
+                  node.textContent = node.textContent.replace(/^([●•◦▪▸►▶‣⁃◉○\-–])(\S)/, '$1 $2');
+                  break;
+                }
+              }
+            });
+          } catch (err) {
+            console.warn('[renderDocPanel] docx-preview mislukt, fallback mammoth:', err.message);
+            div.className = 'docx-inhoud';
+            const result  = await mammoth.convertToHtml({ arrayBuffer: buf });
+            if (gen !== renderGeneratie) return;
+            div.innerHTML = result.value;
+          }
+        } else {
+          // Fallback: mammoth (minder nauwkeurig maar altijd beschikbaar)
+          div.className = 'docx-inhoud';
+          const result  = await mammoth.convertToHtml({ arrayBuffer: buf });
+          if (gen !== renderGeneratie) return;
+          div.innerHTML = result.value;
+        }
       }
     }
     if (gen !== renderGeneratie) return;
@@ -2890,38 +2938,61 @@ function highlightInPdf(searchText) {
 function highlightInDocx(searchText) {
   const contents = Array.from(document.querySelectorAll('.docx-inhoud'));
   if (!contents.length) return;
+  // Verwijder vorige highlights en normaliseer tekstnodes
   contents.forEach(c => {
     c.querySelectorAll('mark.hl-match').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
     c.normalize();
   });
   if (!searchText.trim()) return;
-  // Normaliseer zoektekst: meerdere spaties/enters → één spatie, dan escapen voor regex
-  const zoekNorm = searchText.replace(/\s+/g, ' ').trim();
-  // Sta in de regex ook willekeurige whitespace toe op de plek van spaties (regeleinden in docx)
-  const re = new RegExp(zoekNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+'), 'gi');
+
+  // Zoek over tekstnode-grenzen heen (zoals highlightInPdf doet voor PDF-spans).
+  // Docx-preview verdeelt één zin over meerdere <span>-runs; per-node regex mist dan.
+  // Aanpak: concateneer alle tekstnodes → vind positie in gecombineerde string →
+  // highlight de nodes die binnen [matchStart, matchEnd] vallen.
+  const zoek = searchText.replace(/\s+/g, ' ').trim().toLowerCase();
   let eersteEl = null;
+
   for (const content of contents) {
     const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
     const nodes = []; let node;
     while ((node = walker.nextNode())) nodes.push(node);
-    for (const tekstNode of nodes) {
-      const tekst = tekstNode.nodeValue;
-      if (!re.test(tekst)) { re.lastIndex = 0; continue; }
-      re.lastIndex = 0;
-      const frag = document.createDocumentFragment();
-      let li = 0, match;
-      while ((match = re.exec(tekst)) !== null) {
-        frag.appendChild(document.createTextNode(tekst.slice(li, match.index)));
-        const mark = document.createElement('mark');
-        mark.className = 'hl-match';
-        mark.textContent = match[0];
-        frag.appendChild(mark);
-        if (!eersteEl) eersteEl = mark;
-        li = match.index + match[0].length;
-      }
-      frag.appendChild(document.createTextNode(tekst.slice(li)));
-      tekstNode.parentNode.replaceChild(frag, tekstNode);
+
+    // Bouw gecombineerde tekst en houd startposities bij per node
+    let gecombineerd = '';
+    const nodeStart = []; // startpositie van elke node in gecombineerd
+    for (const n of nodes) {
+      nodeStart.push(gecombineerd.length);
+      gecombineerd += n.nodeValue;
     }
+    const gecNorm = gecombineerd.replace(/\s+/g, ' ').toLowerCase();
+
+    let pos = gecNorm.indexOf(zoek);
+    if (pos === -1) continue; // niet gevonden in dit content-element
+
+    const eindPos = pos + zoek.length;
+
+    // Highlight alle nodes die overlappen met [pos, eindPos]
+    for (let i = 0; i < nodes.length; i++) {
+      const nStart = nodeStart[i];
+      const nEind  = nStart + nodes[i].nodeValue.length;
+      if (nEind <= pos || nStart >= eindPos) continue; // geen overlap
+
+      const tekstNode = nodes[i];
+      const raw       = tekstNode.nodeValue;
+      const hlStart   = Math.max(0, pos - nStart);
+      const hlEind    = Math.min(raw.length, eindPos - nStart);
+
+      const frag = document.createDocumentFragment();
+      if (hlStart > 0) frag.appendChild(document.createTextNode(raw.slice(0, hlStart)));
+      const mark = document.createElement('mark');
+      mark.className = 'hl-match';
+      mark.textContent = raw.slice(hlStart, hlEind);
+      frag.appendChild(mark);
+      if (hlEind < raw.length) frag.appendChild(document.createTextNode(raw.slice(hlEind)));
+      tekstNode.parentNode.replaceChild(frag, tekstNode);
+      if (!eersteEl) eersteEl = mark;
+    }
+    break; // eerste content-element met een match is genoeg
   }
   if (eersteEl) eersteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -3181,6 +3252,29 @@ async function toonRapport(cls, rp) {
   huidigeDocumenten = docs || [];
   huidigeDocIdx     = 0;
 
+  // ── Cross-doc issue-filter ──────────────────────────────────────────────────
+  // Verwijdert issues die expliciet verwijzen naar het ANDERE document.
+  // Werkt op bestaande Supabase-data (server-filter in analyseer.js werkt alleen voor nieuwe analyses).
+  const _CROSS_DOC_LABELS = {
+    convenant:      ['ouderschapsplan', 'het op '],
+    ouderschapsplan:['het convenant', 'convenant:'],
+  };
+  function filterCrossDocIssues(issues, actDocType) {
+    if (!Array.isArray(issues) || !actDocType) return issues;
+    const labels = _CROSS_DOC_LABELS[actDocType];
+    if (!labels) return issues;
+    const voor = issues.length;
+    const gefilterd = issues.filter(issue => {
+      const tekst = ((issue.onderwerp || '') + ' ' + (issue.bevinding || '')).toLowerCase();
+      const isAnder = labels.some(lbl => tekst.includes(lbl));
+      if (isAnder) console.log(`[display] cross-doc filter: "${(issue.onderwerp||'').slice(0,70)}" uit ${actDocType}`);
+      return !isAnder;
+    });
+    if (gefilterd.length < voor)
+      console.log(`[display] ${voor - gefilterd.length} cross-doc issue(s) gefilterd (${actDocType})`);
+    return gefilterd;
+  }
+
   // ── Helpers ──
   const sectie = (titel, inhoud, open = false, filterbaar = false, balkPct = null) => `
     <div class="a-sectie${open ? '' : ' dicht'}${balkPct !== null ? ' heeft-balk' : ''}">
@@ -3431,6 +3525,11 @@ async function toonRapport(cls, rp) {
         if (_voorgaandConcepten) {
           huidigRapport._concepts = { ...(huidigRapport._concepts || {}), ..._voorgaandConcepten };
         }
+        // Client-side cross-doc filter: verwijder issues van het andere document
+        const _tabDocType = huidigeDocumenten[idx]?.doc_type || '';
+        if (Array.isArray(huidigRapport.issues)) {
+          huidigRapport.issues = filterCrossDocIssues(huidigRapport.issues, _tabDocType);
+        }
         activeerAnalysePanel(huidigRapport);
         // Toon "Bekijk concept" alleen als er een concept is voor dit document-type
         const tabDocType   = huidigeDocumenten[idx]?.doc_type || '';
@@ -3468,7 +3567,13 @@ async function toonRapport(cls, rp) {
   // Zet huidigRapport nu ook naar het gecombineerde object zodat kaart()
   // huidigRapport['volledigheid'] etc. al kan vinden vóór de eerste tab-switch.
   const drpVoorBanner = docs ? { ...rp, ...docs[0] } : rp;
-  if (docs) huidigRapport = drpVoorBanner;
+  if (docs) {
+    // Filter cross-doc issues ook bij initiële load van het eerste tabblad
+    if (Array.isArray(drpVoorBanner.issues)) {
+      drpVoorBanner.issues = filterCrossDocIssues(drpVoorBanner.issues, drpVoorBanner.doc_type || '');
+    }
+    huidigRapport = drpVoorBanner;
+  }
   activeerAnalysePanel(drpVoorBanner);
   openSplitView();
   await renderDocPanel('');
@@ -3479,6 +3584,33 @@ function isGehighlightd() {
   return !!(document.querySelector('.textLayer span.hl-match') ||
             document.querySelector('mark.hl-match'));
 }
+
+// ── Passage-zoeken: citaat-extractie en kandidatenlijst ──────────────────────
+// Haal het langste geciteerde stuk uit een tekst (aanhalingstekens: recht of gekruld).
+// Verwijdert afkortingstippen (... / …) aan het einde.
+function haalCitaatUitTekst(tekst) {
+  if (!tekst) return '';
+  const matches = [...tekst.matchAll(/[''‚‛"'"„«»]([^''‚‛"'"„«»]{10,})[''‚‛"'"„«»]/g)];
+  if (!matches.length) return '';
+  // Langste citaat is het meest informatief
+  const langste = matches.reduce((a, b) => b[1].length > a[1].length ? b : a);
+  return langste[1].replace(/[.…]{2,}$/, '').trim();
+}
+
+// Bouw gesorteerde lijst van zoektermen voor een issue:
+//  1. Citaat uit bevinding  — meest precies (de zin mét de fout)
+//  2. Verbatim passage      — door Claude ingevuld, kan fout zijn
+//  3. Citaat uit onderwerp  — vaak afgekort met …
+function zoektermenVoorIssue(issue) {
+  if (!issue) return [];
+  const citBev = haalCitaatUitTekst(issue.bevinding  || '');
+  const citOnd = haalCitaatUitTekst(issue.onderwerp  || '');
+  const passage = (issue.passage || '').trim();
+  // Dedup + minimale lengte
+  return [citBev, passage, citOnd]
+    .filter((t, i, a) => t && t.length >= 10 && a.indexOf(t) === i);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Toon of verberg de passage-banner bovenin het doc-panel (voor gescande documenten
 // waarbij de tekst niet in de PDF-canvas gemarkeerd kan worden).
@@ -4416,32 +4548,39 @@ async function voegVoettekstToeAanDocx(docxBlob) {
   await zip.loadAsync(docxBlob);
 
   const relId  = 'rIdClausulaFooter';
-  const streep = '_______________';
 
   // Gebruik dezelfde labels als in het document (niet de partijnamen)
   const labelM = 'paraaf man:';
   const labelV = 'paraaf vrouw:';
 
-  // 1. Footer XML — links "paraaf man:", midden "paraaf vrouw:", rechts paginanummer
+  // 1. Footer XML — rechts uitgelijnd, twee regels:
+  //    Regel 1: "paraaf man:   paraaf vrouw:"
+  //    Regel 2: "1/12"  (PAGE / NUMPAGES velden)
+  const rPr = `<w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>`;
   const ftrXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:p>
     <w:pPr>
-      <w:jc w:val="left"/>
-      <w:tabs>
-        <w:tab w:val="center" w:pos="4680"/>
-        <w:tab w:val="right" w:pos="9360"/>
-      </w:tabs>
+      <w:jc w:val="right"/>
+      <w:tabs><w:tab w:val="right" w:pos="9360"/></w:tabs>
     </w:pPr>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">${labelM} ${streep}</w:t></w:r>
+    <w:r>${rPr}<w:t xml:space="preserve">${labelM}</w:t></w:r>
     <w:r><w:tab/></w:r>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t xml:space="preserve">${labelV} ${streep}</w:t></w:r>
-    <w:r><w:tab/></w:r>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:t>1</w:t></w:r>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r>
+    <w:r>${rPr}<w:t xml:space="preserve">${labelV}</w:t></w:r>
+  </w:p>
+  <w:p>
+    <w:pPr><w:jc w:val="right"/></w:pPr>
+    <w:r>${rPr}<w:fldChar w:fldCharType="begin"/></w:r>
+    <w:r>${rPr}<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>
+    <w:r>${rPr}<w:fldChar w:fldCharType="separate"/></w:r>
+    <w:r>${rPr}<w:t>1</w:t></w:r>
+    <w:r>${rPr}<w:fldChar w:fldCharType="end"/></w:r>
+    <w:r>${rPr}<w:t>/</w:t></w:r>
+    <w:r>${rPr}<w:fldChar w:fldCharType="begin"/></w:r>
+    <w:r>${rPr}<w:instrText xml:space="preserve"> NUMPAGES </w:instrText></w:r>
+    <w:r>${rPr}<w:fldChar w:fldCharType="separate"/></w:r>
+    <w:r>${rPr}<w:t>12</w:t></w:r>
+    <w:r>${rPr}<w:fldChar w:fldCharType="end"/></w:r>
   </w:p>
 </w:ftr>`;
   zip.file('word/footer1.xml', ftrXml);
@@ -4625,8 +4764,13 @@ function vervangInDocxXml(xml, wijzigingen) {
       let txtOud  = idx >= 0 ? txt.slice(idx, _delEind) : txt;
       let txtNa   = idx >= 0 ? txt.slice(_delEind) : '';
 
-      // Hele alinea markeren als match aan begin staat en zin loopt door
-      if (!txtVoor.trim() && txtNa.trim()) { txtOud = txt; txtNa = ''; }
+      // Hele alinea markeren als match aan begin staat en zoekterm werd ingekort
+      // (multi-alinea: 40/80-char prefix matcht begin, rest volgt in loop hieronder).
+      // NIET vuren als zoekterm volledig is maar alinea langer is — dan alleen exact
+      // het match-gedeelte doorhalen, niet de hele alinea.
+      if (!txtVoor.trim() && txtNa.trim() && zoekNorm.length < oudNorm.length) {
+        txtOud = txt; txtNa = '';
+      }
 
       const pPr = para.getElementsByTagNameNS(wNs, 'pPr')[0] || null;
       const rPr = paraRPr(para);
@@ -4764,22 +4908,43 @@ function markeerWijzigingenInDom(container, wijzigingen) {
 
     let gevonden = false;
 
+    // Helper: pas vervanging toe op element na matching
+    const pasVervanging = (el, pos, zoekLen, vervang) => {
+      const raw = el.textContent;
+      el.innerHTML = escH(raw.slice(0, pos))
+        + `<del class="cdoc-del">${escH(raw.slice(pos, pos + zoekLen))}</del>`
+        + `<ins class="cdoc-ins">${escH(vervang)}</ins>`
+        + escH(raw.slice(pos + zoekLen));
+      el.dataset.gewijzigd = 'true';
+      el.style.cssText += ';' + stijl;
+    };
+
     // Poging 1: individuele blok-elementen (case-insensitief via norm)
+    // Twee passes: eerst voorkeur voor match aan het begin van het element (pos ≤ 30),
+    // daarna val terug op de eerste match ergens in het element.
+    // Reden: als "Pasen: ..." zowel als zelfstandig element (pos=0) als MIDDEN IN een
+    // ander element (bijv. "Voorjaarsvakantie: ...Pasen: ...") bestaat, is het zelfstandige
+    // element vrijwel altijd het correcte doelwit.
     outer: for (const zoek of kandidaten) {
+      // Pass 1: alleen elementen waar de match bij het begin staat (prefix ≤ 30 tekens)
       for (const el of individ) {
         if (!el.isConnected) continue;
         const elNorm = norm(el.textContent);
         if (!elNorm.includes(zoek)) continue;
-
-        // Inline vervanging: altijd alleen de matching passage doorstrepen, rest behouden
         const pos = elNorm.indexOf(zoek);
-        const raw = el.textContent;
-        el.innerHTML = escH(raw.slice(0, pos))
-          + `<del class="cdoc-del">${escH(raw.slice(pos, pos + zoek.length))}</del>`
-          + `<ins class="cdoc-ins">${escH(vervang)}</ins>`
-          + escH(raw.slice(pos + zoek.length));
-        el.dataset.gewijzigd = 'true';
-        el.style.cssText += ';' + stijl;
+        if (pos > 30) continue; // te veel prefix → verkeerd element, pas 2 pakt het op
+        pasVervanging(el, pos, zoek.length, vervang);
+        gevonden = true;
+        gevondAantal++;
+        break outer;
+      }
+      // Pass 2: val terug op eerste element met match ergens (origineel gedrag)
+      for (const el of individ) {
+        if (!el.isConnected) continue;
+        const elNorm = norm(el.textContent);
+        if (!elNorm.includes(zoek)) continue;
+        const pos = elNorm.indexOf(zoek);
+        pasVervanging(el, pos, zoek.length, vervang);
         gevonden = true;
         gevondAantal++;
         break outer;
@@ -4940,42 +5105,60 @@ let _alVerwerktWijzigingIdx = null; // Set van indices waarvan de tekst al via e
 
 // ── Pseudonimisering (AVG) ────────────────────────────
 // Bouwt twee maps:
-//   naarAnon  : lowercase-naam → placeholder  (voor case-insensitieve vervanging)
-//   naarEcht  : placeholder → canonieke naam  (voor herstel na Claude-analyse)
+//   naarAnon  : lowercase-naam → nep-naam     (voor case-insensitieve vervanging)
+//   naarEcht  : nep-naam/legacy-ph → canonieke naam  (voor herstel na Claude-analyse)
 function bouwAnonMap(classificatie) {
-  const naarAnon = new Map(); // key = lowercase variant, value = placeholder
-  const naarEcht = new Map(); // key = placeholder,       value = echte naam
+  const naarAnon = new Map(); // key = lowercase echte naam,  value = nep-naam
+  const naarEcht = new Map(); // key = nep-naam / legacy-ph,  value = echte naam
 
-  function registreer(echt, placeholder) {
+  // Nep-namenpool: realistische maar generieke Nederlandse namen.
+  // Nep-namen ipv [PERSOON_A]-placeholders voorkomen dat Claude een placeholder
+  // per ongeluk herhaalt in zijn output (bijv. '[PERSOON_A] [PERSOON_A]'),
+  // wat na de-pseudonimisering een vals alarm voor dubbele namen geeft.
+  const NEP_PERSONEN = [
+    'Thomas Bergman', 'Lisette Hartwijk', 'Florian Oud', 'Nathalie Wester',
+    'Bastiaan Kroon', 'Eveline Dragt', 'Rutger Bakkenes', 'Simone Veldhuis',
+    'Jeroen Hoekstra', 'Yvonne Stavast',
+  ];
+  // Kindernamen: alleen voornamen (generiek, niet herkenbaar)
+  const NEP_KINDEREN = ['Finn', 'Lotte', 'Stef', 'Mila', 'Bram', 'Sofie', 'Tim', 'Emma'];
+  let _persIdx = 0;
+  let _kindIdx = 0;
+
+  // Registreer een echte naam → nep-naam koppeling.
+  // legacyPh: optionele [PERSOON_A]-stijl placeholder voor backward-compat
+  // met bestaande Supabase-data die nog de oude placeholders bevat.
+  function registreer(echt, nepNaam, legacyPh = null) {
     if (!echt || echt.trim().length < 2) return;
     const e = echt.trim();
     const eLc = e.toLowerCase();
 
-    // Sla canonical naam op voor herstel
-    if (!naarEcht.has(placeholder)) naarEcht.set(placeholder, e);
+    // Nep-naam voor nieuwe analyses (case-insensitief herstel in herstelAnonObj)
+    if (!naarEcht.has(nepNaam)) naarEcht.set(nepNaam, e);
+    // Backward-compat: bestaande opgeslagen data kan nog [PERSOON_A] bevatten
+    if (legacyPh && !naarEcht.has(legacyPh)) naarEcht.set(legacyPh, e);
 
     // Volledige naam (case-insensitief via lowercase key)
-    if (!naarAnon.has(eLc)) naarAnon.set(eLc, placeholder);
+    if (!naarAnon.has(eLc)) naarAnon.set(eLc, nepNaam);
 
     const delen = e.split(/\s+/);
 
     // Voornaam (>3 tekens, om "de"/"van"/"te" als standalone te vermijden)
     const voornaam = delen[0];
     if (voornaam.length > 3 && !naarAnon.has(voornaam.toLowerCase())) {
-      naarAnon.set(voornaam.toLowerCase(), placeholder);
+      naarAnon.set(voornaam.toLowerCase(), nepNaam);
     }
 
     // Achternaam (alles na de voornaam, inclusief tussenvoegsel)
-    // Sla achternaam alleen op als hij lang genoeg is en uniek voor deze persoon
     if (delen.length >= 2) {
       const achterNaamVolledig = delen.slice(1).join(' ');
       if (achterNaamVolledig.length > 3 && !naarAnon.has(achterNaamVolledig.toLowerCase())) {
-        naarAnon.set(achterNaamVolledig.toLowerCase(), placeholder);
+        naarAnon.set(achterNaamVolledig.toLowerCase(), nepNaam);
       }
       // Alleen het allerlaatste woord (bijv. "Leeuwen" uit "van Leeuwen")
       const achterst = delen[delen.length - 1];
       if (achterst.length > 4 && !naarAnon.has(achterst.toLowerCase())) {
-        naarAnon.set(achterst.toLowerCase(), placeholder);
+        naarAnon.set(achterst.toLowerCase(), nepNaam);
       }
     }
   }
@@ -4989,24 +5172,26 @@ function bouwAnonMap(classificatie) {
   const achtB = naamB ? naamB.trim().split(/\s+/).slice(1).join(' ').toLowerCase() : '';
   const gedeeldeAcht = achtA && achtA === achtB;
 
-  registreer(naamA, '[PERSOON_A]');
-  registreer(naamB, '[PERSOON_B]');
+  registreer(naamA, NEP_PERSONEN[_persIdx++], '[PERSOON_A]');
+  registreer(naamB, NEP_PERSONEN[_persIdx++], '[PERSOON_B]');
 
   // Bij gedeelde achternaam: verwijder die uit de map (voorkómt foutieve toewijzing)
   if (gedeeldeAcht && achtA) {
     naarAnon.delete(achtA);
-    // Verwijder ook het laatste woord als dat overeen komt
     const achtstA = achtA.split(/\s+/).pop();
     if (achtstA) naarAnon.delete(achtstA);
   }
 
-  // Kinderen — elk kind krijgt eigen placeholder [KIND_1], [KIND_2] …
+  // Kinderen — elk kind krijgt eigen nep-voornaam (+ legacy [KIND_N] voor backward-compat)
   const kinderen = Array.isArray(classificatie?.kinderen_namen) ? classificatie.kinderen_namen : [];
-  kinderen.forEach((naam, i) => registreer(naam, `[KIND_${i + 1}]`));
+  kinderen.forEach((naam, i) => {
+    const nepKind = NEP_KINDEREN[_kindIdx++] || `Kind${_kindIdx}`;
+    registreer(naam, nepKind, `[KIND_${i + 1}]`);
+  });
 
   // Overige betrokkenen
-  if (classificatie?.mediator_naam) registreer(classificatie.mediator_naam, '[MEDIATOR]');
-  if (classificatie?.notaris_naam)  registreer(classificatie.notaris_naam,  '[NOTARIS]');
+  if (classificatie?.mediator_naam) registreer(classificatie.mediator_naam, NEP_PERSONEN[_persIdx++] || '[MEDIATOR]', '[MEDIATOR]');
+  if (classificatie?.notaris_naam)  registreer(classificatie.notaris_naam,  NEP_PERSONEN[_persIdx++] || '[NOTARIS]',  '[NOTARIS]');
 
   return { naarAnon, naarEcht };
 }
@@ -5060,24 +5245,35 @@ function anonimiseerTekst(tekst, naarAnon) {
   return t;
 }
 
-// Herstel placeholders recursief in elk object/array/string uit Claude's response.
-// Handelt ook variaties af die Claude soms genereert:
-//   [persoon_a], [Persoon A], [ PERSOON_A ], [PERSOON A], persoon_a (zonder haakjes)
+// Herstel nep-namen en legacy-placeholders recursief in elk object/array/string.
+// naarEcht-map bevat twee soorten keys:
+//   1. Nep-naam  (bijv. "Thomas Bergman") → echte naam   (case-insensitief regex)
+//   2. Legacy-ph (bijv. "[PERSOON_A]")    → echte naam   (exact + fuzzy bracket-variaties)
 function herstelAnonObj(obj, naarEcht) {
   if (!naarEcht?.size) return obj;
   if (typeof obj === 'string') {
     let t = obj;
-    // 1. Exacte vervangingen (snel pad)
-    for (const [ph, echt] of naarEcht) t = t.replaceAll(ph, echt);
-    // 2. Fuzzy: case-variaties en spatie/underscore-variaties van de placeholder
-    //    bv. [persoon_a], [PERSOON A], [ Kind 1 ] worden ook hersteld
     for (const [ph, echt] of naarEcht) {
+      if (ph.startsWith('[')) {
+        // Legacy bracketed placeholder: exacte vervanging
+        t = t.replaceAll(ph, echt);
+      } else {
+        // Nep-naam: case-insensitieve vervanging (Claude citeert verbatim uit document,
+        // maar kan soms ook de eerste letter lowercase schrijven)
+        try {
+          const rx = new RegExp(ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          t = t.replace(rx, echt);
+        } catch { t = t.replaceAll(ph, echt); }
+      }
+    }
+    // Fuzzy-pass voor legacy bracketed placeholders:
+    // vangt [persoon_a], [PERSOON A], [ Kind 1 ] e.d.
+    for (const [ph, echt] of naarEcht) {
+      if (!ph.startsWith('[')) continue;
       try {
-        // Haal de kern op: "[PERSOON_A]" → "PERSOON_A"
-        const kern = ph.replace(/^\[|\]$/g, '');
-        // Escape speciale tekens EERST, dan underscore/spatie soepel maken
+        const kern    = ph.replace(/^\[|\]$/g, '');
         const kernEsc = kern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const rxStr = '\\[\\s*' + kernEsc.replace(/[_\s]+/g, '[_\\s]+') + '\\s*\\]';
+        const rxStr   = '\\[\\s*' + kernEsc.replace(/[_\s]+/g, '[_\\s]+') + '\\s*\\]';
         t = t.replace(new RegExp(rxStr, 'gi'), echt);
       } catch { /* ongeldige placeholder — overslaan */ }
     }
@@ -5562,26 +5758,22 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
       });
       console.log('[docx-preview] renderAsync klaar ✓');
 
-      // ── Post-processing 1: bullet spacing ──────────────────────────────────
+      // Post-processing 1: bullet spacing + lichtere marker
       // docx-preview plaatst opsommingstekens direct naast de tekst zonder ruimte.
-      // Voeg een vaste spatie (U+00A0) in tussen het teken en de tekst.
+      // Wrap het bullet-teken in een lichter <span> en voeg spaties toe als gap.
       docPanel.querySelectorAll('.docx-render p, .docx-render li').forEach(p => {
         const raw = p.textContent;
-        if (/^[●•◦▪▸►▶‣⁃◉○\-–]\S/.test(raw.trim())) {
-          // Zoek het eerste tekstknooppunt met het teken
+        if (/^[●•◦▪▸►▶‣⁃◉○\-–]/.test(raw.trim())) {
           const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT, null, false);
           let node;
           while ((node = walker.nextNode())) {
-            if (/^[●•◦▪▸►▶‣⁃◉○\-–]\S/.test(node.textContent)) {
-              node.textContent = node.textContent.replace(/^([●•◦▪▸►▶‣⁃◉○\-–])(\S)/, '$1 $2');
-              break;
-            }
-            if (/^[●•◦▪▸►▶‣⁃◉○\-–]\s*$/.test(node.textContent)) {
-              // Bullet is enige inhoud van dit knooppunt — voeg spatie toe aan het volgende
-              const next = walker.nextNode();
-              if (next && next.textContent && !/^\s/.test(next.textContent)) {
-                next.textContent = ' ' + next.textContent;
-              }
+            const m = node.textContent.match(/^([●•◦▪▸►▶‣⁃◉○\-–])([\s\S]*)/)
+            if (m) {
+              const span = document.createElement('span');
+              span.style.cssText = 'font-size:.78em;color:#555;font-weight:400;';
+              span.textContent   = m[1];
+              node.textContent   = '  ' + m[2].replace(/^\s+/, '');
+              node.parentNode.insertBefore(span, node);
               break;
             }
           }
@@ -6136,9 +6328,30 @@ STRIKTE REGELS VOOR zoek_tekst:
 6. zoek_tekst overschrijdt nooit de grens van een alinea of artikel.
 
 ABSOLUTE VERBODEN (nooit overtreden):
+- ZOEK_TEKST MAG ALLEEN TEKST BEVATTEN DIE LETTERLIJK STAAT IN "TE VERBETEREN DOCUMENT".
+  De sectie "ANDERE DOCUMENTEN" is puur leescontext — genereer NOOIT een zoek_tekst of vervang_door
+  met tekst uit die andere documenten. Tekst die niet in "TE VERBETEREN DOCUMENT" staat, kan niet
+  worden gevonden en de wijziging wordt genegeerd.
 - NOOIT tekst uit zoek_tekst weglaten in vervang_door die ongewijzigd blijft.
   ✗ FOUT:  zoek_tekst="Zin A. Zin B. Zin C."  vervang_door="Zin A verbeterd. Zin C." ← Zin B verdwenen!
   ✓ GOED:  zoek_tekst="Zin A."  vervang_door="Zin A verbeterd."  [aparte wijziging voor Zin B indien nodig]
+- KRITIEK — ALS ALLEEN ÉÉN BEDRAG, GETAL OF DATUM VERANDERT IN ALINEA MET MEERDERE ZINNEN:
+  zoek_tekst = UITSLUITEND de zin met dat bedrag/getal/datum. NOOIT de omliggende zinnen meenemen.
+  ✗ FOUT:  zoek_tekst="Storten vader € 245,- en moeder € 462,-. Beide ouders hebben toegang. Ouders betalen: sport, muziek."
+           vervang_door="Storten vader € 245,- en moeder € 463,-."
+           → "Beide ouders hebben toegang." en "Ouders betalen: sport, muziek." VERDWIJNEN permanent!
+  ✓ GOED:  zoek_tekst="Storten vader € 245,- en moeder € 462,-."
+           vervang_door="Storten vader € 245,- en moeder € 463,-."
+- NOOIT ongewijzigde zinnen aan het begin of einde van zoek_tekst opnemen als bufferruimte.
+  ✗ FOUT:  zoek_tekst="[Zin A ongewijzigd]. [Zin B gewijzigd]. [Zin C ongewijzigd]."
+           vervang_door="[Zin A ongewijzigd]. [Zin B verbeterd]. [Zin C ongewijzigd]."
+           → Zin A en Zin C worden ten onrechte als doorgestreept weergegeven.
+  ✓ GOED:  zoek_tekst="[Zin B gewijzigd]."  vervang_door="[Zin B verbeterd]."
+- BIJ EEN TOEVOEGING (nieuwe zin invoegen tussen bestaande zinnen):
+  Gebruik als zoek_tekst uitsluitend de zin WAARNA of WAARVOOR ingevoegd wordt.
+  ✗ FOUT:  zoek_tekst="[Zin A]. [Zin B]."  vervang_door="[Zin A]. [NIEUWE ZIN]. [Zin B]."
+  ✓ GOED:  zoek_tekst="[Zin B]."  vervang_door="[NIEUWE ZIN]. [Zin B]."  (invoegen vóór Zin B)
+     OF:   zoek_tekst="[Zin A]."  vervang_door="[Zin A]. [NIEUWE ZIN]."  (invoegen na Zin A)
 - NOOIT meerdere niet-samenhangende problemen samenvoegen in één grote zoek_tekst/vervang_door.
 - NOOIT inhoud van aangrenzende artikelen of alinea's meenemen in zoek_tekst.
 - NOOIT twee aparte wijzigingen maken voor hetzelfde artikel of dezelfde passage. Als meerdere verbeterpunten dezelfde tekstpassage raken: combineer alles in één zoek_tekst + vervang_door.
@@ -6205,6 +6418,71 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
       const wijzigingenRaw = Array.isArray(data?.wijzigingen) ? data.wijzigingen : [];
       if (!wijzigingenRaw.length) throw new Error('Claude gaf geen wijzigingen terug. Probeer opnieuw.');
 
+      // ── Vangnet: herstel "te veel weggehaald" ───────────────────────────────────
+      // Als zoek_tekst meerdere zinnen bevat maar vervang_door significant korter is,
+      // trim zoek_tekst tot de ene zin die werkelijk verandert — anders verdwijnen
+      // ongewijzigde zinnen permanent uit het document.
+      //
+      // Voorbeeld (Kinderrekening-patroon):
+      //   zoek_tekst  = "Zin A (€ 462,-). Zin B. Zin C."   ← Claude pakt te ruim
+      //   vervang_door = "Zin A (€ 463,-)."                 ← Zin B en C verdwijnen!
+      //   → na trim: zoek_tekst = "Zin A (€ 462,-)."        ← alleen wat wijzigt
+      const _normS   = s => s.replace(/\s+/g, ' ').toLowerCase().trim();
+      const _splitZinnen = tekst => tekst
+        .split(/(?<=[.!?])\s+(?=[A-Z\[])/)
+        .map(z => z.trim())
+        .filter(z => z.length > 8);
+
+      const wijzigingenSanitized = wijzigingenRaw.map(w => {
+        const zoek    = (w.zoek_tekst   || w.originele_tekst  || '').trim();
+        const vervang = (w.vervang_door || w.aangepaste_tekst || '').trim();
+        // Alleen ingrijpen als zoek_tekst significant langer is dan vervang_door
+        if (!zoek || !vervang || zoek.length < vervang.length * 1.4 + 40) return w;
+
+        const zinnen = _splitZinnen(zoek);
+        if (zinnen.length < 2) return w;
+
+        // Vind de zin in zoek_tekst die qua eerste woorden overeenkomt met vervang_door
+        const eerstWoordenVervang = _normS(vervang).split(' ').slice(0, 7).join(' ');
+        const passendZin = zinnen.find(z =>
+          _normS(z).startsWith(eerstWoordenVervang) ||
+          eerstWoordenVervang.startsWith(_normS(z).split(' ').slice(0, 7).join(' '))
+        );
+        if (!passendZin) return w; // geen veilige trim mogelijk
+
+        const getrimmd = passendZin.trim();
+        console.warn('[concept] Vangnet actief — zoek_tekst getrimd (' + zinnen.length + ' → 1 zin):', getrimmd.slice(0, 60));
+        return w.zoek_tekst !== undefined
+          ? { ...w, zoek_tekst:      getrimmd }
+          : { ...w, originele_tekst: getrimmd };
+      });
+      // ── Einde vangnet ────────────────────────────────────────────────────────────
+
+      // ── Cross-document filter ─────────────────────────────────────────────────────
+      // Claude kan soms tekst uit "snapAndere" (het andere document) als zoek_tekst gebruiken.
+      // Verwijder wijzigingen waarvan de eerste 40 tekens van zoek_tekst NIET in snapOrigineel staan.
+      // Zo komen issues van het ene document nooit in het concept van het andere.
+      // Vergelijk beide zijden in dezelfde "taal" (geanonimiseerd), zodat nep-namen als
+      // "Thomas Bergman" overeenkomen met "Thomas Bergman" in het geanonimiseerde document.
+      const _normDoc = anonimiseerTekst(snapOrigineel, snapNaarAnon).replace(/\s+/g, ' ').toLowerCase();
+      const wijzigingenGefilterd = wijzigingenSanitized.filter(w => {
+        const zoek = (w.zoek_tekst || w.originele_tekst || '').trim();
+        if (!zoek) return false;
+        const normZoek = zoek.replace(/\s+/g, ' ').toLowerCase();
+        // Check eerste 40 tekens — lang genoeg om uniek te zijn, kort genoeg voor
+        // kleine tekstuele variaties aan het begin van de zin.
+        const anker = normZoek.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const gevonden = new RegExp(anker.replace(/ /g, '\\s+')).test(_normDoc);
+        if (!gevonden) {
+          console.warn('[concept] Cross-doc filter: zoek_tekst niet in huidig document — verwijderd:', normZoek.slice(0, 70));
+        }
+        return gevonden;
+      });
+      if (wijzigingenGefilterd.length < wijzigingenSanitized.length) {
+        console.log(`[concept] Cross-doc filter: ${wijzigingenSanitized.length - wijzigingenGefilterd.length} wijziging(en) verwijderd (verkeerd document)`);
+      }
+      // ── Einde cross-document filter ───────────────────────────────────────────────
+
       // Pas de vervangingen toe op het originele document
       // Strategie: gebruik originele_tekst (rechterpaneel) voor zoeken — preciezer dan zoek_tekst.
       // Zoek genormaliseerd: strip bullets/enters per regel, zodat opmaakverschillen geen probleem zijn.
@@ -6212,7 +6490,7 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
       let documentTekst = snapOrigineel;
       const _gezienAangp = new Set(); // dedup: zelfde aangepaste_tekst niet twee keer toepassen
 
-      for (const w of wijzigingenRaw) {
+      for (const w of wijzigingenGefilterd) {
         // Gebruik originele_tekst/aangepaste_tekst; val terug op zoek_tekst/vervang_door als afwezig
         const orig  = herstelAnonObj((w.originele_tekst  || w.zoek_tekst   || ''), snapNaarEcht).trim();
         const aangp = herstelAnonObj((w.aangepaste_tekst || w.vervang_door  || ''), snapNaarEcht).trim();
@@ -6300,7 +6578,9 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 
       // Normaliseer veldnamen: zoek_tekst/vervang_door → originele_tekst/aangepaste_tekst
       // zodat pasWijzigingenToeInDocx en de kaartweergave ongewijzigd blijven.
-      const wijzigingenGenorm = wijzigingenRaw.map(w => ({
+      // Gebruik wijzigingenGefilterd (cross-doc filter + sanity trim) zodat kaarten ook de
+      // gecorrigeerde originele_tekst tonen (niet de volle alinea) en geen verkeerde-doc-items bevatten.
+      const wijzigingenGenorm = wijzigingenGefilterd.map(w => ({
         ...w,
         originele_tekst:  w.originele_tekst  ?? w.zoek_tekst    ?? '',
         aangepaste_tekst: w.aangepaste_tekst ?? w.vervang_door   ?? '',
@@ -6471,6 +6751,172 @@ async function cleanupDocxArtefacten(docxBlob) {
     try { body.removeChild(p); } catch (_) { /* al verwijderd of ander parent */ }
   }
 
+  // ── Herstel doorlopende zinnen na artefact-verwijdering ──────────────────────
+  // Adobe plaatst voetteksten (paraaf man / paraaf vrouw) als gewone body-alinea's
+  // MÍDden in een bullet-punt of doorlopende zin. Na verwijdering blijven twee
+  // losse alinea's over met dezelfde content erin — de viewer en Claude zien dan
+  // een kapotte zin/bullet.
+  // Heuristic: als alinea P eindigt midden in een zin (geen leesteken) EN de
+  // volgende alinea Q begint als zinvervolg (€, cijfer, kleine letter, haakje,
+  // komma) → voeg Q samen met P: kopieer de runs van Q naar P, verwijder Q.
+  const paraNaRem = Array.from(body.childNodes).filter(
+    n => n.nodeType === 1 && n.localName === 'p'
+  );
+  const getTekst = p => Array.from(p.getElementsByTagNameNS(wNs, 't'))
+    .map(t => t.textContent).join('').trim();
+
+  for (let i = 0; i < paraNaRem.length - 1; i++) {
+    const curr = paraNaRem[i];
+    const next = paraNaRem[i + 1];
+    // Sla over als een van beide al verwijderd is
+    if (!curr.parentNode || !next.parentNode) continue;
+
+    const currTekst = getTekst(curr);
+    const nextTekst = getTekst(next);
+    if (!currTekst || !nextTekst || currTekst.length < 4) continue;
+
+    const eindigtMidZin = !/[.!?:;»\-—]$/.test(currTekst);
+    const begintVervolg = /^[€\d(,a-z]/.test(nextTekst);
+
+    if (eindigtMidZin && begintVervolg) {
+      // Voeg spatie-run toe tenzij curr al op spatie eindigt
+      if (!currTekst.endsWith(' ')) {
+        const spRun = xmlDoc.createElementNS(wNs, 'w:r');
+        const spT   = xmlDoc.createElementNS(wNs, 'w:t');
+        spT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
+        spT.textContent = ' ';
+        spRun.appendChild(spT);
+        curr.appendChild(spRun);
+      }
+      // Verplaats alle non-pPr kinderen van next naar curr
+      Array.from(next.childNodes).forEach(child => {
+        if (child.localName !== 'pPr') curr.appendChild(child.cloneNode(true));
+      });
+      // Verwijder next; parentNode-check zorgt dat volgende iteratie dit overslaat
+      try { body.removeChild(next); } catch (_) {}
+      console.log(`[cleanup] zinvervolg samengevoegd: "${currTekst.slice(-30)}…"`);
+    }
+  }
+
+  // ── Herstel OOXML auto-nummering → expliciete tekstprefix ───────────────────
+  // Adobe PDF→DOCX converteert getypte sectienummers soms naar <w:numPr>
+  // auto-nummering. mammoth.extractRawText verliest die nummers → Claude ziet
+  // "Partneralimentatie" i.p.v. "2.2 Partneralimentatie" en kan verwijzingen
+  // als "zie artikel 2.2.3" niet meer verifiëren.
+  // Oplossing: lees word/numbering.xml, bereken het label per alinea, schrijf het
+  // als een extra <w:t>-run in de DOCX — zodat extractRawText het meeneemt.
+  try {
+    const numXmlStr = await zip.file('word/numbering.xml')?.async('string');
+    if (numXmlStr) {
+      const numDoc       = new DOMParser().parseFromString(numXmlStr, 'application/xml');
+      const absNumMap    = new Map(); // abstractNumId → element
+      const numIdMap     = new Map(); // numId → abstractNum element
+
+      for (const an of numDoc.getElementsByTagNameNS(wNs, 'abstractNum'))
+        absNumMap.set(an.getAttributeNS(wNs, 'abstractNumId'), an);
+
+      for (const num of numDoc.getElementsByTagNameNS(wNs, 'num')) {
+        const nId  = num.getAttributeNS(wNs, 'numId');
+        const aRef = num.getElementsByTagNameNS(wNs, 'abstractNumId')[0]
+                        ?.getAttributeNS(wNs, 'val');
+        if (aRef && absNumMap.has(aRef)) numIdMap.set(nId, absNumMap.get(aRef));
+      }
+
+      if (numIdMap.size > 0) {
+        // Kleine helper: Arabisch getal → Romeins
+        const toRoman = n => {
+          const v = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+          const s = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+          let r = '';
+          v.forEach((val, i) => { while (n >= val) { r += s[i]; n -= val; } });
+          return r;
+        };
+        const fmtNr = (fmt, val) => {
+          if (fmt === 'lowerLetter') return String.fromCharCode(96 + val);
+          if (fmt === 'upperLetter') return String.fromCharCode(64 + val);
+          if (fmt === 'lowerRoman')  return toRoman(val).toLowerCase();
+          if (fmt === 'upperRoman')  return toRoman(val);
+          if (fmt === 'bullet')      return null; // bullets niet als nummer
+          return String(val);
+        };
+
+        const counters = new Map(); // `numId-ilvl` → huidige teller
+
+        for (const para of body.getElementsByTagNameNS(wNs, 'p')) {
+          const numPr  = para.getElementsByTagNameNS(wNs, 'numPr')[0];
+          if (!numPr) continue;
+          const numId  = numPr.getElementsByTagNameNS(wNs, 'numId')[0]
+                              ?.getAttributeNS(wNs, 'val');
+          const ilvl   = parseInt(numPr.getElementsByTagNameNS(wNs, 'ilvl')[0]
+                              ?.getAttributeNS(wNs, 'val') ?? '0', 10);
+          if (!numId || !numIdMap.has(numId)) continue;
+
+          const absNum = numIdMap.get(numId);
+          // Zoek het <w:lvl> voor dit ilvl
+          let lvlEl = null;
+          for (const l of absNum.getElementsByTagNameNS(wNs, 'lvl')) {
+            if (parseInt(l.getAttributeNS(wNs, 'ilvl') ?? '0', 10) === ilvl) {
+              lvlEl = l; break;
+            }
+          }
+          if (!lvlEl) continue;
+
+          const numFmt = lvlEl.getElementsByTagNameNS(wNs, 'numFmt')[0]
+                              ?.getAttributeNS(wNs, 'val') ?? 'decimal';
+          if (numFmt === 'bullet') continue;
+
+          const lvlText = lvlEl.getElementsByTagNameNS(wNs, 'lvlText')[0]
+                               ?.getAttributeNS(wNs, 'val') ?? `%${ilvl + 1}.`;
+          const startVal = parseInt(
+            lvlEl.getElementsByTagNameNS(wNs, 'start')[0]
+                 ?.getAttributeNS(wNs, 'val') ?? '1', 10);
+
+          // Teller ophogen; diepere niveaus resetten
+          const key = `${numId}-${ilvl}`;
+          if (!counters.has(key)) counters.set(key, startVal);
+          else counters.set(key, counters.get(key) + 1);
+          for (const [k] of counters)
+            if (k.startsWith(numId + '-') && parseInt(k.split('-')[1], 10) > ilvl)
+              counters.delete(k);
+
+          // Bouw het label op basis van de lvlText-template (bijv. "%1.%2." → "3.8.")
+          const lvlEls = Array.from(absNum.getElementsByTagNameNS(wNs, 'lvl'));
+          const label  = lvlText.replace(/%(\d+)/g, (_, n) => {
+            const tIlvl = parseInt(n, 10) - 1;
+            const tFmt  = (() => {
+              const tLvl = lvlEls.find(l =>
+                parseInt(l.getAttributeNS(wNs, 'ilvl') ?? '0', 10) === tIlvl);
+              return tLvl?.getElementsByTagNameNS(wNs, 'numFmt')[0]
+                         ?.getAttributeNS(wNs, 'val') ?? 'decimal';
+            })();
+            return fmtNr(tFmt, counters.get(`${numId}-${tIlvl}`) ?? 1) ?? '';
+          });
+
+          if (!label.trim()) continue;
+
+          // Schrijf label als extra <w:r><w:t>-run vóór bestaande content
+          const newRun = xmlDoc.createElementNS(wNs, 'w:r');
+          const newT   = xmlDoc.createElementNS(wNs, 'w:t');
+          newT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
+          newT.textContent = label + '\t';
+          newRun.appendChild(newT);
+          const pPr      = para.getElementsByTagNameNS(wNs, 'pPr')[0];
+          const firstRun = para.getElementsByTagNameNS(wNs, 'r')[0];
+          if (firstRun) para.insertBefore(newRun, firstRun);
+          else if (pPr)  para.insertBefore(newRun, pPr.nextSibling);
+          else           para.appendChild(newRun);
+
+          // Verwijder numPr zodat docx-preview de auto-nummering niet OOK rendert.
+          // Zonder deze stap toont de concept-viewer "10. 10. Vakanties" omdat zowel
+          // de geïnjecteerde tekstprefix als de w:numPr-auto-nummering worden gerenderd.
+          numPr.parentNode?.removeChild(numPr);
+        }
+      }
+    }
+  } catch (numErr) {
+    console.warn('[cleanup] nummering-resolve overgeslagen:', numErr.message);
+  }
+
   zip.file('word/document.xml', new XMLSerializer().serializeToString(xmlDoc));
   return zip.generateAsync({
     type:     'blob',
@@ -6539,9 +6985,19 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
     gewijzigdDocx = await voegVoettekstToeAanDocx(gewijzigdDocx);
 
     // ── Downloaden ────────────────────────────────────────
-    const docTypeLabel = DOC_TYPES.find(d => d.value === (huidigeClassificatie?.doc_type || ''))?.label || 'Concept';
-    const dossierDeel  = huidigDossierNaam ? ` — ${huidigDossierNaam}` : '';
-    const bestandsnaam = `${docTypeLabel}${dossierDeel} (concept).docx`;
+    // Gebruik altijd het actieve tabblad-type, NIET huidigeClassificatie.doc_type —
+    // dat is het top-level type (bijv. Convenant) en wijkt af bij multi-doc (OP-tab).
+    const activeDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+    const docTypeLabel  = DOC_TYPES.find(d => d.value === activeDocType)?.label || 'Concept';
+    // Voorkeur: dossier-naam; fallback: partijnamen uit classificatie
+    const namenDeel = (() => {
+      if (huidigDossierNaam) return ` — ${huidigDossierNaam}`;
+      const a = (huidigeClassificatie?.partij_a_naam || '').trim();
+      const b = (huidigeClassificatie?.partij_b_naam || '').trim();
+      const namen = [a, b].filter(Boolean).join(' - ');
+      return namen ? ` — ${namen}` : '';
+    })();
+    const bestandsnaam  = `${docTypeLabel}${namenDeel} (concept).docx`;
 
     const url = URL.createObjectURL(gewijzigdDocx);
     const a   = document.createElement('a');

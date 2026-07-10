@@ -247,9 +247,12 @@ const issueItem = {
     dimensies:   { type: 'array', items: { type: 'string' } },
     bevinding:   { type: 'string' },
     aanbeveling: { type: 'string' },
-    // Verbatim citaat (1-2 zinnen) uit het document waarop dit issue betrekking heeft.
+    // Verbatim citaat van de zin die DE FOUT ZELF bevat — moet overeenkomen met wat in 'onderwerp' staat.
     // Leeg laten bij ontbrekende secties (er is niets om te citeren).
-    passage: { type: 'string' },
+    passage: {
+      type: 'string',
+      description: 'Verbatim citaat van DE ZIN MET DE FOUT — niet een omringende zin, niet een ander onderwerp. Bij grammatica: de zin met het tikfout-woord of het dubbele woord. Moet letterlijk overeenkomen met de fout in "onderwerp" en "bevinding".',
+    },
   },
   required: ['onderwerp', 'ernst', 'dimensies', 'bevinding', 'aanbeveling'],
 };
@@ -270,19 +273,11 @@ function maakStructuurTool(heeftMfn) {
   };
 }
 
-const juridischTool = {
-  name: 'registreer_juridisch',
-  description: 'Registreert juridische bevindingen.',
-  input_schema: {
-    type: 'object',
-    properties: { issues: { type: 'array', items: issueItem } },
-    required: ['issues'],
-  },
-};
-
-const balansGramTool = {
-  name: 'registreer_balans_grammatica',
-  description: 'Registreert balans- en grammatica-issues.',
+// Gecombineerd tool voor alle niet-structuur dimensies (juridisch + balans + grammatica + conflicten).
+// Één call ipv twee parallelle calls → geen cross-call deduplicatie nodig.
+const bevindingentool = {
+  name: 'registreer_bevindingen',
+  description: 'Registreert juridische, balans-, grammatica- en conflictbevindingen.',
   input_schema: {
     type: 'object',
     properties: { issues: { type: 'array', items: issueItem } },
@@ -440,16 +435,11 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
           //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek(4) = precies 4.
           const documentBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}`;
 
-          // Andere hoofddocumenten (bijv. OP bij Convenant en vice versa) als kruisreferentie-context,
-          // zodat Claude externe verwijzingen kan verifiëren ("zie het ouderschapsplan").
-          const andereHoofdDocs = effectiefHoofd.filter(d => d !== doc);
-          const kruisRefTekst = andereHoofdDocs
-            .map(d => `=== ${(d.type || 'DOCUMENT').toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
-            .join('\n\n');
-
+          // Context: alleen bijlagen (HV etc.). Andere hoofddocumenten worden NIET meegegeven —
+          // dat bleek de primaire bron van cross-document-besmetting (issues van OP in Convenant
+          // en vice versa). Cross-doc verificatie kan later als gerichte micro-call worden toegevoegd.
           const contextBlokDelen = [];
-          if (contextTekst)  contextBlokDelen.push(`BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`);
-          if (kruisRefTekst) contextBlokDelen.push(`ANDERE DOCUMENTEN IN DIT DOSSIER (gebruik voor kruisverwijzingen — NIET apart analyseren):\n${kruisRefTekst}`);
+          if (contextTekst) contextBlokDelen.push(`BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`);
           const contextBlok = contextBlokDelen.length ? contextBlokDelen.join('\n\n') : null;
 
           // Gedeeld regelsblok — identiek voor alle 3 calls + heranalyse → gecached in user-content
@@ -460,18 +450,19 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 - midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
 - laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
 
-          // Waarschuwing over pseudonimisering — voorkomt valse format-validatiefouten
+          // Waarschuwing over pseudonimisering — voorkomt valse format-validatiefouten.
+          // Persoonsnamen worden als nep-namen verstuurd (bijv. "Thomas Bergman") — niet als
+          // [PERSOON_A]-placeholders — zodat Claude ze als gewone tekst behandelt en geen valse
+          // dubbele-naam-alerts genereert door placeholder-herhaling in zijn eigen output.
           const pseudonimiseringNota =
 `PSEUDONIMISERING — VERPLICHTE UITSLUITINGSREGEL:
-Het document is vóór verzending automatisch pseudonimiseerd. Namen, adressen, postcodes, woonplaatsen, IBAN-nummers en andere identificerende gegevens zijn vervangen door placeholders:
-  [PERSOON_A] / [KIND_1] / … → namen van partijen en kinderen
+Het document is vóór verzending automatisch pseudonimiseerd. Adressen, postcodes, woonplaatsen en andere PII zijn vervangen door placeholders:
   [ADRES]      → straatadres incl. huisnummer (bijv. "Grotestraat 140")
   [WOONPLAATS] → woonplaatsnaam (bijv. "Almelo")
   [POSTCODE]   → Nederlandse postcode
-  [BSN] / [TEL] / [EMAIL] / [IBAN] → overige persoonsgegevens
+  [BSN] / [TEL] / [EMAIL] → overige persoonsgegevens
 GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
-- Maak GEEN issue aan als een IBAN-nummer, rekeningnummer of BSN niet het verwachte formaat heeft.
-- Maak GEEN issue aan als persoonsnamen iets afwijken van eerdere vermeldingen.
+- Maak GEEN issue aan als een BSN, telefoonnummer of e-mailadres niet het verwachte formaat heeft.
 - Maak GEEN issue over een ontbrekende of generieke woonplaats of adres — het [ADRES]/[WOONPLAATS] staat WEL in het originele document.
 - Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau.
 Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — schrijf altijd [WOONPLAATS] resp. [ADRES].`;
@@ -486,16 +477,9 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
    - Artikelnummer komt ERGENS ANDERS in het document voor → rapporteer GEEN issue.
    - Bij TWIJFEL of het artikel ergens gedefinieerd is → rapporteer GEEN issue.
    - Alleen bij ABSOLUTE ZEKERHEID dat het nummer nergens als definitie, sectie of genummerd lid voorkomt → rapporteer een issue.
-2b. Bij EXTERNE verwijzingen naar een ander document in dit dossier (bijv. "zie het ouderschapsplan",
-    "conform het convenant", "zoals bepaald in bijlage X", "afspraken staan in het OP"):
-    Raadpleeg ANDERE DOCUMENTEN IN DIT DOSSIER om te verifiëren of de gerefereerde afspraak
-    of bepaling daadwerkelijk in dat andere document staat.
-    - Ander document aanwezig ÉN bevat de beweerde afspraak/bepaling → rapporteer GEEN issue over
-      het ontbreken van die inhoud in het TE ANALYSEREN DOCUMENT. Rapporteer hooguit als 'laag'
-      dat de verwijzing explicieter of formeler kan (bijv. bijlage-nummer toevoegen).
-    - Ander document aanwezig maar bevat de afspraak NIET → rapporteer het ontbreken in DÁT document
-      (niet in het te analyseren document — de verwijzing zelf is dan correct).
-    - Ander document ontbreekt volledig in het dossier → rapporteer dat het als bijlage/onderdeel ontbreekt.
+2b. Bij EXTERNE verwijzingen naar een ander document (bijv. "zie het ouderschapsplan", "conform het convenant"):
+    Dat andere document wordt apart geanalyseerd. Maak GEEN issue over ontbrekende inhoud daarin —
+    rapporteer hooguit als 'laag' dat het referentiedocument als bijlage ontbreekt.
    OPGELET: het feit dat "4.1.1" in de verwijzingstekst zelf staat ("de in artikel 4.1.1 vermelde...") telt NIET als bewijs dat het artikel bestaat. Zoek naar een APARTE definitieplek.
 3. SECTIENUMMERING — ABSOLUTE REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft
    (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…):
@@ -519,12 +503,18 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
 DOCUMENTTYPE: ${docTypLabel}
 ${mfnInstructie}
 
-**issues (volledigheid)** — Rapporteer ALLEEN secties die ontbreken of onvolledig zijn. Dimensies altijd ["volledigheid"].
-- Bij twijfel: geen issue. Aanwezige secties NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen. Leeg laten als een sectie volledig ontbreekt.`;
+**issues (volledigheid)** — Rapporteer secties die ontbreken OF aanwezig zijn maar inhoudelijk onvolledig. Dimensies altijd ["volledigheid"].
+- ONTBREKEND: een verplichte of gebruikelijke sectie staat geheel niet in het document.
+- ONVOLLEDIG: een sectie is aanwezig maar mist essentiële details die nodig zijn voor uitvoerbaarheid.
+  Voorbeelden: vakantieregelingen zonder concrete wisseltijden per feestdag; zorgregeling zonder specificatie van welke weekenden; alimentatie zonder ingangsdatum of indexering.
+- Bij twijfel: geen issue. Secties die aanwezig én voldoende uitgewerkt zijn NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de voorafgaande zin als context). Leeg laten als een sectie volledig ontbreekt.`;
 
-          const sysJuridisch =
-`Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid.
+          // Gecombineerde prompt voor alle niet-structuur dimensies — één call ipv twee.
+          // Voordeel: Claude ziet het volledige document in één context → minder kans op overlap
+          // of tegenspraak tussen juridisch/balans-call en grammatica/conflicten-call.
+          const sysBevindingen =
+`Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid, evenwichtigheid en taal.
 DOCUMENTTYPE: ${docTypLabel}
 
 **issues (juridisch)** — Dimensies altijd ["juridisch"].${juridischeChecks}${hvChecks}
@@ -532,17 +522,33 @@ DOCUMENTTYPE: ${docTypLabel}
 - Gebruik uitsluitend wetsartikelen uit de WETSARTIKELEN-sectie.
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
-- Bij twijfel: geen issue. Speculeer niet.`;
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin).
+- Bij twijfel: geen issue. Speculeer niet.
 
-          const sysBalansGram =
-`Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op evenwichtigheid en taal.
-DOCUMENTTYPE: ${docTypLabel}
+**issues (balans)** — Dimensies ["balans"]: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering, ongemotiveerde afwijking van wettelijke maatstaven.
 
-**issues (balans)** — Dimensies ["balans"]: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering.
-**issues (grammatica)** — Dimensies ["grammatica"]: vage verwijzingen, inconsistente datums/bedragen, onduidelijke bewoording.
-**issues (conflicten)** — Dimensies ["conflicten"]: tegenstrijdige bepalingen BINNEN het document (artikel X zegt iets anders dan artikel Y over hetzelfde onderwerp).
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van max 1-2 zinnen uit het document.
+**issues (grammatica)** — Dimensies ["grammatica"]. Scan het VOLLEDIGE document op:
+- Spelling- en tikfouten (bijv. 'invullen' waar 'invulling' bedoeld is, dubbele spaties, hoofdletterfouten)
+- Dubbele woorden (bijv. "Land Rover Land Rover", "de de kinderen")
+- Foutieve of onvolledige zinsconstructies (bijv. ontbrekend hoofdwerkwoord: 'Moeder die ze naar school brengt' — dit is geen volledige zin)
+- Inconsistente aanduidingen: zelfde persoon/datum/bedrag op verschillende plekken anders gespeld of benoemd
+- Niet-uitvoerbare afspraken door vage bewoording ('eventueel', 'zo mogelijk', 'nader te bepalen' zonder concrete uitwerking)
+- Rapporteer ELKE tikfout of grammaticakwestie als een APART issue — NOOIT bundelen.
+  Zo kan de mediator per correctie accepteren of afwijzen.
+
+KRITISCH voor grammatica-issues — ALLE drie velden moeten over DEZELFDE fout gaan:
+- 'passage': citeer LETTERLIJK de zin die DE FOUT ZELF bevat (de zin met het tikfout-woord, het dubbele woord, de vage term)
+- 'onderwerp': benoem de exacte fout die IN de passage staat (bijv. 'Dubbel woord "Land Rover" in artikel 5')
+- 'bevinding': beschrijf waarom DE PASSAGE een probleem is — NIET een andere passage of een ander onderwerp
+
+NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onderwerp Y.
+
+**issues (conflicten)** — Dimensies ["conflicten"]. Zoek tegenstrijdigheden BINNEN het document op ALLE niveaus:
+- Inter-artikel: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
+- Intra-sectie: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. 'uitsluitend mondeling' gevolgd door 'schriftelijk vastgelegd', of een vakantieregeling die intern inconsistente aantallen weken of wisseldata noemt)
+- Bedrag/datum: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
+
+- Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin).
 - Bij twijfel: geen issue. Speculeer niet.`;
 
           const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
@@ -551,9 +557,37 @@ DOCUMENTTYPE: ${docTypLabel}
           const mkCtx = () => contextBlok ? [{ text: contextBlok, cache: true }] : [];
 
           // Helper: roep Claude aan en stuur SSE zodra het klaar is; vang max_tokens af
+          // Cross-document filter: issues waarvan de passage niet in doc.tekst staat worden
+          // verwijderd vóór SSE-verzending. Voorkomt dat Claude issues over het OP rapporteert
+          // bij analyse van het Convenant (of vice versa) wanneer beide als context worden gestuurd.
+          const _normDocTekst = doc.tekst ? doc.tekst.replace(/\s+/g, ' ').toLowerCase() : '';
+          const _filterIssues = (issues, callType) => {
+            if (!issues?.length || !_normDocTekst) return issues;
+            const voor = issues.length;
+            const gefilterd = issues.filter(issue => {
+              if (!issue.passage) return true; // geen passage → bewaren
+              const pasNorm = issue.passage.replace(/\s+/g, ' ').toLowerCase();
+              const anker   = pasNorm.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const gevonden = new RegExp(anker.replace(/ /g, '\\s+')).test(_normDocTekst);
+              if (!gevonden) {
+                console.warn(`[analyseer] cross-doc filter (${callType}): passage niet in ${doc.bestandsnaam} — verwijderd: "${pasNorm.slice(0, 70)}"`);
+              }
+              return gevonden;
+            });
+            if (gefilterd.length < voor) {
+              console.log(`[analyseer] ${doc.bestandsnaam}/${callType}: ${voor - gefilterd.length} issue(s) gefilterd (passage niet in dit document)`);
+            }
+            return gefilterd;
+          };
           const callMetSse = (clodeFn, type) =>
             clodeFn().then(
-              result => { sse({ type, bestandsnaam: doc.bestandsnaam, result }); return result; },
+              result => {
+                const gefilterdResult = Array.isArray(result?.issues)
+                  ? { ...result, issues: _filterIssues(result.issues, type) }
+                  : result;
+                sse({ type, bestandsnaam: doc.bestandsnaam, result: gefilterdResult });
+                return gefilterdResult;
+              },
               err => {
                 if (err.isMaxTokens) {
                   console.warn(`[analyseer] max_tokens: ${doc.bestandsnaam}/${type}`);
@@ -564,11 +598,13 @@ DOCUMENTTYPE: ${docTypLabel}
               }
             );
 
-          // 3 parallelle Sonnet-calls — elk gefocust op één dimensie
+          // 2 parallelle Sonnet-calls — Structuur/Volledigheid + Juridisch/Balans/Grammatica/Conflicten.
+          // Voorheen 3 calls met Haiku-consolidatiestap; nu 2 calls zonder deduplicatie:
+          //  - Minder kans op cross-call overlap → consolidatie niet meer nodig
+          //  - Iedere call focust op zijn eigen dimensies zonder dubbele context
           // Cache-volgorde per call (max 4 breakpoints incl. system):
           //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek blok(4)
-          // Bij heranalyse (zelfde doc-type binnen 5 min): hits op sys + contextBlok + stabielGedeeld
-          const [structuurR, juridischR, balansR] = await Promise.all([
+          const [structuurR, bevindingenR] = await Promise.all([
             callMetSse(() => askClaude(sysStructuur, [
               ...mkCtx(),
               { text: stabielGedeeld, cache: true },
@@ -576,118 +612,20 @@ DOCUMENTTYPE: ${docTypLabel}
               { text: documentBlok },
             ], maakStructuurTool(heeftMfn), heeftMfn ? 6000 : 2000), 'structuur'),
 
-            callMetSse(() => askClaude(sysJuridisch, [
+            // Gecombineerde call: juridisch + balans + grammatica + conflicten in één context
+            callMetSse(() => askClaude(sysBevindingen, [
               ...mkCtx(),
               { text: stabielGedeeld, cache: true },
               { text: stabielBlokWet, cache: true },
               { text: documentBlok },
-            ], juridischTool, 5500), 'juridisch'),
-
-            callMetSse(() => askClaude(sysBalansGram, [
-              ...mkCtx(),
-              { text: stabielGedeeld, cache: true },
-              { text: documentBlok },
-            ], balansGramTool, 5000), 'balans'),
+            ], bevindingentool, 9000), 'juridisch'),
           ]);
 
-          // ── Stap 4: Haiku-consolidatie — samenvoegen semantisch verwante issues ──
-          // Na de 3 parallelle calls combineert Haiku issues die over hetzelfde
-          // onderwerp gaan maar anders geformuleerd zijn (cross-call dedup).
-          const _alleIssuesRaw = [
-            ...(Array.isArray(structuurR?.issues) ? structuurR.issues : []),
-            ...(Array.isArray(juridischR?.issues) ? juridischR.issues : []),
-            ...(Array.isArray(balansR?.issues)    ? balansR.issues    : []),
-          ];
+          // Signaleer 'balans'-call als afgerond zodat de frontend loading-state correct afsluit.
+          // (Frontend wacht op structuur + juridisch + balans; balans is nu samengevoegd met juridisch.)
+          sse({ type: 'balans', bestandsnaam: doc.bestandsnaam, result: { issues: [] } });
 
-          // Stap 4a: algoritmische prefix-dedup (snel, geen AI benodigd)
-          const _preGroepeerd = preGroepeerOpPrefix(_alleIssuesRaw);
-          console.log(`[analyseer] ${doc.bestandsnaam}: ${_alleIssuesRaw.length} → ${_preGroepeerd.length} issues na prefix-dedup`);
-
-          if (_preGroepeerd.length > 1) {
-            try {
-              // Haiku geeft alleen INDICES terug (welke issues bij elkaar horen).
-              // De server doet de merge zelf — output is ~50-100 tokens i.p.v. 3000+.
-              const n = _preGroepeerd.length;
-              const groeperenTool = {
-                name: 'groepeer_issues',
-                description: 'Geeft per groep samenhangende issues de indices terug.',
-                input_schema: {
-                  type: 'object',
-                  properties: {
-                    groepen: {
-                      type: 'array',
-                      description: `Elke subarray bevat 0-based indices van issues die samengevoegd moeten worden. Elke index 0–${n - 1} staat in precies één groep.`,
-                      items: { type: 'array', items: { type: 'integer', minimum: 0, maximum: n - 1 } },
-                    },
-                  },
-                  required: ['groepen'],
-                },
-              };
-
-              const consolidatieSys =
-`Je ontvangt ${n} juridische issues van een ${docTypLabel}. Groepeer issues die over hetzelfde juridische onderwerp gaan.
-
-SAMENVOEGEN als: issues hetzelfde probleem beschrijven, ook al verschilt de formulering.
-NIET SAMENVOEGEN als: de onderwerpen duidelijk verschillend zijn.
-
-Geef voor elke groep de indices terug (0-based). Elk getal 0–${n - 1} staat in precies één groep.`;
-
-              const groeperenRes = await askClaude(
-                consolidatieSys,
-                JSON.stringify(_preGroepeerd.map((iss, idx) => ({
-                  idx,
-                  onderwerp: iss.onderwerp,
-                  dim:       iss.dimensies,
-                  fragment:  (iss.bevinding || '').slice(0, 150),
-                }))),
-                groeperenTool,
-                400, // puur indices — tientallen tokens
-                'claude-haiku-4-5-20251001'
-              );
-
-              const groepen = Array.isArray(groeperenRes?.groepen) ? groeperenRes.groepen : null;
-              if (groepen) {
-                const ERNST_C = { hoog: 0, midden: 1, laag: 2 };
-                const geconsolideerd = [];
-                const _verwerkt = new Set();
-
-                for (const groep of groepen) {
-                  const geldige = groep.filter(i => Number.isInteger(i) && i >= 0 && i < n && !_verwerkt.has(i));
-                  if (!geldige.length) continue;
-                  geldige.forEach(i => _verwerkt.add(i));
-                  const issuesInGroep = geldige.map(i => _preGroepeerd[i]);
-                  if (issuesInGroep.length === 1) { geconsolideerd.push(issuesInGroep[0]); continue; }
-                  // Merge: zwaarste ernst, gecombineerde dimensies, langste teksten
-                  const merged = { ...issuesInGroep[0] };
-                  for (let k = 1; k < issuesInGroep.length; k++) {
-                    const o = issuesInGroep[k];
-                    if ((ERNST_C[o.ernst] ?? 1) < (ERNST_C[merged.ernst] ?? 1)) merged.ernst = o.ernst;
-                    merged.dimensies  = [...new Set([...(merged.dimensies || []), ...(o.dimensies || [])])];
-                    if ((o.bevinding   || '').length > (merged.bevinding   || '').length) merged.bevinding   = o.bevinding;
-                    if ((o.aanbeveling || '').length > (merged.aanbeveling || '').length) merged.aanbeveling = o.aanbeveling;
-                    if (!merged.passage && o.passage) merged.passage = o.passage;
-                    console.log(`[consolidatie] Haiku merge: "${merged.onderwerp}" ↔ "${o.onderwerp}"`);
-                  }
-                  geconsolideerd.push(merged);
-                }
-                // Veiligheidsnet: voeg niet-verwerkte issues toe
-                for (let i = 0; i < n; i++) {
-                  if (!_verwerkt.has(i)) geconsolideerd.push(_preGroepeerd[i]);
-                }
-                if (geconsolideerd.length) {
-                  sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: geconsolideerd } });
-                }
-              }
-            } catch (err) {
-              console.warn(`[analyseer] consolidatie mislukt voor ${doc.bestandsnaam}:`, err.message);
-              // Fallback: prefix-dedup resultaat als gedeeltelijke consolidatie sturen
-              if (_preGroepeerd.length < _alleIssuesRaw.length) {
-                sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: _preGroepeerd } });
-              }
-            }
-          }
-
-          console.log(`[analyseer] ${doc.bestandsnaam}: klaar`);
+          console.log(`[analyseer] ${doc.bestandsnaam}: klaar (${(Array.isArray(structuurR?.issues) ? structuurR.issues.length : 0) + (Array.isArray(bevindingenR?.issues) ? bevindingenR.issues.length : 0)} issues totaal)`);
         };
 
         // Verwerk max 2 documenten tegelijk (rate-limit bescherming)
