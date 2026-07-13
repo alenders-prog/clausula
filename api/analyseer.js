@@ -534,6 +534,52 @@ Pas de lijst aan vóór je de tool aanroept.`;
           }
         }
 
+        // ── Cross-document verificatie (alleen bij 2+ hoofddocumenten) ──────────
+        if (effectiefHoofd.length >= 2) {
+          const docBlokken = effectiefHoofd
+            .map(d => `=== ${d.type.toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
+            .join('\n\n---\n\n');
+
+          const docTypenLabel = effectiefHoofd.map(d => d.type).join(' en ');
+
+          const sysCrossDoc =
+`Je bent een ervaren familierechtjurist. Je legt twee documenten naast elkaar: ${docTypenLabel}.
+
+TAAK: Vind uitsluitend inconsistenties die ALLEEN ZICHTBAAR zijn door BEIDE documenten samen te lezen.
+Rapporteer NIET wat al in één document afzonderlijk een fout is — alleen wat TUSSEN de documenten botst of ontbreekt.
+
+Zoek op ALLE dimensies:
+- CONFLICTEN ["conflicten"]: datums, bedragen, namen of afspraken die in document A anders luiden dan in document B (bijv. alimentatiebedrag anders in convenant dan in OP; geboortedatum kind anders gespeld)
+- VOLLEDIGHEID ["volledigheid"]: document A verwijst voor een onderwerp naar document B, maar dat onderwerp ontbreekt in document B
+- JURIDISCH ["juridisch"]: een bepaling in A die een bepaling in B inconsistent maakt of wettelijk onderuit haalt
+- BALANS ["balans"]: een clausule die in A en B anders uitpakt of eenzijdig is over de documenten heen
+- GRAMMATICA ["grammatica"]: namen, datums of bedragen die in de twee documenten anders gespeld of genoteerd zijn
+
+Ernst-criteria:
+- hoog: evidente tegenstrijdigheid die tot onuitvoerbaarheid leidt of een wettelijke eis raakt
+- midden: afwijking die aanpassing verdient maar de kern van de afspraken intact laat
+- laag: kleine inconsistentie of spellingsverschil
+
+Bij twijfel: geen issue. Speculeer niet.
+ALLEEN echte cross-document problemen — geen positieve bevestigingen ("Geen issue", "Voldoet aan...").
+
+WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
+
+          try {
+            const crossResult = await askClaude(sysCrossDoc, docBlokken, bevindingentool, 4000);
+            if (Array.isArray(crossResult?.issues) && crossResult.issues.length > 0) {
+              for (const d of effectiefHoofd) {
+                sse({ type: 'cross_doc', bestandsnaam: d.bestandsnaam, result: { issues: crossResult.issues } });
+              }
+              console.log(`[analyseer] cross-doc: ${crossResult.issues.length} issues`);
+            }
+          } catch (err) {
+            if (err.isMaxTokens) console.warn('[analyseer] cross-doc: max_tokens');
+            else console.warn('[analyseer] cross-doc mislukt:', err.message);
+            // niet-fataal — per-document analyses zijn al verstuurd
+          }
+        }
+
         sse({ type: 'klaar' });
 
       } catch (err) {

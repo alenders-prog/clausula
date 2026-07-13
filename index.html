@@ -2391,7 +2391,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     // (toegankelijk door zowel de SSE-loop als de tab-klik-handler)
     var _sseAcc = {};
     for (const item of effectieveHoofdItems) {
-      _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null, consolidatie: null };
+      _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null, consolidatie: null, cross_doc: null };
     }
 
     // Progressieve render: toont de eindlayout direct maar met KR-bars op de filterknopjes
@@ -2408,9 +2408,10 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         Array.isArray(acc.consolidatie?.issues) && acc.consolidatie.issues.length
           ? acc.consolidatie.issues
           : dedupIssues([
-              Array.isArray(acc.structuur?.issues) ? acc.structuur.issues : [],
-              Array.isArray(acc.juridisch?.issues) ? acc.juridisch.issues : [],
-              Array.isArray(acc.balans?.issues)    ? acc.balans.issues    : [],
+              Array.isArray(acc.structuur?.issues)  ? acc.structuur.issues  : [],
+              Array.isArray(acc.juridisch?.issues)  ? acc.juridisch.issues  : [],
+              Array.isArray(acc.balans?.issues)     ? acc.balans.issues     : [],
+              Array.isArray(acc.cross_doc?.issues)  ? acc.cross_doc.issues  : [],
             ])
       ).map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
 
@@ -2680,6 +2681,12 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
             break;
           case 'fout':
             throw new Error(_data.error || 'Analyse mislukt op de server.');
+          case 'cross_doc':
+            if (_sseAcc[_bn]) {
+              _sseAcc[_bn].cross_doc = herstelAnonObj(_data.result, naarEcht);
+              _renderProgressief(_bn);
+            }
+            break;
           case 'klaar':
             _klaar = true;
             break;
@@ -2706,9 +2713,10 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues (server-geconsolideerd)`);
     } else {
       alleIssues = dedupIssues([
-        Array.isArray(s.issues) ? s.issues : [],
-        Array.isArray(j.issues) ? j.issues : [],
-        Array.isArray(b.issues) ? b.issues : [],
+        Array.isArray(s.issues)               ? s.issues               : [],
+        Array.isArray(j.issues)               ? j.issues               : [],
+        Array.isArray(b.issues)               ? b.issues               : [],
+        Array.isArray(acc.cross_doc?.issues)  ? acc.cross_doc.issues   : [],
       ]);
       console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues (browser-dedup fallback)`);
     }
