@@ -288,6 +288,16 @@ export default async function handler(req) {
         if (standaardClausules?.length && !_wttAll.some(w => w.citation === _stdCit)) {
           _wttAll.push(...standaardClausules);
         }
+        // Vaste domeinkennis (niet in Supabase vanwege RLS-beperkingen)
+        const _VASTE_CHUNKS = [
+          {
+            citation: 'Rapport Alimentatienormen 2026 — zorgkorting bij co-ouderschap',
+            content: 'Zorgkorting is een wettelijk vastgesteld percentage dat in mindering wordt gebracht op de te betalen kinderalimentatie. Dit compenseert de directe kosten die een ouder maakt (zoals eten, energie en speelgoed) wanneer de kinderen bij hem of haar verblijven. Bij co-ouderschap geldt doorgaans een standaard zorgkorting van 35%. De zorgkorting wordt toegepast op het eigen aandeel van de onderhoudsplichtige ouder in de kosten van de kinderen; beide ouders passen de zorgkorting toe op elkaars eigen aandeel. Het resulterende saldo bepaalt de netto te betalen kinderalimentatie. Een 50/50-zorgverdeling leidt niet automatisch tot €0 kinderalimentatie — het inkomensverschil tussen ouders bepaalt of er een netto betaling resteert.',
+          },
+        ];
+        for (const c of _VASTE_CHUNKS) {
+          if (!_wttAll.some(w => w.citation === c.citation)) _wttAll.push(c);
+        }
         const wetTekst = _wttAll.map(w => `[${w.citation}] ${w.content}`).join('\n\n');
 
         const templatesPer = { convenant: tmplConvenant ?? [], ouderschapsplan: tmplOuderschapsplan ?? [] };
