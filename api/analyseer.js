@@ -467,9 +467,10 @@ NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onder
 - PASSAGE-DEDUPLICATIE: NOOIT twee issues met EXACT DEZELFDE passage. Als één passage meerdere problemen heeft (bijv. zowel grammaticaal onhelder als inhoudelijk onvolledig), rapporteer uitsluitend het zwaarste conform de dimensie-voorrangsvolgorde: juridisch > conflicten > volledigheid > balans > grammatica.
 - Bij twijfel: geen issue. Speculeer niet.
 
-ZELFCONTROLE (verplicht vóór afsluiting): Controleer de volledige issues-lijst op de volgende twee patronen:
+ZELFCONTROLE (verplicht vóór afsluiting): Controleer de volledige issues-lijst op de volgende patronen:
 1. ZELFDE PASSAGE: twee issues met exact hetzelfde verbatim citaat → bewaar alleen het zwaarste.
 2. ZELFDE BEDRAG/DATUM-CONFLICT: twee issues die hetzelfde getalpaar of datumpaar benoemen als inconsistentie (bijv. "€ 462" vs "€ 463" in twee afzonderlijke issues) → verwijder het minder ernstige en verwerk de extra context in het bewaarde issue.
+3. ZELFDE KERN-ONDERWERP: twee issues die hetzelfde fundamentele probleem beschrijven maar anders geformuleerd (bijv. "Fiscaal partnerschap: einddatum niet concreet" en "Fiscaal partnerschap: einddatum niet expliciet vastgelegd") → fuseer tot één issue met de meest volledige bevinding en aanbeveling.
 Pas de lijst aan vóór je de tool aanroept.`;
 
           const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;

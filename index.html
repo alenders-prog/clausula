@@ -2149,6 +2149,32 @@ function dedupIssues(arrays) {
     } else { bedragIdx.set(fp, i); }
   }
   issues = issues.filter((_, i) => !weg.has(i));
+  weg.clear();
+
+  // Pass 4: dedup op titelgelijkenis — zelfde kern-onderwerp → bewaar hoogste prioriteit
+  // Twee issues met Jaccard-gelijkenis ≥ 0.5 op inhoudswoorden (>4 tekens, geen stopwoorden)
+  // én ≥ 2 gedeelde woorden worden als zelfde issue beschouwd.
+  const STOP4 = new Set(['niet','geen','zijn','heeft','wordt','moeten','voor','van','het','een','maar','ook','dit','dat','door','over','naar','bij','aan','met','als','dan','nog','wel','zonder','onder','tussen','expliciet','concreet','ontbreekt','ontbrekend','vastgelegd','opgenomen','aanwezig','vereist','benoemd','onduidelijk','onvolledig']);
+  function kernWoorden(iss) {
+    return new Set((iss.onderwerp || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 4 && !STOP4.has(w)));
+  }
+  for (let i = 0; i < issues.length; i++) {
+    if (weg.has(i)) continue;
+    const wA = kernWoorden(issues[i]);
+    if (wA.size === 0) continue;
+    for (let j = i + 1; j < issues.length; j++) {
+      if (weg.has(j)) continue;
+      const wB = kernWoorden(issues[j]);
+      const inter = [...wA].filter(w => wB.has(w));
+      if (inter.length < 2) continue;
+      const union = new Set([...wA, ...wB]);
+      if (inter.length / union.size >= 0.5) {
+        if (issuePrio(issues[i]) <= issuePrio(issues[j])) weg.add(j);
+        else weg.add(i);
+      }
+    }
+  }
+  issues = issues.filter((_, i) => !weg.has(i));
 
   return issues
     .sort((a, b) => (ERNST_ORD[a.ernst] ?? 1) - (ERNST_ORD[b.ernst] ?? 1))
