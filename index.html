@@ -2084,10 +2084,18 @@ function dedupIssues(arrays) {
     return isFinite(p) ? p : 5;
   }
 
+  // Vangnet: verwijder positieve bevestigingen die geen echt probleem zijn
+  const GEEN_ISSUE_PATRONEN = /geen\s+issue|geen\s+actie\s+vereist|voldoet\s+aan|correct\s+geregeld|geen\s+probleem/i;
+  const alleIssues = arrays.flat().filter(iss => {
+    if (!iss || typeof iss !== 'object') return false;
+    const tekst = `${iss.bevinding || ''} ${iss.aanbeveling || ''}`;
+    return !GEEN_ISSUE_PATRONEN.test(tekst);
+  });
+
   // Pass 1: dedup op onderwerp (titel) — samenvoegen van identieke issues
   const kaart = new Map();
   let _pos = 0;
-  for (const iss of arrays.flat()) {
+  for (const iss of alleIssues) {
     if (!iss || typeof iss !== 'object' || Array.isArray(iss)) continue;
     const k = (iss.onderwerp || '').toLowerCase().trim().replace(/\s+/g, ' ');
     if (!k) continue;

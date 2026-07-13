@@ -436,6 +436,7 @@ DOCUMENTTYPE: ${docTypLabel}
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin).
 - Bij twijfel: geen issue. Speculeer niet.
+- ALLEEN echte problemen rapporteren. Leg NOOIT een issue vast als het document aan de eis voldoet. Positieve bevestigingen ("Geen issue", "Voldoet aan...", "Geen actie vereist", "Correct geregeld") horen NIET in de issues-lijst — die lijst bevat uitsluitend punten die de mediator moet aanpassen of controleren.
 
 **issues (balans)** — Dimensies ["balans"]: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering, ongemotiveerde afwijking van wettelijke maatstaven.
 - ZORGVERDELING-TABELLEN: beoordeel altijd de volledige cyclus (oneven + even week samen). Als de even week het spiegelbeeld is van de oneven week → het schema is per definitie symmetrisch. Het patroon waarbij één ouder de maandagochtend heeft en de andere ouder de rest t/m de volgende maandagochtend ("weekwissel op maandag") is een standaard Nederlands co-ouderschapspatroon — dit is geen asymmetrie en geen fout.
