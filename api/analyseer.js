@@ -45,6 +45,7 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
   const body = {
     model,
     max_tokens:  maxTokens,
+    temperature: 0,
     system:      systemField,
     messages:    [{ role: 'user', content: messageContent }],
     tools:       [tool],
