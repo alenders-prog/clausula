@@ -2151,9 +2151,9 @@ function dedupIssues(arrays) {
   issues = issues.filter((_, i) => !weg.has(i));
   weg.clear();
 
-  // Pass 4: dedup op titelgelijkenis — zelfde kern-onderwerp → bewaar hoogste prioriteit
-  // Twee issues met Jaccard-gelijkenis ≥ 0.5 op inhoudswoorden (>4 tekens, geen stopwoorden)
-  // én ≥ 2 gedeelde woorden worden als zelfde issue beschouwd.
+  // Pass 4: samenvoegen op titelgelijkenis — zelfde kern-onderwerp → combineer dimensies
+  // Twee issues met Jaccard-gelijkenis ≥ 0.5 op inhoudswoorden worden samengevoegd:
+  // de hogere-prioriteit is de basis; dimensies van beide worden gecombineerd.
   const STOP4 = new Set(['niet','geen','zijn','heeft','wordt','moeten','voor','van','het','een','maar','ook','dit','dat','door','over','naar','bij','aan','met','als','dan','nog','wel','zonder','onder','tussen','expliciet','concreet','ontbreekt','ontbrekend','vastgelegd','opgenomen','aanwezig','vereist','benoemd','onduidelijk','onvolledig']);
   function kernWoorden(iss) {
     return new Set((iss.onderwerp || '').toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(w => w.length > 4 && !STOP4.has(w)));
@@ -2169,8 +2169,12 @@ function dedupIssues(arrays) {
       if (inter.length < 2) continue;
       const union = new Set([...wA, ...wB]);
       if (inter.length / union.size >= 0.5) {
-        if (issuePrio(issues[i]) <= issuePrio(issues[j])) weg.add(j);
-        else weg.add(i);
+        // Samenvoegen: basis = hoogste prioriteit, dimensies gecombineerd
+        const [basis, extra] = issuePrio(issues[i]) <= issuePrio(issues[j]) ? [i, j] : [j, i];
+        issues[basis].dimensies = [...new Set([...(issues[basis].dimensies || []), ...(issues[extra].dimensies || [])])];
+        if (!issues[basis].passage && issues[extra].passage) issues[basis].passage = issues[extra].passage;
+        if ((ERNST_ORD[issues[extra].ernst] ?? 1) < (ERNST_ORD[issues[basis].ernst] ?? 1)) issues[basis].ernst = issues[extra].ernst;
+        weg.add(extra);
       }
     }
   }

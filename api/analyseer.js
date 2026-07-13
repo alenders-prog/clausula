@@ -429,7 +429,7 @@ ${mfnInstructie}
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid, evenwichtigheid en taal.
 DOCUMENTTYPE: ${docTypLabel}
 
-**issues (juridisch)** — Dimensies altijd ["juridisch"].${juridischeChecks}${hvChecks}
+**issues (juridisch)** — Primaire dimensie: "juridisch". Voeg extra dimensies toe als het issue ook een ander aspect raakt (bijv. ["juridisch","conflicten"] als de clausule zowel wettelijk onjuist als intern tegenstrijdig is).${juridischeChecks}${hvChecks}
 
 - Gebruik uitsluitend wetsartikelen uit de WETSARTIKELEN-sectie.
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
@@ -438,7 +438,7 @@ DOCUMENTTYPE: ${docTypLabel}
 - Bij twijfel: geen issue. Speculeer niet.
 - ALLEEN echte problemen rapporteren. Leg NOOIT een issue vast als het document aan de eis voldoet. Positieve bevestigingen ("Geen issue", "Voldoet aan...", "Geen actie vereist", "Correct geregeld") horen NIET in de issues-lijst — die lijst bevat uitsluitend punten die de mediator moet aanpassen of controleren.
 
-**issues (balans)** — Dimensies ["balans"]: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering, ongemotiveerde afwijking van wettelijke maatstaven.
+**issues (balans)** — Primaire dimensie: "balans". Voeg extra dimensies toe waar van toepassing (bijv. ["balans","juridisch"] bij een alimentatiebedrag dat zowel eenzijdig is als wettelijk onjuist berekend). Onderwerpen: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering, ongemotiveerde afwijking van wettelijke maatstaven.
 - ZORGVERDELING-TABELLEN: beoordeel altijd de volledige cyclus (oneven + even week samen). Als de even week het spiegelbeeld is van de oneven week → het schema is per definitie symmetrisch. Het patroon waarbij één ouder de maandagochtend heeft en de andere ouder de rest t/m de volgende maandagochtend ("weekwissel op maandag") is een standaard Nederlands co-ouderschapspatroon — dit is geen asymmetrie en geen fout.
 
 **issues (grammatica)** — Dimensies ["grammatica"]. Scan het VOLLEDIGE document op:
@@ -457,7 +457,7 @@ KRITISCH voor grammatica-issues — ALLE drie velden moeten over DEZELFDE fout g
 
 NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onderwerp Y.
 
-**issues (conflicten)** — Dimensies ["conflicten"]. Zoek tegenstrijdigheden BINNEN het document op ALLE niveaus:
+**issues (conflicten)** — Primaire dimensie: "conflicten". Voeg extra dimensies toe waar van toepassing (bijv. ["conflicten","juridisch"]). Zoek tegenstrijdigheden BINNEN het document op ALLE niveaus:
 - Inter-artikel: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
 - Intra-sectie: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. 'uitsluitend mondeling' gevolgd door 'schriftelijk vastgelegd', of een vakantieregeling die intern inconsistente aantallen weken of wisseldata noemt)
 - Bedrag/datum: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
