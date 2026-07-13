@@ -2073,9 +2073,18 @@ function vindDocVolgorde(issuesArr) {
   return issuesArr.map((_, i) => i).sort((a, b) => vindPos(issuesArr[a]) - vindPos(issuesArr[b]));
 }
 
-// Wordt gebruikt om de 3 SSE-resultaten (structuur/juridisch/balans) samen te voegen.
+// Samenvoegen + 3-pass deduplicatie van issues uit meerdere analyse-calls.
 function dedupIssues(arrays) {
   const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
+  const DIM_PRIO  = { juridisch: 0, conflicten: 1, volledigheid: 2, balans: 3, grammatica: 4 };
+
+  function issuePrio(iss) {
+    const dims = Array.isArray(iss.dimensies) ? iss.dimensies : [];
+    const p = Math.min(...dims.map(d => DIM_PRIO[d] ?? 5));
+    return isFinite(p) ? p : 5;
+  }
+
+  // Pass 1: dedup op onderwerp (titel) — samenvoegen van identieke issues
   const kaart = new Map();
   let _pos = 0;
   for (const iss of arrays.flat()) {
@@ -2095,7 +2104,45 @@ function dedupIssues(arrays) {
     }
     _pos++;
   }
-  return [...kaart.values()]
+
+  let issues = [...kaart.values()];
+  const weg = new Set();
+
+  // Pass 2: dedup op passage — zelfde verbatim citaat → bewaar hoogste dimensie-prioriteit
+  const pasIdx = new Map();
+  for (let i = 0; i < issues.length; i++) {
+    const p = (issues[i].passage || '').trim().replace(/\s+/g, ' ');
+    if (!p || p.length < 15) continue;
+    if (pasIdx.has(p)) {
+      const j = pasIdx.get(p);
+      if (issuePrio(issues[i]) < issuePrio(issues[j])) { weg.add(j); pasIdx.set(p, i); }
+      else weg.add(i);
+    } else { pasIdx.set(p, i); }
+  }
+  issues = issues.filter((_, i) => !weg.has(i));
+  weg.clear();
+
+  // Pass 3: dedup op bedragpaar — zelfde set van ≥2 EUR-bedragen → bewaar hoogste prioriteit
+  function bedragFp(iss) {
+    const t = `${iss.onderwerp || ''} ${iss.bevinding || ''}`;
+    const nrs = [...new Set(
+      [...t.matchAll(/€\s*([\d.,]+)/g)].map(m => m[1].replace(/[.,\s]/g, ''))
+    )].sort();
+    return nrs.length >= 2 ? nrs.join('|') : '';
+  }
+  const bedragIdx = new Map();
+  for (let i = 0; i < issues.length; i++) {
+    const fp = bedragFp(issues[i]);
+    if (!fp) continue;
+    if (bedragIdx.has(fp)) {
+      const j = bedragIdx.get(fp);
+      if (issuePrio(issues[i]) < issuePrio(issues[j])) { weg.add(j); bedragIdx.set(fp, i); }
+      else weg.add(i);
+    } else { bedragIdx.set(fp, i); }
+  }
+  issues = issues.filter((_, i) => !weg.has(i));
+
+  return issues
     .sort((a, b) => (ERNST_ORD[a.ernst] ?? 1) - (ERNST_ORD[b.ernst] ?? 1))
     .map(i => ({ ...i, afgehandeld: false, opmerking: '' }));
 }
