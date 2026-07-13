@@ -462,7 +462,12 @@ NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onder
 
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin).
 - PASSAGE-DEDUPLICATIE: NOOIT twee issues met EXACT DEZELFDE passage. Als één passage meerdere problemen heeft (bijv. zowel grammaticaal onhelder als inhoudelijk onvolledig), rapporteer uitsluitend het zwaarste conform de dimensie-voorrangsvolgorde: juridisch > conflicten > volledigheid > balans > grammatica.
-- Bij twijfel: geen issue. Speculeer niet.`;
+- Bij twijfel: geen issue. Speculeer niet.
+
+ZELFCONTROLE (verplicht vóór afsluiting): Controleer de volledige issues-lijst op de volgende twee patronen:
+1. ZELFDE PASSAGE: twee issues met exact hetzelfde verbatim citaat → bewaar alleen het zwaarste.
+2. ZELFDE BEDRAG/DATUM-CONFLICT: twee issues die hetzelfde getalpaar of datumpaar benoemen als inconsistentie (bijv. "€ 462" vs "€ 463" in twee afzonderlijke issues) → verwijder het minder ernstige en verwerk de extra context in het bewaarde issue.
+Pas de lijst aan vóór je de tool aanroept.`;
 
           const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
 
