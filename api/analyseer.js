@@ -91,95 +91,6 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
   throw lastErr;
 }
 
-// ── Pre-groepeer issues op gedeelde onderwerp-tekst ──────────────────────────
-// Twee strategieën om verwante issues te detecteren:
-//   A. LCP ≥ 15 tekens (genormaliseerd, op woordgrens afgekapt)
-//      → vangt "Kinderalimentatie — volledig afwezig" + "Kinderalimentatie: bedrag …"
-//   B. ≥ 2 gedeelde significante woorden (≥5 tekens, geen stopwoorden)
-//      → vangt "Nihilbeding kinderalimentatie …" + "Kinderalimentatie nihilbeding …"
-//        (zelfde woorden, andere volgorde — LCP = 0 maar overlap = 2 woorden)
-function preGroepeerOpPrefix(issues) {
-  const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
-
-  // Veelvoorkomende woorden die NIET als onderscheidend gelden
-  const STOPWOORDEN = new Set([
-    'de','het','een','van','en','in','op','bij','voor','met','aan','is','zijn',
-    'als','tot','te','om','door','of','zonder','naar','dat','niet','er','die',
-    'dit','ook','maar','dan','zo','nu','wel','nog','al','geen','elke','alle',
-    'heeft','wordt','worden','heeft','werd','waren','zijn','over','naar','onder',
-  ]);
-
-  const normOnd = (s) => (s || '').toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-
-  // Strategie A: Longest Common Prefix (afgekapt op woordgrens)
-  const lcpLen = (a, b) => {
-    const na = normOnd(a), nb = normOnd(b);
-    let i = 0;
-    while (i < na.length && i < nb.length && na[i] === nb[i]) i++;
-    while (i > 0 && na[i - 1] !== ' ') i--;
-    return i;
-  };
-
-  // Strategie B: significante woorden ophalen (≥5 tekens, geen stopwoord)
-  const sleutelwoorden = (s) =>
-    new Set(normOnd(s).split(/\s+/).filter(w => w.length >= 5 && !STOPWOORDEN.has(w)));
-
-  // Gecombineerde check: A óf B — drempel bewust hoog om "titel ≠ inhoud"-artefacten te voorkomen
-  const zijnVerwant = (ondA, ondB) => {
-    // Langste gemeenschappelijke prefix van ≥20 tekens → zeker hetzelfde onderwerp
-    if (lcpLen(ondA, ondB) >= 20) return true;
-    // Minstens 3 significante overlappende sleutelwoorden (was 2 → te breed)
-    const kA = sleutelwoorden(ondA);
-    const kB = sleutelwoorden(ondB);
-    let raak = 0;
-    for (const w of kA) if (kB.has(w)) raak++;
-    return raak >= 3;
-  };
-
-  const resultaat = [];
-  const gebruikt  = new Set();
-
-  for (let i = 0; i < issues.length; i++) {
-    if (gebruikt.has(i)) continue;
-    const ref   = issues[i];
-    const groep = [{ ...ref }];
-    gebruikt.add(i);
-
-    for (let j = i + 1; j < issues.length; j++) {
-      if (gebruikt.has(j)) continue;
-      const cand = issues[j];
-      if (zijnVerwant(ref.onderwerp, cand.onderwerp)) {
-        groep.push({ ...cand });
-        gebruikt.add(j);
-        console.log(`[consolidatie] merge: "${ref.onderwerp}" ↔ "${cand.onderwerp}"`);
-      }
-    }
-
-    if (groep.length === 1) { resultaat.push(groep[0]); continue; }
-
-    // Merge: zwaarste ernst, gecombineerde dimensies, meest informatieve teksten.
-    // BELANGRIJK: titel (onderwerp) moet altijd bij de bevinding horen die we kiezen —
-    // anders krijg je "titel van A, inhoud van B" (verwarrend voor de gebruiker).
-    const merged = { ...groep[0] };
-    for (let k = 1; k < groep.length; k++) {
-      const o = groep[k];
-      if ((ERNST_ORD[o.ernst] ?? 1) < (ERNST_ORD[merged.ernst] ?? 1)) merged.ernst = o.ernst;
-      merged.dimensies  = [...new Set([...(merged.dimensies  || []), ...(o.dimensies  || [])])];
-      // Als de andere bevinding langer/informatiever is → neem ook zijn onderwerp mee
-      if ((o.bevinding || '').length > (merged.bevinding || '').length) {
-        merged.bevinding  = o.bevinding;
-        merged.onderwerp  = o.onderwerp;   // titel volgt de bevinding die we tonen
-        merged.passage    = o.passage || merged.passage;
-      }
-      if ((o.aanbeveling || '').length > (merged.aanbeveling || '').length) merged.aanbeveling = o.aanbeveling;
-      if (!merged.passage && o.passage) merged.passage = o.passage;
-    }
-    resultaat.push(merged);
-  }
-
-  return resultaat;
-}
 
 // ── MfN-elementen ─────────────────────────────────────────────────────────────
 const MFN_ELEMENTEN = {
@@ -547,6 +458,7 @@ NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onder
 - Inter-artikel: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
 - Intra-sectie: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. 'uitsluitend mondeling' gevolgd door 'schriftelijk vastgelegd', of een vakantieregeling die intern inconsistente aantallen weken of wisseldata noemt)
 - Bedrag/datum: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
+- DEDUPLICATIE: als meerdere inconsistenties voortkomen uit DEZELFDE onderliggende oorzaak (bijv. één fout bedrag dat op meerdere plekken terugkomt), maak dan EEN bevinding die de kernfout beschrijft en de gevolgen noemt — GEEN afzonderlijk issue per plek.
 
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin).
 - Bij twijfel: geen issue. Speculeer niet.`;
@@ -556,43 +468,17 @@ NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onder
           // Helper om gecachede contextblok als array te leveren (leeg als geen bijlagen)
           const mkCtx = () => contextBlok ? [{ text: contextBlok, cache: true }] : [];
 
-          // Helper: roep Claude aan en stuur SSE zodra het klaar is; vang max_tokens af
-          // Cross-document filter: issues waarvan de passage niet in doc.tekst staat worden
-          // verwijderd vóór SSE-verzending. Voorkomt dat Claude issues over het OP rapporteert
-          // bij analyse van het Convenant (of vice versa) wanneer beide als context worden gestuurd.
-          const _normDocTekst = doc.tekst ? doc.tekst.replace(/\s+/g, ' ').toLowerCase() : '';
-          const _filterIssues = (issues, callType) => {
-            if (!issues?.length || !_normDocTekst) return issues;
-            const voor = issues.length;
-            const gefilterd = issues.filter(issue => {
-              if (!issue.passage) return true; // geen passage → bewaren
-              const pasNorm = issue.passage.replace(/\s+/g, ' ').toLowerCase();
-              const anker   = pasNorm.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              const gevonden = new RegExp(anker.replace(/ /g, '\\s+')).test(_normDocTekst);
-              if (!gevonden) {
-                console.warn(`[analyseer] cross-doc filter (${callType}): passage niet in ${doc.bestandsnaam} — verwijderd: "${pasNorm.slice(0, 70)}"`);
-              }
-              return gevonden;
-            });
-            if (gefilterd.length < voor) {
-              console.log(`[analyseer] ${doc.bestandsnaam}/${callType}: ${voor - gefilterd.length} issue(s) gefilterd (passage niet in dit document)`);
-            }
-            return gefilterd;
-          };
           const callMetSse = (clodeFn, type) =>
             clodeFn().then(
               result => {
-                const gefilterdResult = Array.isArray(result?.issues)
-                  ? { ...result, issues: _filterIssues(result.issues, type) }
-                  : result;
-                sse({ type, bestandsnaam: doc.bestandsnaam, result: gefilterdResult });
-                return gefilterdResult;
+                sse({ type, bestandsnaam: doc.bestandsnaam, result });
+                return result;
               },
               err => {
                 if (err.isMaxTokens) {
                   console.warn(`[analyseer] max_tokens: ${doc.bestandsnaam}/${type}`);
                   sse({ type: 'max_tokens', bestandsnaam: doc.bestandsnaam, tool: type });
-                  return { issues: [] }; // leeg resultaat — analyse gaat door
+                  return { issues: [] };
                 }
                 throw err;
               }

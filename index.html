@@ -3252,29 +3252,6 @@ async function toonRapport(cls, rp) {
   huidigeDocumenten = docs || [];
   huidigeDocIdx     = 0;
 
-  // ── Cross-doc issue-filter ──────────────────────────────────────────────────
-  // Verwijdert issues die expliciet verwijzen naar het ANDERE document.
-  // Werkt op bestaande Supabase-data (server-filter in analyseer.js werkt alleen voor nieuwe analyses).
-  const _CROSS_DOC_LABELS = {
-    convenant:      ['ouderschapsplan', 'het op '],
-    ouderschapsplan:['het convenant', 'convenant:'],
-  };
-  function filterCrossDocIssues(issues, actDocType) {
-    if (!Array.isArray(issues) || !actDocType) return issues;
-    const labels = _CROSS_DOC_LABELS[actDocType];
-    if (!labels) return issues;
-    const voor = issues.length;
-    const gefilterd = issues.filter(issue => {
-      const tekst = ((issue.onderwerp || '') + ' ' + (issue.bevinding || '')).toLowerCase();
-      const isAnder = labels.some(lbl => tekst.includes(lbl));
-      if (isAnder) console.log(`[display] cross-doc filter: "${(issue.onderwerp||'').slice(0,70)}" uit ${actDocType}`);
-      return !isAnder;
-    });
-    if (gefilterd.length < voor)
-      console.log(`[display] ${voor - gefilterd.length} cross-doc issue(s) gefilterd (${actDocType})`);
-    return gefilterd;
-  }
-
   // ── Helpers ──
   const sectie = (titel, inhoud, open = false, filterbaar = false, balkPct = null) => `
     <div class="a-sectie${open ? '' : ' dicht'}${balkPct !== null ? ' heeft-balk' : ''}">
@@ -3525,11 +3502,6 @@ async function toonRapport(cls, rp) {
         if (_voorgaandConcepten) {
           huidigRapport._concepts = { ...(huidigRapport._concepts || {}), ..._voorgaandConcepten };
         }
-        // Client-side cross-doc filter: verwijder issues van het andere document
-        const _tabDocType = huidigeDocumenten[idx]?.doc_type || '';
-        if (Array.isArray(huidigRapport.issues)) {
-          huidigRapport.issues = filterCrossDocIssues(huidigRapport.issues, _tabDocType);
-        }
         activeerAnalysePanel(huidigRapport);
         // Toon "Bekijk concept" alleen als er een concept is voor dit document-type
         const tabDocType   = huidigeDocumenten[idx]?.doc_type || '';
@@ -3568,10 +3540,6 @@ async function toonRapport(cls, rp) {
   // huidigRapport['volledigheid'] etc. al kan vinden vóór de eerste tab-switch.
   const drpVoorBanner = docs ? { ...rp, ...docs[0] } : rp;
   if (docs) {
-    // Filter cross-doc issues ook bij initiële load van het eerste tabblad
-    if (Array.isArray(drpVoorBanner.issues)) {
-      drpVoorBanner.issues = filterCrossDocIssues(drpVoorBanner.issues, drpVoorBanner.doc_type || '');
-    }
     huidigRapport = drpVoorBanner;
   }
   activeerAnalysePanel(drpVoorBanner);
@@ -5111,14 +5079,24 @@ function bouwAnonMap(classificatie) {
   const naarAnon = new Map(); // key = lowercase echte naam,  value = nep-naam
   const naarEcht = new Map(); // key = nep-naam / legacy-ph,  value = echte naam
 
-  // Nep-namenpool: realistische maar generieke Nederlandse namen.
-  // Nep-namen ipv [PERSOON_A]-placeholders voorkomen dat Claude een placeholder
-  // per ongeluk herhaalt in zijn output (bijv. '[PERSOON_A] [PERSOON_A]'),
-  // wat na de-pseudonimisering een vals alarm voor dubbele namen geeft.
+  // Nep-namenpool als {fn, an}-objecten: voornaam en achternaam van een verkorte naam
+  // ("Martijn Jasperse") krijgen elk hun EIGEN component:
+  //   "martijn"  → "Thomas"   (nep.fn, alleen voornaam)
+  //   "jasperse" → "Bergman"  (nep.an, alleen achternaam)
+  // Resultaat: "Martijn Jasperse" → "Thomas Bergman" (één keer, niet dubbel).
+  // Vroeger (string "Thomas Bergman"): beide deelvervangingen → "Thomas Bergman Thomas Bergman"
+  // → Claude meldde vals alarm "dubbele naam". Fix: component-mapping per naamsdeel.
   const NEP_PERSONEN = [
-    'Thomas Bergman', 'Lisette Hartwijk', 'Florian Oud', 'Nathalie Wester',
-    'Bastiaan Kroon', 'Eveline Dragt', 'Rutger Bakkenes', 'Simone Veldhuis',
-    'Jeroen Hoekstra', 'Yvonne Stavast',
+    { fn: 'Thomas',   an: 'Bergman'  },
+    { fn: 'Lisette',  an: 'Hartwijk' },
+    { fn: 'Florian',  an: 'Oud'      },
+    { fn: 'Nathalie', an: 'Wester'   },
+    { fn: 'Bastiaan', an: 'Kroon'    },
+    { fn: 'Eveline',  an: 'Dragt'    },
+    { fn: 'Rutger',   an: 'Bakkenes' },
+    { fn: 'Simone',   an: 'Veldhuis' },
+    { fn: 'Jeroen',   an: 'Hoekstra' },
+    { fn: 'Yvonne',   an: 'Stavast'  },
   ];
   // Kindernamen: alleen voornamen (generiek, niet herkenbaar)
   const NEP_KINDEREN = ['Finn', 'Lotte', 'Stef', 'Mila', 'Bram', 'Sofie', 'Tim', 'Emma'];
@@ -5126,39 +5104,50 @@ function bouwAnonMap(classificatie) {
   let _kindIdx = 0;
 
   // Registreer een echte naam → nep-naam koppeling.
+  // nep: {fn, an}-object voor personen, of string voor kinderen/fallback-placeholders.
   // legacyPh: optionele [PERSOON_A]-stijl placeholder voor backward-compat
   // met bestaande Supabase-data die nog de oude placeholders bevat.
-  function registreer(echt, nepNaam, legacyPh = null) {
+  function registreer(echt, nep, legacyPh = null) {
     if (!echt || echt.trim().length < 2) return;
     const e = echt.trim();
     const eLc = e.toLowerCase();
+    const isObj = nep && typeof nep === 'object';
+    const nepVolledig = isObj ? `${nep.fn} ${nep.an}` : nep;
 
-    // Nep-naam voor nieuwe analyses (case-insensitief herstel in herstelAnonObj)
-    if (!naarEcht.has(nepNaam)) naarEcht.set(nepNaam, e);
-    // Backward-compat: bestaande opgeslagen data kan nog [PERSOON_A] bevatten
+    // naarEcht: voor herstel nep-naam → echte naam
+    if (!naarEcht.has(nepVolledig)) naarEcht.set(nepVolledig, e);
+    if (isObj) {
+      // Afzonderlijke componenten zodat "Thomas" of "Bergman" alleen ook herkend wordt
+      if (!naarEcht.has(nep.fn)) naarEcht.set(nep.fn, e);
+      if (!naarEcht.has(nep.an)) naarEcht.set(nep.an, e);
+    }
     if (legacyPh && !naarEcht.has(legacyPh)) naarEcht.set(legacyPh, e);
 
-    // Volledige naam (case-insensitief via lowercase key)
-    if (!naarAnon.has(eLc)) naarAnon.set(eLc, nepNaam);
+    // naarAnon: volledige echte naam → volledige nep-naam
+    if (!naarAnon.has(eLc)) naarAnon.set(eLc, nepVolledig);
 
     const delen = e.split(/\s+/);
 
-    // Voornaam (>3 tekens, om "de"/"van"/"te" als standalone te vermijden)
+    // Voornaam → ALLEEN voornaam-component (nep.fn), niet de volledige nep-naam.
+    // Voorkomt: "Martijn" → "Thomas Bergman" wat samen met "Jasperse" → "Thomas Bergman"
+    // een dubbeling geeft.
     const voornaam = delen[0];
+    const nepVoornaam = isObj ? nep.fn : nepVolledig;
     if (voornaam.length > 3 && !naarAnon.has(voornaam.toLowerCase())) {
-      naarAnon.set(voornaam.toLowerCase(), nepNaam);
+      naarAnon.set(voornaam.toLowerCase(), nepVoornaam);
     }
 
-    // Achternaam (alles na de voornaam, inclusief tussenvoegsel)
     if (delen.length >= 2) {
+      // Achternaam → ALLEEN achternaam-component (nep.an), niet de volledige nep-naam
+      const nepAchternaam = isObj ? nep.an : nepVolledig;
       const achterNaamVolledig = delen.slice(1).join(' ');
       if (achterNaamVolledig.length > 3 && !naarAnon.has(achterNaamVolledig.toLowerCase())) {
-        naarAnon.set(achterNaamVolledig.toLowerCase(), nepNaam);
+        naarAnon.set(achterNaamVolledig.toLowerCase(), nepAchternaam);
       }
       // Alleen het allerlaatste woord (bijv. "Leeuwen" uit "van Leeuwen")
       const achterst = delen[delen.length - 1];
       if (achterst.length > 4 && !naarAnon.has(achterst.toLowerCase())) {
-        naarAnon.set(achterst.toLowerCase(), nepNaam);
+        naarAnon.set(achterst.toLowerCase(), nepAchternaam);
       }
     }
   }
@@ -5253,18 +5242,26 @@ function herstelAnonObj(obj, naarEcht) {
   if (!naarEcht?.size) return obj;
   if (typeof obj === 'string') {
     let t = obj;
+    // Sorteer nep-naam entries op lengte (langste eerst) zodat "Thomas Bergman"
+    // vervangen wordt vóór "Thomas" of "Bergman" afzonderlijk — zonder sortering
+    // zou "Thomas" eerst vervangen worden → "echte naam Bergman" → dubbele restauratie.
+    const nepEntries = [...naarEcht.entries()]
+      .filter(([ph]) => !ph.startsWith('['))
+      .sort(([a], [b]) => b.length - a.length);
+    for (const [ph, echt] of nepEntries) {
+      try {
+        // Woordgrens: voorkomt dat "Thomas" matcht in "Thomassen" e.d.
+        const rx = new RegExp(
+          '(?<![A-Za-zÀ-ÿ])' + ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-zÀ-ÿ])',
+          'gi'
+        );
+        t = t.replace(rx, echt);
+      } catch { t = t.replaceAll(ph, echt); }
+    }
+    // Legacy bracketed placeholders: exacte vervanging
     for (const [ph, echt] of naarEcht) {
-      if (ph.startsWith('[')) {
-        // Legacy bracketed placeholder: exacte vervanging
-        t = t.replaceAll(ph, echt);
-      } else {
-        // Nep-naam: case-insensitieve vervanging (Claude citeert verbatim uit document,
-        // maar kan soms ook de eerste letter lowercase schrijven)
-        try {
-          const rx = new RegExp(ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-          t = t.replace(rx, echt);
-        } catch { t = t.replaceAll(ph, echt); }
-      }
+      if (!ph.startsWith('[')) continue;
+      t = t.replaceAll(ph, echt);
     }
     // Fuzzy-pass voor legacy bracketed placeholders:
     // vangt [persoon_a], [PERSOON A], [ Kind 1 ] e.d.

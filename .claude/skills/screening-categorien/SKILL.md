@@ -83,6 +83,9 @@ Toetst op interne tegenstrijdigheden en toekomstige geschilrisico's binnen het d
 - **Inter-artikel**: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
 - **Intra-sectie**: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. "uitsluitend mondeling" gevolgd door "schriftelijk vastgelegd"; vakantieregeling met intern inconsistente wekenaantallen of data)
 - **Bedrag/datum**: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
+- **DEDUPLICATIE** (prompt-regel, 2025-07): als meerdere inconsistenties voortkomen uit dezelfde
+  onderliggende oorzaak (bijv. één fout overbedelingsbedrag dat doorwerkt in totaalbedrag),
+  rapporteer EEN bevinding met de kernfout + gevolgen — geen apart issue per plek.
 - Vage formuleringen die tot uitleggeschillen leiden ("in redelijkheid", "zo veel mogelijk" zonder invulling)
 - Afspraken zonder geschillenregeling waar die voorzienbaar nodig is
 
@@ -201,6 +204,13 @@ Documenten worden vóór verzending naar de API automatisch pseudonimiseerd:
     per ongeluk herhaalt in zijn output, wat na de-pseudonimisering een vals alarm geeft.
   - Nep-namenpool: `bouwAnonMap()` in `index.html`. Legacy-placeholders ([PERSOON_A] etc.)
     worden nog herkend door `herstelAnonObj()` voor backward-compat met bestaande data.
+  - **Component-mapping (2025-07):** `NEP_PERSONEN` zijn `{fn, an}`-objecten. Voornaam
+    mapt naar `nep.fn` ("Thomas"), achternaam naar `nep.an` ("Bergman") — NIET naar de
+    volledige nep-naam. Zo wordt "Martijn Jasperse" (verkorte naam) → "Thomas Bergman"
+    (één keer). Vroeger (string): beide deelvervangingen → "Thomas Bergman Thomas Bergman"
+    → vals alarm "dubbele naam" in grammatica-bevinding.
+  - **herstelAnonObj sorteert** naarEcht-entries op lengte (langste eerst): "Thomas Bergman"
+    wordt vervangen vóór "Thomas" of "Bergman" afzonderlijk — anders dubbele de-anonimisering.
 - Adressen/woonplaatsen → `[ADRES]`, `[WOONPLAATS]`, `[POSTCODE]`
 - Persoonsnummers → `[BSN]`, `[TEL]`, `[EMAIL]`
 - IBAN: bewust NIET gemaskeerd (Claude heeft het nodig voor rekeningnummer-verificatie)
