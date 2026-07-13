@@ -703,7 +703,11 @@ button.primair:hover{background:var(--coral-dark);}
   transition:color .15s,border-color .15s;white-space:nowrap;flex-shrink:0;}
 .doc-tab.actief{color:#F5F1E8;border-bottom-color:var(--brass);}
 .doc-tab:hover:not(.actief){color:#F5F1E8;}
+.dossier-naam{color:rgba(245,241,232,.55);font-size:.8rem;font-weight:500;
+  padding:0 16px 0 12px;white-space:nowrap;flex-shrink:0;align-self:center;
+  border-right:1px solid rgba(245,241,232,.2);margin-left:auto;}
 .split-meta.tabs-modus{align-items:flex-end;overflow-x:auto;gap:0;padding-bottom:0;}
+.split-meta.tabs-modus .dossier-naam{padding-bottom:6px;}
 .split-body{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;}
 
 /* ── Document-panel ───────────────────────────────── */
@@ -1573,6 +1577,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   <div class="concept-review-header">
     <button class="back-btn" id="conceptReviewBackBtn">← Terug</button>
     <span class="concept-review-titel">Verbeterd concept — review</span>
+    <span class="dossier-naam" id="conceptDossierNaam" style="display:none"></span>
     <div class="concept-review-acties">
       <div class="concept-download-wrap">
         <button class="primair" id="conceptDownloadBtn">↓ Download als Word</button>
@@ -2473,7 +2478,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         `<button class="doc-tab${i === 0 ? ' actief' : ''}" data-idx="${i}">
           ${escH((DOC_TYPE_ICONS[item.type] || '📄') + ' ' + (DOC_TYPE_LABELS[item.type] || item.type))}
         </button>`
-      ).join('');
+      ).join('') + _dossierNaamHtml(classificatie);
       _metaEl.querySelectorAll('.doc-tab').forEach(btn => {
         btn.addEventListener('click', async () => {
           const idx = parseInt(btn.dataset.idx, 10);
@@ -2495,7 +2500,8 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       _metaEl.classList.remove('tabs-modus');
       _metaEl.innerHTML =
         `<span class="doctype">${escH(DOC_TYPE_LABELS[effectieveHoofdItems[0]?.type] || classificatie.doc_type || '')}</span>
-         <span class="titel">${escH(_bn)}</span>`;
+         <span class="titel">${escH(_bn)}</span>` +
+        _dossierNaamHtml(classificatie);
     }
 
     openSplitView();
@@ -2770,6 +2776,16 @@ let renderGeneratie       = 0; // verhoogd bij elke nieuwe render; oude renders 
 
 function escH(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _dossierNaam(cls) {
+  const achtA = (cls?.partij_a_naam || '').trim().split(/\s+/).pop() || '';
+  const achtB = (cls?.partij_b_naam || '').trim().split(/\s+/).pop() || '';
+  return achtA && achtB && achtA.toLowerCase() !== achtB.toLowerCase()
+    ? `${achtA} / ${achtB}` : (achtA || achtB || '');
+}
+function _dossierNaamHtml(cls) {
+  const naam = _dossierNaam(cls);
+  return naam ? `<span class="dossier-naam">${escH(naam)}</span>` : '';
 }
 
 async function renderDocPanel(searchText) {
@@ -3485,7 +3501,7 @@ async function toonRapport(cls, rp) {
       `<button class="doc-tab${i === 0 ? ' actief' : ''}" data-idx="${i}">${
         escH((DOC_TYPE_ICONS[d.doc_type] || '') + ' ' + (DOC_TYPE_LABELS[d.doc_type] || d.doc_type))
       }</button>`
-    ).join('');
+    ).join('') + _dossierNaamHtml(cls);
 
     metaEl.querySelectorAll('.doc-tab').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -3531,7 +3547,8 @@ async function toonRapport(cls, rp) {
     metaEl.classList.remove('tabs-modus');
     metaEl.innerHTML =
       `<span class="doctype" id="splitDoctype">${escH(cls.doc_type)}</span>
-       <span class="titel" id="splitTitel">${escH(huidigeBestandsnaam)}</span>`;
+       <span class="titel" id="splitTitel">${escH(huidigeBestandsnaam)}</span>` +
+      _dossierNaamHtml(cls);
   }
 
   // Multi-doc: geef het eerste sub-document mee zodat de score-banner
@@ -5605,6 +5622,8 @@ function highlightConceptPassage(passage) {
 function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origineelTekst = null) {
   _conceptDocumentTekst      = documentTekst;
   _conceptWijzigingen        = Array.isArray(wijzigingen) ? wijzigingen : [];
+  const _cnEl = document.getElementById('conceptDossierNaam');
+  if (_cnEl) { const _dn = _dossierNaam(huidigeClassificatie); _cnEl.textContent = _dn; _cnEl.style.display = _dn ? '' : 'none'; }
   _conceptOriginelePdf       = pdfBestand;
   _conceptGewijzigdDocx      = null;  // reset — wordt opnieuw aangemaakt bij rendering
   _toegepasteWijzigingIdx    = null;  // reset — wordt ingesteld door vervangInDocxXml
