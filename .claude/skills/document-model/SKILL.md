@@ -213,10 +213,14 @@ Claude's telwaarden zijn informatief; gebruik altijd de elementen-array als bron
 
 De `api/analyseer.js` handler ontvangt `{ classificatie, documenten[] }`. Per HOOFD_TYPE:
 
-1. Drie parallelle Sonnet-calls (`structuur`, `juridisch`, `balans`)
-2. Andere hoofddocumenten worden meegestuurd als `ANDERE DOCUMENTEN IN DIT DOSSIER`
-   zodat Claude externe verwijzingen ("zie het ouderschapsplan") kan verifiëren
-3. Haiku-consolidatierol voegt semantisch verwante issues samen
-4. Resultaten komen via SSE terug als events: `structuur`, `juridisch`, `balans`, `consolidatie`, `klaar`
+1. **Twee parallelle Sonnet-calls** per document:
+   - `registreer_structuur` — volledigheid + MfN-score
+   - `registreer_bevindingen` — juridisch + balans + grammatica + conflicten (gecombineerd in één call)
+2. Elk document wordt **in isolatie** geanalyseerd — andere hoofddocumenten worden niet als context meegegeven (voorkomt cross-document besmetting).
+3. SSE-events per document: `structuur`, `juridisch`, `balans` (dummy voor frontend-compat, leeg resultaat).
+4. **Na alle per-document analyses** (alleen bij 2+ hoofddocumenten): één aparte cross-doc Sonnet-call via `registreer_cross_doc_bevindingen`. Issues bevatten `betreft_documenten: ["convenant"]`, `["ouderschapsplan"]` of `["convenant","ouderschapsplan"]`. De server stuurt per document alleen relevante cross-doc issues via `cross_doc`-events.
+5. Afsluiting: `klaar`-event.
+
+**Er is geen Haiku-consolidatiestap meer.** Deduplicatie binnen één document zit in de bevindingen-prompt (`ZELFCONTROLE`-sectie). Cross-document deduplicatie zit niet in de client maar in de aparte cross-doc call.
 
 Zie de `screening-categorien` skill voor categoriedefinities en ernst-criteria.

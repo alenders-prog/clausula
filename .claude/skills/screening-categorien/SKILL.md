@@ -143,6 +143,8 @@ Toetst taal, consistentie en verzorging voor zover die de betekenis of professio
 - Rapporteer ELKE tikfout/grammaticakwestie als een APART issue (niet bundelen)
 - Dubbele woorden (bijv. "Land Rover Land Rover", "de de kinderen") = expliciete scanlijst in prompt
 
+> **Genderregel (2026-07):** Een genderkwestie mag uitsluitend worden gerapporteerd als hetzelfde **benoemde** individu in hetzelfde document op de ene plek als 'hij/hem/zijn' en op een andere plek als 'zij/haar' wordt aangeduid — directe per-persoon-inconsistentie. Een algemene paragraaf die niet bij naam aan een kind is gekoppeld levert **nooit** een genderissue op, zeker niet als het gezin zowel een zoon als een dochter heeft: de paragraaf kan immers over het andere kind gaan. Achtergrond: valse positief waarbij een menstruatieparagraaf als genderfout werd aangemerkt terwijl het gezin een zoon en een dochter had.
+
 > **Valkuil**: de vorige prompt omschreef `grammatica` als "vage verwijzingen en inconsistente datums" — dat zijn semantische issues, geen taalfouten. Spelling- en syntaxfouten werden hierdoor gemist. De `sysBalansGram`-prompt bevat nu een expliciete scanlijst inclusief tikfouten en onvolledige zinnen.
 
 > **Valkuil — incoherentie tussen velden**: na unbundeling (elk issue apart) kan Claude de velden `onderwerp`, `bevinding` en `passage` van VERSCHILLENDE fouten door elkaar halen — bijv. `onderwerp` over "Land Rover Land Rover" maar `bevinding`+`passage` over social media. Veroorzaakt: gele markering landt op verkeerde plek én de kaart is onbegrijpelijk. Fix: prompt bevat expliciete eis "ALLE drie velden moeten over DEZELFDE fout gaan" + tool-schema bevat `description` op `passage`-veld die dit herhaalt.
@@ -233,7 +235,7 @@ In plaats daarvan:
 - Claude analyseert elk document in isolatie.
 - Externe verwijzingen ("zie het ouderschapsplan") worden afgehandeld met de minimale regel:
   "rapporteer hooguit als `laag` dat het referentiedocument ontbreekt als bijlage."
-- Cross-doc verificatie kan later als gerichte micro-call worden toegevoegd.
+- **Cross-doc verificatie is geïmplementeerd** als een aparte Sonnet-call ná alle per-document analyses (tool: `registreer_cross_doc_bevindingen`). Issues bevatten het verplichte veld `betreft_documenten` (`["convenant"]`, `["ouderschapsplan"]`, of `["convenant","ouderschapsplan"]`). De server stuurt per document alleen de relevante subset als `cross_doc`-SSE-event. Zie `api/analyseer.js` regels 571–631 voor de implementatie.
 
 ### Verificatieplicht bij "ontbreekt"-claims
 Voordat je rapporteert dat iets ontbreekt:

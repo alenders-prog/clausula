@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Clausula — Documentscreening</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#F3EFE9; --paper:#FFFFFF; --line:#E3DCD5;
@@ -711,7 +711,18 @@ button.primair:hover{background:var(--coral-dark);}
 .split-body{flex:1;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;}
 
 /* ── Document-panel ───────────────────────────────── */
-.panel-doc{overflow:auto;background:#888;padding:20px;display:flex;flex-direction:column;align-items:center;}
+.panel-doc-col{display:flex;flex-direction:column;overflow:hidden;}
+.doc-zoekbalk{display:flex;align-items:center;gap:8px;padding:6px 14px;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0;}
+.doc-zoekbalk input{flex:1;border:none;background:transparent;outline:none;font-family:inherit;font-size:.88rem;color:var(--ink);min-width:0;}
+.doc-zoekbalk input::placeholder{color:var(--ink-soft);}
+.doc-zoek-info{font-size:.75rem;color:var(--ink-soft);flex-shrink:0;white-space:nowrap;min-width:60px;text-align:right;}
+.doc-zoek-nav{display:flex;gap:2px;flex-shrink:0;}
+.doc-zoek-nav button{border:none;background:transparent;cursor:pointer;color:var(--ink-soft);padding:2px 5px;border-radius:3px;font-size:.82rem;line-height:1;}
+.doc-zoek-nav button:hover:not(:disabled){background:var(--line);color:var(--ink);}
+.doc-zoek-nav button:disabled{opacity:.35;cursor:default;}
+.hl-match{background:#ffe066;color:inherit;border-radius:2px;}
+.hl-match-huidig{background:#ff9800;color:#fff;border-radius:2px;outline:2px solid #ff9800;}
+.panel-doc{flex:1;min-height:0;overflow:auto;background:#888;padding:20px;display:flex;flex-direction:column;align-items:center;}
 /* Passage-banner: sticky bovenin het doc-panel als tekst niet in canvas gevonden kan worden */
 .passage-banner{display:none;position:sticky;top:0;z-index:30;align-self:stretch;
   background:#FFF9F0;border-bottom:2px solid var(--coral);
@@ -851,7 +862,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .a-fiche-chip.actief{border-color:var(--nav-bg);border-width:2px;
   box-shadow:0 0 0 1px var(--nav-bg);}
 .a-fiche-icn{flex:0 0 30px;background:var(--nav-bg);color:#fff;
-  display:flex;align-items:center;justify-content:center;}
+  display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .a-fiche-icn svg{width:17px;height:17px;display:block;fill:none;stroke:currentColor;
   stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
 .a-fiche-body{flex:1;min-width:0;display:flex;flex-direction:column;}
@@ -861,7 +872,13 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .a-fiche-kop.kop-hoog  {background:#C0392B;}
 .a-fiche-kop.kop-midden{background:#E07200;}
 .a-fiche-kop.kop-laag  {background:#1E8449;}
+.a-fiche-kop.kop-leeg  {background:#ccc;color:#555;}
+.a-fiche-leeg{opacity:.55;}
+.sectie-kop{font-size:.93rem;font-weight:700;color:var(--nav-bg,#1B3050);
+  padding-bottom:8px;border-bottom:2px solid #C8A84B;
+  margin:14px 0 12px;}
 .a-fiche-kop.kop-load  {background:var(--line);color:var(--ink-mid);}
+@keyframes kop-pulse{0%,100%{opacity:.5}50%{opacity:1}}
 .a-fiche-hml{display:flex;flex:1;text-align:center;}
 .a-fiche-h,.a-fiche-m,.a-fiche-l{flex:1;min-width:0;display:flex;align-items:center;
   justify-content:center;font-size:.7rem;font-weight:800;line-height:1;padding:5px 0;}
@@ -996,6 +1013,9 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .ernst-badge.sev-hoog{background:#FCEFEC;color:#C82020;}
 .ernst-badge.sev-midden{background:#FFF3E6;color:#BF5900;}
 .ernst-badge.sev-laag{background:#EDF4EF;color:#2A7260;}
+.issue-nr{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+  border-radius:50%;background:#E07200;color:#fff;font-size:.68rem;font-weight:800;
+  margin-right:6px;flex-shrink:0;line-height:1;}
 .verouderd-rapport{padding:20px;background:#FFF8F4;border:1px solid #F0DCCB;
   border-radius:10px;color:var(--ink-soft);font-size:.93rem;line-height:1.6;}
 #issuesLijst.filter-issues .card[data-ok="1"]{display:none;}
@@ -1024,6 +1044,8 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .card[data-ok="1"].actief{background:#F5F2EC;}
 .item-row{display:flex;align-items:flex-start;gap:10px;}
 .item-row input[type=checkbox]{margin-top:3px;width:17px;height:17px;accent-color:var(--sage);cursor:pointer;flex:none;}
+.ernst-badge{font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;
+  text-transform:uppercase;letter-spacing:.04em;vertical-align:middle;margin-left:4px;}
 .item-body{flex:1;min-width:0;}
 .card-kop{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;}
 .card-kop .label{font-weight:600;font-size:.93rem;}
@@ -1032,9 +1054,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .card.heeft-passage:hover .scroll-pin,.card.actief .scroll-pin{opacity:1;}
 .card-dim-icns{display:flex;gap:3px;align-items:center;flex:none;margin-top:2px;}
 .card-dim-icn{width:22px;height:22px;border-radius:5px;background:var(--nav-bg);color:#fff;
-  display:flex;align-items:center;justify-content:center;flex:none;}
+  display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden;}
 .card-dim-icn svg{width:12px;height:12px;display:block;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
 .card .meta{color:var(--ink-soft);font-size:.83rem;margin-top:2px;}
+.issue-citaat{font-style:italic;font-size:.82rem;color:var(--ink-mid);border-left:3px solid var(--line);padding:3px 8px;margin:6px 0 4px;}
 .card .cite{display:inline-block;margin-top:7px;font-family:'IBM Plex Mono',monospace;
   font-size:.78rem;color:var(--coral-dark);background:#FFF1EA;padding:2px 8px;border-radius:4px;
   max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1086,7 +1109,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 
 @media(max-width:780px){
   .split-body{grid-template-columns:1fr;grid-template-rows:45% 55%;}
-  .panel-doc{border-right:none;border-bottom:1px solid var(--line);}
+  .panel-doc-col{border-right:none;border-bottom:1px solid var(--line);}
 }
 
 /* ═══ MASTER-DETAIL LAYOUT ═══════════════════════════ */
@@ -1097,17 +1120,16 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .topbar{height:72px;background:var(--paper);border-bottom:1px solid var(--line);
   display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;}
 .topbar-brand{display:flex;align-items:center;gap:14px;}
-.brand-mark{width:38px;height:38px;background:var(--nav-bg);border-radius:5px;
-  border:none;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Source Serif 4',serif;font-weight:600;font-size:1.25rem;
+.brand-mark{width:50px;height:50px;background:var(--nav-bg);border-radius:9px;
+  border:none;display:flex;align-items:center;justify-content:center;
+  font-family:'Old English Text MT',serif;font-size:2.3rem;line-height:1;
   color:var(--brass);flex-shrink:0;}
 .brand-stack{display:flex;flex-direction:column;justify-content:center;line-height:1.2;}
-.brand-name{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.18rem;
-  letter-spacing:-.01em;color:var(--ink);}
+.brand-name{font-family:'Manrope',sans-serif;font-weight:500;font-size:1.18rem;
+  letter-spacing:-.02em;color:var(--ink);}
 .brand-sep{display:none;}
-.brand-sub{font-family:'IBM Plex Mono',monospace;font-size:.62rem;font-weight:500;
-  letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-top:3px;}
+.brand-sub{font-family:'Manrope',sans-serif;font-size:.58rem;font-weight:500;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-top:3px;}
 .topbar-right{display:flex;align-items:center;gap:14px;}
 .topbar-firm{font-family:'IBM Plex Mono',monospace;font-size:.66rem;font-weight:500;
   letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;}
@@ -1295,6 +1317,102 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 /* Upload in rp-analyse */
 .koppel-actief-naam{font-weight:600;font-size:.93rem;color:var(--coral-dark);}
 .koppel-actief-sub{font-size:.78rem;color:var(--coral);margin-top:1px;}
+
+/* ── Dimensie-noot (onder chips) ────────────────────── */
+.dim-noot{font-size:.72rem;color:var(--ink-soft);padding:6px 0 2px;line-height:1.4;}
+
+/* ── Clausula rapport-header ─────────────────────────── */
+.rp-hdr{background:#1A2F4E;padding:16px 24px;border-bottom:2.5px solid #C8A84B;
+  margin-bottom:20px;display:none;position:relative;overflow:hidden;}
+.rp-hdr-logo{display:flex;align-items:center;gap:16px;position:relative;z-index:1;}
+.rp-hdr-icn{width:50px;height:50px;border-radius:50%;border:2.5px solid #C8A84B;
+  background:transparent;color:#C8A84B;font-size:2.1rem;line-height:1;
+  font-family:'Old English Text MT','UnifrakturMaguntia',serif;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rp-hdr-naam{display:block;color:#F5F1E8;font-weight:800;font-size:1.35rem;line-height:1.1;
+  letter-spacing:.07em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.rp-hdr-tag{display:block;color:#C8A84B;font-size:.6rem;letter-spacing:.13em;margin-top:4px;font-weight:600;}
+.rp-hdr-shield{position:absolute;right:24px;top:50%;transform:translateY(-50%);
+  opacity:.12;pointer-events:none;}
+@media print{.rp-hdr{display:flex !important;}}
+
+/* ── Rapport hero: namen links, score rechts ────────── */
+.rp-hero{display:flex;gap:20px;align-items:flex-start;margin-bottom:14px;}
+.rp-hero-links{flex:1;min-width:0;padding-top:6px;}
+.rp-doctype{font-size:.72rem;font-weight:800;letter-spacing:.1em;color:#D4890A;margin-bottom:8px;}
+.rp-namen{font-size:1.7rem;font-weight:800;color:var(--nav-bg,#1B3050);line-height:1.2;margin-bottom:6px;}
+.rp-sub{font-size:.83rem;color:var(--ink-soft);}
+.rp-mediator{font-size:.78rem;color:var(--ink-soft);margin-top:8px;padding-top:8px;
+  border-top:1px solid var(--line);}
+.rp-hero-rechts{flex-shrink:0;width:300px;}
+.rp-hero-rechts .aq-blok{margin-bottom:0;}
+/* Samenvatting met koptekst en achtergrond */
+.samenvatting{background:#EEF3FB;border:1px solid #C5D8F5;border-radius:10px;
+  padding:14px 16px;margin-bottom:12px;}
+.sam-kop{display:flex;align-items:center;gap:8px;font-size:.88rem;font-weight:700;
+  color:var(--nav-bg,#1B3050);margin-bottom:8px;}
+.sam-kop svg{flex-shrink:0;color:var(--nav-bg,#1B3050);}
+.samenvatting p{margin:0;font-size:.85rem;line-height:1.6;color:var(--ink-mid);}
+@media(max-width:600px){
+  .rp-hero{flex-direction:column;}
+  .rp-hero-rechts{width:100%;}
+}
+
+/* ── Print (↓ PDF-rapport knop) ─────────────────────── */
+#printRapportHdr { display:none; }
+@page {
+  size: A4 portrait;
+  margin: 12mm 15mm 22mm;
+}
+@media print {
+  @page {
+    @bottom-left {
+      content: "Clausula — Juridische toetsing";
+      font-size: 8pt; color: #888; font-family: -apple-system, sans-serif;
+    }
+    @bottom-center {
+      content: var(--print-datum, "");
+      font-size: 8pt; color: #888; font-family: -apple-system, sans-serif;
+    }
+    @bottom-right {
+      content: counter(page) " / " counter(pages);
+      font-size: 8pt; color: #888; font-family: -apple-system, sans-serif;
+    }
+  }
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  html, body { background:white !important; }
+  body > *:not(#splitOverlay) { display:none !important; }
+  #splitOverlay { display:block !important; position:static !important;
+    width:100% !important; height:auto !important; overflow:visible !important;
+    background:white !important; }
+  .split-header { display:none !important; }
+  .panel-doc-col { display:none !important; }
+  .split-body { display:block !important; background:white !important; }
+  #analysePanel { display:block !important; width:100% !important;
+    max-width:780px !important; margin:0 auto !important;
+    overflow:visible !important; padding:0 16px !important;
+    background:white !important; }
+  /* Print-header: injecteer Clausula header + hero */
+  #printRapportHdr { display:block !important; }
+  /* Verberg het scherm-scoreblok (het staat nu in de hero) */
+  #analysePanel > .aq-blok { display:none !important; }
+  /* Issue kaarten: niet afbreken, wel op nieuwe pagina beginnen als niet past */
+  .card { break-inside:avoid !important; page-break-inside:avoid !important; }
+  /* Sectietitels starten altijd op nieuwe pagina, blijven geplakt aan volgende inhoud */
+  .sectie-kop { break-before:page !important; page-break-before:always !important;
+    break-after:avoid !important; page-break-after:avoid !important; }
+  /* MfN start altijd op nieuwe pagina (kop zit erin, geen aparte break nodig) */
+  #mfnSectie { display:block !important; }
+  .opmerking { display:none !important; }
+  .rp-hero { flex-wrap:nowrap !important; }
+  .rp-hero-rechts { width:300px !important; }
+  .v2-doc-seg-ring { border-radius:50% !important; }
+  .v2-doc-seg-inner { background:white !important; }
+  .a-fiche-kop { color:#fff !important; }
+  .filter-bar-top { display:none !important; }
+  .dim-noot { display:block !important; }
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.2.0/diff.min.js"></script>
@@ -1311,7 +1429,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   <!-- ── Topbar ─────────────────────────────────────── -->
   <header class="topbar">
     <div class="topbar-brand">
-      <div class="brand-mark">&sect;</div>
+      <div class="brand-mark">C</div>
       <div class="brand-stack">
         <span class="brand-name">Clausula</span>
         <span class="brand-sub">Juridische toetsing &middot; scheidingsmediation</span>
@@ -1478,11 +1596,15 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     <!-- Kantoor tab -->
     <div id="instKantoorBody">
       <div class="modal-veld">
-        <label for="instPraktijknaam">Naam van uw praktijk</label>
+        <label for="instMediatorNaam">Uw naam (mediator)</label>
+        <input type="text" id="instMediatorNaam" placeholder="Voor- en achternaam">
+      </div>
+      <div class="modal-veld">
+        <label for="instPraktijknaam">Naam van uw organisatie</label>
         <input type="text" id="instPraktijknaam" placeholder="bijv. Mediation Bureau De Vries">
       </div>
       <p style="font-size:.82rem;color:var(--ink-soft);margin:0 0 20px">
-        Deze naam verschijnt in de header en footer van het cliëntenrapport (PDF).
+        Deze gegevens verschijnen op de omslagpagina en in de footer van het cliëntenrapport (PDF).
       </p>
       <div class="modal-acties">
         <button class="btn-ghost" id="instAnnuleerBtn">Annuleren</button>
@@ -1565,7 +1687,20 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     </div>
   </div>
   <div class="split-body">
-    <div class="panel-doc"     id="documentPanel"></div>
+    <div class="panel-doc-col">
+      <div class="doc-zoekbalk">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--ink-soft)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="docZoekInput" placeholder="Zoek in document…" autocomplete="off" spellcheck="false"
+          oninput="zoekInDocument(this.value)"
+          onkeydown="if(event.key==='Escape'){this.value='';zoekInDocument('')}else if(event.key==='Enter'){event.shiftKey?zoekVorig():zoekVolgend()}">
+        <span class="doc-zoek-info" id="docZoekInfo"></span>
+        <div class="doc-zoek-nav">
+          <button id="docZoekVorig" onclick="zoekVorig()" disabled title="Vorige (Shift+Enter)">▲</button>
+          <button id="docZoekVolgend" onclick="zoekVolgend()" disabled title="Volgende (Enter)">▼</button>
+        </div>
+      </div>
+      <div class="panel-doc" id="documentPanel"></div>
+    </div>
     <div class="panel-analyse" id="analysePanel"></div>
   </div>
 </div>
@@ -1608,7 +1743,12 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-let _praktijknaam = ''; // vroeg declareren — auth-callback roept getPraktijknaam() aan vóór line 2560
+// _bearerToken wordt bijgehouden via onAuthStateChange zodat de waarde beschikbaar is
+// zelfs tijdens een async token-refresh (wanneer getSession() tijdelijk null retourneert).
+let _bearerToken = '';
+db.auth.onAuthStateChange((_, s) => { _bearerToken = s?.access_token || ''; });
+let _praktijknaam  = ''; // vroeg declareren — auth-callback roept getPraktijknaam() aan vóór line 2560
+let _mediatorNaam  = ''; // voor- en achternaam van de ingelogde gebruiker (uit gebruikersprofiel.naam)
 let _orgId   = null;   // organisatie_id van de ingelogde gebruiker
 let _userId  = null;   // auth.uid() van de ingelogde gebruiker
 let _userRol = null;   // 'admin' | 'gebruiker'
@@ -1619,6 +1759,7 @@ let _orgNaam = '';     // naam van de organisatie (uit organisaties-tabel)
   const { data: { session } } = await db.auth.getSession();
   if (!session) { window.location.replace('login.html'); return; }
 
+  _bearerToken = session.access_token; // vroeg zetten — vóór elke Adobe-aanroep
   _userId = session.user.id;
 
   // Profiel ophalen (org + rol) — vereist voor RLS en datainvoer
@@ -1633,8 +1774,9 @@ let _orgNaam = '';     // naam van de organisatie (uit organisaties-tabel)
     return;
   }
 
-  _orgId   = profiel.organisatie_id;
-  _userRol = profiel.rol;
+  _orgId        = profiel.organisatie_id;
+  _userRol      = profiel.rol;
+  _mediatorNaam = profiel.naam || '';
 
   document.body.style.display = '';
   await laadPraktijknaam();   // praktijknaam laden vanuit Supabase user-metadata (legacy)
@@ -1722,11 +1864,17 @@ const classificatieTool = {
     properties: {
       doc_type:           { type: 'string', enum: ['convenant','ouderschapsplan','onbekend'] },
       situatie_kenmerken: { type: 'array', items: { type: 'string' } },
-      partij_a_naam:      { type: 'string' },
-      partij_b_naam:      { type: 'string' },
-      kinderen_namen:     { type: 'array', items: { type: 'string' }, description: 'Volledige namen van alle minderjarige kinderen die in het document worden vermeld.' },
-      mediator_naam:      { type: 'string', description: 'Naam van de mediator of advocaat, indien vermeld in het document.' },
-      notaris_naam:       { type: 'string', description: 'Naam van de notaris, indien vermeld in het document.' },
+      partij_a_naam:            { type: 'string' },
+      partij_a_geboortedatum:   { type: 'string', description: 'Geboortedatum van partij A in dd-mm-jjjj formaat, indien vermeld.' },
+      partij_a_geboortejaar:    { type: 'integer', description: 'Geboortejaar van partij A (4-cijferig), fallback als alleen jaar bekend.' },
+      partij_b_naam:            { type: 'string' },
+      partij_b_geboortedatum:   { type: 'string', description: 'Geboortedatum van partij B in dd-mm-jjjj formaat, indien vermeld.' },
+      partij_b_geboortejaar:    { type: 'integer', description: 'Geboortejaar van partij B (4-cijferig), fallback als alleen jaar bekend.' },
+      kinderen_namen:           { type: 'array', items: { type: 'string' }, description: 'Volledige namen van alle minderjarige kinderen die in het document worden vermeld.' },
+      kinderen_geboortedatums:  { type: 'array', items: { type: 'string' }, description: 'Geboortedatum per kind in dd-mm-jjjj formaat, in dezelfde volgorde als kinderen_namen.' },
+      kinderen_geboortejaren:   { type: 'array', items: { type: 'integer' }, description: 'Geboortejaar per kind (4-cijferig), fallback als alleen jaar bekend.' },
+      mediator_naam:          { type: 'string', description: 'Naam van de mediator of advocaat, indien vermeld in het document.' },
+      notaris_naam:           { type: 'string', description: 'Naam van de notaris, indien vermeld in het document.' },
       samenvatting:       { type: 'string' },
     },
     required: ['doc_type','situatie_kenmerken','partij_a_naam','partij_b_naam','samenvatting'],
@@ -1834,10 +1982,13 @@ async function bestandNaarBase64(file) {
 async function adobeConverteerPdf(file, onProgress = () => {}) {
   onProgress('PDF uploaden naar converter…');
   const base64 = await bestandNaarBase64(file);
+  const { data: { session: _adobeSess } } = await db.auth.getSession();
+  // Fallback op _bearerToken als getSession() null retourneert tijdens token-refresh
+  const _adobeToken = _adobeSess?.access_token || _bearerToken;
 
   const startRes = await fetch('/api/adobe-start', {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_adobeToken}` },
     body:    JSON.stringify({ pdfBase64: base64 }),
   });
   if (!startRes.ok) {
@@ -1846,13 +1997,18 @@ async function adobeConverteerPdf(file, onProgress = () => {}) {
   }
   const { jobUrl } = await startRes.json();
 
-  // Poll elke 2 seconden, max 60 seconden
-  for (let poging = 0; poging < 30; poging++) {
-    await new Promise(r => setTimeout(r, 2000));
-    onProgress(`Converteren… (${(poging + 1) * 2}s)`);
+  // Poll met exponential backoff: 1s, 2s, 4s, 8s, 8s, … — max ~90s totaal
+  const _adobeWacht = [1000, 2000, 4000, 8000];
+  const _adobeMaxMs = 90_000;
+  let _adobeVerstreken = 0;
+  for (let poging = 0; _adobeVerstreken < _adobeMaxMs; poging++) {
+    const wacht = _adobeWacht[Math.min(poging, _adobeWacht.length - 1)];
+    await new Promise(r => setTimeout(r, wacht));
+    _adobeVerstreken += wacht;
+    onProgress(`Converteren… (${Math.round(_adobeVerstreken / 1000)}s)`);
     const resultRes = await fetch('/api/adobe-result', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_adobeToken}` },
       body:    JSON.stringify({ jobUrl }),
     });
     if (!resultRes.ok) {
@@ -2062,10 +2218,10 @@ const docxPerBestandsnaam = new Map(); // bestand.name    → Blob  (DOCX van Ad
 // Gebruikt de eerste 80 tekens van het citaat voor een betrouwbare match.
 // Fallback: _origPos (Claude-outputvolgorde) als passage ontbreekt of niet gevonden.
 function vindDocVolgorde(issuesArr) {
-  const docTekst = (huidigRapport?._document_tekst || '').toLowerCase().replace(/\s+/g, ' ');
+  const docTekst = normPassage(huidigRapport?._document_tekst || '');
   const vindPos = (issue) => {
     if (!issue?.passage) return issue?._origPos ?? 999999;
-    const snip = issue.passage.slice(0, 80).toLowerCase().replace(/\s+/g, ' ').trim();
+    const snip = normPassage(issue.passage).slice(0, 80);
     if (!snip) return issue._origPos ?? 999999;
     const p = docTekst.indexOf(snip);
     return p >= 0 ? p : (issue._origPos ?? 999999);
@@ -2073,7 +2229,45 @@ function vindDocVolgorde(issuesArr) {
   return issuesArr.map((_, i) => i).sort((a, b) => vindPos(issuesArr[a]) - vindPos(issuesArr[b]));
 }
 
-// Samenvoegen + 3-pass deduplicatie van issues uit meerdere analyse-calls.
+// Automatische kwaliteitscontrole op analyse-output.
+// Logt waarschuwingen naar de console; gooit nooit — zuiver informatief.
+function checkIssueKwaliteit(docLabel, issues) {
+  if (!Array.isArray(issues) || issues.length === 0) return;
+
+  const PERSOONSNAAM = /^[A-Z][a-z]+(?: [A-Z][a-z]+){1,3}(?: geboren| geb\.| te )/;
+  const DATUM_IN_ONDERWERP = /\d{2}-\d{2}-\d{4}/;
+
+  const pasWaarsch  = [];
+  const dedupWaarsch = [];
+
+  for (let i = 0; i < issues.length; i++) {
+    const iss = issues[i];
+    const passage = (iss.passage || '').trim();
+
+    // Passage ziet eruit als een naamregel terwijl het issue over een datum/bedrag gaat
+    if (passage && PERSOONSNAAM.test(passage) && DATUM_IN_ONDERWERP.test(iss.onderwerp || '')) {
+      pasWaarsch.push(`  [${i}] "${(iss.onderwerp || '').slice(0, 60)}" → passage is naamregel: "${passage.slice(0, 80)}"`);
+    }
+
+    // Dubbele issues detecteren: Jaccard ≥ 0.4 op kernwoorden met ander issue
+    const STOP = new Set(['niet','geen','zijn','heeft','wordt','voor','van','het','een','maar','ook','dit','dat','door','over','naar','bij','aan','met','als','dan','nog','wel']);
+    const wA = new Set((iss.onderwerp || '').toLowerCase().replace(/[^\w\s]/g,' ').split(/\s+/).filter(w => w.length > 3 && !STOP.has(w)));
+    for (let j = i + 1; j < issues.length; j++) {
+      const wB = new Set((issues[j].onderwerp || '').toLowerCase().replace(/[^\w\s]/g,' ').split(/\s+/).filter(w => w.length > 3 && !STOP.has(w)));
+      const inter = [...wA].filter(w => wB.has(w)).length;
+      const union = new Set([...wA, ...wB]).size;
+      if (union > 0 && inter / union >= 0.4) {
+        dedupWaarsch.push(`  [${i}↔${j}] Jaccard=${(inter/union).toFixed(2)}: "${(iss.onderwerp||'').slice(0,50)}" ≈ "${(issues[j].onderwerp||'').slice(0,50)}"`);
+      }
+    }
+  }
+
+  if (pasWaarsch.length)  console.warn(`[kwaliteit] ${docLabel}: ${pasWaarsch.length} passage(s) zien eruit als naamregel:\n${pasWaarsch.join('\n')}`);
+  if (dedupWaarsch.length) console.warn(`[kwaliteit] ${docLabel}: ${dedupWaarsch.length} mogelijke dubbele issue(s):\n${dedupWaarsch.join('\n')}`);
+  if (!pasWaarsch.length && !dedupWaarsch.length) console.log(`[kwaliteit] ${docLabel}: OK (${issues.length} issues, geen passage-fouten of duplicaten gevonden)`);
+}
+
+// Samenvoegen + deduplicatie van issues uit meerdere analyse-calls.
 function dedupIssues(arrays) {
   const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
   const DIM_PRIO  = { juridisch: 0, conflicten: 1, volledigheid: 2, balans: 3, grammatica: 4 };
@@ -2147,6 +2341,29 @@ function dedupIssues(arrays) {
       if (issuePrio(issues[i]) < issuePrio(issues[j])) { weg.add(j); bedragIdx.set(fp, i); }
       else weg.add(i);
     } else { bedragIdx.set(fp, i); }
+  }
+  issues = issues.filter((_, i) => !weg.has(i));
+  weg.clear();
+
+  // Pass 3b: dedup op datumfingerprint — zelfde set van ≥2 datums in de titel → samenvoegen
+  // Vangt issues die over hetzelfde datum-conflict gaan maar met net andere bewoording.
+  function datumFp(iss) {
+    const t = (iss.onderwerp || '');
+    const datums = [...new Set(
+      [...t.matchAll(/\b(\d{2}-\d{2}-\d{4})\b/g)].map(m => m[1])
+    )].sort();
+    return datums.length >= 2 ? datums.join('|') : '';
+  }
+  const datumIdx = new Map();
+  for (let i = 0; i < issues.length; i++) {
+    if (weg.has(i)) continue;
+    const fp = datumFp(issues[i]);
+    if (!fp) continue;
+    if (datumIdx.has(fp)) {
+      const j = datumIdx.get(fp);
+      if (issuePrio(issues[i]) < issuePrio(issues[j])) { weg.add(j); datumIdx.set(fp, i); }
+      else weg.add(i);
+    } else { datumIdx.set(fp, i); }
   }
   issues = issues.filter((_, i) => !weg.has(i));
   weg.clear();
@@ -2340,7 +2557,7 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   // Haiku: classificatie is een simpele herkenningstaak, geen diepe analyse nodig
   // max_tokens 2048: bij 4 documenten kan de output (namen + kenmerken + samenvatting) >1024 tokens zijn
   const classificatie = await askClaudeForJson(
-    `Je classificeert een Nederlands echtscheidingsdocument. Haal de volledige namen van beide partijen eruit. Noteer ook de namen van alle minderjarige kinderen (kinderen_namen), de mediator/advocaat (mediator_naam) en de notaris (notaris_naam) als die worden vermeld.
+    `Je classificeert een Nederlands echtscheidingsdocument. Haal de volledige namen en geboortedatums van beide partijen eruit (partij_a_naam, partij_a_geboortedatum in dd-mm-jjjj, partij_b_naam, partij_b_geboortedatum in dd-mm-jjjj). Als alleen het jaar bekend is, gebruik dan partij_a_geboortejaar / partij_b_geboortejaar. Noteer ook de namen en geboortedatums van alle minderjarige kinderen (kinderen_namen, kinderen_geboortedatums in dd-mm-jjjj in dezelfde volgorde; gebruik kinderen_geboortejaren als fallback). Noteer de mediator/advocaat (mediator_naam) en notaris (notaris_naam) als die worden vermeld. Laat velden weg als niet vermeld.
 Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijst}`,
     classificatieTekst, classificatieTool, 2048,
     { model: 'claude-haiku-4-5-20251001' }
@@ -2393,6 +2610,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     for (const item of effectieveHoofdItems) {
       _sseAcc[item.bestandsnaam] = { structuur: null, juridisch: null, balans: null, consolidatie: null, cross_doc: null };
     }
+    var _crossDocLoopt = false; // true tussen cross_doc_start en klaar
 
     // Progressieve render: toont de eindlayout direct maar met KR-bars op de filterknopjes
     // van dimensies die nog laden. Gebruikt issueKaart() zodat de kaarten identiek zijn
@@ -2436,13 +2654,6 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const laag   = alleI.filter(i => i.ernst === 'laag').length;
       const _totaal = hoog + midden + laag;
 
-      // Gewogen kwaliteitscore (juridisch/conflicten 2×; MfN buiten beschouwing)
-      const pct   = (alleI.length === 0 && nogBezig) ? null : berekenGemiddeldeScore(huidigRapport);
-      const kleur = pct === null ? 'var(--ink-soft)'
-                  : pct >= 80   ? '#2A7260'
-                  : pct >= 55   ? '#D4890A'
-                  : '#C82020';
-
       // Donut als conic-gradient ring (zelfde visuele taal als dimensie-cirkels en tabs)
       const _segs = _totaal > 0
         ? [{ kleur:'#C82020',n:hoog },{ kleur:'#E07200',n:midden },{ kleur:'#2A7260',n:laag }]
@@ -2465,6 +2676,53 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         ? `${_mfnAanw}/${_mfnEl.length}`
         : '—';
 
+      // MfN chip voor de filterbar + volledige checklist — al zichtbaar zodra structuur arriveert,
+      // vóór het klaar-event (dat vertraagd wordt door de cross-doc call).
+      const _mfnChipHtml = _mfnEl.length
+        ? '<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)">'
+          + '<span class="a-fiche-icn">' + DIM_SVG_ICONS.mfn + '</span>'
+          + '<span class="a-fiche-body"><span class="a-fiche-kop kop-midden">MfN</span>'
+          + '<span class="a-fiche-hml" style="justify-content:center;gap:2px">'
+          + '<span style="color:#1E8449;font-weight:800;font-size:.7rem">' + _mfnAanw + '</span>'
+          + '<span style="color:#A6A399;font-weight:400;font-size:.65rem;margin:0 1px">/</span>'
+          + '<span style="color:#B9770E;font-weight:800;font-size:.7rem">' + _mfnEl.length + '</span>'
+          + '</span></span></button>'
+        : '';
+      const _mfnSectieHtml = (() => {
+        const _mfn = huidigRapport?.mfn_score;
+        if (!_mfn?.elementen?.length) return '';
+        const _mt = _mfn.elementen.length;
+        const _ma = _mfn.elementen.filter(e => e.status === 'aanwezig').length;
+        const _mo = _mfn.elementen.filter(e => e.status === 'onvolledig').length;
+        const _mb = _mfn.elementen.filter(e => e.status === 'ontbreekt').length;
+        const _mp = Math.round((_ma / _mt) * 100);
+        const _mk = _mp >= 90 ? '#2a7a4e' : _mp >= 70 ? '#b86800' : '#c0392b';
+        const _msi = { aanwezig: '✓', onvolledig: '△', ontbreekt: '✗' };
+        const _meh = _mfn.elementen.map(e => {
+          const _toe = e.toelichting ? '<span class="mfn-el-toe">' + escH(e.toelichting) + '</span>' : '';
+          return '<div class="mfn-el mfn-el-' + e.status + '" data-ok="' + (e.status === 'aanwezig' ? '1' : '0') + '">'
+            + '<span class="mfn-el-icon">' + (_msi[e.status] || '·') + '</span>'
+            + '<span class="mfn-el-tekst">' + escH(e.element) + _toe + '</span></div>';
+        }).join('');
+        const _mxh = _mfn.extra_elementen?.length
+          ? '<div class="mfn-extra-blok"><div class="mfn-extra-kop">✦ Extra elementen (niet vereist maar aanwezig)</div>'
+            + _mfn.extra_elementen.map(e => '<div class="mfn-extra-item">' + escH(e) + '</div>').join('') + '</div>'
+          : '';
+        const _msv = [
+          _ma > 0 ? '<span style="color:#2a7a4e;font-weight:700">' + _ma + ' aanwezig</span>' : '',
+          _mo > 0 ? '<span style="color:#b86800;font-weight:700">' + _mo + ' onvolledig</span>' : '',
+          _mb > 0 ? '<span style="color:#c0392b;font-weight:700">' + _mb + ' ontbreekt</span>' : '',
+        ].filter(Boolean).join(' · ');
+        return '<div class="mfn-score-blok">'
+          + '<div class="mfn-score-kop">'
+          + '<div class="mfn-score-getal" style="color:' + _mk + '">' + _ma + '<span class="mfn-score-van">/' + _mt + '</span></div>'
+          + '<div class="mfn-score-rechts"><div class="mfn-score-label">MfN-compliantie</div>'
+          + '<div class="mfn-progress-balk"><div class="mfn-progress-vul" style="width:' + _mp + '%;background:' + _mk + '"></div></div>'
+          + '<div class="mfn-score-samen">' + _msv + '</div></div></div>'
+          + '<div class="anal-tab-toolbar"><button class="a-filter-btn" onclick="toggleTabFilter(this)">Verbeterpunten</button></div>'
+          + '<div class="mfn-elementen">' + _meh + '</div>' + _mxh + '</div>';
+      })();
+
       const scoreHtml = `
       <div class="aq-blok">
         <div class="aq-header tab-status-blok">
@@ -2474,10 +2732,6 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
           <div class="aq-header-mid">
             <div class="aq-header-lbl">${nogBezig ? 'Tussenstand' : 'Verbeterpunten'}</div>
             <div class="aq-header-samen">${_samenDelen || (nogBezig ? 'Analyseren…' : '<span style="color:var(--sage);font-weight:700">Geen issues gevonden</span>')}</div>
-          </div>
-          <div class="aq-header-right">
-            <div class="aq-header-right-lbl">Gewogen score</div>
-            ${pct !== null ? `<div style="font-size:1.4rem;font-weight:800;color:${kleur};line-height:1">${pct}<span style="font-size:.6em;opacity:.55">%</span></div>` : ''}
           </div>
         </div>
         <div class="aq-stats">
@@ -2522,8 +2776,12 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         const h = dimIss.filter(i=>i.ernst==='hoog').length;
         const m = dimIss.filter(i=>i.ernst==='midden').length;
         const l = dimIss.filter(i=>i.ernst==='laag').length;
+        const tot = h + m + l;
         const kopKls = h > 0 ? 'kop-hoog' : m > 0 ? 'kop-midden' : 'kop-laag';
-        return `<button class="a-fiche-chip" data-dim="${d}" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-body"><span class="a-fiche-kop ${kopKls}">${DIM_LABELS[d]}</span><span class="a-fiche-hml"><span class="a-fiche-h">${h||''}</span><span class="a-fiche-m">${m||''}</span><span class="a-fiche-l">${l||''}</span></span></span></button>`;
+        const hml = tot === 0
+          ? `<span class="a-fiche-hml"><span class="a-fiche-h" style="color:var(--ink-soft)">–</span></span>`
+          : `<span class="a-fiche-hml"><span class="a-fiche-h">${h||''}</span><span class="a-fiche-m">${m||''}</span><span class="a-fiche-l">${l||''}</span></span>`;
+        return `<button class="a-fiche-chip" data-dim="${d}" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-body"><span class="a-fiche-kop ${kopKls}">${DIM_LABELS[d]}</span>${hml}</span></button>`;
       };
 
       const filterBar = `<div class="issue-filter-bar">
@@ -2535,9 +2793,14 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         <div class="filter-chip-grid">${dims.map(d => {
           const loading = dimLoadt[d];
           const dimIss  = alleI.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d));
-          if (!loading && dimIss.length === 0) return '';
           return _dimKaart(d, dimIss, loading);
-        }).join('')}</div>
+        }).join('')}${_mfnChipHtml}${_crossDocLoopt
+          ? `<button class="a-fiche-chip cross-doc-laden" disabled>`
+            + `<span class="a-fiche-icn">${DIM_SVG_ICONS.conflicten||''}</span>`
+            + `<span class="a-fiche-body"><span class="a-fiche-kop kop-load" style="animation:kop-pulse 1s ease-in-out infinite">Cross-doc</span>`
+            + `<span class="a-fiche-hml"><span class="a-fiche-h" style="color:var(--ink-soft)">…</span></span></span></button>`
+          : ''}</div>
+        <div class="dim-noot">* Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen.</div>
       </div>`;
 
       // Sorteer issues
@@ -2546,14 +2809,14 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         ? vindDocVolgorde(alleI)
         : alleI.map((_, i) => i).sort((a, b) => (_EO[alleI[a].ernst] ?? 1) - (_EO[alleI[b].ernst] ?? 1));
       const issuesHtml = alleI.length > 0
-        ? gesorteerdeIdx.map(i => issueKaart(i)).join('')
+        ? gesorteerdeIdx.map((i, pos) => issueKaart(i, pos + 1)).join('')
         : nogBezig
           ? `<div class="krl-wrap"><div class="krl-lbl">Analyseren…</div><div class="krl-track"><div class="krl-glow"></div></div></div>`
           : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
       document.getElementById('analysePanel').innerHTML =
         scoreHtml + samenvattingHtml + filterBar +
-        `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div></div>`;
+        `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div>${_mfnSectieHtml ? '<div id="mfnSectie" style="display:none">' + _mfnSectieHtml + '</div>' : ''}</div>`;
     };
 
     // Document-tabs in de meta-balk (multi-doc) of klassieke header (single)
@@ -2681,14 +2944,22 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
             break;
           case 'fout':
             throw new Error(_data.error || 'Analyse mislukt op de server.');
+          case 'cross_doc_start':
+            _crossDocLoopt = true;
+            console.log('[analyseer] cross-doc verificatie gestart, documenten:', (_data.documenten || []).join(', '));
+            _renderProgressief(effectieveHoofdItems[huidigeDocIdx]?.bestandsnaam);
+            break;
           case 'cross_doc':
             if (_sseAcc[_bn]) {
               _sseAcc[_bn].cross_doc = herstelAnonObj(_data.result, naarEcht);
               _renderProgressief(_bn);
             }
+            console.log('[analyseer] cross-doc event ontvangen voor', _bn,
+              '—', _data.result?.issues?.length ?? 0, 'issues');
             break;
           case 'klaar':
             _klaar = true;
+            _crossDocLoopt = false;
             break;
         }
       }
@@ -2719,6 +2990,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         Array.isArray(acc.cross_doc?.issues)  ? acc.cross_doc.issues   : [],
       ]);
       console.log(`[analyseer] ${item.bestandsnaam}: ${alleIssues.length} issues (browser-dedup fallback)`);
+      checkIssueKwaliteit(item.bestandsnaam, alleIssues);
     }
     return {
       doc_type:     item.type,
@@ -2966,8 +3238,15 @@ async function renderDocPanel(searchText) {
     if (gen !== renderGeneratie) return;
     docPanelGereed = true;
   }
-  highlightInPdf(searchText  || '');
-  highlightInDocx(searchText || '');
+  // Gebruik altijd de live zoekbalk-waarde als die er is (ook bij tab-wissel en passage-click)
+  _zoekAnkers = []; _zoekIdx = 0;
+  const _zoekBalkWaarde = document.getElementById('docZoekInput')?.value || '';
+  const _effectiefZoek  = _zoekBalkWaarde || searchText || '';
+  highlightInPdf(_effectiefZoek, _passageHintFrac);
+  highlightInDocx(_effectiefZoek);
+  _zoekAnkers.push(...Array.from(document.querySelectorAll('.docx-inhoud mark.hl-match')));
+  if (_zoekAnkers.length && _effectiefZoek) _scrollNaarHuidigeMatch();
+  _updateDocZoekInfo();
 }
 
 async function renderPdfPaginas(panel, pdf, gen) {
@@ -3007,58 +3286,183 @@ async function renderPdfPaginas(panel, pdf, gen) {
   }
 }
 
-function highlightInPdf(searchText) {
-  document.querySelectorAll('.textLayer span.hl-match').forEach(el => el.classList.remove('hl-match'));
-  if (!searchText.trim()) return;
+let _zoekAnkers = [];
+let _zoekIdx    = 0;
+
+function _updateDocZoekInfo() {
+  const infoEl  = document.getElementById('docZoekInfo');
+  const btnPrev = document.getElementById('docZoekVorig');
+  const btnNext = document.getElementById('docZoekVolgend');
+  const zoek    = document.getElementById('docZoekInput')?.value || '';
+  const heeft   = _zoekAnkers.length > 0;
+  if (btnPrev) btnPrev.disabled = !heeft;
+  if (btnNext) btnNext.disabled = !heeft;
+  if (!infoEl) return;
+  if (!zoek.trim()) { infoEl.textContent = ''; return; }
+  infoEl.textContent = heeft ? `${_zoekIdx + 1} / ${_zoekAnkers.length}` : 'Niet gevonden';
+}
+
+function _scrollNaarHuidigeMatch() {
+  document.querySelectorAll('.hl-match-huidig').forEach(el => el.classList.remove('hl-match-huidig'));
+  if (!_zoekAnkers.length) return;
+  _zoekIdx = ((_zoekIdx % _zoekAnkers.length) + _zoekAnkers.length) % _zoekAnkers.length;
+  const el = _zoekAnkers[_zoekIdx];
+  if (el) { el.classList.add('hl-match-huidig'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+}
+
+function zoekVolgend() {
+  if (!_zoekAnkers.length) return;
+  _zoekIdx = (_zoekIdx + 1) % _zoekAnkers.length;
+  _scrollNaarHuidigeMatch(); _updateDocZoekInfo();
+}
+
+function zoekVorig() {
+  if (!_zoekAnkers.length) return;
+  _zoekIdx = (_zoekIdx - 1 + _zoekAnkers.length) % _zoekAnkers.length;
+  _scrollNaarHuidigeMatch(); _updateDocZoekInfo();
+}
+
+function zoekInDocument(zoek) {
+  _zoekAnkers = []; _zoekIdx = 0;
+  const panel = document.getElementById('documentPanel');
+  if (!panel) return;
+  if (panel.classList.contains('tekst-modus')) {
+    toonTekstFallback(panel, zoek);
+    _zoekAnkers = Array.from(panel.querySelectorAll('mark.hl-match'));
+  } else {
+    highlightInPdf(zoek);
+    highlightInDocx(zoek);
+    _zoekAnkers.push(...Array.from(document.querySelectorAll('.docx-inhoud mark.hl-match')));
+  }
+  if (_zoekAnkers.length) _scrollNaarHuidigeMatch();
+  _updateDocZoekInfo();
+}
+
+// Ctrl+F / Cmd+F opent de zoekbalk in het documentpaneel
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    const overlay = document.getElementById('splitOverlay');
+    if (overlay?.classList.contains('active')) {
+      e.preventDefault();
+      const inp = document.getElementById('docZoekInput');
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  }
+});
+
+// ── Passage-matching helpers ──────────────────────────────────────────────────
+
+// Karakter-normalisatie: PDF-artefacten, ligaturen, bijzondere interpunctie.
+// Geen trim/collapse — dat gebeurt per context.
+function normChars(s) {
+  if (!s) return '';
+  return s
+    .replace(/­/g, '')                    // zachte koppeltekens (PDF-regelafbreking)
+    .replace(/[“”„«»""„«»]/g, '"') // aanhalingstekens
+    .replace(/[‘’‚''‚]/g, "'")  // apostrofs
+    .replace(/[—–‒—–]/g, '-')   // gedachtestreepjes
+    .replace(/ﬁ/g, 'fi').replace(/ﬂ/g, 'fl')
+    .replace(/ﬃ/g, 'ffi').replace(/ﬄ/g, 'ffl')
+    .toLowerCase();
+}
+
+// Volledig genormaliseerde zoekstring (whitespace gecollapsed + getrimd).
+function normPassage(s) {
+  return normChars(s).replace(/\s+/g, ' ').trim();
+}
+
+// Zoek passage in _document_tekst (de geëxtraheerde tekst die Claude ook heeft gezien).
+// Geeft een fractie (0–1) terug van waar de passage zich bevindt, of null als niet gevonden.
+function vindPassageFractie(passage) {
+  if (!passage || !huidigRapport?._document_tekst) return null;
+  const docNorm = normPassage(huidigRapport._document_tekst);
+  const pasNorm = normPassage(passage);
+  if (!pasNorm) return null;
+
+  // 1. Exacte genormaliseerde match
+  let idx = docNorm.indexOf(pasNorm);
+
+  // 2. Eerste 50 tekens (bij ingekorte of lichtelijk afwijkende passages)
+  if (idx < 0 && pasNorm.length > 50)
+    idx = docNorm.indexOf(pasNorm.slice(0, 50));
+
+  // 3. Glijdend venster van 4 inhoudswoorden (>3 tekens, geen stopwoord)
+  if (idx < 0) {
+    const STOP = new Set(['de','het','een','en','of','in','van','op','te','dat','die','is',
+      'zijn','voor','aan','met','bij','uit','als','ook','maar','niet','naar','om','over']);
+    const wrd = pasNorm.split(' ').filter(w => w.length > 3 && !STOP.has(w));
+    for (let i = 0; i + 3 < wrd.length && idx < 0; i++)
+      idx = docNorm.indexOf(wrd.slice(i, i + 4).join(' '));
+  }
+
+  return idx >= 0 ? idx / docNorm.length : null;
+}
+
+// Fractie-hint vanuit _document_tekst voor de volgende passage-zoekpoging.
+// null = geen hint (gewone gebruikerszoekactie).
+let _passageHintFrac = null;
+
+function highlightInPdf(searchText, hintFrac = null) {
+  document.querySelectorAll('.textLayer span.hl-match').forEach(el => el.classList.remove('hl-match', 'hl-match-huidig'));
+  const zoek = normPassage(searchText);
+  if (!zoek) return 0;
 
   const spans = Array.from(document.querySelectorAll('.textLayer span'));
-  if (!spans.length) return;
+  if (!spans.length) return 0;
 
-  // Normaliseer zoektekst: meerdere spaties/enters → één spatie
-  const zoek = searchText.replace(/\s+/g, ' ').trim().toLowerCase();
-
-  // Bouw genormaliseerde tekst op; houd per span de startpositie bij
+  // Bouw genormaliseerde concatenatie van span-teksten
   let normTekst = '';
-  const spanStart = []; // startpositie van elke span in normTekst
+  const spanStart = [];
   for (const span of spans) {
     spanStart.push(normTekst.length);
-    // Voeg spatie toe als de vorige span niet al eindigde op een spatie
-    const bijdrage = span.textContent.replace(/\s+/g, ' ');
+    const bijdrage = normChars(span.textContent).replace(/\s+/g, ' ');
     normTekst += bijdrage;
     if (!bijdrage.endsWith(' ')) normTekst += ' ';
   }
+  spanStart.push(normTekst.length); // sentinel
 
-  const idx = normTekst.toLowerCase().indexOf(zoek);
-  if (idx === -1) return;
-  const einde = idx + zoek.length;
+  let zoekPos = 0;
+  const matchPosities = []; // startpositie in normTekst per match (voor hint-selectie)
 
-  let eersteSpan = null;
-  for (let i = 0; i < spans.length; i++) {
-    const start = spanStart[i];
-    const stop  = i + 1 < spans.length ? spanStart[i + 1] : normTekst.length;
-    if (stop > idx && start < einde) {
-      spans[i].classList.add('hl-match');
-      if (!eersteSpan) eersteSpan = spans[i];
+  while (true) {
+    const idx = normTekst.indexOf(zoek, zoekPos);
+    if (idx === -1) break;
+    const einde = idx + zoek.length;
+    let eerste = null;
+    for (let i = 0; i < spans.length; i++) {
+      if (spanStart[i + 1] > idx && spanStart[i] < einde) {
+        spans[i].classList.add('hl-match');
+        if (!eerste) { eerste = spans[i]; _zoekAnkers.push(eerste); matchPosities.push(idx); }
+      }
     }
+    zoekPos = idx + 1;
   }
-  if (eersteSpan) eersteSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Positie-gestuurde selectie: zet _zoekIdx op de match dichtstbij de hint
+  if (hintFrac !== null && matchPosities.length > 1) {
+    const hintPos = hintFrac * normTekst.length;
+    let bestIdx = 0, bestDist = Infinity;
+    for (let i = 0; i < matchPosities.length; i++) {
+      const dist = Math.abs(matchPosities[i] - hintPos);
+      if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+    }
+    _zoekIdx = bestIdx;
+  }
+
+  return _zoekAnkers.length;
 }
 
 function highlightInDocx(searchText) {
   const contents = Array.from(document.querySelectorAll('.docx-inhoud'));
-  if (!contents.length) return;
-  // Verwijder vorige highlights en normaliseer tekstnodes
+  if (!contents.length) return 0;
   contents.forEach(c => {
     c.querySelectorAll('mark.hl-match').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
     c.normalize();
   });
-  if (!searchText.trim()) return;
+  const zoek = normPassage(searchText);
+  if (!zoek) return 0;
 
-  // Zoek over tekstnode-grenzen heen (zoals highlightInPdf doet voor PDF-spans).
-  // Docx-preview verdeelt één zin over meerdere <span>-runs; per-node regex mist dan.
-  // Aanpak: concateneer alle tekstnodes → vind positie in gecombineerde string →
-  // highlight de nodes die binnen [matchStart, matchEnd] vallen.
-  const zoek = searchText.replace(/\s+/g, ' ').trim().toLowerCase();
+  let aantalMatches = 0;
   let eersteEl = null;
 
   for (const content of contents) {
@@ -3066,54 +3470,94 @@ function highlightInDocx(searchText) {
     const nodes = []; let node;
     while ((node = walker.nextNode())) nodes.push(node);
 
-    // Bouw gecombineerde tekst en houd startposities bij per node
     let gecombineerd = '';
-    const nodeStart = []; // startpositie van elke node in gecombineerd
+    const nodeStart = [];
     for (const n of nodes) {
       nodeStart.push(gecombineerd.length);
       gecombineerd += n.nodeValue;
     }
-    const gecNorm = gecombineerd.replace(/\s+/g, ' ').toLowerCase();
+    const gecNorm = normChars(gecombineerd).replace(/\s+/g, ' ');
 
-    let pos = gecNorm.indexOf(zoek);
-    if (pos === -1) continue; // niet gevonden in dit content-element
-
-    const eindPos = pos + zoek.length;
-
-    // Highlight alle nodes die overlappen met [pos, eindPos]
-    for (let i = 0; i < nodes.length; i++) {
-      const nStart = nodeStart[i];
-      const nEind  = nStart + nodes[i].nodeValue.length;
-      if (nEind <= pos || nStart >= eindPos) continue; // geen overlap
-
-      const tekstNode = nodes[i];
-      const raw       = tekstNode.nodeValue;
-      const hlStart   = Math.max(0, pos - nStart);
-      const hlEind    = Math.min(raw.length, eindPos - nStart);
-
-      const frag = document.createDocumentFragment();
-      if (hlStart > 0) frag.appendChild(document.createTextNode(raw.slice(0, hlStart)));
-      const mark = document.createElement('mark');
-      mark.className = 'hl-match';
-      mark.textContent = raw.slice(hlStart, hlEind);
-      frag.appendChild(mark);
-      if (hlEind < raw.length) frag.appendChild(document.createTextNode(raw.slice(hlEind)));
-      tekstNode.parentNode.replaceChild(frag, tekstNode);
-      if (!eersteEl) eersteEl = mark;
+    // Verzamel alle match-posities
+    const matchPosities = [];
+    let zoekPos = 0;
+    while (true) {
+      const idx = gecNorm.indexOf(zoek, zoekPos);
+      if (idx === -1) break;
+      matchPosities.push({ pos: idx, eind: idx + zoek.length });
+      aantalMatches++;
+      zoekPos = idx + 1;
     }
-    break; // eerste content-element met een match is genoeg
+    if (!matchPosities.length) continue;
+
+    // Per tekstnode: welke ranges moeten gemarkeerd worden?
+    const nodeRanges = nodes.map(() => []);
+    for (const { pos, eind } of matchPosities) {
+      for (let i = 0; i < nodes.length; i++) {
+        const nStart = nodeStart[i];
+        const nEind  = nStart + nodes[i].nodeValue.length;
+        if (nEind <= pos || nStart >= eind) continue;
+        nodeRanges[i].push({ hlStart: Math.max(0, pos - nStart), hlEind: Math.min(nodes[i].nodeValue.length, eind - nStart) });
+      }
+    }
+
+    // Vervang tekstnodes van achteren naar voren (DOM-stabiel)
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      if (!nodeRanges[i].length) continue;
+      const raw    = nodes[i].nodeValue;
+      const ranges = nodeRanges[i].sort((a, b) => a.hlStart - b.hlStart);
+      const frag   = document.createDocumentFragment();
+      let cursor   = 0;
+      for (const { hlStart, hlEind } of ranges) {
+        if (cursor < hlStart) frag.appendChild(document.createTextNode(raw.slice(cursor, hlStart)));
+        const mark = document.createElement('mark');
+        mark.className = 'hl-match';
+        mark.textContent = raw.slice(hlStart, hlEind);
+        frag.appendChild(mark);
+        if (!eersteEl) eersteEl = mark;
+        cursor = hlEind;
+      }
+      if (cursor < raw.length) frag.appendChild(document.createTextNode(raw.slice(cursor)));
+      nodes[i].parentNode.replaceChild(frag, nodes[i]);
+    }
+    break;
   }
-  if (eersteEl) eersteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return aantalMatches;
 }
 
 function toonTekstFallback(panel, searchText) {
   panel.classList.add('tekst-modus');
-  const tekst = huidigRapport?._document_tekst || '';
-  if (!tekst) { panel.innerHTML = '<p class="doc-leeg">Documenttekst niet beschikbaar.</p>'; return; }
-  const zoek = (searchText || '').trim();
-  const re   = zoek ? new RegExp(zoek.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
-  let html   = '', eersteMatch = true;
+  const volledigeTekst = huidigRapport?._document_tekst || '';
+  if (!volledigeTekst) { panel.innerHTML = '<p class="doc-leeg">Documenttekst niet beschikbaar.</p>'; return; }
+
+  // Bij meerdere hoofddocumenten: toon alleen de tekst van het actieve tabblad
+  let tekst = volledigeTekst;
+  const activDoc = huidigeDocumenten[huidigeDocIdx];
+  if (activDoc?.bestandsnaam && huidigeDocumenten.length > 1) {
+    // Gecombineerde tekst splitsen op === secties ===
+    const secties = volledigeTekst.split(/(?=^=== )/m);
+    const actief  = secties.find(s => s.startsWith('=== ') && s.includes(activDoc.bestandsnaam));
+    if (actief) tekst = actief;
+  }
+
+  const zoek    = (searchText || '').trim();
+  const re      = zoek ? new RegExp(zoek.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
+  const HDR_RE  = /^===\s+(.+?)\s+===$/;
+  let html = '<div style="background:var(--line);border-radius:4px;padding:6px 12px;margin:0 0 14px;'
+           + 'font-size:.78rem;color:var(--ink-soft);display:flex;align-items:center;gap:6px">'
+           + '<span>📄</span> PDF niet beschikbaar bij heropenen — geëxtraheerde tekst weergegeven.'
+           + '</div>';
+  let eersteMatch = true;
+
   for (const regel of tekst.split('\n')) {
+    // === Document-koptekst === → styled sectie-header
+    const hm = HDR_RE.exec(regel.trim());
+    if (hm) {
+      html += `<div style="margin:20px -32px 14px;padding:6px 32px;background:var(--line);`
+            + `font-size:.78rem;font-weight:700;color:var(--ink-soft);letter-spacing:.06em;`
+            + `text-transform:uppercase;">${escH(hm[1])}</div>`;
+      continue;
+    }
     if (!regel.trim()) { html += '<div class="doc-br"></div>'; continue; }
     if (!re) { html += `<p>${escH(regel)}</p>`; continue; }
     let inhoud = '', li = 0, match; re.lastIndex = 0;
@@ -3233,12 +3677,12 @@ function lijstKaarten(cat, items, renderFn, leegTekst) {
 
 const DIM_LABELS = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:'Balans', grammatica:'Grammatica', conflicten:'Conflicten' };
 const DIM_SVG_ICONS = {
-  juridisch:   `<svg viewBox="0 0 24 24"><path d="M8 3l6 6-3 3-6-6z"/><path d="M12.5 10.5L20 18"/><path d="M3 21h9"/></svg>`,
-  conflicten:  `<svg viewBox="0 0 24 24"><path d="M13 3L6 13h5l-1 8 7-10h-5l1-8z"/></svg>`,
-  volledigheid:`<svg viewBox="0 0 24 24"><path d="M3.5 5.5L5 7l3-3"/><path d="M11 5.5h9"/><path d="M3.5 12.5L5 14l3-3"/><path d="M11 12.5h9"/><path d="M4 19.5h3"/><path d="M11 19.5h9"/></svg>`,
-  balans:      `<svg viewBox="0 0 24 24"><path d="M12 4v16"/><path d="M7 20h10"/><path d="M5 7h14"/><path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7"/><path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7"/></svg>`,
-  grammatica:  `<svg viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 10h12"/><path d="M3.5 17c1.4-1.8 2.8-1.8 4.25 0s2.8 1.8 4.25 0 2.8-1.8 4.25 0 2.8 1.8 4.25 0"/></svg>`,
-  mfn:         `<svg viewBox="0 0 24 24"><path d="M19 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/><path d="M7 8h9"/><path d="M7 12h5"/><circle cx="16.5" cy="15" r="2.75"/><path d="M14.8 17.2l-.8 4 2.5-1.7 2.5 1.7-.8-4"/></svg>`,
+  juridisch:   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 3l6 6-3 3-6-6z"/><path d="M12.5 10.5L20 18"/><path d="M3 21h9"/></svg>`,
+  conflicten:  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 3L6 13h5l-1 8 7-10h-5l1-8z"/></svg>`,
+  volledigheid:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3.5 5.5L5 7l3-3"/><path d="M11 5.5h9"/><path d="M3.5 12.5L5 14l3-3"/><path d="M11 12.5h9"/><path d="M4 19.5h3"/><path d="M11 19.5h9"/></svg>`,
+  balans:      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16"/><path d="M7 20h10"/><path d="M5 7h14"/><path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7"/><path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7"/></svg>`,
+  grammatica:  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 5h16"/><path d="M4 10h12"/><path d="M3.5 17c1.4-1.8 2.8-1.8 4.25 0s2.8 1.8 4.25 0 2.8-1.8 4.25 0 2.8 1.8 4.25 0"/></svg>`,
+  mfn:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M19 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/><path d="M7 8h9"/><path d="M7 12h5"/><circle cx="16.5" cy="15" r="2.75"/><path d="M14.8 17.2l-.8 4 2.5-1.7 2.5 1.7-.8-4"/></svg>`,
 };
 
 // Sorteer-modus voor de issuelijst: 'ernst' (hoog→laag) of 'volgorde' (documentvolgorde)
@@ -3277,7 +3721,7 @@ function sorteerIssues() {
   const gesorteerdeIdx = _issueSortModus === 'volgorde'
     ? vindDocVolgorde(issues)
     : issues.map((_, i) => i).sort((a, b) => (ERNST_ORD[issues[a].ernst] ?? 1) - (ERNST_ORD[issues[b].ernst] ?? 1));
-  lijstEl.innerHTML = gesorteerdeIdx.map(i => issueKaart(i)).join('');
+  lijstEl.innerHTML = gesorteerdeIdx.map((i, pos) => issueKaart(i, pos + 1)).join('');
 
   // Herstel actieve filter op de nieuwe cards
   const herstelBtn = _vindHerstelBtn(huidigeDim);
@@ -3290,7 +3734,7 @@ function sorteerIssues() {
   });
 }
 
-function issueKaart(idx) {
+function issueKaart(idx, nr) {
   const issue = huidigRapport.issues[idx];
   if (!issue || typeof issue !== 'object') return ''; // defensief: sla ongeldige items over
   const ernstKlas    = 'sev-' + (issue.ernst || 'midden');
@@ -3300,15 +3744,16 @@ function issueKaart(idx) {
     .map(d => `<span class="card-dim-icn" title="${DIM_LABELS[d]||d}">${DIM_SVG_ICONS[d]||''}</span>`)
     .join('');
   return `
-  <div class="card ${ernstKlas}${heeftPassage ? ' heeft-passage' : ''}" data-issue-idx="${idx}" data-dims='${JSON.stringify(issue.dimensies||[])}' data-ok="${isOk?'1':'0'}">
+  <div class="card ${ernstKlas}${heeftPassage ? ' heeft-passage' : ''}" data-issue-idx="${idx}" data-dims="${(issue.dimensies||[]).join('|')}" data-ok="${isOk?'1':'0'}">
     <div class="item-row">
       <input type="checkbox" ${issue.afgehandeld?'checked':''}
         onchange="huidigRapport.issues[${idx}].afgehandeld=this.checked;updateConceptKnop();autoSlaOp()">
       <div class="item-body">
         <div class="card-kop">
-          <div class="label">${escH(issue.onderwerp)}<span class="ernst-badge ${ernstKlas}">${issue.ernst}</span></div>
+          <div class="label">${nr != null ? `<span class="issue-nr">${nr}</span>` : ''}${escH(issue.onderwerp)}<span class="ernst-badge ${ernstKlas}">${issue.ernst}</span></div>
           ${dimIcns ? `<span class="card-dim-icns">${dimIcns}</span>` : ''}
         </div>
+        ${issue.passage     ? `<div class="issue-citaat">"${escH(issue.passage)}"</div>` : ''}
         ${issue.bevinding   ? `<div class="meta">${escH(issue.bevinding)}</div>` : ''}
         ${issue.aanbeveling ? `<div class="suggestie-wrap"><div class="suggestie-label">💡 Aanbeveling</div>${escH(issue.aanbeveling)}</div>` : ''}
         <textarea class="opmerking" placeholder="Opmerking toevoegen..."
@@ -3342,7 +3787,7 @@ function filterIssues(btn) {
       card.style.display = '';
     } else {
       let dims = [];
-      try { dims = JSON.parse(card.dataset.dims || '[]'); } catch(e) {}
+      dims = card.dataset.dims ? card.dataset.dims.split('|') : [];
       card.style.display = dims.includes(dim) ? '' : 'none';
     }
   });
@@ -3459,9 +3904,6 @@ async function toonRapport(cls, rp) {
     const midden = issues.filter(i => i.ernst === 'midden').length;
     const laag   = issues.filter(i => i.ernst === 'laag').length;
     const totaal = hoog + midden + laag;
-    const pct    = berekenGemiddeldeScore(drp);
-    const kleur  = maakScoreKleur(pct);
-
     const samenDelen = [
       hoog   > 0 ? `<span style="color:#C82020;font-weight:700">${hoog} hoog</span>`     : '',
       midden > 0 ? `<span style="color:#D4890A;font-weight:700">${midden} midden</span>` : '',
@@ -3486,16 +3928,12 @@ async function toonRapport(cls, rp) {
     const scoreHtml = `
     <div class="aq-blok">
       <div class="aq-header tab-status-blok">
-        <div class="v2-doc-seg-ring aq-donut" style="width:76px;height:76px;padding:5px;background:conic-gradient(${_grad2})">
-          <div class="v2-doc-seg-inner" style="font-size:1.25rem;font-weight:800;color:var(--ink)">${_center2}</div>
+        <div class="v2-doc-seg-ring" style="width:80px;height:80px;padding:7px;background:conic-gradient(${_grad2});flex-shrink:0;">
+          <div class="v2-doc-seg-inner" style="font-size:1.3rem;font-weight:800;color:var(--ink)">${_center2}</div>
         </div>
         <div class="aq-header-mid">
           <div class="aq-header-lbl">Verbeterpunten</div>
           <div class="aq-header-samen">${samenDelen || '—'}</div>
-        </div>
-        <div class="aq-header-right">
-          <div class="aq-header-right-lbl">Gewogen score</div>
-          ${pct !== null ? `<div style="font-size:1.4rem;font-weight:800;color:${kleur};line-height:1">${pct}<span style="font-size:.6em;opacity:.55">%</span></div>` : ''}
         </div>
       </div>
       <div class="aq-stats">
@@ -3519,7 +3957,7 @@ async function toonRapport(cls, rp) {
     </div>`;
 
     const samenvattingHtml = drp.samenvatting
-      ? `<div class="samenvatting">${escH(drp.samenvatting)}</div>`
+      ? `<div class="samenvatting"><div class="sam-kop"><strong>Samenvatting</strong></div><p>${escH(drp.samenvatting)}</p></div>`
       : '';
 
     // Dimensie-filter knoppen (incl. conflicten als aparte categorie)
@@ -3543,12 +3981,14 @@ async function toonRapport(cls, rp) {
     // Bouw fiche-chip dimensie-filter (statisch — data is al compleet)
     const dimKaart = (d) => {
       const dimIss = issues.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d));
-      if (!dimIss.length) return '';
       const h = dimIss.filter(i=>i.ernst==='hoog').length;
       const m = dimIss.filter(i=>i.ernst==='midden').length;
       const l = dimIss.filter(i=>i.ernst==='laag').length;
-      const kopKls = h > 0 ? 'kop-hoog' : m > 0 ? 'kop-midden' : 'kop-laag';
-      return `<button class="a-fiche-chip" data-dim="${d}" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-body"><span class="a-fiche-kop ${kopKls}">${DIM_LABELS[d]}</span><span class="a-fiche-hml"><span class="a-fiche-h">${h||''}</span><span class="a-fiche-m">${m||''}</span><span class="a-fiche-l">${l||''}</span></span></span></button>`;
+      const kopKls = dimIss.length === 0 ? 'kop-leeg' : h > 0 ? 'kop-hoog' : m > 0 ? 'kop-midden' : 'kop-laag';
+      const counts = dimIss.length === 0
+        ? `<span class="a-fiche-hml" style="justify-content:center"><span style="color:#bbb;font-weight:600;font-size:.8rem">—</span></span>`
+        : `<span class="a-fiche-hml"><span class="a-fiche-h">${h||''}</span><span class="a-fiche-m">${m||''}</span><span class="a-fiche-l">${l||''}</span></span>`;
+      return `<button class="a-fiche-chip${dimIss.length === 0 ? ' a-fiche-leeg' : ''}" data-dim="${d}" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-body"><span class="a-fiche-kop ${kopKls}">${DIM_LABELS[d]}</span>${counts}</span></button>`;
     };
     const mfnChipHtml = mfnHtml
       ? `<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn}</span><span class="a-fiche-body"><span class="a-fiche-kop kop-midden">MfN</span><span class="a-fiche-hml" style="justify-content:center;gap:2px"><span style="color:#1E8449;font-weight:800;font-size:.7rem">${mfnAanw}</span><span style="color:#A6A399;font-weight:400;font-size:.65rem;margin:0 1px">/</span><span style="color:#B9770E;font-weight:800;font-size:.7rem">${mfnEl.length}</span></span></span></button>`
@@ -3561,6 +4001,7 @@ async function toonRapport(cls, rp) {
         <button class="a-filter-dim a-sort-btn" onclick="sorteerIssues()" title="Wissel sorteervolgorde">${sortLabel}<span class="a-sort-chevron">▾</span></button>
       </div>
       <div class="filter-chip-grid">${dims.map(d => dimKaart(d)).join('')}${mfnChipHtml}</div>
+      <div class="dim-noot">* Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen.</div>
     </div>`;
 
     // Sorteer issues op modus: ernst (hoog→laag) of originele documentvolgorde
@@ -3569,18 +4010,26 @@ async function toonRapport(cls, rp) {
       ? vindDocVolgorde(issues)
       : issues.map((_, i) => i).sort((a, b) => (_ERNST_ORD[issues[a].ernst] ?? 1) - (_ERNST_ORD[issues[b].ernst] ?? 1));
     const issueKaartenHtml = gesorteerdeIdx.length > 0
-      ? gesorteerdeIdx.map(i => issueKaart(i)).join('')
+      ? gesorteerdeIdx.map((i, pos) => issueKaart(i, pos + 1)).join('')
       : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
+    const _docLblSectie = (() => {
+      const dt = huidigeClassificatie?.doc_type || '';
+      const lbl = dt ? (DOC_TYPE_LABELS[dt] || dt) : '';
+      return lbl ? `${lbl} — Verbeterpunten` : 'Verbeterpunten';
+    })();
+
     return scoreHtml + samenvattingHtml + filterBar +
+      `<div class="sectie-kop">${escH(_docLblSectie)}</div>` +
       `<div class="anal-tab-body" id="analTabBody">` +
       `<div id="issuesLijst">${issueKaartenHtml}</div>` +
-      (mfnHtml ? `<div id="mfnSectie" style="display:none">${mfnHtml}</div>` : '') +
+      (mfnHtml ? `<div id="mfnSectie" style="display:none"><div class="sectie-kop">MfN Compliance</div>${mfnHtml}</div>` : '') +
       `</div>`;
   }
 
   function activeerAnalysePanel(drp) {
-    document.getElementById('analysePanel').innerHTML = bouwAnalyseHtml(drp);
+    const panel = document.getElementById('analysePanel');
+    panel.innerHTML = bouwAnalyseHtml(drp);
     updateConceptKnop();
   }
   // Stel module-level referentie in zodat sorteerIssues() er buiten toonRapport bij kan
@@ -3719,10 +4168,15 @@ function toonPassageBanner(passage) {
 // Probeer de passage te vinden; als het niet lukt, probeer progressief kortere substrings.
 // Stopswoorden overslaan voor een betekenisvolle eerste treffer.
 async function zoekEnScrollNaarPassage(passage) {
-  // Verberg vorige banner bij nieuwe zoekopdracht
   toonPassageBanner('');
 
+  // Bereken positie in _document_tekst (dezelfde tekst die Claude heeft geanalyseerd).
+  // Dit geeft een fractie (0–1) die als hint dient voor highlightInPdf zodat bij meerdere
+  // matches de dichtstbijzijnde instantie geselecteerd wordt.
+  _passageHintFrac = vindPassageFractie(passage);
+
   await renderDocPanel(passage);
+  _passageHintFrac = null; // reset: volgende renderDocPanel-aanroepen zijn hint-vrij
   if (isGehighlightd()) return;
 
   // Fallback 1: woorden zonder stopwoorden, eerste 6 woorden
@@ -3923,6 +4377,7 @@ async function opslaan() {
       _opsl_rapport = anonimiseerObj(rapportZonderBulk, huidigeNaarAnon);
     }
 
+    const _wasInsert = !huidigeId;
     let data, error;
     if (huidigeId) {
       const updatePayload = {
@@ -3950,6 +4405,29 @@ async function opslaan() {
     }
     if (error) throw error;
     huidigeId = data.id;
+
+    // ── PDF-bestanden uploaden naar Storage (alleen bij nieuwe screening) ──
+    // AVG: pad bevat geen persoonsdata — format {screeningId}/{volgnummer}.pdf.
+    // Originele bestandsnaam wordt opgeslagen als metadata (naam) en niet in het pad.
+    if (_wasInsert && huidigeBestandenLijst.length > 0 && !huidigRapport._document_bestanden) {
+      const _upBest = [];
+      for (let _i = 0; _i < huidigeBestandenLijst.length; _i++) {
+        const _f   = huidigeBestandenLijst[_i];
+        const _pad = `${data.id}/${_i}.pdf`;
+        try {
+          const { error: _sErr } = await db.storage.from('documenten').upload(_pad, _f, { upsert: true });
+          if (!_sErr) _upBest.push({ pad: _pad, naam: _f.name });
+          else console.warn('[opslaan] Storage upload:', _f.name, _sErr.message);
+        } catch (_e) { console.warn('[opslaan] Storage fout:', _e.message); }
+      }
+      if (_upBest.length) {
+        huidigRapport._document_bestanden = _upBest;
+        // Update rapport in Supabase met bestanden-metadata (na INSERT, apart request)
+        await db.from('screeningen')
+          .update({ rapport: { ..._opsl_rapport, _document_bestanden: _upBest } })
+          .eq('id', data.id);
+      }
+    }
 
     // 4. Dossier updated_at bijwerken
     if (huidigeDossierId) {
@@ -4008,6 +4486,7 @@ async function laadPraktijknaam() {
 function openInstellingen(startTab = 'kantoor') {
   // Gebruik opgeslagen praktijknaam, of val terug op de organisatienaam
   document.getElementById('instPraktijknaam').value = getPraktijknaam() || _orgNaam;
+  document.getElementById('instMediatorNaam').value = _mediatorNaam || '';
   // Toon gebruikers-tab alleen voor admins
   const gebrTab = document.getElementById('instGebrTab');
   if (gebrTab) gebrTab.style.display = _userRol === 'admin' ? '' : 'none';
@@ -4040,15 +4519,18 @@ document.getElementById('instAnnuleerBtn2').addEventListener('click', () => {
   document.getElementById('instellingenModal').classList.remove('active');
 });
 document.getElementById('instOpslaanBtn').addEventListener('click', async () => {
-  const waarde = document.getElementById('instPraktijknaam').value.trim();
-  _praktijknaam = waarde;
+  const praktijk = document.getElementById('instPraktijknaam').value.trim();
+  const mediator = document.getElementById('instMediatorNaam').value.trim();
+  _praktijknaam = praktijk;
+  _mediatorNaam = mediator;
   const firmEl2 = document.getElementById('topbarFirm');
-  if (firmEl2) firmEl2.textContent = waarde;
+  if (firmEl2) firmEl2.textContent = praktijk;
   document.getElementById('instellingenModal').classList.remove('active');
   try {
-    await db.auth.updateUser({ data: { praktijknaam: waarde } });
+    await db.auth.updateUser({ data: { praktijknaam: praktijk } });
+    if (mediator) await db.from('gebruikersprofiel').update({ naam: mediator }).eq('id', _userId);
   } catch (e) {
-    console.warn('Praktijknaam opslaan mislukt:', e.message);
+    console.warn('Instellingen opslaan mislukt:', e.message);
   }
 });
 document.getElementById('instellingenModal').addEventListener('click', e => {
@@ -4205,238 +4687,482 @@ document.getElementById('maakUitnodigingBtn').addEventListener('click', async ()
 });
 
 // ── PDF cliëntenrapport ───────────────────────────────
-function buildPdfDef(naam, cls, rp, versieNr, versieLabel) {
-  const praktijknaam = getPraktijknaam();
-  const datum  = new Date().toLocaleDateString('nl-NL', { day:'2-digit', month:'long', year:'numeric' });
-  const CORAL  = '#E8714A', INK = '#2B2825', SOFT = '#6B6358', LINE = '#E8E1D6';
-  const BG     = '#FAF6F0', SAGE = '#6B8F71', AMBER = '#D9A04B', TERRA = '#C75D4D';
+function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam, dossierNaam) {
+  const datum = new Date().toLocaleDateString('nl-NL', { day:'2-digit', month:'long', year:'numeric' });
 
-  // Stats: nieuw schema v2 (issues[]) of oud schema
-  let jur, vol, balans, gram, hoog, midden, laag, aanw;
-  if (Array.isArray(rp.issues)) {
-    jur    = rp.issues.filter(i => i.dimensies?.includes('juridisch'));
-    vol    = rp.issues.filter(i => i.dimensies?.includes('volledigheid'));
-    balans = rp.issues.filter(i => i.dimensies?.includes('balans'));
-    gram   = rp.issues.filter(i => i.dimensies?.includes('grammatica'));
-    hoog   = rp.issues.filter(i => i.ernst === 'hoog').length;
-    midden = rp.issues.filter(i => i.ernst === 'midden').length;
-    laag   = rp.issues.filter(i => i.ernst === 'laag').length;
-    aanw   = 0;
-  } else {
-    jur    = rp.juridisch    || [];
-    vol    = rp.volledigheid || [];
-    balans = rp.balans       || [];
-    gram   = rp.grammatica   || [];
-    hoog   = jur.filter(j => j.ernst === 'hoog').length;
-    midden = jur.filter(j => j.ernst === 'midden').length;
-    laag   = jur.filter(j => j.ernst === 'laag').length;
-    aanw   = vol.filter(v => v.status === 'aanwezig').length;
-  }
-  const partijen = [cls.partij_a_naam, cls.partij_b_naam].filter(Boolean).join(' & ');
-  const versieStr = versieNr ? `V${versieNr}${versieLabel ? ' — ' + versieLabel : ''}` : '—';
+  // Kleuren — Clausula HTML design
+  const NAVY   = '#0F2343', GOLD  = '#D99A3D', GREEN = '#21865D';
+  const ORANGE = '#E88424', RED   = '#D94841', BORDER = '#E6EAF2';
+  const TEXT   = '#1D2A39', MUTED = '#68758B';
+  const DIMLBL = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:'Balans', grammatica:'Grammatica', conflicten:'Conflicten' };
+  const KENMERK_CATS = ['status_verbinding', 'kinderen', 'woning', 'bedrijf'];
 
-  function hr() {
-    return { canvas:[{ type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:.5, lineColor:LINE }], margin:[0,0,0,8] };
+  const docs = Array.isArray(rp.documenten) && rp.documenten.length > 1 ? rp.documenten : null;
+  const alleDoc = docs ? [...rp.documenten] : [{
+    doc_type: rp.doc_type || cls.doc_type, bestandsnaam: naam,
+    samenvatting: rp.samenvatting, mfn_score: rp.mfn_score,
+    issues: Array.isArray(rp.issues) ? rp.issues : null,
+    _oud: !Array.isArray(rp.issues) ? rp : null,
+  }];
+  if (docs) {
+    const volgorde = { ouderschapsplan:0, convenant:1, onbekend:2 };
+    alleDoc.sort((a,b) => (volgorde[a.doc_type]??2) - (volgorde[b.doc_type]??2));
   }
-  function sectieKop(t) {
-    return [{ text:t, fontSize:13, bold:true, color:INK, margin:[0,0,0,6] }, hr()];
+
+  const partijA = cls.partij_a_naam || '';
+  const partijB = cls.partij_b_naam || '';
+  const partijen = [partijA, partijB].filter(Boolean).join(' &\n');
+
+  function ernstKleur(e) { return e==='hoog' ? RED : e==='midden' ? ORANGE : GREEN; }
+
+  // Metric-tile (HOOG / MIDDEN / LAAG / MFN)
+  function metricTile(label, val, kl) {
+    return {
+      table:{ widths:['*'], body:[[{
+        border:[true,true,true,true], borderColor:[BORDER,BORDER,BORDER,BORDER],
+        fillColor:'#FAFBFD',
+        stack:[
+          { text:label, fontSize:7.5, bold:true, color:MUTED, characterSpacing:1,
+            alignment:'center', margin:[0,9,0,4] },
+          { text:String(val), fontSize:22, bold:true, color:kl, alignment:'center', margin:[0,0,0,9] },
+        ],
+      }]]},
+      layout:{ hLineWidth:()=>1, vLineWidth:()=>1,
+        hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+        paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+    };
   }
-  function ernstKleur(e) { return e==='hoog' ? TERRA : e==='midden' ? AMBER : SAGE; }
-  function bullet(kleur) {
-    return { canvas:[{ type:'rect', x:0, y:3, w:5, h:12, r:2, color:kleur }], width:12, margin:[0,0,4,0] };
+
+  // Categorie-box (HTML .cat)
+  function dimCatBox(dimKey, issues) {
+    const dimIssues = issues.filter(i => (i.dimensies||[]).includes(dimKey));
+    const h = dimIssues.filter(i=>i.ernst==='hoog').length;
+    const m = dimIssues.filter(i=>i.ernst==='midden').length;
+    const l = dimIssues.filter(i=>i.ernst==='laag').length;
+    const hasIssues = h + m + l > 0;
+    const hdrKl = hasIssues ? (h > 0 ? RED : m > 0 ? ORANGE : GREEN) : GREEN;
+    const numCols = [
+      h ? { stack:[{ text:String(h), fontSize:20, bold:true, color:RED, alignment:'center' }], width:'auto' } : null,
+      m ? { stack:[{ text:String(m), fontSize:20, bold:true, color:ORANGE, alignment:'center' }], width:'auto' } : null,
+      l ? { stack:[{ text:String(l), fontSize:20, bold:true, color:GREEN, alignment:'center' }], width:'auto' } : null,
+    ].filter(Boolean);
+    const bodyEl = hasIssues
+      ? { columns:numCols, columnGap:12, alignment:'center' }
+      : { text:'—', fontSize:16, color:MUTED, alignment:'center' };
+    return {
+      table:{ widths:['*'], body:[
+        [{ text:(DIMLBL[dimKey]||dimKey).toUpperCase(), fontSize:9, bold:true, color:'#fff',
+           fillColor:hdrKl, border:[false,false,false,false],
+           alignment:'center', margin:[0,8,0,8] }],
+        [{ border:[false,false,false,false], fillColor:'#FAFBFD',
+           margin:[8,14,8,14], stack:[bodyEl] }],
+      ]},
+      layout:{ hLineWidth:()=>1, vLineWidth:()=>1,
+        hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+        paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+    };
   }
-  function suggestieRij(s) {
-    return s ? { text:`💡 ${s}`, fontSize:9, color:'#1a3a5c', italics:true, margin:[0,3,0,0] } : null;
+
+  function mfnCatBox(aanw, tot) {
+    const kl = tot ? (aanw/tot >= 0.9 ? GREEN : aanw/tot >= 0.7 ? ORANGE : RED) : MUTED;
+    return {
+      table:{ widths:['*'], body:[
+        [{ text:'MFN', fontSize:9, bold:true, color:'#fff',
+           fillColor:ORANGE, border:[false,false,false,false],
+           alignment:'center', margin:[0,8,0,8] }],
+        [{ text:tot ? `${aanw} / ${tot}` : '—', fontSize:20, bold:true, color:kl,
+           border:[false,false,false,false], fillColor:'#FAFBFD',
+           alignment:'center', margin:[8,14,8,14] }],
+      ]},
+      layout:{ hLineWidth:()=>1, vLineWidth:()=>1,
+        hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+        paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+    };
+  }
+
+  // Issue-kaart (HTML .issue: gekleurde linker accent, badge, aanbeveling in blauw)
+  function issueKaartPdf(issue) {
+    const kl = ernstKleur(issue.ernst);
+    const badgeBg = kl===RED ? '#FEF0F0' : kl===ORANGE ? '#FFF3E0' : '#EDF9F3';
+    const aanbevelingBlok = issue.aanbeveling ? {
+      table:{ widths:[4,'*'], body:[[
+        { fillColor:'#4A90E2', border:[false,false,false,false], text:'' },
+        { fillColor:'#EEF6FF', border:[false,false,false,false], margin:[14,10,14,10],
+          stack:[
+            { text:'Aanbeveling', fontSize:9, bold:true, color:'#2C66C3', margin:[0,0,0,4] },
+            { text:issue.aanbeveling, fontSize:10, color:TEXT, lineHeight:1.6 },
+          ]},
+      ]]},
+      layout:{ hLineWidth:()=>0, vLineWidth:()=>0,
+        paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+      margin:[0,14,0,0],
+    } : null;
+    return {
+      unbreakable:true,
+      table:{ widths:[6,'*'], body:[[
+        { fillColor:kl, border:[false,false,false,false], text:'' },
+        { border:[false,true,true,true], borderColor:[BORDER,BORDER,BORDER,BORDER],
+          margin:[20,18,20,18],
+          stack:[
+            { columns:[
+                { text:issue.onderwerp||'', fontSize:14, bold:true, color:TEXT, lineHeight:1.3, width:'*' },
+                { table:{ widths:['auto'], body:[[{
+                    text:(issue.ernst||'').toUpperCase(), fontSize:8, bold:true, color:kl,
+                    fillColor:badgeBg, border:[false,false,false,false], margin:[8,4,8,4],
+                  }]]},
+                  layout:{ hLineWidth:()=>0, vLineWidth:()=>0,
+                    paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+                  width:'auto', margin:[8,2,0,0] },
+              ], columnGap:6 },
+            { text:issue.bevinding||'', fontSize:10.5, color:'#49586A', lineHeight:1.7, margin:[0,10,0,0] },
+            issue.passage ? { text:`"${issue.passage}"`, fontSize:10, color:ORANGE, italics:true, margin:[0,8,0,0] } : null,
+            aanbevelingBlok,
+          ].filter(Boolean),
+        },
+      ]]},
+      layout:{
+        hLineWidth:(i)=>i===0?0:1, vLineWidth:(i)=>i===0?0:i===1?0:1,
+        hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+        paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0,
+      },
+      margin:[0,0,0,20],
+    };
+  }
+
+  // MfN-blok met ✓△✗
+  function mfnBlok(mfn) {
+    if (!mfn?.elementen?.length) return [];
+    const ico  = { aanwezig:'✓', onvolledig:'△', ontbreekt:'✗' };
+    const klst = { aanwezig:GREEN, onvolledig:ORANGE, ontbreekt:RED };
+    return [
+      { text:'MfN-compliantie', fontSize:15, bold:true, color:NAVY, margin:[0,0,0,14] },
+      ...mfn.elementen.map(el => ({
+        columns:[
+          { text:ico[el.status]||'·', fontSize:11, bold:true, color:klst[el.status]||MUTED, width:18 },
+          { stack:[
+              { text:el.element, fontSize:10.5, bold:el.status!=='aanwezig', color:TEXT },
+              el.toelichting ? { text:el.toelichting, fontSize:9.5, color:MUTED, italics:true, margin:[0,2,0,0] } : null,
+            ].filter(Boolean) },
+        ], margin:[0,0,0,5],
+      })),
+      ...(mfn.extra_elementen?.length ? [
+        { text:'Extra elementen (niet vereist, wel aanwezig):', fontSize:10, bold:true, color:MUTED, margin:[0,12,0,6] },
+        ...mfn.extra_elementen.map(ex => ({
+          columns:[
+            { text:'✓', fontSize:10, bold:true, color:GREEN, width:16 },
+            { text:ex, fontSize:10, color:MUTED },
+          ], margin:[0,0,0,3],
+        })),
+      ] : []),
+      { text:'', margin:[0,14,0,0] },
+    ];
   }
 
   const content = [];
 
-  // Header
-  content.push({ columns:[
-    { text: praktijknaam || 'Documentscreening', fontSize:11, bold:true, color:CORAL },
-    { text: datum, fontSize:10, color:SOFT, alignment:'right' }
-  ], margin:[0,0,0,6] });
-  content.push({ canvas:[{ type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:1, lineColor:LINE }], margin:[0,0,0,18] });
+  for (let di = 0; di < alleDoc.length; di++) {
+    const doc       = alleDoc[di];
+    const docIssues = Array.isArray(doc.issues) ? doc.issues : null;
+    const docLabel  = DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type || 'Document';
 
-  // Titel
-  content.push({ text:'Screeningsrapport', fontSize:22, bold:true, color:INK, margin:[0,0,0,4] });
-  content.push({ text:naam, fontSize:12, color:SOFT, margin:[0,0,0,20] });
+    // ── Volledig-brede navy Clausula header ───────────────────────────────────────
+    const headerBase = {
+      table:{ widths:[595], body:[[{
+        fillColor:NAVY, border:[false,false,false,false],
+        columns:[
+          { stack:[
+              { text:'CLAUSULA', fontSize:24, bold:true, color:'#fff', characterSpacing:2 },
+              { text:'JURIDISCHE TOETSING', fontSize:8, bold:true, color:GOLD, characterSpacing:3, margin:[0,5,0,0] },
+            ], width:'*' },
+          { text:docLabel.toUpperCase(), fontSize:9, bold:true, color:GOLD,
+            alignment:'right', width:'auto', margin:[0,22,0,0] },
+        ], columnGap:16, margin:[48,24,48,24],
+      }]]},
+      layout:{ hLineWidth:()=>0, vLineWidth:()=>0,
+        paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+      margin:[-50,-50,0,0],
+    };
+    content.push(di === 0 ? headerBase : { ...headerBase, pageBreak:'before' });
 
-  // Meta-tabel
-  content.push({
-    table:{ widths:['*','*','*'], body:[[
-      [{ text:'Documenttype', fontSize:8, bold:true, color:SOFT, margin:[0,0,0,2] }, { text:cls.doc_type||'—', fontSize:11 }],
-      [{ text:'Partijen',     fontSize:8, bold:true, color:SOFT, margin:[0,0,0,2] }, { text:partijen||'—',   fontSize:11 }],
-      [{ text:'Versie',       fontSize:8, bold:true, color:SOFT, margin:[0,0,0,2] }, { text:versieStr,       fontSize:11 }],
-    ]]},
-    layout:{ hLineWidth:()=>0, vLineWidth:()=>0, fillColor:()=>BG,
-      paddingLeft:()=>12, paddingRight:()=>12, paddingTop:()=>10, paddingBottom:()=>10 },
-    margin:[0,0,0,24]
-  });
+    // ── Statistieken ──────────────────────────────────────────────────────────────
+    const hoog   = (docIssues||[]).filter(i=>i.ernst==='hoog').length;
+    const midden = (docIssues||[]).filter(i=>i.ernst==='midden').length;
+    const laag   = (docIssues||[]).filter(i=>i.ernst==='laag').length;
+    const totaal = hoog + midden + laag;
+    const mfnEl  = doc.mfn_score?.elementen || [];
+    const mfnAanw = mfnEl.filter(e=>e.status==='aanwezig').length;
+    const mfnTot  = mfnEl.length;
 
-  // Samenvatting
-  content.push(...sectieKop('Samenvatting'));
-  content.push({ text:rp.samenvatting||'', fontSize:10.5, color:INK, lineHeight:1.5, margin:[0,0,0,22] });
+    const circleKl = hoog > 0 ? RED : midden > 0 ? ORANGE : GREEN;
+    const circleSvg = `<svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg"><circle cx="55" cy="55" r="46" fill="none" stroke="#E6EAF2" stroke-width="8"/><circle cx="55" cy="55" r="46" fill="none" stroke="${circleKl}" stroke-width="8" stroke-linecap="round" transform="rotate(-90 55 55)"/><text x="55" y="72" text-anchor="middle" font-size="44" font-weight="800" fill="${TEXT}" font-family="Helvetica">${totaal}</text></svg>`;
+    const samenDelen = [];
+    if (hoog)   samenDelen.push(`${hoog} hoog`);
+    if (midden) samenDelen.push(`${midden} midden`);
+    if (laag)   samenDelen.push(`${laag} laag`);
+    const samenTekst = samenDelen.join(' • ') || 'Geen verbeterpunten';
 
-  // MfN-score sectie (PDF)
-  const mfn     = rp.mfn_score;
-  const mfnTot  = mfn?.score_totaal  || mfn?.elementen?.length || 0;
-  const mfnAanw = mfn?.score_aanwezig ?? (mfn?.elementen?.filter(e=>e.status==='aanwezig').length ?? 0);
-  const mfnPct  = mfnTot ? Math.round((mfnAanw / mfnTot) * 100) : 0;
-  const mfnKleur = mfnPct >= 90 ? SAGE : mfnPct >= 70 ? AMBER : TERRA;
-
-  if (mfn?.elementen?.length) {
-    content.push(...sectieKop('MfN-compliantie'));
-    content.push({ text:`${mfnAanw} van ${mfnTot} vereiste elementen aanwezig (${mfnPct}%)`,
-      fontSize:11, bold:true, color:mfnKleur, margin:[0,0,0,8] });
-
-    // Element-tabel
-    const statusIcoon = { aanwezig:'✓', onvolledig:'△', ontbreekt:'✗' };
-    const statusKleur = { aanwezig:SAGE, onvolledig:AMBER, ontbreekt:TERRA };
-    for (const el of mfn.elementen) {
-      const kleur = statusKleur[el.status] || SOFT;
-      content.push({ columns:[
-        { canvas:[{ type:'rect', x:0, y:3, w:5, h:12, r:2, color:kleur }], width:14 },
-        { stack:[
-            { text: `${statusIcoon[el.status]||'·'} ${el.element}`, fontSize:9.5, bold: el.status !== 'aanwezig', color: INK },
-            el.toelichting ? { text: el.toelichting, fontSize:8.5, color:SOFT, italics:true, margin:[0,1,0,0] } : null,
-          ].filter(Boolean), margin:[0,0,0,4] },
-      ]});
-    }
-    if (mfn.extra_elementen?.length) {
-      content.push({ text:'Extra elementen (niet vereist, wel aanwezig):',
-        fontSize:9, bold:true, color:SOFT, margin:[0,10,0,4] });
-      content.push({ text: mfn.extra_elementen.join(' · '), fontSize:9, color:SOFT });
-    }
-    content.push({ text:'', margin:[0,16,0,0] });
-  }
-
-  // Scores-overzicht
-  content.push(...sectieKop('Bevindingen op hoofdlijnen'));
-  const scoreRijen = Array.isArray(rp.issues) ? [
-    ['MfN-compliantie', mfnTot ? `${mfnAanw} van ${mfnTot} elementen (${mfnPct}%)` : '—', mfnKleur],
-    ['Ernst hoog',   hoog   ? `${hoog} issue${hoog!==1?'s':''}` : 'Geen', hoog ? TERRA : SAGE],
-    ['Ernst midden', midden ? `${midden} issue${midden!==1?'s':''}` : 'Geen', midden ? AMBER : SAGE],
-    ['Ernst laag',   laag   ? `${laag} issue${laag!==1?'s':''}` : 'Geen', SAGE],
-  ] : [
-    ['MfN-compliantie',      mfnTot        ? `${mfnAanw} van ${mfnTot} elementen (${mfnPct}%)`         : '—', mfnKleur],
-    ['Volledigheid',         vol.length    ? `${aanw} van ${vol.length} secties aanwezig`               : '—', aanw===vol.length ? SAGE : aanw>=vol.length*.7 ? AMBER : TERRA],
-    ['Juridische juistheid', jur.length    ? `${hoog} hoog · ${midden} midden · ${laag} laag`           : 'Geen opmerkingen', hoog?TERRA:midden?AMBER:SAGE],
-    ['Balans',               balans.length ? `${balans.length} signalering${balans.length!==1?'en':''}`  : 'Geen signaleringen', balans.some(b=>b.ernst==='hoog')?TERRA:balans.length?AMBER:SAGE],
-    ['Grammatica & taal',    gram.length   ? `${gram.length} opmerking${gram.length!==1?'en':''}`        : 'Geen opmerkingen', gram.length?AMBER:SAGE],
-  ];
-  content.push({
-    table:{ widths:[130,'*',10], body: scoreRijen.map(([lbl,val,kleur]) => [
-      { text:lbl, fontSize:10, bold:true, color:SOFT, border:[false,false,false,true], borderColor:[null,null,null,LINE], margin:[0,6,0,6] },
-      { text:val, fontSize:10, color:INK,             border:[false,false,false,true], borderColor:[null,null,null,LINE], margin:[0,6,0,6] },
-      { canvas:[{ type:'rect', x:0, y:2, w:6, h:14, r:3, color:kleur }],
-        border:[false,false,false,true], borderColor:[null,null,null,LINE], margin:[0,6,0,6] },
-    ])},
-    layout:{ paddingLeft:()=>0, paddingRight:()=>8 },
-    margin:[0,0,0,24]
-  });
-
-  // Verbeterpunten (nieuw schema v2: issues[]) of vier losse secties (oud schema)
-  if (Array.isArray(rp.issues) && rp.issues.length) {
-    const DIMLBL = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:'Balans', grammatica:'Grammatica' };
-    content.push(...sectieKop('Verbeterpunten'));
-    rp.issues.forEach(issue => {
-      const kl = ernstKleur(issue.ernst);
-      content.push({ columns:[ bullet(kl), { stack:[
-        { columns:[
-          { text: issue.onderwerp, fontSize:10.5, bold:true, color:INK, width:'*' },
-          { text: issue.ernst, fontSize:8, bold:true, color:kl, width:'auto', margin:[4,2,0,0] },
-        ]},
-        issue.dimensies?.length ? { text: issue.dimensies.map(d=>DIMLBL[d]||d).join(' · '),
-          fontSize:8, color:SOFT, margin:[0,1,0,2] } : null,
-        { text: issue.bevinding, fontSize:9.5, color:SOFT, lineHeight:1.4 },
-        issue.aanbeveling ? { text:`💡 ${issue.aanbeveling}`, fontSize:9, color:'#1a3a5c', italics:true, margin:[0,3,0,0] } : null,
-      ].filter(Boolean) }], margin:[0,0,0,10] });
-    });
-  } else if (!Array.isArray(rp.issues)) {
-    // Oud schema: vier losse secties (backward compat)
-    if (vol.length) {
-      content.push(...sectieKop('Volledigheid'));
-      vol.forEach(v => {
-        const kl = v.status==='aanwezig' ? SAGE : v.status==='onvolledig' ? AMBER : TERRA;
-        content.push({ columns:[ bullet(kl), { stack:[
-          { text:v.sectie, fontSize:10.5, bold:true, color:INK },
-          { text:`${v.status} — ${v.toelichting}`, fontSize:9.5, color:SOFT, lineHeight:1.4 },
-          suggestieRij(v.suggestie),
-        ].filter(Boolean) }], margin:[0,0,0,8] });
-      });
-      content.push({ text:'', margin:[0,4,0,0] });
-    }
-    if (jur.length) {
-      content.push(...sectieKop('Juridische juistheid'));
-      jur.forEach(j => {
-        content.push({ columns:[ bullet(ernstKleur(j.ernst)), { stack:[
+    const dashboard = {
+      table:{ widths:['*'], body:[[{
+        border:[true,true,true,true], borderColor:[BORDER,BORDER,BORDER,BORDER],
+        fillColor:'#FAFBFD',
+        stack:[
           { columns:[
-            { text:j.onderwerp, fontSize:10.5, bold:true, color:INK, width:'*' },
-            { text:j.ernst,     fontSize:8,    bold:true, color:ernstKleur(j.ernst), width:'auto', margin:[4,2,0,0] },
-          ]},
-          { text:j.bevinding, fontSize:9.5, color:SOFT, lineHeight:1.4 },
-          j.citaat ? { text:`"${j.citaat}"`, fontSize:9, color:CORAL, italics:true, margin:[0,2,0,0] } : null,
-          suggestieRij(j.suggestie),
-        ].filter(Boolean) }], margin:[0,0,0,10] });
+              { stack:[{ svg:circleSvg, width:82, height:82 }], width:'auto' },
+              { stack:[
+                  { text:'Verbeterpunten', fontSize:15, bold:true, color:TEXT, margin:[0,0,0,5] },
+                  { text:samenTekst, fontSize:12, color:MUTED },
+                ], margin:[14,14,0,0], width:'*' },
+            ], columnGap:0, margin:[0,0,0,14] },
+          { columns:[
+              metricTile('HOOG',   hoog   ? String(hoog)   : '0', RED),
+              metricTile('MIDDEN', midden ? String(midden) : '0', ORANGE),
+              metricTile('LAAG',   laag   ? String(laag)   : '0', GREEN),
+              mfnTot ? metricTile('MFN', `${mfnAanw}/${mfnTot}`, TEXT)
+                     : metricTile('MFN', '—', MUTED),
+            ], columnGap:8 },
+        ],
+      }]]},
+      layout:{ hLineWidth:()=>1, vLineWidth:()=>1,
+        hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+        paddingLeft:()=>20, paddingRight:()=>20, paddingTop:()=>20, paddingBottom:()=>20 },
+    };
+
+    // ── Hero: namen links + dashboard rechts ──────────────────────────────────────
+    content.push({
+      columns:[
+        { stack:[
+            { text:docLabel.toUpperCase(), fontSize:9, bold:true, color:ORANGE,
+              characterSpacing:1, margin:[0,0,0,10] },
+            { text:partijen || dossierNaam || naam || '—',
+              fontSize:30, bold:true, color:NAVY, lineHeight:1.1, margin:[0,0,0,10] },
+            { text:'Juridische analyse & verbeterpunten', fontSize:14, color:MUTED, margin:[0,0,0,20] },
+            mediatorNaam ? { columns:[
+              { text:'Uitgevoerd door', fontSize:9, bold:true, color:MUTED, width:108 },
+              { text:mediatorNaam, fontSize:9.5, color:TEXT, width:'*' },
+            ], margin:[0,0,0,5] } : null,
+            orgNaam ? { columns:[
+              { text:'Organisatie', fontSize:9, bold:true, color:MUTED, width:108 },
+              { text:orgNaam, fontSize:9.5, color:TEXT, width:'*' },
+            ] } : null,
+          ].filter(Boolean), width:'55%' },
+        { stack:[dashboard], width:'45%' },
+      ], columnGap:30, margin:[0,30,0,30],
+    });
+
+    // ── Situatiekenmerken (boven samenvatting, beperkt tot 4 categorieën) ─────────
+    const gefKenmerken = (cls.situatie_kenmerken||[])
+      .filter(k => KENMERK_CATS.some(p => k.startsWith(p)));
+    if (gefKenmerken.length) {
+      content.push({
+        table:{ widths:gefKenmerken.map(()=>'auto'), body:[gefKenmerken.map(k=>({
+          text: k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+          fontSize:7.5, bold:true, color:NAVY,
+          fillColor:'#EEF3FB',
+          border:[true,true,true,true], borderColor:[BORDER,BORDER,BORDER,BORDER],
+          margin:[8,4,8,4],
+        }))]},
+        layout:{ hLineWidth:()=>0.5, vLineWidth:()=>0.5,
+          hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+          paddingLeft:()=>0, paddingRight:()=>0, paddingTop:()=>0, paddingBottom:()=>0 },
+        margin:[0,0,0,16],
       });
-      content.push({ text:'', margin:[0,4,0,0] });
     }
-    if (balans.length) {
-      content.push(...sectieKop('Balans tussen partijen'));
-      balans.forEach(b => {
-        content.push({ columns:[ bullet(ernstKleur(b.ernst)), { stack:[
-          { text:b.signalering, fontSize:10.5, bold:true, color:INK },
-          b.passage  ? { text:`"${b.passage}"`,  fontSize:9, color:CORAL, italics:true, margin:[0,2,0,0] } : null,
-          suggestieRij(b.suggestie),
-        ].filter(Boolean) }], margin:[0,0,0,8] });
+
+    // ── Samenvatting ──────────────────────────────────────────────────────────────
+    if (doc.samenvatting) {
+      content.push({
+        table:{ widths:['*'], body:[[{
+          border:[true,true,true,true], borderColor:['#F1D8C2','#F1D8C2','#F1D8C2','#F1D8C2'],
+          fillColor:'#FFF9F4',
+          stack:[
+            { text:'Samenvatting', fontSize:13, bold:true, color:NAVY, margin:[0,0,0,10] },
+            { text:doc.samenvatting, fontSize:11, color:TEXT, lineHeight:1.8 },
+          ],
+        }]]},
+        layout:{ hLineWidth:()=>1, vLineWidth:()=>1,
+          hLineColor:()=>'#F1D8C2', vLineColor:()=>'#F1D8C2',
+          paddingLeft:()=>26, paddingRight:()=>26, paddingTop:()=>20, paddingBottom:()=>20 },
+        margin:[0,0,0,26],
       });
-      content.push({ text:'', margin:[0,4,0,0] });
     }
-    if (gram.length) {
-      content.push(...sectieKop('Grammatica & taal'));
-      gram.forEach(g => {
-        content.push({ columns:[ bullet('#B0B0B0'), { stack:[
-          { text:g.locatie, fontSize:10.5, bold:true, color:INK },
-          { text:`${g.probleem} → ${g.suggestie}`, fontSize:9.5, color:SOFT, lineHeight:1.4 },
-          g.passage ? { text:`"${g.passage}"`, fontSize:9, color:CORAL, italics:true, margin:[0,2,0,0] } : null,
-        ].filter(Boolean) }], margin:[0,0,0,8] });
+
+    if (docIssues) {
+      // ── Categorieën grid 3 × 2 ────────────────────────────────────────────────
+      const DIMVOLGORDE = ['juridisch','conflicten','volledigheid','balans','grammatica'];
+      const catItems = [...DIMVOLGORDE.map(d=>dimCatBox(d,docIssues)), mfnCatBox(mfnAanw,mfnTot)];
+      const catRijen = [];
+      for (let i = 0; i < catItems.length; i += 3) {
+        const rij = catItems.slice(i,i+3);
+        while (rij.length < 3) rij.push({ text:'' });
+        catRijen.push(rij);
+      }
+      content.push({
+        table:{ widths:['*','*','*'], body:catRijen },
+        layout:{ hLineWidth:()=>0, vLineWidth:()=>0,
+          paddingLeft:()=>5, paddingRight:()=>5, paddingTop:()=>0, paddingBottom:()=>8 },
+        margin:[0,0,0,26],
       });
+
+      // ── Issue-kaarten ─────────────────────────────────────────────────────────
+      const ernstOrd = { hoog:0, midden:1, laag:2 };
+      const gesorteerd = [...docIssues].sort((a,b)=>(ernstOrd[a.ernst]??3)-(ernstOrd[b.ernst]??3));
+      for (const issue of gesorteerd) content.push(issueKaartPdf(issue));
+
+      // ── MfN-compliantie ────────────────────────────────────────────────────────
+      if (doc.mfn_score?.elementen?.length) content.push(...mfnBlok(doc.mfn_score));
+
+    } else if (doc._oud) {
+      const o = doc._oud;
+      function bulletOud(kl) { return { canvas:[{ type:'rect', x:0, y:3, w:5, h:12, r:2, color:kl }], width:12, margin:[0,0,4,0] }; }
+      const sectiesOud = [
+        { titel:'Volledigheid', items:o.volledigheid||[], render:v => {
+            const kl = v.status==='aanwezig'?GREEN:v.status==='onvolledig'?ORANGE:RED;
+            return { columns:[bulletOud(kl),{ stack:[
+              { text:v.sectie, fontSize:10.5, bold:true, color:TEXT },
+              { text:`${v.status} — ${v.toelichting}`, fontSize:9.5, color:MUTED, lineHeight:1.4 },
+              v.suggestie?{text:`→ ${v.suggestie}`,fontSize:9,color:'#1a3a5c',italics:true,margin:[0,3,0,0]}:null,
+            ].filter(Boolean)}], margin:[0,0,0,8] }; }},
+        { titel:'Juridische toetsing', items:o.juridisch||[], render:j => {
+            const kl = ernstKleur(j.ernst);
+            return { columns:[bulletOud(kl),{ stack:[
+              { text:j.onderwerp, fontSize:10.5, bold:true, color:TEXT },
+              { text:j.bevinding, fontSize:9.5, color:MUTED, lineHeight:1.4 },
+              j.citaat?{text:`"${j.citaat}"`,fontSize:9,color:ORANGE,italics:true,margin:[0,2,0,0]}:null,
+              j.suggestie?{text:`→ ${j.suggestie}`,fontSize:9,color:'#1a3a5c',italics:true,margin:[0,3,0,0]}:null,
+            ].filter(Boolean)}], margin:[0,0,0,10] }; }},
+      ];
+      for (const s of sectiesOud) {
+        if (!s.items.length) continue;
+        content.push({ text:s.titel, fontSize:14, bold:true, color:NAVY, margin:[0,0,0,10] });
+        s.items.forEach(item => content.push(s.render(item)));
+      }
     }
   }
 
   // Disclaimer
   content.push({
-    text:'Dit rapport is opgesteld ter ondersteuning van het mediationproces en vervangt niet het oordeel van de betrokken mediator of juridisch adviseur. De mediator blijft te allen tijde verantwoordelijk voor de inhoud van het definitieve document.',
-    fontSize:8.5, color:SOFT, italics:true, lineHeight:1.5, margin:[0,28,0,0]
+    table:{ widths:['*'], body:[[{
+      fillColor:'#F8F9FB', border:[true,true,true,true], borderColor:[BORDER,BORDER,BORDER,BORDER],
+      stack:[
+        { text:'Disclaimer', fontSize:9, bold:true, color:MUTED, margin:[0,0,0,3] },
+        { text:'Dit rapport is een geautomatiseerde juridische toetsing ter ondersteuning van het mediationproces. Het vervangt niet het professionele oordeel van de betrokken mediator of juridisch adviseur.',
+          fontSize:8.5, color:MUTED, italics:true, lineHeight:1.5 },
+      ],
+    }]]},
+    layout:{ hLineWidth:()=>1, vLineWidth:()=>1,
+      hLineColor:()=>BORDER, vLineColor:()=>BORDER,
+      paddingLeft:()=>16, paddingRight:()=>16, paddingTop:()=>12, paddingBottom:()=>12 },
+    margin:[0,30,0,0],
   });
 
   return {
     content,
     pageMargins:[50,50,50,60],
     footer:(pg,tot) => ({ columns:[
-      { text: praktijknaam || 'Documentscreening', fontSize:8, color:SOFT },
-      { text: `Screeningsdatum: ${datum}`, fontSize:8, color:SOFT, alignment:'center' },
-      { text: `${pg} / ${tot}`, fontSize:8, color:SOFT, alignment:'right' },
-    ], margin:[50,12] }),
-    defaultStyle:{ font:'Roboto', fontSize:10.5, color:INK, lineHeight:1.4 }
+      { text:orgNaam || 'Clausula', fontSize:10, color:MUTED },
+      { text:datum, fontSize:10, color:MUTED, alignment:'center' },
+      { text:`${pg} / ${tot}`, fontSize:10, color:MUTED, alignment:'right' },
+    ], margin:[50,18] }),
+    defaultStyle:{ font:'Roboto', fontSize:11, color:TEXT, lineHeight:1.4 },
   };
 }
 
 document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-  try {
-    const def  = buildPdfDef(
-      huidigeBestandsnaam,
-      huidigeClassificatie,
-      huidigRapport,
-      huidigRapport?._versie_nr,
-      huidigRapport?._versie_label
-    );
-    const naam = `rapport-${(huidigeBestandsnaam||'screening').replace(/\.[^.]+$/,'').replace(/[^a-z0-9_-]+/gi,'_')}.pdf`;
-    pdfMake.createPdf(def).download(naam);
-  } catch (err) {
-    document.getElementById('opslagStatus').textContent = 'PDF mislukt: ' + err.message;
-  }
+  const drp = huidigRapport;
+  const partijA  = huidigDossierPartijA || document.getElementById('dossierPartijAEdit')?.value?.trim() || (huidigeClassificatie?.partij_a_naam || '');
+  const partijB  = huidigDossierPartijB || document.getElementById('dossierPartijBEdit')?.value?.trim() || (huidigeClassificatie?.partij_b_naam || '');
+  const namenStr = [partijA, partijB].filter(Boolean).join(' & ');
+  const _docType = huidigeClassificatie?.doc_type || '';
+
+  // Datum voor footer
+  const _now = new Date();
+  const _datumStr = `${String(_now.getDate()).padStart(2,'0')}-${String(_now.getMonth()+1).padStart(2,'0')}-${_now.getFullYear()}`;
+  document.documentElement.style.setProperty('--print-datum', `"${_datumStr}"`);
+  const docLabel = (_docType ? (DOC_TYPE_LABELS[_docType] || _docType) : '').toUpperCase();
+
+  // Bereken score-blok variabelen (zelfde logica als bouwAnalyseHtml)
+  const _issues = (drp && drp.issues) || [];
+  const _hoog   = _issues.filter(i => i.ernst === 'hoog').length;
+  const _midden = _issues.filter(i => i.ernst === 'midden').length;
+  const _laag   = _issues.filter(i => i.ernst === 'laag').length;
+  const _totaal = _hoog + _midden + _laag;
+  const _samenDelen = [
+    _hoog   > 0 ? `<span style="color:#C82020;font-weight:700">${_hoog} hoog</span>`   : '',
+    _midden > 0 ? `<span style="color:#D4890A;font-weight:700">${_midden} midden</span>` : '',
+    _laag   > 0 ? `<span style="color:#2A7260;font-weight:700">${_laag} laag</span>`   : '',
+    _issues.length === 0 ? '<span style="color:#2A7260;font-weight:700">Geen issues</span>' : '',
+  ].filter(Boolean).join(' · ');
+  const _segs2  = _totaal > 0
+    ? [{ kleur:'#C82020',n:_hoog },{ kleur:'#E07200',n:_midden },{ kleur:'#2A7260',n:_laag }]
+    : [];
+  const _grad2  = _totaal > 0 ? maakGrad(_segs2) : 'var(--line) 0deg 360deg';
+  const _center2 = _totaal > 0
+    ? `<span style="font-size:1.3rem;font-weight:800">${_totaal}</span>`
+    : '<span style="color:#2A7260;font-size:1.1rem">✓</span>';
+
+  // MfN
+  const _mfnEl   = (drp && drp.mfn_score && drp.mfn_score.elementen) || [];
+  const _mfnAanw = _mfnEl.filter(e => e.status === 'aanwezig').length;
+
+  const _scoreBlok = `<div class="aq-blok print-score-blok">
+    <div class="aq-header tab-status-blok">
+      <div class="v2-doc-seg-ring" style="width:80px;height:80px;padding:7px;background:conic-gradient(${_grad2});flex-shrink:0;">
+        <div class="v2-doc-seg-inner" style="font-size:1.3rem;font-weight:800;color:var(--ink)">${_center2}</div>
+      </div>
+      <div class="aq-header-mid">
+        <div class="aq-header-lbl">Verbeterpunten</div>
+        <div class="aq-header-samen">${_samenDelen || '—'}</div>
+      </div>
+    </div>
+    <div class="aq-stats">
+      <div class="aq-stat"><div class="aq-stat-kop">Hoog</div><div class="aq-stat-bod"><div class="aq-stat-val" style="color:#C82020">${_hoog}</div></div></div>
+      <div class="aq-stat"><div class="aq-stat-kop">Midden</div><div class="aq-stat-bod"><div class="aq-stat-val" style="color:#D4890A">${_midden}</div></div></div>
+      <div class="aq-stat"><div class="aq-stat-kop">Laag</div><div class="aq-stat-bod"><div class="aq-stat-val" style="color:#2A7260">${_laag}</div></div></div>
+      <div class="aq-stat"><div class="aq-stat-kop">MfN</div><div class="aq-stat-bod"><div class="aq-stat-val" style="font-size:.95rem">${_mfnEl.length ? `<span style="color:#2A7260">${_mfnAanw}</span><span style="color:#93A8C6;font-weight:600;font-size:.75em;margin:0 2px">/</span><span style="color:#D4890A">${_mfnEl.length}</span>` : '—'}</div></div></div>
+    </div>
+  </div>`;
+
+  // Injecteer print-header (alleen zichtbaar via @media print)
+  const existing = document.getElementById('printRapportHdr');
+  if (existing) existing.remove();
+  const hdr = document.createElement('div');
+  hdr.id = 'printRapportHdr';
+  hdr.innerHTML = `
+    <div class="rp-hdr">
+      <div class="rp-hdr-logo">
+        <div class="rp-hdr-icn">C</div>
+        <div class="rp-hdr-tekst">
+          <span class="rp-hdr-naam">CLAUSULA</span>
+          <span class="rp-hdr-tag">JURIDISCHE TOETSING · SCHEIDINGSMEDIATION</span>
+        </div>
+      </div>
+      <svg class="rp-hdr-shield" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#C8A84B" stroke-width="1.2">
+        <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/>
+        <polyline points="9 12 11 14 15 10" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="rp-hero">
+      <div class="rp-hero-links">
+        ${docLabel ? `<div class="rp-doctype">${escH(docLabel)}</div>` : ''}
+        ${partijA || partijB ? `<div class="rp-namen">${escH(partijA)}${partijA && partijB ? '<br>' : ''}${partijB ? escH(partijB) : ''}</div>` : ''}
+        <div class="rp-sub">Juridische analyse &amp; verbeterpunten</div>
+        ${(_mediatorNaam || _praktijknaam || _orgNaam) ? `<div class="rp-mediator">${_mediatorNaam ? escH(_mediatorNaam) : ''}${_mediatorNaam && (_praktijknaam || _orgNaam) ? '<br>' : ''}${(_praktijknaam || _orgNaam) ? `<span style="font-style:italic">${escH(_praktijknaam || _orgNaam)}</span>` : ''}</div>` : ''}
+      </div>
+      <div class="rp-hero-rechts">${_scoreBlok}</div>
+    </div>`;
+  document.getElementById('analysePanel').prepend(hdr);
+
+  // Toon MfN tijdelijk voor print
+  const mfnSectie = document.getElementById('mfnSectie');
+  if (mfnSectie) mfnSectie.style.display = '';
+
+  window.print();
+
+  // Herstel na print
+  setTimeout(() => {
+    hdr.remove();
+    if (mfnSectie) mfnSectie.style.display = 'none';
+  }, 500);
 });
 
 
@@ -4821,6 +5547,17 @@ function vervangInDocxXml(xml, wijzigingen) {
           else if (gefNorm.length > 40 && (normTxt.includes(gefNorm.slice(0, 40)) || normTxtNoBul.includes(gefNorm.slice(0, 40)))) {
             zoekNorm = gefNorm.slice(0, 40); gevonden = true;
           }
+        }
+      }
+      // Extra fallback: cross-paragraph prefix-match.
+      // Als normTxt de beginprefix van oudNorm is (alinea is het startpunt van
+      // een multi-alinea blok, bv. bulletlijst), activeer multi-alinea verwijdering.
+      // Minimaal 8 tekens om valse treffers op korte kopjes te vermijden.
+      if (!gevonden && normTxt.length >= 8) {
+        const checkLen = Math.min(normTxt.length, 40);
+        if (oudNorm.startsWith(normTxt.slice(0, checkLen))) {
+          zoekNorm = normTxt; // exacte alinea-tekst als zoekterm → multi-alinea loop pakt de rest
+          gevonden = true;
         }
       }
       if (!gevonden) continue;
@@ -6772,9 +7509,23 @@ document.getElementById('conceptReviewBackBtn').addEventListener('click', () => 
   document.getElementById('conceptReview').style.display = 'none';
 });
 
-// Hulpfunctie: geeft de gefiltreerde wijzigingenlijst terug (afgewezen weggelaten)
+// Hulpfunctie: geeft de gefiltreerde wijzigingenlijst terug.
+// Sluit af: (1) expliciet afgewezen, (2) "niet in doc" — originele_tekst niet gevonden
+// in het DOCX, tenzij al gedekt via een andere wijziging. Zo voorkomt het dat
+// een stille no-op meegestuurd wordt naar de export én dat de dubbele-tekst
+// situatie in de DOCX-preview door de render-check wordt versterkt.
 function _geaccepteerdeWijzigingen() {
-  return _conceptWijzigingen.filter((_, i) => _wijzigingAcceptatie.get(i) !== 'afgewezen');
+  return _conceptWijzigingen.filter((w, i) => {
+    if (_wijzigingAcceptatie.get(i) === 'afgewezen') return false;
+    // Veiligheidsnet: "niet in doc" wijzigingen weglaten uit export.
+    // Ze hebben toch geen effect, en voorkomen tegelijk de dubbele-tekst situatie.
+    if (w.originele_tekst &&
+        _toegepasteWijzigingIdx instanceof Set && !_toegepasteWijzigingIdx.has(i) &&
+        !(_alVerwerktWijzigingIdx instanceof Set && _alVerwerktWijzigingIdx.has(i))) {
+      return false;
+    }
+    return true;
+  });
 }
 
 // ── Opschonen van PDF-conversieartefacten ─────────────────────────────────────
@@ -7135,8 +7886,10 @@ function markeerRijAct(id) {
 }
 
 // ── Dossier-context in upload-scherm ──────────────────
-let huidigeDossierId  = null;
-let huidigDossierNaam = null;
+let huidigeDossierId    = null;
+let huidigDossierNaam   = null;
+let huidigDossierPartijA = null;
+let huidigDossierPartijB = null;
 
 function zetDossierContext(id, naam) {
   huidigeDossierId  = id;
@@ -7779,20 +8532,19 @@ function maakDocKolommenHtml(rp) {
     const dimChips = DIMS
       .map(d => {
         const dIss = issues.filter(i => i.dimensies?.includes(d));
-        if (!dIss.length) return '';
         const dh = dIss.filter(i => i.ernst === 'hoog').length;
         const dm = dIss.filter(i => i.ernst === 'midden').length;
         const dl = dIss.filter(i => i.ernst === 'laag').length;
+        const dtot = dh + dm + dl;
         const kopKls = dh > 0 ? 'kop-hoog' : dm > 0 ? 'kop-midden' : 'kop-laag';
+        const botHtml = dtot === 0
+          ? `<span class="v2-dim-chip-bot"><span class="v2-dim-chip-h" style="color:var(--ink-soft)">–</span></span>`
+          : `<span class="v2-dim-chip-bot"><span class="v2-dim-chip-h">${dh || ''}</span><span class="v2-dim-chip-m">${dm || ''}</span><span class="v2-dim-chip-l">${dl || ''}</span></span>`;
         return `<span class="v2-dim-chip">
           <span class="v2-dim-chip-icn">${DIM_SVG[d] || ''}</span>
           <span class="v2-dim-chip-body">
             <span class="v2-dim-chip-top ${kopKls}">${DIM_LBL[d]}</span>
-            <span class="v2-dim-chip-bot">
-              <span class="v2-dim-chip-h">${dh || ''}</span>
-              <span class="v2-dim-chip-m">${dm || ''}</span>
-              <span class="v2-dim-chip-l">${dl || ''}</span>
-            </span>
+            ${botHtml}
           </span>
         </span>`;
       }).join('');
@@ -7823,7 +8575,7 @@ function maakDocKolommenHtml(rp) {
         <div class="v2-doc-ring-wrap" style="background:${grad}">
           <div class="v2-doc-seg-inner" style="font-size:1.35rem;font-weight:800;color:var(--ink)">${center}</div>
         </div>
-        ${(dimChips || mfnChip) ? `<div class="v2-doc-dims">${dimChips}${mfnChip}</div>` : ''}
+        <div class="v2-doc-dims">${dimChips}${mfnChip}</div>
       </div>
     </div>`;
   }).join('') + '</div>';
@@ -7997,6 +8749,8 @@ async function laadDossiers() {
           .slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         huidigeDossierId     = dos.id;
         huidigDossierNaam    = dos.naam;
+        huidigDossierPartijA = dos.partij_a || null;
+        huidigDossierPartijB = dos.partij_b || null;
         huidigDossierVersies = versies;
         errorBox.style.display = 'none';
         zetDossierContext(dos.id, dos.naam);
@@ -8040,6 +8794,10 @@ async function laadDossiers() {
           if (error) throw error;
           if (huidigeId === btn.dataset.versieId) closeSplitView();
           btn.closest('.dos-oud-kaart').remove();
+          // Storage cleanup (fire-and-forget)
+          db.storage.from('documenten').list(btn.dataset.versieId)
+            .then(({ data: sf }) => { if (sf?.length) db.storage.from('documenten').remove(sf.map(f => `${btn.dataset.versieId}/${f.name}`)); })
+            .catch(() => {});
         } catch (err) {
           alert('Verwijderen mislukt: ' + err.message);
           btn.textContent = '🗑'; btn.disabled = false;
@@ -8105,8 +8863,10 @@ async function toonDossierDetail(id) {
       .from('dossiers').select('*').eq('id', id).single();
     if (dosErr) throw dosErr;
     huidigDossierData = dos;
-    huidigeDossierId  = dos.id;
-    huidigDossierNaam = dos.naam;
+    huidigeDossierId     = dos.id;
+    huidigDossierNaam    = dos.naam;
+    huidigDossierPartijA = dos.partij_a || null;
+    huidigDossierPartijB = dos.partij_b || null;
 
     document.getElementById('dossierPartijAEdit').value = dos.partij_a || '';
     document.getElementById('dossierPartijBEdit').value = dos.partij_b || '';
@@ -8255,6 +9015,10 @@ async function toonDossierDetail(id) {
           card.remove();
           // Als het de actief geladen versie was, sluit de split-overlay
           if (huidigeId === versieId) closeSplitView();
+          // Storage cleanup (fire-and-forget)
+          db.storage.from('documenten').list(versieId)
+            .then(({ data: sf }) => { if (sf?.length) db.storage.from('documenten').remove(sf.map(f => `${versieId}/${f.name}`)); })
+            .catch(() => {});
         } catch (err) {
           alert('Verwijderen mislukt: ' + err.message);
           btn.textContent = '🗑';
@@ -8309,7 +9073,9 @@ async function slaPartijNamenOp() {
   const naam     = [partij_a, partij_b].filter(Boolean).join(' - ') || 'Naamloos';
   try {
     await db.from('dossiers').update({ partij_a, partij_b, naam }).eq('id', huidigeDossierId);
-    huidigDossierNaam = naam;
+    huidigDossierNaam    = naam;
+    huidigDossierPartijA = partij_a;
+    huidigDossierPartijB = partij_b;
     laadDossiers().then(() => { if (huidigeDossierId) markeerRijAct(huidigeDossierId); });
   } catch (err) {
     console.error('Namen opslaan mislukt:', err.message);
@@ -8517,9 +9283,16 @@ async function laadScreening(id, origin = 'main') {
     // Dossier-context instellen als de screening bij een dossier hoort
     if (data.dossier_id) {
       huidigeDossierId  = data.dossier_id;
-      const pA = document.getElementById('dossierPartijAEdit')?.value || '';
-      const pB = document.getElementById('dossierPartijBEdit')?.value || '';
-      huidigDossierNaam = [pA, pB].filter(Boolean).join(' - ');
+      const _dos = alleDosCacheData.find(d => d.id === data.dossier_id);
+      if (_dos) {
+        huidigDossierPartijA = _dos.partij_a || null;
+        huidigDossierPartijB = _dos.partij_b || null;
+        huidigDossierNaam    = _dos.naam || null;
+      } else {
+        const pA = document.getElementById('dossierPartijAEdit')?.value || '';
+        const pB = document.getElementById('dossierPartijBEdit')?.value || '';
+        huidigDossierNaam = [pA, pB].filter(Boolean).join(' - ');
+      }
     }
 
     // Vul tekstcache zodat nieuwe versie OCR kan overslaan
@@ -8541,5 +9314,9 @@ async function laadScreening(id, origin = 'main') {
   } catch (err) { alert('Kon de analyse niet laden: ' + err.message); }
 }
 </script>
+<div class="print-voettekst" id="printVoettekst">
+  <span id="printVoettekstLinks"></span>
+  <span id="printVoettekstRechts"></span>
+</div>
 </body>
 </html>

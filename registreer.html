@@ -19,8 +19,9 @@
 
   .wrap{width:100%;max-width:460px;padding:32px 24px;}
 
-  .logo{text-align:center;margin-bottom:36px;}
-  .logo h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.8rem;margin:0 0 4px;letter-spacing:-.01em;}
+  .logo{text-align:center;margin-bottom:36px;display:flex;flex-direction:column;align-items:center;}
+  .logo-mark{width:52px;height:52px;background:#1B3050;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+  .logo h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:1.8rem;margin:0 0 4px;letter-spacing:-.01em;color:#1B3050;}
   .logo p{margin:0;color:var(--ink-soft);font-size:.95rem;}
 
   .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:32px;}
@@ -56,7 +57,13 @@
 <body>
 <div class="wrap">
   <div class="logo">
-    <h1>Documentscreening</h1>
+    <div class="logo-mark">
+      <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+        <path stroke="#D99A3D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"
+          d="M34 16 L20 24 L20 46 M66 16 L80 24 L80 46 M80 54 L80 76 L66 84 M34 84 L20 76 L20 54 M66 16 Q50 10 34 16 M34 84 Q50 90 66 84"/>
+      </svg>
+    </div>
+    <h1>Clausula</h1>
     <p>Nieuw kantoor aanmelden</p>
   </div>
   <div class="card">

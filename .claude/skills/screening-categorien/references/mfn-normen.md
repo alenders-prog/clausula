@@ -42,7 +42,7 @@ ouderschapsplan die de MfN als minimumvereiste beschouwt.
 - Verwijs in bevindingen naar de relevante gedragsregel in algemene termen
   ("MfN-gedragsregel inzake onpartijdigheid") tenzij het exacte regelnummer zeker is.
 - Kwesties die primair juridisch zijn (nietigheid e.d.) horen in `juridisch`, niet in de MfN-score.
-- De MfN-score beïnvloedt de gewogen score in de UI (score_aanwezig / score_totaal).
+- De MfN-score (score_aanwezig / score_totaal) verschijnt als score-balk in de MfN-sectie van de PDF. Er is geen gewogen score meer in het systeem.
 
 > NB: startpunt — vul aan met de actuele tekst van de MfN-gedragsregels en het
 > reglement, en met kantoorspecifieke afspraken binnen de Zorgzaam Scheiden-formule.

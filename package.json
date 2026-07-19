@@ -3,10 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test":          "vitest run",
+    "test:watch":    "vitest",
+    "test:related":  "vitest related",
+    "test:coverage": "vitest run --coverage",
+    "test:eval":     "vitest run tests/golden/eval.test.js"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "mammoth": "^1.8.0",
     "pdf-parse": "^1.1.1",
     "resend": "^6.16.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "vitest": "^4.1.10"
   }
 }

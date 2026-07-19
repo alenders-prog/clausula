@@ -10,6 +10,18 @@ export const config = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
 
+  // ── JWT-verificatie ────────────────────────────────────────────────────────
+  const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+  if (!token) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+    },
+  });
+  if (!authCheck.ok) return res.status(401).json({ error: 'Sessie verlopen — log opnieuw in' });
+  // ──────────────────────────────────────────────────────────────────────────
+
   const clientId     = process.env.ADOBE_CLIENT_ID;
   const clientSecret = process.env.ADOBE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
