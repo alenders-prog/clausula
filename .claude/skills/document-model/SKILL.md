@@ -219,8 +219,28 @@ De `api/analyseer.js` handler ontvangt `{ classificatie, documenten[] }`. Per HO
 2. Elk document wordt **in isolatie** geanalyseerd — andere hoofddocumenten worden niet als context meegegeven (voorkomt cross-document besmetting).
 3. SSE-events per document: `structuur`, `juridisch`, `balans` (dummy voor frontend-compat, leeg resultaat).
 4. **Na alle per-document analyses** (alleen bij 2+ hoofddocumenten): één aparte cross-doc Sonnet-call via `registreer_cross_doc_bevindingen`. Issues bevatten `betreft_documenten: ["convenant"]`, `["ouderschapsplan"]` of `["convenant","ouderschapsplan"]`. De server stuurt per document alleen relevante cross-doc issues via `cross_doc`-events.
-5. Afsluiting: `klaar`-event.
+5. **Haiku-consolidatie per document**: na de cross-doc stap stuurt de server voor elk hoofd-document een `consolidatie`-event met een semantisch gededupliceerde versie van alle issues (structuur + bevindingen + cross_doc gecombineerd). Implementatie: `consolideer_issues`-tool, model `claude-haiku-4-5-20251001`. Als de call mislukt → niet-fataal, frontend valt terug op `dedupIssues()`.
+6. Afsluiting: `klaar`-event.
+
+**`perDocResultaten`** (Map): bestandsnaam → `{ structuurR, bevindingenR }` — interne accumulator die na de per-doc loop de ruwe resultaten per document vasthoudt voor de consolidatiepass.
+
+**`crossIssuesPerDoc`** (Map): bestandsnaam → issues[] — vasthouden van cross-doc issues per document voor dezelfde consolidatiepass.
 
 **Er is geen Haiku-consolidatiestap meer.** Deduplicatie binnen één document zit in de bevindingen-prompt (`ZELFCONTROLE`-sectie). Cross-document deduplicatie zit niet in de client maar in de aparte cross-doc call.
+
+### Cross-doc issues: tabblad-toewijzing en passage-zoeken
+
+Cross-doc issues worden door de server toegewezen aan het `bestandsnaam`-slot van één van de documenten. De frontend kent `betreft_documenten` **niet** — het veld bestaat niet in `index.html`. De badge "Cross-doc" wordt uitsluitend gebaseerd op aanwezigheid van `cross_doc_id`.
+
+**Passage-zoeken bij cross-doc kaart (2026-07):** Als de gebruiker op een cross-doc issue-kaart klikt en de passage niet gevonden wordt in het huidige tabblad, schakelt de app automatisch naar het andere tabblad en zoekt daar:
+```js
+if (_isCrossDoc && !isGehighlightd() && huidigeDocumenten.length > 1) {
+  const inactieveTab = document.querySelector('.doc-tab:not(.actief)');
+  inactieveTab?.click();
+  await new Promise(r => setTimeout(r, 120));
+  await zoekEnScrollNaarPassage(passage);
+  // als nog steeds niet gevonden → terug naar origineel tabblad
+}
+```
 
 Zie de `screening-categorien` skill voor categoriedefinities en ernst-criteria.

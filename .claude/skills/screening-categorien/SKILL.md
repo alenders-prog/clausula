@@ -12,22 +12,31 @@ wijkt de code of een prompt af, meld dat dan expliciet aan de gebruiker.
 
 ---
 
-## Architectuur: twee parallelle Claude-calls per document
+## Architectuur: twee parallelle Claude-calls + Haiku-consolidatie per document
 
-Elke analyse bestaat uit twee gelijktijdige Sonnet-calls:
+Elke analyse bestaat uit twee gelijktijdige Sonnet-calls + één afsluitende Haiku-consolidatiepass:
 
-| Call | Dimensies die worden gevonden | Tool |
-|------|-------------------------------|------|
-| **structuur** | `volledigheid` + aparte `mfn_score` | `registreer_structuur` |
-| **bevindingen** | `juridisch`, `balans`, `grammatica`, `conflicten` | `registreer_bevindingen` |
+| Stap | Dimensies / doel | Tool / model |
+|------|-----------------|--------------|
+| **structuur** | `volledigheid` + aparte `mfn_score` | `registreer_structuur` / Sonnet |
+| **bevindingen** | `juridisch`, `balans`, `grammatica`, `conflicten` | `registreer_bevindingen` / Sonnet |
+| **cross_doc** | inconsistenties over twee documenten heen | `registreer_cross_doc_bevindingen` / Sonnet |
+| **IBAN-validatie** | verwijdert issues met hallucinated of tegenstrijdige IBAN-vermeldingen | server-side code / geen LLM |
+| **consolidatie** | semantische deduplicatie van alle bovenstaande issues | `consolideer_issues` / Haiku |
 
-> **Architectuurkeuze (2025-07):** Voorheen 3 calls (structuur + juridisch + balans/grammatica)
-> met een vierde Haiku-consolidatiestap voor cross-call deduplicatie. Samengevoegd tot 2 calls
-> omdat:
-> - Claude in één call zijn eigen output kan dedupliceren → consolidatie niet meer nodig
-> - Minder infrastructurele complexiteit (geen preGroepeerOpPrefix, geen Haiku-call)
-> - Kortere doorlooptijd (~30-40% minder API-latency voor het niet-structuur-deel)
-> - De kruisref-context van het andere document is ook verwijderd (zie §Cross-document context)
+**IBAN-validatie (vóór Haiku-consolidatie, `filterIssuesOpIban` in `api/analyseer.js`):**
+Twee checks op basis van regex `\bNL\d{2}[A-Z]{4}\d{10}\b`:
+1. Issues waarbij een vermeld IBAN *niet exact* in de documenttekst staat worden verwijderd (voorkomt verwisseling van vergelijkbare nummers zoals NL36 vs NL32).
+2. Als twee issues over hetzelfde IBAN tegenstrijdige conclusies trekken ("ontbreekt" vs "aanwezig"), wordt het minder ernstige verwijderd.
+
+**IBANs worden gepseudonimiseerd** in `index.html` vóór server-verzending via `_maakPiiTracker`:
+echte IBANs worden vervangen door bracket-placeholders `[IBAN_0]`, `[IBAN_1]`, etc.
+De IBAN_RE in `analyseer.js` matcht zowel echte NL-IBANs als `[IBAN_n]`-placeholders.
+De mapping (`[IBAN_0]` → echt IBAN) zit in `naarEcht` en wordt hersteld door `herstelAnonObj` via `replaceAll`.
+
+De Haiku-consolidatiestap ontvangt alle issues (structuur + bevindingen + cross_doc) als genummerde
+lijst en retourneert de te bewaren indices. De frontend gebruikt het `consolidatie`-event als
+definitieve issue-lijst; als het event uitblijft, valt de frontend terug op `dedupIssues()`.
 
 De tool-schema's worden gedefinieerd in `api/analyseer.js`. Dit bestand is leidend
 bij discrepanties tussen skill en code.
@@ -45,6 +54,7 @@ Elke bevinding is een object met:
 | `dimensies` | string[] | Exact één waarde uit: `juridisch`, `conflicten`, `volledigheid`, `balans`, `grammatica` |
 | `bevinding` | string | 2–5 zinnen: wat, waarom probleem, met wetsartikel of norm indien van toepassing |
 | `aanbeveling` | string | Concrete herformulering of handeling die de mediator direct kan overnemen |
+| `artikel` | string? | Sectienummer of kopje (bijv. `"3.2.1"`, `"Artikel 5"`, `"Bankrekeningen"`). Optioneel — leeg als het document geen duidelijke nummering heeft. Wordt in de client gebruikt als Tier-5-fallback voor `vindDocVolgorde` wanneer de passage niet gevonden wordt. |
 | `passage` | string | Letterlijk verbatim citaat (1–2 zinnen) uit het document — leeg laten als sectie volledig ontbreekt |
 
 > **Let op:** `mfn_score` is een apart structured object (geen gewone issue) — zie sectie MfN hieronder.
@@ -75,6 +85,8 @@ Toetst of afspraken juridisch correct, geldig en afdwingbaar zijn naar Nederland
 **Geen bevinding:**
 - Afspraken die juridisch geldig maar ongebruikelijk zijn (dat is hooguit balans of conflicten)
 - Stilistische keuzes in juridische formulering
+- Niet-ingevulde velden (lege bedragen, sjabloonplaatshouders, "€ ,–") → altijd volledigheid
+- Inhoudelijk lege zinnen (zin noemt onderwerp maar bevat geen concrete afspraak) → altijd volledigheid
 
 ### 2. conflicten
 Toetst op interne tegenstrijdigheden en toekomstige geschilrisico's binnen het document.
@@ -83,6 +95,7 @@ Toetst op interne tegenstrijdigheden en toekomstige geschilrisico's binnen het d
 - **Inter-artikel**: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
 - **Intra-sectie**: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. "uitsluitend mondeling" gevolgd door "schriftelijk vastgelegd"; vakantieregeling met intern inconsistente wekenaantallen of data)
 - **Bedrag/datum**: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
+- **Rekenkundige fout** (ZELFCONTROLE-stap 5, 2026-07): vermelde rekensommen (optellingen, A−B, procenten) worden door Claude ZELF nageteld. Afwijking → issue dimensie `conflicten`, ernst `hoog`. Passage = de zin met het onjuiste getal. Voorbeeld: "834 + 861 + 238 = 1.695" staat in document maar 834+861+238=1.933 → rapporteer.
 - **DEDUPLICATIE** (prompt-regel, 2025-07): als meerdere inconsistenties voortkomen uit dezelfde
   onderliggende oorzaak (bijv. één fout overbedelingsbedrag dat doorwerkt in totaalbedrag),
   rapporteer EEN bevinding met de kernfout + gevolgen — geen apart issue per plek.
@@ -104,8 +117,14 @@ Toetst of alle onderwerpen aanwezig zijn EN of aanwezige secties voldoende uitge
   - Zorgregeling zonder specificatie welke weekenden (even/oneven)
   - Alimentatie zonder ingangsdatum, indexering of beëindigingsdatum
 - Ontbrekend verplicht onderdeel (art. 815 lid 2 Rv voor OP: zorgverdeling, kinderalimentatie, informatie/consultatie)
+- **Niet ingevuld** (ALTIJD volledigheid, NOOIT juridisch of balans): een bedrag, datum, naam of andere waarde is leeggelaten of bevat een sjabloonplaatshouder. Herkenbaar aan: "€ ,–", "€ __", "____", "*OF", "te noemen __", streepjes of puntjes als invulruimte. Reden: het is een invulfout, geen fout in de inhoud. Geldt ook als het een juridisch verplicht bedrag betreft (bijv. alimentatie, afkoopsom).
+- **Onvolledige zin** (ALTIJD volledigheid, NOOIT juridisch): een zin die wél aanwezig is maar geen concrete afspraak, verplichting of bepaling bevat.
+- **Onlogisch rekeningnummer** (2026-07): aaneensluitende of herhalende cijfers (bijv. 010203040, 123456789, 0000000000) zijn testgetallen — rapporteer als niet-ingevuld rekeningnummer onder volledigheid.
+- **Onlogische datum** (2026-07): jaar vóór 1900 of na 2099, of duidelijk onmogelijke datum (bijv. 01-01-0001, 00-00-0000) is plaatshouder — rapporteer als niet-ingevulde datum onder volledigheid. Herkenbaar aan: de zin noemt een onderwerp maar zegt niet wat partijen zijn overeengekomen. Voorbeeld: "Afspraken over een betaling of een splitsing van het rentecontract." — er staat geen afspraak, alleen een aankondiging.
 
 > **Valkuil**: Vroeger checkte de structuur-call alleen aanwezigheid van secties, niet de inhoudelijke volledigheid. De `sysStructuur`-prompt bevat nu expliciete instructie voor ONTBREKEND én ONVOLLEDIG.
+
+> **Valkuil (2026-07)**: Niet-ingevulde velden (sjabloonresten) en onvolledige zinnen werden regelmatig als "juridisch" geclassificeerd. De prompt bevat nu expliciete NOOIT-regels: lege velden en inhoudelijk lege zinnen zijn ALTIJD volledigheid, ook als het onderwerp juridisch relevant is.
 
 **Geen bevinding:**
 - Onderwerpen die aantoonbaar niet van toepassing zijn (geen koopwoning → geen woningparagraaf)
@@ -142,8 +161,16 @@ Toetst taal, consistentie en verzorging voor zover die de betekenis of professio
 - Verkeerde partij-aanduiding (naam van de man waar de vrouw wordt bedoeld)
 - Rapporteer ELKE tikfout/grammaticakwestie als een APART issue (niet bundelen)
 - Dubbele woorden (bijv. "Land Rover Land Rover", "de de kinderen") = expliciete scanlijst in prompt
+- **Roepnamen (voornamen) zijn geldige verwijzingen** — "Peter" of "Peters" als verwijzing naar "Peter Adriaan Dikkeschei" is NOOIT een naamsfout of onbekende partijverwijzing. Promptregel (2026-07): als een partij met volledige naam is geïntroduceerd, is de voornaam of bezitsvorm ervan een geldige verkorte aanduiding.
+- **Tweede voornamen weglaten is normaal** (2026-07): als partij wordt geïntroduceerd als "Willem David ter Kulve", zijn "Willem ter Kulve" en "W. ter Kulve" geldige verkorte aanduidingen — ook in bankrekening-vermeldingen of kopregels. NOOIT als naaminconsistentie rapporteren.
+- **Bedragopmaak — verplicht onderscheid** (2026-07): (a) ontbrekend €-teken = echt probleem; (b) ontbrekende ',-' suffix terwijl €-teken WEL aanwezig is (bijv. "€ 5.569" vs "€ 5.569,-") = opmaakinconsistentie. NOOIT beweren dat €-teken ontbreekt als het er wél staat. Rekeningnummers/kenmerken altijd exact citeren en koppelen aan het juiste bedrag — nooit hetzelfde kenmerk voor twee bedragen.
 
-> **Genderregel (2026-07):** Een genderkwestie mag uitsluitend worden gerapporteerd als hetzelfde **benoemde** individu in hetzelfde document op de ene plek als 'hij/hem/zijn' en op een andere plek als 'zij/haar' wordt aangeduid — directe per-persoon-inconsistentie. Een algemene paragraaf die niet bij naam aan een kind is gekoppeld levert **nooit** een genderissue op, zeker niet als het gezin zowel een zoon als een dochter heeft: de paragraaf kan immers over het andere kind gaan. Achtergrond: valse positief waarbij een menstruatieparagraaf als genderfout werd aangemerkt terwijl het gezin een zoon en een dochter had.
+> **Valkuil — HANDTEKENINGEN (2026-07):** Drie strikte regels:
+> 1. De sectie "Ondergetekenden" of "Partijen" bovenaan het document is de **partij-introductie** (naam, geboortedatum, adres) — NOOIT een handtekeningenblok.
+> 2. Een handtekening-issue mag alleen worden gerapporteerd als het **ondertekeningsblok onderaan** (herkenbaar aan "Aldus overeengekomen", "Handtekening:", lege signeerregels, namen als slotblok) ontbreekt of leeg is. Passage = altijd uit dit slotblok.
+> 3. CONCEPT-watermerk in document → ontbrekende handtekeningen zijn LAAG ernst (concepten worden pas definitief ondertekend).
+
+> **Genderregel (2026-07, aangescherpt):** Een genderkwestie mag uitsluitend worden gerapporteerd als in **beide** passages het individu **bij naam of vaste aanduiding** expliciet wordt benoemd én tegenstrijdige voornaamwoorden worden gebruikt. Je mag NOOIT redeneren dat een naamloze paragraaf over een specifiek kind gaat. Bij meerdere kinderen (zoon én dochter) geldt dit nog strenger: 'hij' kan de zoon betreffen, 'haar' de dochter — dat is geen inconsistentie. Concreet vals-positief patroon dat nooit geflagged mag worden: 'Pascal … hij heeft begeleiding' in alinea A, en 'haar dochter' of 'menstruatie' in alinea B — alinea B noemt Pascal niet bij naam en kan over het andere kind gaan.
 
 > **Valkuil**: de vorige prompt omschreef `grammatica` als "vage verwijzingen en inconsistente datums" — dat zijn semantische issues, geen taalfouten. Spelling- en syntaxfouten werden hierdoor gemist. De `sysBalansGram`-prompt bevat nu een expliciete scanlijst inclusief tikfouten en onvolledige zinnen.
 
@@ -213,9 +240,13 @@ Documenten worden vóór verzending naar de API automatisch pseudonimiseerd:
     → vals alarm "dubbele naam" in grammatica-bevinding.
   - **herstelAnonObj sorteert** naarEcht-entries op lengte (langste eerst): "Thomas Bergman"
     wordt vervangen vóór "Thomas" of "Bergman" afzonderlijk — anders dubbele de-anonimisering.
+- **Roepnaam-detectie (2026-07):** `bouwAnonMap()` detecteert roepnamen uit bestandsnamen/dossiernaam. Als "Sander" in de bestandsnaam staat bij "Alexander Lenders", wordt "sander" geregistreerd als alias voor dezelfde nep-voornaam. `naarEcht` wordt bijgewerkt: `nep.fn` → "Sander" (de roepnaam, i.p.v. de formele voornaam "Alexander"). Dit voorkomt dat Claude "Sander" als onbekende persoon ziet.
+  - **Roepnamen-prompt (2026-07, bijgewerkt)**: Als roepnamen gevonden zijn, injecteert `api/analyseer.js` een `roepnamenNota` in `sysStructuur` én `sysBevindingen`. Drie verplichte regels bij roepnaam-issues: (1) ONDERSCHEID officieel vs. roepnaam — officiële naam staat in introductiezin, roepnaam is de afwijkende aanduiding elders; (2) PASSAGE = de zin ELDERS in het document (de introductiezin is correct); (3) AANBEVELING altijd "Voeg 'ook te noemen [roepnaam]' toe aan de introductiezin", nooit de roepnaam tot hoofdnaam maken.
+  - **Huidige datum in prompt (2026-07):** `api/analyseer.js` injecteert `vandaag = new Date().toLocaleDateString('nl-NL', ...)` in de `pseudonimiseringNota`. Claude gebruikt dit voor temporele beoordeling (peildata, ondertekeningsdatums, ingangsdatums). Zonder datum markeerde Claude alle verleden-peildata als "in de toekomst".
 - Adressen/woonplaatsen → `[ADRES]`, `[WOONPLAATS]`, `[POSTCODE]`
 - Persoonsnummers → `[BSN]`, `[TEL]`, `[EMAIL]`
 - IBAN: bewust NIET gemaskeerd (Claude heeft het nodig voor rekeningnummer-verificatie)
+- **IBAN-fix (2026-07):** BSN-regex heeft negatieve lookbehind `(?<![A-Z] )` om te voorkomen dat de 9-cijferige IBAN-accountblock (bijv. "ASNB 010203040") als BSN wordt gemaskeerd.
 
 **Gevolg voor bevindingen:**
 - Maak GEEN issue over verkeerd formaat van BSN/TEL (placeholder heeft geen formaat)
@@ -257,6 +288,23 @@ De functie leest `word/numbering.xml`, lost `<w:numPr>`-verwijzingen op en schri
 > **Valkuil**: `cleanupDocxArtefacten` wordt aangeroepen bij upload (achtergrond-conversie van PDF) én bij heranalyse. Als je de DOCX-blob uit de cache haalt (`docxPerBestandsnaam`) sla je de cleanup over — zie `api/analyseer.js` voor hoe de cache wordt gevuld met schone blobs.
 
 Formaatondersteuning: `decimal`, `lowerLetter`, `upperLetter`, `lowerRoman`, `upperRoman`. Bullets worden overgeslagen (geen nummerlabel). `lvlText`-templates als `%1.%2.` worden correct opgelost.
+
+---
+
+## Client-side deduplicatie (`dedupIssues` in `index.html`)
+
+Na de Claude-calls worden issues in de browser samengevoegd via `dedupIssues()`. Dit is de enige dedup-laag — `analyseer.js` doet géén deduplicatie meer. De functie doorloopt vijf passes:
+
+| Pass | Methode | Wat het vangt |
+|------|---------|---------------|
+| 1 | Exacte titelmatch | Identieke `onderwerp`-tekst |
+| 2 | Exacte passagematch | Identiek verbatim citaat (≥15 tekens) |
+| **2b** | **Passage-substring** (2026-07) | **Eén passage is een deelstring van de andere — bijv. kortere variant van hetzelfde citaat** |
+| 3 | Bedragpaar-fingerprint | Zelfde set van ≥2 EUR-bedragen in onderwerp/bevinding |
+| 3b | Datumpaar-fingerprint | Zelfde set van ≥2 datums in onderwerp |
+| 4 | Jaccard-titelsimilariteit | Titels met ≥50% overlap op kernwoorden (>4 tekens, niet in stoplijst) |
+
+> **Valkuil (opgelost 2026-07):** Issues #7 en #8 over hetzelfde probleem (bijv. "Peters kant") hadden verschillende titels (Jaccard < 0.5) maar overlappende passages. Pass 2 miste dit omdat de passages niet *identiek* maar *gedeeltelijk* overlapten. Pass 2b vangt dit nu door substring-check.
 
 ---
 

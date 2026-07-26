@@ -32,8 +32,78 @@ export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
 };
 
+// Maximale output die we ooit nodig zullen hebben. max_tokens is een plafond,
+// geen verbruiksmeter — je betaalt alleen voor tokens die Claude daadwerkelijk genereert.
+const MAX_OUTPUT_TOKENS = 32000;
+
+// ── IBAN-validatie: voorkomt dat issues een rekeningnummer benoemen dat niet in het document staat,
+//    of twee tegenstrijdige conclusies over hetzelfde IBAN doorlaten ──────────────────────────────
+// Matcht echte NL-IBANs én pseudoniem-placeholders [IBAN_n] (browser vervangt echte IBANs vóór verzending)
+const IBAN_RE = /(?:\bNL\d{2}[A-Z]{4}\d{10}\b|\[IBAN_\d+\])/g;
+
+function ibanSet(tekst) {
+  return new Set(tekst.match(IBAN_RE) ?? []);
+}
+
+function ibanUitIssue(iss) {
+  const txt = [iss.passage, iss.bevinding, iss.onderwerp, iss.aanbeveling].filter(Boolean).join(' ');
+  return [...txt.matchAll(new RegExp(IBAN_RE.source, 'g'))].map(m => m[0]);
+}
+
+// Filtert issues waarbij een vermeld IBAN niet exact in de documenttekst voorkomt,
+// en verwijdert de minder ernstige kant van twee tegenstrijdige IBAN-issues.
+function filterIssuesOpIban(issues, docTekst) {
+  const ibanInDoc = ibanSet(docTekst);
+  if (ibanInDoc.size === 0) return issues;
+
+  const ERNST_RANG = { hoog: 0, midden: 1, laag: 2 };
+
+  // Stap 1 — verwijder issues waarvan een IBAN niet exact in het document staat
+  const stap1 = issues.filter(iss => {
+    const ibans = ibanUitIssue(iss);
+    if (ibans.length === 0) return true;
+    const onbekend = ibans.filter(iban => !ibanInDoc.has(iban));
+    if (onbekend.length > 0) {
+      console.warn(`[iban] verwijderd (onbekend IBAN ${onbekend.join(', ')}): "${iss.onderwerp}"`);
+      return false;
+    }
+    return true;
+  });
+
+  // Stap 2 — detecteer tegenstrijdige conclusies over hetzelfde IBAN
+  //   bijv. issue A zegt "ontbreekt in bijlage" en issue B zegt "staat wél in bijlage"
+  const AANWEZIG = /\bopgenomen\b|\bvermeld\b|\bstaat in\b|\baanwezig\b/i;
+  const ONTBREEKT = /\bontbreekt\b|\bniet opgenomen\b|\bniet vermeld\b|\bniet aanwezig\b/i;
+
+  const perIban = new Map(); // IBAN → { aanwezig: [], ontbreekt: [] }
+  for (const iss of stap1) {
+    for (const iban of ibanUitIssue(iss)) {
+      if (!perIban.has(iban)) perIban.set(iban, { aanwezig: [], ontbreekt: [] });
+      const slot = perIban.get(iban);
+      const tekst = [iss.bevinding, iss.onderwerp].filter(Boolean).join(' ');
+      if (AANWEZIG.test(tekst)) slot.aanwezig.push(iss);
+      else if (ONTBREEKT.test(tekst)) slot.ontbreekt.push(iss);
+    }
+  }
+
+  const teVerwijderen = new Set();
+  for (const [iban, { aanwezig, ontbreekt }] of perIban) {
+    if (aanwezig.length === 0 || ontbreekt.length === 0) continue;
+    // Tegenstrijdigheid: bewaar het issue met de hoogste ernst, verwijder de rest
+    const conflict = [...aanwezig, ...ontbreekt]
+      .sort((a, b) => (ERNST_RANG[a.ernst] ?? 9) - (ERNST_RANG[b.ernst] ?? 9));
+    for (const iss of conflict.slice(1)) {
+      console.warn(`[iban] tegenstrijdig verwijderd (${iban}): "${iss.onderwerp}"`);
+      teVerwijderen.add(iss);
+    }
+  }
+
+  return stap1.filter(iss => !teVerwijderen.has(iss));
+}
+
 // ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
-async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, model = 'claude-sonnet-4-6') {
+// _herpoging: intern vlag om bij max_tokens eenmalig met verdubbeld budget opnieuw te proberen
+async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, model = 'claude-sonnet-4-6', _herpoging = false) {
   const systemField = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
   const messageContent = Array.isArray(userContent)
     ? userContent.map(b => b.cache
@@ -71,7 +141,14 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
       if (res.ok) {
         const json = await res.json();
         if (json.stop_reason === 'max_tokens') {
-          const err = new Error(`Tokenbudget bereikt voor ${tool.name}`);
+          // Optie 4: automatisch herpoging met verdubbeld budget (eenmalig, tot MAX_OUTPUT_TOKENS)
+          const verhoogd = Math.min(maxTokens * 2, MAX_OUTPUT_TOKENS);
+          if (!_herpoging && verhoogd > maxTokens) {
+            console.warn(`[analyseer/${tool.name}] max_tokens bij ${maxTokens} → herpoging met ${verhoogd}`);
+            return askClaude(systemPrompt, userContent, tool, verhoogd, model, true);
+          }
+          // Al op maximum of tweede poging ook vol → echte fout
+          const err = new Error(`Tokenbudget bereikt voor ${tool.name} (${maxTokens} tokens)`);
           err.isMaxTokens = true;
           throw err;
         }
@@ -158,6 +235,11 @@ const issueItem = {
     dimensies:   { type: 'array', items: { type: 'string' } },
     bevinding:   { type: 'string' },
     aanbeveling: { type: 'string' },
+    // Sectiereferentie: helpt de viewer sortering en navigatie op sectieniveau.
+    artikel: {
+      type: 'string',
+      description: 'Sectienummer of kopje van het document waaronder dit issue valt (bijv. "3.2.1", "Artikel 5", "Bankrekeningen"). Laat leeg als het document geen duidelijke sectienummering heeft voor deze plek.',
+    },
     // Verbatim citaat: navigatieanker waarmee de viewer de juiste plek in het document markeert.
     passage: {
       type: 'string',
@@ -213,6 +295,7 @@ const crossDocTool = {
             dimensies:          { type: 'array', items: { type: 'string' } },
             bevinding:          { type: 'string' },
             aanbeveling:        { type: 'string' },
+            artikel:            { type: 'string', description: 'Sectienummer of kopje waaronder dit issue valt (bijv. "3.2.1", "Artikel 5"). Laat leeg als het document geen duidelijke sectienummering heeft.' },
             passage:            { type: 'string', description: 'Verbatim citaat van DE ZIN die het specifieke afwijkende getal, de afwijkende datum of de tegenstrijdige afspraak ZELF bevat — NOOIT de zin die een persoon, kind of sectie-onderwerp introduceert. Bij een peildatum-conflict: citeer de zin mét de afwijkende datum (bijv. "15-03-2026"), niet de naamslijn van de betrokkene. Bij een bedrag-conflict: citeer de zin met het afwijkende bedrag. Als de hele sectie ontbreekt: laat leeg.' },
             betreft_documenten: {
               type: 'array',
@@ -245,7 +328,7 @@ export default async function handler(req, res) {
   if (!authCheck.ok) return res.status(401).json({ error: 'Sessie verlopen — log opnieuw in' });
 
   // ── Body parsen ───────────────────────────────────────────────────────────
-  const { classificatie, documenten } = req.body || {};
+  const { classificatie, documenten, roepnamen } = req.body || {};
   if (!classificatie || !Array.isArray(documenten) || !documenten.length) {
     return res.status(400).json({ error: 'classificatie en documenten[] zijn verplicht' });
   }
@@ -331,6 +414,19 @@ export default async function handler(req, res) {
       const mfnElemList = heeftMfn ? (MFN_ELEMENTEN[docType] || MFN_ELEMENTEN.convenant) : [];
       const docTypLabel = docType === 'ouderschapsplan' ? 'Ouderschapsplan' : 'Echtscheidingsconvenant';
 
+      // Andere hoofddocumenten die parallel worden geanalyseerd — voor de promptnota
+      const andereDocs = effectiefHoofd
+        .filter(d => d.bestandsnaam !== doc.bestandsnaam)
+        .map(d => d.type === 'ouderschapsplan' ? 'Ouderschapsplan' : 'Echtscheidingsconvenant');
+      const anderDocsNota = andereDocs.length
+        ? `\nMEEGELEVERDE ANDERE DOCUMENTEN: ${andereDocs.join(', ')} ${andereDocs.length > 1 ? 'zijn' : 'is'} ook aangeleverd en word${andereDocs.length > 1 ? 'en' : 't'} parallel apart geanalyseerd. Rapporteer NOOIT dat een van deze documenten "niet meegeleverd is" of "als bijlage ontbreekt".`
+        : '';
+
+      // Roepnamen die in de bestandsnaam/dossiernaam gevonden zijn maar afwijken van de formele naam
+      const roepnamenNota = Array.isArray(roepnamen) && roepnamen.length
+        ? `\nROEPNAMEN: De volgende partijen worden mogelijk aangeduid met een roepnaam die afwijkt van hun formele naam:${roepnamen.map(r => `\n- "${r.nepVoornaam}" als roepnaam van "${r.nepVolledig}"`).join('')}\nControleer voor elk of het document de roepnaam formeel introduceert (bijv. "verder te noemen als X" of vergelijkbaar). Indien de roepnaam NERGENS formeel omschreven is maar WEL elders in het documentlichaam (buiten de introductiezin) gebruikt wordt: meld dit als LAAG-issue. Indien de roepnaam NERGENS in het document voorkomt (ook niet in het lichaam), is er geen issue. Meld NOOIT een roepnaam-issue op basis van het bestaan van de roepnaam buiten het document.`
+        : '';
+
       const tmplType    = docType === 'ouderschapsplan' ? 'ouderschapsplan' : 'convenant';
       const checklist   = (templatesPer[tmplType] || []).filter(
         t => !t.applies_when || t.applies_when.every(tag => situatieKenmerken.includes(tag))
@@ -387,6 +483,9 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
       if (contextTekst) contextBlokDelen.push(`BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`);
       const contextBlok = contextBlokDelen.length ? contextBlokDelen.join('\n\n') : null;
 
+      // Huidige datum voor temporele beoordeling (bijv. of een peildatum in het verleden ligt)
+      const vandaag = new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
       // Gedeeld regelsblok — identiek voor alle 3 calls + heranalyse → gecached in user-content
       // (voorheen in elke system prompt herhaald → aparte cache-entries per call-type)
       const ernstCriteria =
@@ -410,7 +509,9 @@ GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
 - Maak GEEN issue aan als een BSN, telefoonnummer of e-mailadres niet het verwachte formaat heeft.
 - Maak GEEN issue over een ontbrekende of generieke woonplaats of adres — het [ADRES]/[WOONPLAATS] staat WEL in het originele document.
 - Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau.
-Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — schrijf altijd [WOONPLAATS] resp. [ADRES].`;
+Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — schrijf altijd [WOONPLAATS] resp. [ADRES].
+
+HUIDIGE DATUM: ${vandaag}. Gebruik deze datum bij alle temporele beoordelingen — bijv. of een peildatum, ondertekeningsdatum of ingangsdatum in het verleden of de toekomst ligt. Rapporteer een datum NOOIT als "in de toekomst" als die datum eerder is dan de huidige datum.`;
 
       // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims maar behoudt echte fouten
       const verificatieplicht =
@@ -445,13 +546,22 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
       // System prompts: alleen call-specifieke instructies (gedeelde regels in stabielGedeeld)
       const sysStructuur =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
-DOCUMENTTYPE: ${docTypLabel}
+DOCUMENTTYPE: ${docTypLabel}${anderDocsNota}${roepnamenNota}
 ${mfnInstructie}
 
 **issues (volledigheid)** — Rapporteer secties die ontbreken OF aanwezig zijn maar inhoudelijk onvolledig. Dimensies altijd ["volledigheid"].
 - ONTBREKEND: een verplichte of gebruikelijke sectie staat geheel niet in het document.
 - ONVOLLEDIG: een sectie is aanwezig maar mist essentiële details die nodig zijn voor uitvoerbaarheid.
   Voorbeelden: vakantieregelingen zonder concrete wisseltijden per feestdag; zorgregeling zonder specificatie van welke weekenden; alimentatie zonder ingangsdatum of indexering.
+- NIET INGEVULD (ALTIJD volledigheid, NOOIT juridisch of balans): een bedrag, datum, naam of andere waarde is leeggelaten of bevat een sjabloonplaatshouder. Herkenbaar aan: "€ ,–"; "€ __"; "____"; "*OF"; "te noemen __"; streepjes of puntjes als invulruimte. Dit is ALTIJD volledigheid — ook als het om een juridisch verplicht bedrag gaat (bijv. alimentatie, afkoopsom). De reden: het is een invulfout, geen juridische fout in de inhoud.
+  Uitgebreide plaatshouder-patronen (ook altijd volledigheid):
+  - Onlogisch rekeningnummer: een accountnummer met duidelijk aaneensluitende of herhalende cijfers (bijv. 010203040, 0102030405, 123456789, 0000000000) is een testgetal — geen echt banknummer. Rapporteer als niet-ingevuld rekeningnummer.
+  - Onlogische datum: een datum met jaar vóór 1900 of na 2099, of een duidelijk onmogelijke datum (bijv. 01-01-0001, 00-00-0000) is een plaatshouder. Rapporteer als niet-ingevulde datum.
+- ONVOLLEDIGE ZIN (ALTIJD volledigheid, NOOIT juridisch): een zin die wél aanwezig is maar geen concrete afspraak, verplichting of bepaling bevat. Herkenbaar aan: de zin beschrijft een onderwerp of noemt een thema, maar zegt niet wat de partijen zijn overeengekomen. Voorbeeld: "Afspraken over een betaling of een splitsing van het rentecontract." — er staat geen afspraak, alleen een aankondiging. Dit is ALTIJD volledigheid: de inhoud ontbreekt. NOOIT juridisch, ook niet als het onderwerp juridisch relevant is.
+- HANDTEKENINGEN — drie strikte regels:
+  1. De sectie "Ondergetekenden" of "Partijen" bovenaan het document is de partij-INTRODUCTIE (naam, geboortedatum, adres, "hierna te noemen"). Dit is NOOIT een handtekeningenblok. Verwar deze sectie nooit met een ondertekeningsruimte.
+  2. Een handtekening-issue mag alleen worden gerapporteerd als de ondertekeningsruimte onderaan het document (herkenbaar aan tekst als "Aldus overeengekomen", "Handtekening:", lege signeerregels, of de namen van partijen als slotblok) ontbreekt of geen handtekeningen bevat. De 'passage' moet altijd uit dit slotblok komen — nooit uit de partij-introductie.
+  3. Als het document een CONCEPT-watermerk bevat of anderszins als concept is aangeduid: ontbrekende handtekeningen zijn LAAG (concepten worden pas bij de definitieve versie ondertekend). Rapporteer dit NOOIT als midden of hoog.
 - Bij twijfel: geen issue. Secties die aanwezig én voldoende uitgewerkt zijn NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de voorafgaande zin als context). NOOIT een persoonsomschrijving of naamsdefinitie als passage gebruiken als de fout elders in het document staat. Leeg laten als een sectie volledig ontbreekt.`;
 
@@ -460,7 +570,18 @@ ${mfnInstructie}
       // of tegenspraak tussen juridisch/balans-call en grammatica/conflicten-call.
       const sysBevindingen =
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid, evenwichtigheid en taal.
-DOCUMENTTYPE: ${docTypLabel}
+DOCUMENTTYPE: ${docTypLabel}${anderDocsNota}${roepnamenNota}
+
+NAAMGEBRUIK: Zodra een partij formeel geïntroduceerd is (bijv. "Peter Adriaan Dikkeschei, verder te noemen: 'de vader'"), zijn alle drie de volgende aanduidingen door het hele document rechtsgeldig: de volledige naam, de voornaam alleen ("Peter"), en de rol-aanduiding ("de vader"). Gebruik van de officiële voornaam is NOOIT een roepnaam-probleem, naamsfout of inconsistente aanduiding — ook niet als het document elders uitsluitend de rol-aanduiding gebruikt. Rapporteer NOOIT dat een voornaam "niet formeel is geïntroduceerd" als die voornaam het eerste naamsdeel is van de geïntroduceerde partij.
+
+ROL-AANDUIDINGEN ZIJN NOOIT ROEPNAMEN: "de man", "de vrouw", "de moeder", "de vader", "partijen", "de schuldenaar", "de schuldeiser" en vergelijkbare functie- of rolbenamingen zijn partij-aanduidingen, GEEN roepnamen. Rapporteer NOOIT dat "de vrouw" of "de man" als roepnaam ontbreekt of niet formeel geïntroduceerd is. Een partij die "hierna te noemen 'de vrouw'" wordt geïntroduceerd, heeft haar aanduidingsvorm volledig geregeld — dit vereist geen aanvullende roepnaam.
+
+ROEPNAMEN: Als een partij formeel is geïntroduceerd onder haar geboortenaam maar verderop in het document aangeduid wordt met een naam die NIET afleidbaar is uit de officiële voornamen (bijv. geïntroduceerd als "Gerbrand Dirk Johan Lebbink" maar elders aangeduid als "Gerjon"; of geïntroduceerd als "Herma Eugenie ten Brink" maar aangeduid als "Manon"), is dit een volledigheid-issue. Nooit juridisch.
+
+Drie verplichte regels voor roepnaam-issues:
+1. ONDERSCHEID officieel vs. roepnaam: de officiële naam staat in de introductiezin ("Gerbrand Dirk Johan Lebbink, geboren te..."). De roepnaam is de afwijkende aanduiding elders in het document ("Gerjon"). NOOIT verwarren. De bevinding formuleert altijd: "officiële naam is [X], elders gebruikt als [Y] — [Y] is niet afleidbaar van [X] en moet formeel worden geïntroduceerd."
+2. PASSAGE: citeer de zin ELDERS in het document waar de roepnaam wordt gebruikt (bijv. "Gerjon betaalt maandelijks..."), NIET de introductiezin. De introductiezin is correct — de fout zit in het ontbreken van de roepnaam daarin.
+3. AANBEVELING: altijd in de vorm "Voeg 'ook te noemen [roepnaam]' toe aan de introductiezin: '[volledige officiële naam], ook te noemen '[roepnaam]', geboren te [...]'." NOOIT de introductiezin herschrijven zodat de roepnaam de hoofdnaam wordt.
 
 **issues (juridisch)** — Primaire dimensie: "juridisch". Voeg extra dimensies toe als het issue ook een ander aspect raakt (bijv. ["juridisch","conflicten"] als de clausule zowel wettelijk onjuist als intern tegenstrijdig is).${juridischeChecks}${hvChecks}
 
@@ -468,6 +589,8 @@ DOCUMENTTYPE: ${docTypLabel}
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
 - Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin). NOOIT een persoonsomschrijving of naamsdefinitie als passage — als de fout in een specifiek bedrag, datum of clausule zit, citeer dan die zin.
+- NOOIT juridisch als het veld NIET INGEVULD is: lege bedragen ("€ ,–"), blanco data, sjabloonplaatshouders ("___", "*OF") en andere invulresten zijn ALTIJD volledigheid. Een leeg veld is geen juridische fout — het is een ontbrekend gegeven.
+- NOOIT juridisch als een zin inhoudelijk onvolledig is: een zin die wel aanwezig is maar geen concrete afspraak bevat (bijv. "Afspraken over X." zonder verder iets), is ALTIJD volledigheid — zelfs als het onderwerp juridisch relevant is.
 - Bij twijfel: geen issue. Speculeer niet.
 - ALLEEN echte problemen rapporteren. Leg NOOIT een issue vast als het document aan de eis voldoet. Positieve bevestigingen ("Geen issue", "Voldoet aan...", "Geen actie vereist", "Correct geregeld") horen NIET in de issues-lijst — die lijst bevat uitsluitend punten die de mediator moet aanpassen of controleren.
 
@@ -476,11 +599,16 @@ DOCUMENTTYPE: ${docTypLabel}
 
 **issues (grammatica)** — Dimensies ["grammatica"]. Scan het VOLLEDIGE document op:
 - Spelling- en tikfouten (bijv. 'invullen' waar 'invulling' bedoeld is, dubbele spaties, hoofdletterfouten)
+- Interpunctiefouten: ontbrekende punt, komma, puntkomma of alineascheiding die de leesbaarheid verslechtert. Dit is ALTIJD een grammatica-issue — NOOIT juridisch, ook niet als de bepaling daardoor minder duidelijk wordt.
 - Dubbele woorden (bijv. "Land Rover Land Rover", "de de kinderen")
 - Foutieve of onvolledige zinsconstructies (bijv. ontbrekend hoofdwerkwoord: 'Moeder die ze naar school brengt' — dit is geen volledige zin)
-- Inconsistente aanduidingen: zelfde persoon/datum/bedrag op verschillende plekken anders gespeld of benoemd
+- Inconsistente aanduidingen: zelfde persoon/datum/bedrag op verschillende plekken anders gespeld of benoemd (inclusief hoofdlettergebruik van bedrijfs- of instellingsnamen, bijv. 'peaks' vs. 'Peaks')
+- BEDRAGOPMAAK — verplichte precisie: onderscheid altijd tussen (a) ontbrekend €-teken: het getal heeft géén valutateken → echt probleem; en (b) ontbrekende ',-' suffix: bedrag heeft wél €-teken maar mist de standaard afsluiting (bijv. "€ 5.569" vs. "€ 5.569,-") → opmaakinconsistentie. NOOIT beweren dat een €-teken ontbreekt als het er wél staat. Controleer elk bedrag in de relevante passage afzonderlijk.
+- REKENINGNUMMERS EN KENMERKEN: citeer altijd het exacte kenmerk/rekeningnummer uit het document en koppel het aan het juiste bedrag. Nooit hetzelfde kenmerk twee keer noemen voor verschillende bedragen — dat is een fout in de bevinding zelf.
 - Niet-uitvoerbare afspraken door vage bewoording ('eventueel', 'zo mogelijk', 'nader te bepalen' zonder concrete uitwerking)
-- GENDERREGEL (strikt): rapporteer een genderkwestie UITSLUITEND als hetzelfde benoemde individu in hetzelfde document op de ene plek als 'hij/hem/zijn' en op een andere plek als 'zij/haar' wordt aangeduid. Een algemene paragraaf die niet expliciet aan een kind bij naam is gekoppeld levert NOOIT een genderissue op — zeker niet als het gezin zowel een zoon als een dochter heeft, want de paragraaf kan over het andere kind gaan. Flagg alleen directe per-persoon-inconsistenties.
+- Voornaamwoord-inconsistenties (hij/zij/zijn/haar/hem) NOOIT rapporteren. Dit geldt zonder uitzondering.
+- Roepnamen (voornamen) van eerder geïntroduceerde partijen zijn GELDIGE verwijzingen. Als een partij is geïntroduceerd met volledige naam, is het gebruik van alleen de voornaam of de bezitsvorm (bijv. 'Peters' als verwijzing naar iemand genaamd 'Peter') een geldige verkorte aanduiding. Rapporteer dit NOOIT als naamsfout of als verwijzing naar een onbekende persoon.
+- Tweede voornamen (middelste namen) weglaten is NORMALE schrijfpraktijk in Nederlandse juridische documenten. Als een partij is geïntroduceerd als 'Willem David ter Kulve', is 'Willem ter Kulve' of 'W. ter Kulve' een geldige verkorte aanduiding — ook bij bankrekening-vermeldingen of kopregels. Rapporteer dit NOOIT als inconsistentie in de naamsvermelding.
 - Rapporteer ELKE tikfout of grammaticakwestie als een APART issue — NOOIT bundelen.
   Zo kan de mediator per correctie accepteren of afwijzen.
 
@@ -498,26 +626,41 @@ NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onder
 - DEDUPLICATIE: als meerdere inconsistenties voortkomen uit DEZELFDE onderliggende oorzaak (bijv. één fout bedrag dat op meerdere plekken terugkomt), maak dan EEN bevinding die de kernfout beschrijft en de gevolgen noemt — GEEN afzonderlijk issue per plek.
 
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE HET SPECIFIEKE GETAL, DE DATUM OF DE TEGENSTRIJDIGHEID BEVAT (niet de persoonsomschrijving of definitiebepaling van de betrokkene, ook niet de omringende context). Bij een bedrag/datum-conflict: citeer de zin mét het afwijkende getal/datum, niet de zin die de persoon of het onderwerp introduceert.
-- PASSAGE-DEDUPLICATIE: NOOIT twee issues met EXACT DEZELFDE passage. Als één passage meerdere problemen heeft (bijv. zowel grammaticaal onhelder als inhoudelijk onvolledig), rapporteer uitsluitend het zwaarste conform de dimensie-voorrangsvolgorde: juridisch > conflicten > volledigheid > balans > grammatica.
+- PASSAGE-DEDUPLICATIE: NOOIT twee issues met EXACT DEZELFDE passage. Als één passage meerdere problemen heeft (bijv. zowel grammaticaal onhelder als inhoudelijk onvolledig), rapporteer uitsluitend het zwaarste conform de dimensie-voorrangsvolgorde: juridisch > conflicten > volledigheid > balans > grammatica. LET OP: deze voorrangsvolgorde geldt UITSLUITEND voor deduplicatie bij exact dezelfde passage — gebruik hem NIET als algemene classificatieregel. Een grammaticafout (tikfout, ontbrekend leesteken, dubbel woord) is en blijft grammatica, ook als hij in een juridisch artikel staat.
 - Bij twijfel: geen issue. Speculeer niet.
 
 ZELFCONTROLE (verplicht vóór afsluiting): Controleer de volledige issues-lijst op de volgende patronen:
 1. ZELFDE PASSAGE: twee issues met exact hetzelfde verbatim citaat → bewaar alleen het zwaarste.
 2. ZELFDE BEDRAG/DATUM-CONFLICT: twee issues die hetzelfde getalpaar of datumpaar benoemen als inconsistentie (bijv. "€ 462" vs "€ 463" in twee afzonderlijke issues) → verwijder het minder ernstige en verwerk de extra context in het bewaarde issue.
-3. ZELFDE KERN-ONDERWERP: twee issues die hetzelfde fundamentele probleem beschrijven maar anders geformuleerd (bijv. "Fiscaal partnerschap: einddatum niet concreet" en "Fiscaal partnerschap: einddatum niet expliciet vastgelegd") → fuseer tot één issue met de meest volledige bevinding en aanbeveling.
+3. ZELFDE KERN-ONDERWERP: twee issues die hetzelfde fundamentele probleem beschrijven maar anders geformuleerd (bijv. "Fiscaal partnerschap: einddatum niet concreet" en "Fiscaal partnerschap: einddatum niet expliciet vastgelegd") → fuseer tot één issue met de meest volledige bevinding en aanbeveling. Let speciaal op: als twee issues HETZELFDE SPECIFIEKE BEDRAG noemen in hun titel (bijv. beide "€ 116.600 overbedeling"), beschrijven ze altijd hetzelfde probleem — fuseer altijd, ook als de invalshoek verschilt (bijv. "ontbreekt in hoofdtekst" en "tegenstrijdig met tekst").
 4. PERSOONSGEBONDEN PATROON: meerdere issues die variaties zijn van DEZELFDE fout voor DEZELFDE persoon (bijv. drie genderfouten voor Kind X op verschillende plekken, of twee naamsspellingsfouten voor dezelfde partij) → combineer ALTIJD tot EEN issue. Noem in de bevinding alle plekken waar de fout voorkomt, en geef één allesomvattende aanbeveling.
-Pas de lijst aan vóór je de tool aanroept.`;
+5. REKENKUNDIGE VERIFICATIE: Zoek ALLE vermelde rekensommen in het document: optellingen van bedragen, verschilberekeningen (A − B), procenten van een totaal, resterende budgetten. Reken ELKE som zelf na. Als de berekende uitkomst afwijkt van de vermelde uitkomst → voeg een issue toe (dimensie ["conflicten"], ernst "hoog") met: (a) de correcte berekening en uitkomst, (b) de vermelde (incorrecte) uitkomst, en (c) als passage een verbatim citaat van de zin met het onjuiste getal. Voorbeeld: document vermeldt "€ 834 + € 861 + € 238 = € 1.695" maar 834 + 861 + 238 = 1.933 → dit is een rekenkundige fout, rapporteer het.
+Pas de lijst aan vóór je de tool aanroept.
+
+DIMENSIE-VERBOD: De dimensie "cross_doc" mag NOOIT worden gebruikt in deze call. Toegestane dimensies: "juridisch", "volledigheid", "balans", "grammatica", "conflicten". Cross-document vergelijkingen worden verwerkt in een aparte, dedicated analyse.`;
 
       const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
 
       // Helper om gecachede contextblok als array te leveren (leeg als geen bijlagen)
       const mkCtx = () => contextBlok ? [{ text: contextBlok, cache: true }] : [];
 
+      // Filter gender/voornaamwoord-issues — onbetrouwbaar bij gezinnen met meerdere kinderen.
+      const filterGenderIssues = (result) => {
+        if (!Array.isArray(result?.issues)) return result;
+        const GENDER_RE = /voornaamwoord|geslacht|genderfout|gender/i;
+        const filtered = result.issues.filter(iss => {
+          const tekst = (iss.onderwerp || '') + ' ' + (iss.bevinding || '');
+          return !GENDER_RE.test(tekst);
+        });
+        return { ...result, issues: filtered };
+      };
+
       const callMetSse = (clodeFn, type) =>
         clodeFn().then(
           result => {
-            sse({ type, bestandsnaam: doc.bestandsnaam, result });
-            return result;
+            const gefilterd = filterGenderIssues(result);
+            sse({ type, bestandsnaam: doc.bestandsnaam, result: gefilterd });
+            return gefilterd;
           },
           err => {
             if (err.isMaxTokens) {
@@ -530,9 +673,9 @@ Pas de lijst aan vóór je de tool aanroept.`;
         );
 
       // 2 parallelle Sonnet-calls — Structuur/Volledigheid + Juridisch/Balans/Grammatica/Conflicten.
-      // Voorheen 3 calls met Haiku-consolidatiestap; nu 2 calls zonder deduplicatie:
-      //  - Minder kans op cross-call overlap → consolidatie niet meer nodig
-      //  - Iedere call focust op zijn eigen dimensies zonder dubbele context
+      // Na alle analyses volgt een server-side Haiku-consolidatiestap (semantische dedup over
+      // structuurR + bevindingenR + cross_doc issues gecombineerd). Die stap vervangt de
+      // complexe client-side dedupIssues() Passes 1–4 wanneer de consolidatie slaagt.
       // Cache-volgorde per call (max 4 breakpoints incl. system):
       //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek blok(4)
       const [structuurR, bevindingenR] = await Promise.all([
@@ -549,7 +692,7 @@ Pas de lijst aan vóór je de tool aanroept.`;
           { text: stabielGedeeld, cache: true },
           { text: stabielBlokWet, cache: true },
           { text: documentBlok },
-        ], bevindingentool, 9000), 'juridisch'),
+        ], bevindingentool, MAX_OUTPUT_TOKENS), 'juridisch'),
       ]);
 
       // Signaleer 'balans'-call als afgerond zodat de frontend loading-state correct afsluit.
@@ -557,21 +700,14 @@ Pas de lijst aan vóór je de tool aanroept.`;
       sse({ type: 'balans', bestandsnaam: doc.bestandsnaam, result: { issues: [] } });
 
       console.log(`[analyseer] ${doc.bestandsnaam}: klaar (${(Array.isArray(structuurR?.issues) ? structuurR.issues.length : 0) + (Array.isArray(bevindingenR?.issues) ? bevindingenR.issues.length : 0)} issues totaal)`);
+      return { bestandsnaam: doc.bestandsnaam, structuurR, bevindingenR };
     };
 
-    // Verwerk max 2 documenten tegelijk (rate-limit bescherming)
-    const CONCURRENT = 2;
-    for (let i = 0; i < effectiefHoofd.length; i += CONCURRENT) {
-      const golf = effectiefHoofd.slice(i, i + CONCURRENT);
-      const resultaten = await Promise.allSettled(golf.map(analyseDoc));
-      for (const r of resultaten) {
-        if (r.status === 'rejected') throw r.reason; // echte fout
-      }
-    }
-
-    // ── Cross-document verificatie (alleen bij 2+ hoofddocumenten) ──────────
+    // ── Cross-document verificatie: start parallel met per-doc loop ──────────
+    // docBlokken en sysCrossDoc zijn opgebouwd uit documentteksten die al beschikbaar
+    // zijn vóór de eerste Claude-call — geen reden om op per-doc resultaten te wachten.
+    let crossDocPromise = null;
     if (effectiefHoofd.length >= 2) {
-      sse({ type: 'cross_doc_start', documenten: effectiefHoofd.map(d => d.type) });
       const docBlokken = effectiefHoofd
         .map(d => `=== ${d.type.toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
         .join('\n\n---\n\n');
@@ -585,12 +721,18 @@ TAAK: Vind uitsluitend inconsistenties die ALLEEN ZICHTBAAR zijn door BEIDE docu
 Rapporteer NIET wat al in één document afzonderlijk een fout is — alleen wat TUSSEN de documenten botst of ontbreekt.
 Als een issue slechts in één document zichtbaar is (interne fout van dat document), laat het dan VOLLEDIG weg — het is al gevonden door de per-document analyse.
 
-Zoek op ALLE dimensies:
-- CONFLICTEN ["conflicten"]: datums, bedragen, namen of afspraken die in document A anders luiden dan in document B (bijv. alimentatiebedrag anders in convenant dan in OP; geboortedatum kind anders gespeld)
+ABSOLUUT VERBOD — GESLACHT/VOORNAAMWOORDEN: Rapporteer NOOIT een gender- of voornaamwoord-inconsistentie, noch binnen één document noch tussen documenten. Voornaamwoorden ('hij', 'zij', 'zijn', 'haar') wisselen vanzelf per persoon of per kind — dit is GEEN cross-document issue.
+
+Zoek op ALLE dimensies (gebruik uitsluitend deze drie — NOOIT "conflicten" of "grammatica"):
 - VOLLEDIGHEID ["volledigheid"]: document A verwijst voor een onderwerp naar document B, maar dat onderwerp ontbreekt in document B
-- JURIDISCH ["juridisch"]: een bepaling in A die een bepaling in B inconsistent maakt of wettelijk onderuit haalt
+- JURIDISCH ["juridisch"]: een bepaling in A die een bepaling in B inconsistent maakt of wettelijk onderuit haalt, of een afwijkende datum/bedrag met juridische gevolgen
 - BALANS ["balans"]: een clausule die in A en B anders uitpakt of eenzijdig is over de documenten heen
-- GRAMMATICA ["grammatica"]: namen, datums of bedragen die in de twee documenten anders gespeld of genoteerd zijn
+
+Gebruik NOOIT "conflicten" als dimensie: cross-document tegenstrijdigheden zijn al geïdentificeerd als cross-doc en hoeven geen extra conflicten-tag.
+Gebruik NOOIT "grammatica" als dimensie: spellingsverschillen of notatiestijl-verschillen tussen documenten horen niet in de cross-doc analyse thuis.
+
+CLASSIFICATIEREGEL REKENINGNUMMERS/IBAN: Als een IBAN of rekeningnummer in A en B verschilt, of als naam/saldo bij dezelfde rekening afwijkt → gebruik ALTIJD "volledigheid". Een rekening heeft één feitelijk juiste IBAN — de afwijking betekent dat één document onjuist is ingevuld, geen juridisch eigendomsconflict. Dit is dus NOOIT "juridisch" en NOOIT "balans".
+Voor betreft_documenten bij IBAN-issues: de fix zit in het document dat de tenaamstelling of het rekeningnummer onjuist/onvolledig vermeldt (doorgaans het convenant). Gebruik als passage de zin uit het ANDERE document (bijv. het ouderschapsplan) die toont hoe de rekening daar correct wordt beschreven — dit geeft de gebruiker de context om te begrijpen wat er moet kloppen.
 
 Ernst-criteria:
 - hoog: evidente tegenstrijdigheid die tot onuitvoerbaarheid leidt of een wettelijke eis raakt
@@ -606,31 +748,77 @@ Bij twijfel: geen issue. Speculeer niet.
 ALLEEN echte cross-document problemen — geen positieve bevestigingen ("Geen issue", "Voldoet aan...").
 
 PASSAGE-INSTRUCTIE (verplicht):
-Vul 'passage' met een verbatim citaat van de CONCRETE ZIN die het specifieke afwijkende getal, de afwijkende datum of de tegenstrijdige afspraak ZELF bevat.
+Vul 'passage' ALTIJD in met een verbatim citaat dat het issue illustreert.
+
+Bij issues die slechts ÉÉN document betreffen (betreft_documenten bevat één type):
+1. Citeer de zin in dát document die het conflict of de afwijking ZELF bevat.
+2. Als die ontbreekt (sectie geheel afwezig): citeer de zin uit het ANDERE document die aantoont wat er mist.
+
+Bij issues die BEIDE documenten betreffen (betreft_documenten: beide):
+- Citeer altijd de zin uit het EERSTE document van betreft_documenten[0].
+  Voorbeeld: betreft_documenten = ["ouderschapsplan","convenant"] → gebruik een zin uit het OUDERSCHAPSPLAN.
+- Dit is verplicht omdat de passage in het tabblad van betreft_documenten[0] getoond wordt en zichtbaar moet zijn in dat document.
+- Alleen als betreft_documenten[0] GEEN relevante zin heeft, gebruik dan een zin uit het tweede document.
+
+Laat 'passage' ALLEEN leeg als GEEN VAN BEIDE documenten een citeerbare zin bevat.
 
 VERBODEN als passage (dit zijn NOOIT goede passages):
-- Een zin die een persoon introduceert: "Jan de Vries, geboren te Amsterdam op 12-03-1980" → FOUT
-- Een zin die een kind noemt: "Maartje Wilma Antonia Schreven geboren te Deventer op 29-01-2015" → FOUT
+- Een zin die enkel een persoon introduceert: "Jan de Vries, geboren te Amsterdam op 12-03-1980" → FOUT
+- Een zin die enkel een kind noemt zonder concrete afspraak: "Maartje Wilma Antonia Schreven geboren te Deventer op 29-01-2015" → FOUT
 - Een sectietitel of kopje zonder het conflicterende getal/datum zelf → FOUT
 
 CORRECT voorbeeld bij een peildatum-conflict:
 - "De peildatum voor de spaarrekeningen van de kinderen is vastgesteld op 15-03-2026." → GOED
 - "Het saldo op rekening NL91INGB... per 15-03-2026 bedraagt € 4.200,-." → GOED
 
-Citeer de zin UIT HET DOCUMENT waar de aanpassing moet plaatsvinden (betreft_documenten). Laat 'passage' leeg als de hele sectie ontbreekt.
-
 WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
 
+      sse({ type: 'cross_doc_start', documenten: effectiefHoofd.map(d => d.type) });
+      crossDocPromise = askClaude(sysCrossDoc, docBlokken, crossDocTool, 6000);
+    }
+
+    // Verwerk max 2 documenten tegelijk (rate-limit bescherming)
+    const CONCURRENT = 2;
+    const perDocResultaten = new Map(); // bestandsnaam → { structuurR, bevindingenR }
+    for (let i = 0; i < effectiefHoofd.length; i += CONCURRENT) {
+      const golf = effectiefHoofd.slice(i, i + CONCURRENT);
+      const resultaten = await Promise.allSettled(golf.map(analyseDoc));
+      for (const r of resultaten) {
+        if (r.status === 'rejected') throw r.reason;
+        if (r.value?.bestandsnaam) perDocResultaten.set(r.value.bestandsnaam, r.value);
+      }
+    }
+
+    // ── Cross-document resultaat verwerken (call liep parallel mee) ───────────
+    const crossIssuesPerDoc = new Map(); // bestandsnaam → issues[] (voor consolidatie)
+    if (crossDocPromise) {
       try {
-        const crossResult = await askClaude(sysCrossDoc, docBlokken, crossDocTool, 4000);
+        const _crossRaw = await crossDocPromise;
+        // Zelfde gender-filter als per-document calls — cross-doc omzeilt callMetSse.
+        const GENDER_RE_CD = /voornaamwoord|geslacht|genderfout|gender/i;
+        const crossResult = Array.isArray(_crossRaw?.issues)
+          ? { ..._crossRaw, issues: _crossRaw.issues.filter(iss =>
+              !GENDER_RE_CD.test((iss.onderwerp || '') + ' ' + (iss.bevinding || ''))) }
+          : _crossRaw;
         if (Array.isArray(crossResult?.issues) && crossResult.issues.length > 0) {
+          // Ken elk cross-doc issue een stabiele gedeelde ID toe zodat state-sync mogelijk is
+          const { randomUUID } = await import('crypto');
+          const issuesMetId = crossResult.issues.map(iss => ({
+            ...iss,
+            cross_doc_id: randomUUID(),
+            dimensies: [...new Set([
+              ...(Array.isArray(iss.dimensies) ? iss.dimensies.filter(d => d !== 'conflicten' && d !== 'grammatica') : []),
+              'cross_doc',
+            ])],
+          }));
           for (const d of effectiefHoofd) {
-            // Stuur alleen issues die dit document-type betreffen
-            const relevantIssues = crossResult.issues.filter(iss => {
+            // Stuur issues die dit document-type betreffen (beide documenten ontvangen gedeelde cross-doc issues)
+            const relevantIssues = issuesMetId.filter(iss => {
               const bd = iss.betreft_documenten;
               if (!Array.isArray(bd) || bd.length === 0) return true; // ontbrekend veld: naar alle docs
               return bd.includes(d.type);
             });
+            crossIssuesPerDoc.set(d.bestandsnaam, relevantIssues);
             if (relevantIssues.length > 0) {
               sse({ type: 'cross_doc', bestandsnaam: d.bestandsnaam, result: { issues: relevantIssues } });
             }
@@ -641,6 +829,81 @@ WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
         if (err.isMaxTokens) console.warn('[analyseer] cross-doc: max_tokens');
         else console.warn('[analyseer] cross-doc mislukt:', err.message);
         // niet-fataal — per-document analyses zijn al verstuurd
+      }
+    }
+
+    // ── Server-side semantische deduplicatie via Haiku ────────────────────────
+    // Stuurt een 'consolidatie'-event per document dat de frontend gebruikt als
+    // definitieve issue-lijst (vervangt client-side dedupIssues indien aanwezig).
+    if (perDocResultaten.size > 0) {
+      const consolidatieTool = {
+        name: 'consolideer_issues',
+        description: 'Verwijder semantisch identieke of sterk overlappende issues. Houd van elke groep het meest informatieve exemplaar.',
+        input_schema: {
+          type: 'object',
+          properties: {
+            te_bewaren: {
+              type: 'array',
+              items: { type: 'integer' },
+              description: 'Indices (0-gebaseerd) van de issues die behouden moeten worden, in oplopende volgorde. Geef ALTIJD minimaal de indices terug van alle unieke issues.',
+            },
+          },
+          required: ['te_bewaren'],
+        },
+      };
+      const sysConsolidatie =
+`Je analyseert een genummerde lijst van juridische issues uit een echtscheidingsdocument.
+De lijst bevat issues uit meerdere analyse-calls (structuur, bevindingen, cross-document) die hetzelfde probleem soms dubbel rapporteren.
+
+Taak: verwijder semantisch identieke of sterk overlappende issues.
+Merge-criteria (verwijder het issue met de lagere ernst of lagere juridische prioriteit):
+- Zelfde passage + zelfde kernprobleem, ook al verschillen de woorden van de titel.
+- Per-document issue en cross-document issue over hetzelfde concrete feit (bijv. zelfde IBAN, zelfde tegenstrijdigheid, zelfde ontbrekend veld).
+- Twee dimensie-varianten van hetzelfde probleem (bijv. "onvolledig" én "onvolledige zin" over exact dezelfde passage).
+
+Bewaar issues die écht een ander probleem beschrijven of die samen meer informatie geven dan elk apart.
+Bij twijfel: bewaar het issue.
+Geef ALTIJD minimaal één index terug.`;
+
+      for (const doc of effectiefHoofd) {
+        const pdRes = perDocResultaten.get(doc.bestandsnaam);
+        const rawIssues = [
+          ...(pdRes?.structuurR?.issues  ?? []),
+          ...(pdRes?.bevindingenR?.issues ?? []),
+          ...(crossIssuesPerDoc.get(doc.bestandsnaam) ?? []),
+        ];
+        // IBAN-validatie: verwijder issues met niet-bestaande IBANs en tegenstrijdige IBAN-conclusies
+        const allIssues = filterIssuesOpIban(rawIssues, doc.tekst ?? '');
+        if (allIssues.length < rawIssues.length)
+          console.log(`[iban] ${doc.bestandsnaam}: ${rawIssues.length - allIssues.length} issue(s) verwijderd door IBAN-validatie`);
+        if (allIssues.length < 2) {
+          sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: allIssues } });
+          continue;
+        }
+        try {
+          const genummerd = allIssues
+            .map((iss, i) => `[${i}] (${iss.ernst}) ${iss.onderwerp}: ${(iss.bevinding || '').slice(0, 150)}`)
+            .join('\n');
+          const consolidatieRes = await askClaude(
+            sysConsolidatie,
+            genummerd,
+            consolidatieTool,
+            800,
+            'claude-haiku-4-5-20251001',
+          );
+          const geldigeIndices = (Array.isArray(consolidatieRes?.te_bewaren) ? consolidatieRes.te_bewaren : [])
+            .filter(i => typeof i === 'number' && i >= 0 && i < allIssues.length);
+          const teBewarenSet = new Set(geldigeIndices);
+          const geconsolideerd = teBewarenSet.size > 0
+            ? allIssues.filter((_, i) => teBewarenSet.has(i))
+            : allIssues; // veiligheidsfallback: bewaar alles
+          const verwijderd = allIssues.length - geconsolideerd.length;
+          if (verwijderd > 0) console.log(`[analyseer] consolidatie ${doc.bestandsnaam}: ${verwijderd} duplicaat(en) verwijderd`);
+          sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: geconsolideerd } });
+        } catch (err) {
+          console.warn(`[analyseer] consolidatie mislukt voor ${doc.bestandsnaam}:`, err.message);
+          // Niet-fataal: frontend valt terug op client-side dedupIssues
+        }
       }
     }
 
