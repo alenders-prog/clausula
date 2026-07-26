@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "doc_type": "convenant",
+    "beschrijving": "Convenant met tegenstrijdig huwelijksvermogensregime na 01-01-2018",
+    "bekende_fouten": [
+      "huwelijk na 01-01-2018 maar convenant noemt beperkte gemeenschap",
+      "naam man in convenant wijkt af van naam op bankafschrift"
+    ]
+  },
+  "tekst": "ECHTSCHEIDINGSCONVENANT\n\nPartijen:\nMan: Sander Alexander Schreven, geboren 15-09-1985\nVrouw: Lisa van den Berg, geboren 22-11-1988\nGehuwd op: 14-02-2019 te Rotterdam\nGeen minderjarige kinderen.\n\nARTIKEL 1 — HUWELIJKSVERMOGEN\nPartijen waren gehuwd in beperkte gemeenschap van goederen. De vóór het huwelijk aangebrachte goederen zijn privévermogen. Gemeenschappelijke goederen worden bij helfte gedeeld.\n\nARTIKEL 2 — ECHTELIJKE WONING\nDe woning aan de Maasweg 7 te Rotterdam wordt aan de vrouw toegedeeld. De vrouw neemt de hypotheek ad € 280.000,- over en betaalt de man € 25.000,- als overbedelingsvergoeding. Taxatiewaarde conform taxatierapport d.d. 01-03-2024: € 340.000,-.\n\nARTIKEL 3 — PARTNERALIMENTATIE\nGezien de korte huwelijksduur en de financiële zelfstandigheid van beide partijen wordt geen partneralimentatie overeengekomen.\n\nARTIKEL 4 — PENSIOEN\nPartijen verrekenen het pensioen conform WVPS. De pensioenaanspraken opgebouwd tijdens het huwelijk (14-02-2019 t/m datum ontbinding) worden bij helfte gedeeld.\n\nARTIKEL 5 — BANKREKENINGEN\nDe ING-rekening op naam van Alexander Schreven (rekeningnummer NL91INGB0001234567) bevat per peildatum € 4.200,-. Dit bedrag wordt bij helfte gedeeld.\n\nPartijen sluiten verdere aanspraken uit.",
+  "verwachte_issues": {
+    "moeten_gevonden_worden": [
+      { "categorie": "conflicten", "sleutelwoord": "beperkte gemeenschap" },
+      { "categorie": "conflicten", "sleutelwoord": "naam" }
+    ],
+    "mogen_NIET_gevonden_worden": [
+      { "categorie": "volledigheid", "sleutelwoord": "partneralimentatie" },
+      { "categorie": "volledigheid", "sleutelwoord": "pensioen" }
+    ]
+  }
+}

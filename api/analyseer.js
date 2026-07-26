@@ -27,6 +27,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { filterIssuesOpIban } from './_iban.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -35,71 +36,6 @@ export const config = {
 // Maximale output die we ooit nodig zullen hebben. max_tokens is een plafond,
 // geen verbruiksmeter — je betaalt alleen voor tokens die Claude daadwerkelijk genereert.
 const MAX_OUTPUT_TOKENS = 32000;
-
-// ── IBAN-validatie: voorkomt dat issues een rekeningnummer benoemen dat niet in het document staat,
-//    of twee tegenstrijdige conclusies over hetzelfde IBAN doorlaten ──────────────────────────────
-// Matcht echte NL-IBANs én pseudoniem-placeholders [IBAN_n] (browser vervangt echte IBANs vóór verzending)
-const IBAN_RE = /(?:\bNL\d{2}[A-Z]{4}\d{10}\b|\[IBAN_\d+\])/g;
-
-function ibanSet(tekst) {
-  return new Set(tekst.match(IBAN_RE) ?? []);
-}
-
-function ibanUitIssue(iss) {
-  const txt = [iss.passage, iss.bevinding, iss.onderwerp, iss.aanbeveling].filter(Boolean).join(' ');
-  return [...txt.matchAll(new RegExp(IBAN_RE.source, 'g'))].map(m => m[0]);
-}
-
-// Filtert issues waarbij een vermeld IBAN niet exact in de documenttekst voorkomt,
-// en verwijdert de minder ernstige kant van twee tegenstrijdige IBAN-issues.
-function filterIssuesOpIban(issues, docTekst) {
-  const ibanInDoc = ibanSet(docTekst);
-  if (ibanInDoc.size === 0) return issues;
-
-  const ERNST_RANG = { hoog: 0, midden: 1, laag: 2 };
-
-  // Stap 1 — verwijder issues waarvan een IBAN niet exact in het document staat
-  const stap1 = issues.filter(iss => {
-    const ibans = ibanUitIssue(iss);
-    if (ibans.length === 0) return true;
-    const onbekend = ibans.filter(iban => !ibanInDoc.has(iban));
-    if (onbekend.length > 0) {
-      console.warn(`[iban] verwijderd (onbekend IBAN ${onbekend.join(', ')}): "${iss.onderwerp}"`);
-      return false;
-    }
-    return true;
-  });
-
-  // Stap 2 — detecteer tegenstrijdige conclusies over hetzelfde IBAN
-  //   bijv. issue A zegt "ontbreekt in bijlage" en issue B zegt "staat wél in bijlage"
-  const AANWEZIG = /\bopgenomen\b|\bvermeld\b|\bstaat in\b|\baanwezig\b/i;
-  const ONTBREEKT = /\bontbreekt\b|\bniet opgenomen\b|\bniet vermeld\b|\bniet aanwezig\b/i;
-
-  const perIban = new Map(); // IBAN → { aanwezig: [], ontbreekt: [] }
-  for (const iss of stap1) {
-    for (const iban of ibanUitIssue(iss)) {
-      if (!perIban.has(iban)) perIban.set(iban, { aanwezig: [], ontbreekt: [] });
-      const slot = perIban.get(iban);
-      const tekst = [iss.bevinding, iss.onderwerp].filter(Boolean).join(' ');
-      if (AANWEZIG.test(tekst)) slot.aanwezig.push(iss);
-      else if (ONTBREEKT.test(tekst)) slot.ontbreekt.push(iss);
-    }
-  }
-
-  const teVerwijderen = new Set();
-  for (const [iban, { aanwezig, ontbreekt }] of perIban) {
-    if (aanwezig.length === 0 || ontbreekt.length === 0) continue;
-    // Tegenstrijdigheid: bewaar het issue met de hoogste ernst, verwijder de rest
-    const conflict = [...aanwezig, ...ontbreekt]
-      .sort((a, b) => (ERNST_RANG[a.ernst] ?? 9) - (ERNST_RANG[b.ernst] ?? 9));
-    for (const iss of conflict.slice(1)) {
-      console.warn(`[iban] tegenstrijdig verwijderd (${iban}): "${iss.onderwerp}"`);
-      teVerwijderen.add(iss);
-    }
-  }
-
-  return stap1.filter(iss => !teVerwijderen.has(iss));
-}
 
 // ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
 // _herpoging: intern vlag om bij max_tokens eenmalig met verdubbeld budget opnieuw te proberen

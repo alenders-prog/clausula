@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "doc_type": "ouderschapsplan",
+    "beschrijving": "Ouderschapsplan zonder informatieregeling en zonder zorgverdeling feestdagen",
+    "bekende_fouten": [
+      "informatieregeling ontbreekt (MfN-element)",
+      "feestdagenregeling ontbreekt",
+      "geen afspraak over schoolkeuze"
+    ]
+  },
+  "tekst": "OUDERSCHAPSPLAN\n\nOuders:\nVader: Thomas Hendrik Visser, geboren 08-03-1980\nMoeder: Sandra Visser-Janssen, geboren 19-07-1983\nKinderen: Emma Visser (geb. 15-04-2012), Liam Visser (geb. 03-09-2015)\n\nARTIKEL 1 — HOOFDVERBLIJFPLAATS\nBeide kinderen hebben hun hoofdverblijfplaats bij moeder.\n\nARTIKEL 2 — ZORGVERDELING\nDe kinderen verblijven bij vader:\n- Elke week van vrijdagmiddag 15:00 uur tot zondagavond 19:00 uur.\n- De helft van de zomervakantie: vader heeft de eerste helft in oneven jaren.\n\nARTIKEL 3 — KINDERALIMENTATIE\nVader betaalt € 385,- per kind per maand als kinderalimentatie, totaal € 770,- per maand, te indexeren per 1 januari conform het NVI.\n\nARTIKEL 4 — GEZAG\nBeide ouders oefenen gezamenlijk het ouderlijk gezag uit.\n\nARTIKEL 5 — WIJZIGINGEN\nBij ingrijpende wijziging van omstandigheden treden partijen in overleg over aanpassing van dit plan.",
+  "verwachte_issues": {
+    "moeten_gevonden_worden": [
+      { "categorie": "volledigheid", "sleutelwoord": "informatieregeling" },
+      { "categorie": "volledigheid", "sleutelwoord": "feestdag" }
+    ],
+    "mogen_NIET_gevonden_worden": [
+      { "categorie": "volledigheid", "sleutelwoord": "kinderalimentatie" },
+      { "categorie": "volledigheid", "sleutelwoord": "gezag" }
+    ]
+  }
+}
