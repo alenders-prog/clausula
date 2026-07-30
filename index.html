@@ -2613,7 +2613,7 @@ const app = {
   screeningId:  null,   // huidigeId
   classificatie: null,  // huidigeClassificatie
   rapport:      null,   // huidigRapport
-  documenten:   [],     // huidigeDocumenten
+  documenten:   [],     // app.documenten
   docIdx:       0,      // huidigeDocIdx
   bestanden:    [],     // huidigeBestandenLijst
   primaireBest: [],     // huidigePrimaireBest
@@ -3171,7 +3171,7 @@ function vindDocVolgorde(issuesArr) {
   // Zo worden cross-doc passages die ook in het andere document staan niet op een
   // vroege positie gematcht (Convenant staat eerst in de gecombineerde tekst).
   const volledigeTekst = huidigRapport?._document_tekst || '';
-  const huidigDocType  = huidigeDocumenten[huidigeDocIdx]?.doc_type
+  const huidigDocType  = app.documenten[huidigeDocIdx]?.doc_type
                       || huidigeClassificatie?.doc_type || '';
   const tabTekst = haalDocTypeTekst(volledigeTekst, huidigDocType);
   const docNorm  = normPassage(tabTekst);
@@ -3710,7 +3710,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     huidigeId             = null; // nieuwe analyse — geen opgeslagen versie
     huidigeClassificatie  = classificatie;
     huidigeBestandsnaam   = _bn;
-    huidigeDocumenten     = [];   // wordt gevuld na klaar-event door toonRapport()
+    app.documenten     = [];   // wordt gevuld na klaar-event door toonRapport()
     huidigeDocIdx         = 0;
     // Sorteer op dezelfde volgorde als de tabs in toonRapport zodat
     // huidigePrimaireBest[0] altijd overeenkomt met tab 0 (OP), ongeacht uploadvolgorde.
@@ -3927,9 +3927,9 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
           ? `<div class="krl-wrap"><div class="krl-lbl">Analyseren…</div><div class="krl-track"><div class="krl-glow"></div></div></div>`
           : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
-      // huidigeDocumenten is leeg tijdens analyse (gevuld na klaar-event) — gebruik
+      // app.documenten is leeg tijdens analyse (gevuld na klaar-event) — gebruik
       // effectieveHoofdItems als tussenliggende fallback zodat het label klopt per tab.
-      const _progDt    = huidigeDocumenten[huidigeDocIdx]?.doc_type
+      const _progDt    = app.documenten[huidigeDocIdx]?.doc_type
                       || effectieveHoofdItems[huidigeDocIdx]?.type
                       || huidigeClassificatie?.doc_type || '';
       const _progLbl   = _progDt ? (DOC_TYPE_LABELS[_progDt] || _progDt) : '';
@@ -4611,7 +4611,7 @@ function vindPassageFractie(passage) {
 // Geeft de tab-index terug, of null als niet bepaald.
 function bepaalPassageDocIdx(passage) {
   const docTekst = huidigRapport?._document_tekst;
-  if (!docTekst || huidigeDocumenten.length <= 1) return null;
+  if (!docTekst || app.documenten.length <= 1) return null;
 
   const zoekTekst = anonimiseerTekst(passage, huidigeNaarAnon);
   const pasNorm   = normPassage(zoekTekst);
@@ -4621,8 +4621,8 @@ function bepaalPassageDocIdx(passage) {
     'zijn','voor','aan','met','bij','uit','als','ook','maar','niet','naar','om','over']);
   const secties = docTekst.split(/(?=^=== )/m);
 
-  for (let idx = 0; idx < huidigeDocumenten.length; idx++) {
-    const doc    = huidigeDocumenten[idx];
+  for (let idx = 0; idx < app.documenten.length; idx++) {
+    const doc    = app.documenten[idx];
     const sectie = secties.find(s => s.startsWith('=== ') && s.includes(doc.bestandsnaam));
     if (!sectie) continue;
     const secNorm = normPassage(sectie);
@@ -4782,8 +4782,8 @@ function toonTekstFallback(panel, searchText) {
 
   // Bij meerdere hoofddocumenten: toon alleen de tekst van het actieve tabblad
   let tekst = volledigeTekst;
-  const activDoc = huidigeDocumenten[huidigeDocIdx];
-  if (activDoc?.bestandsnaam && huidigeDocumenten.length > 1) {
+  const activDoc = app.documenten[huidigeDocIdx];
+  if (activDoc?.bestandsnaam && app.documenten.length > 1) {
     // Gecombineerde tekst splitsen op === secties ===
     const secties = volledigeTekst.split(/(?=^=== )/m);
     const actief  = secties.find(s => s.startsWith('=== ') && s.includes(activDoc.bestandsnaam));
@@ -4837,7 +4837,7 @@ let huidigeNaarEcht         = new Map(); // placeholder   → roepnaam       (vo
 let huidigeNaarEchtVolledig = new Map(); // placeholder   → formele naam   (voor passage-herstel)
 let actieveKaart         = null;
 let splitOrigin          = 'main'; // 'main' | 'dossier'
-let huidigeDocumenten    = []; // per-doc rapporten bij multi-doc analyse
+// app.documenten (was: app.documenten)
 let huidigeDocIdx        = 0;  // index van actief tabblad
 let gewenstDocIdx        = 0;  // gewenst tab-index bij openen vanuit dossierkaart
 let huidigePrimaireBest  = []; // [[File], ...] per primair document
@@ -5015,8 +5015,8 @@ let _issueSortModus = 'ernst';
 let _activeerAnalysePanelFn = null;
 
 function syncCrossDocIssue(crossDocId, updates) {
-  if (!crossDocId || !huidigeDocumenten?.length) return;
-  huidigeDocumenten.forEach((doc, di) => {
+  if (!crossDocId || !app.documenten?.length) return;
+  app.documenten.forEach((doc, di) => {
     if (di === huidigeDocIdx) return;
     const match = doc.issues?.find(i => i.cross_doc_id === crossDocId);
     if (match) Object.assign(match, updates);
@@ -5345,7 +5345,7 @@ async function toonRapport(cls, rp) {
   const docs = Array.isArray(rp.documenten) && rp.documenten.length > 1
     ? [...rp.documenten].sort((a, b) => (_DOC_VOLGORDE[a.doc_type] ?? 99) - (_DOC_VOLGORDE[b.doc_type] ?? 99))
     : null;
-  huidigeDocumenten = docs || [];
+  app.documenten = docs || [];
   huidigeDocIdx     = 0;
 
   // ── Helpers ──
@@ -5523,7 +5523,7 @@ async function toonRapport(cls, rp) {
     const _alleChipHtml = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${_alleMiniRingHtml(issues)}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_totalH||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_totalM||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_totalL||'—'}</strong><span>Laag</span></div></div></button>`;
 
     const _docLblSectie = (() => {
-      const dt = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+      const dt = app.documenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
       const lbl = dt ? (DOC_TYPE_LABELS[dt] || dt) : '';
       return lbl ? `${lbl} — Verbeterpunten` : 'Verbeterpunten';
     })();
@@ -5554,7 +5554,7 @@ async function toonRapport(cls, rp) {
 
     const _pA = huidigDossierPartijA || huidigeClassificatie?.partij_a_naam || '';
     const _pB = huidigDossierPartijB || huidigeClassificatie?.partij_b_naam || '';
-    const _actDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+    const _actDocType = app.documenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
     const _dtLbl = _actDocType ? (DOC_TYPE_LABELS[_actDocType] || _actDocType).toUpperCase() : '';
     const heroHtml = `<div class="summary-row">
       ${scoreHtml}
@@ -5603,7 +5603,7 @@ async function toonRapport(cls, rp) {
         huidigeDocIdx = idx;
         metaEl.querySelectorAll('.db-tab-doc').forEach(b => b.classList.toggle('actief', b === btn));
         const _voorgaandConcepten = huidigRapport?._concepts;
-        const _subRap = huidigeDocumenten[idx] || {};
+        const _subRap = app.documenten[idx] || {};
         huidigRapport = { ...rp, ..._subRap, samenvatting: _subRap.samenvatting ?? '' };
         if (_voorgaandConcepten) {
           huidigRapport._concepts = { ...(huidigRapport._concepts || {}), ..._voorgaandConcepten };
@@ -5824,7 +5824,7 @@ document.getElementById('analysePanel').addEventListener('click', async e => {
   const _goedGevonden = await zoekEnScrollNaarPassage(passage);
   // Cross-doc: als de passage slecht matcht (sliding window of niets), probeer het andere tabblad.
   // Reden: de passage is opgeslagen vanuit één document; bij cross-doc kan het andere tab beter matchen.
-  if (_isCrossDoc && !_goedGevonden && huidigeDocumenten.length > 1) {
+  if (_isCrossDoc && !_goedGevonden && app.documenten.length > 1) {
     const andereTab = document.querySelector('.db-tab-doc:not(.actief)');
     if (andereTab) {
       andereTab.click();
@@ -5853,7 +5853,7 @@ function closeSplitView() {
   docPanelGereed    = false;
   huidigePdfDocCache = {};
   docxPerBestandsnaam.clear();
-  huidigeDocumenten        = [];
+  app.documenten        = [];
   huidigeDocIdx            = 0;
   huidigePrimaireBest      = [];
   // Reset docbar en gecentreerde partijnamen
@@ -6814,7 +6814,7 @@ function updateConceptKnop() {
   const n = items.length;
   if (badge) badge.textContent = n;
 
-  const huidigDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const huidigDocType = app.documenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
   const isBezig = [..._generaties.values()].some(
     g => g.docType === huidigDocType && g.status === 'bezig'
   );
@@ -9103,7 +9103,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   if (!aangevinkt.length) return;
 
   // Doc-type van het actieve tabblad (niet de hoofd-classificatie, want die kan een ander doc zijn)
-  const huidigDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const huidigDocType = app.documenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
 
   // Alleen de tekst van dit documenttype — niet de volledige gecombineerde tekst met alle docs
   const volledigeTekst = huidigRapport._document_tekst || '';
@@ -9137,7 +9137,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   const snapAangevinkt = aangevinkt;
   const snapOrigineel  = origineleTekst;
   // Andere documenten als referentiecontext (bijv. OP bij Convenant en vice versa)
-  const snapAndere = huidigeDocumenten
+  const snapAndere = app.documenten
     .filter((_, i) => i !== huidigeDocIdx)
     .map(doc => {
       const tekst = haalDocTypeTekst(volledigeTekst, doc.doc_type);
@@ -9493,7 +9493,7 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
         if (!huidigRapport._concepts) huidigRapport._concepts = {};
         huidigRapport._concepts[snapDocType] = { ...conceptData, origineel_tekst: snapOrigineel };
         // Toon "Bekijk concept" alleen als de actieve tab overeenkomt met het gegenereerde doctype
-        const _activeDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+        const _activeDocType = app.documenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
         const bekijkBtn = document.getElementById('bekijkConceptBtn');
         if (bekijkBtn) bekijkBtn.style.display = _activeDocType === snapDocType ? 'inline-flex' : 'none';
         _conceptDocType = snapDocType;
@@ -9513,7 +9513,7 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 // "Bekijk concept" knop — heropent de review met het opgeslagen concept voor de actieve tab
 document.getElementById('bekijkConceptBtn').addEventListener('click', () => {
   // Actieve tab-doctype (multi-doc) of hoofdclassificatie (enkelvoudig)
-  const docType  = (huidigeDocumenten[huidigeDocIdx]?.doc_type) || huidigeClassificatie?.doc_type || '';
+  const docType  = (app.documenten[huidigeDocIdx]?.doc_type) || huidigeClassificatie?.doc_type || '';
   const concept  = huidigRapport?._concepts?.[docType]   // nieuw: per doctype
                 || (docType === (huidigeClassificatie?.doc_type || '') ? huidigRapport?._concept : null); // oud: alleen zelfde doctype
   if (!concept) return;
@@ -10001,7 +10001,7 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
     // ── Downloaden ────────────────────────────────────────
     // Gebruik altijd het actieve tabblad-type, NIET huidigeClassificatie.doc_type —
     // dat is het top-level type (bijv. Convenant) en wijkt af bij multi-doc (OP-tab).
-    const activeDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+    const activeDocType = app.documenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
     const docTypeLabel  = DOC_TYPES.find(d => d.value === activeDocType)?.label || 'Concept';
     // Voorkeur: dossier-naam; fallback: partijnamen uit classificatie
     const namenDeel = (() => {
@@ -11876,7 +11876,7 @@ async function laadScreening(id, origin = 'main') {
     await toonRapport(data.classificatie, data.rapport);
     // Toon "Bekijk concept" op basis van het ACTIEVE tabblad (niet altijd het eerste)
     // huidigeDocIdx is al gezet door de tab-click handler hierboven (of 0 bij single-doc)
-    const actieveDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || data.classificatie?.doc_type || '';
+    const actieveDocType = app.documenten[huidigeDocIdx]?.doc_type || data.classificatie?.doc_type || '';
     const heeftConcept   = !!(data.rapport._concepts?.[actieveDocType]
       || (actieveDocType === (data.classificatie?.doc_type || '') ? data.rapport._concept : null));
     const bekijkBtn = document.getElementById('bekijkConceptBtn');
