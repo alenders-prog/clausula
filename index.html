@@ -41,7 +41,7 @@ h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:2rem;margin:0 0 
 .tab.active{color:var(--coral-dark);border-bottom-color:var(--coral);}
 .view{display:none;} .view.active{display:block;}
 
-/* ── Dropzone (lege tray) ──────────────────────────── */
+/* ── Dropzone (lege app.tray) ──────────────────────────── */
 .dropzone{border:1.5px dashed var(--line);border-radius:14px;background:var(--paper);padding:52px 24px;
   text-align:center;cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s;}
 .dropzone.drag{border-color:var(--coral);background:#FFF8F4;box-shadow:0 0 0 3px rgba(200,106,60,.12);}
@@ -54,7 +54,7 @@ h1{font-family:'Source Serif 4',serif;font-weight:600;font-size:2rem;margin:0 0 
 .dropzone p{margin:0;color:var(--ink-mid);font-size:.92rem;font-weight:500;}
 .dropzone .drop-hint{font-size:.78rem;margin-top:6px;color:var(--ink-soft);opacity:.75;}
 
-/* ── Document-tray ─────────────────────────────────── */
+/* ── Document-app.tray ─────────────────────────────────── */
 #trayDropWrap{border-radius:14px;transition:box-shadow .15s;}
 #trayDropWrap.drag{box-shadow:0 0 0 3px rgba(200,106,60,.25);}
 .tray-lijst{border:1.5px solid var(--line);border-radius:14px;background:var(--paper);
@@ -2103,7 +2103,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             <p class="drop-hint">PDF en DOCX · meerdere bestanden tegelijk</p>
           </div>
 
-          <!-- Gevulde tray -->
+          <!-- Gevulde app.tray -->
           <div id="trayDropWrap">
             <div class="tray-lijst" id="trayLijst" style="display:none"></div>
             <div class="tray-voetbalk" id="trayVoetbalk" style="display:none">
@@ -2617,7 +2617,7 @@ const app = {
   docIdx:       0,      // app.docIdx
   bestanden:    [],     // app.bestanden
   primaireBest: [],     // app.primaireBest
-  tray:         [],     // tray
+  tray:         [],     // app.tray
 };
 window.app = app;
 // ─────────────────────────────────────────────────────────────────────────
@@ -5882,12 +5882,12 @@ async function opslaan() {
     // 1. Bestanden uploaden naar Storage (eenmalig)
     //    - fromStorage items: pad al bekend, hoeven niet opnieuw geüpload
     //    - lokale items: upload + sla pad op
-    if (tray.length > 0 && !app.rapport._document_bestanden) {
-      const nieuweLokaal = tray.filter(i => !i.fromStorage && i.bestand);
+    if (app.tray.length > 0 && !app.rapport._document_bestanden) {
+      const nieuweLokaal = app.tray.filter(i => !i.fromStorage && i.bestand);
       if (nieuweLokaal.length > 0)
         status.textContent = `Document${nieuweLokaal.length > 1 ? 'en' : ''} uploaden...`;
       const geupload = [];
-      for (const item of tray) {
+      for (const item of app.tray) {
         if (item.fromStorage && item.storageInfo) {
           // Hergebruik bestaande Storage-pad
           geupload.push({ pad: item.storageInfo.pad, naam: item.bestandsnaam, type: item.type });
@@ -5918,17 +5918,17 @@ async function opslaan() {
         }
         // Tray-items bijwerken zodat volgende analyse direct uit cache leest
         for (const g of geupload) {
-          const item = tray.find(i => i.bestandsnaam === g.naam && !i.fromStorage);
+          const item = app.tray.find(i => i.bestandsnaam === g.naam && !i.fromStorage);
           if (item) {
             item.storageInfo = { pad: g.pad, naam: g.naam };
             item.fromStorage = true;
           }
         }
       }
-    } else if (tray.length > 0 && app.rapport._document_bestanden) {
-      // Types bijwerken als gebruiker ze heeft aangepast in de tray
+    } else if (app.tray.length > 0 && app.rapport._document_bestanden) {
+      // Types bijwerken als gebruiker ze heeft aangepast in de app.tray
       app.rapport._document_bestanden = app.rapport._document_bestanden.map(d => {
-        const item = tray.find(i => i.bestandsnaam === d.naam);
+        const item = app.tray.find(i => i.bestandsnaam === d.naam);
         return item ? { ...d, type: item.type } : d;
       });
     }
@@ -10052,19 +10052,19 @@ function zetDossierContext(id, naam) {
   document.getElementById('versieLabelInput').value = '';
   splitOrigin = 'dossier';
   schakelRechts('rp-analyse');
-  tray.length = 0;
+  app.tray.length = 0;
   trayRender();
 }
 
 // "← Terug": terug naar dossierlijst, herlaad zodat analyses zichtbaar zijn
 document.getElementById('vcWisBtn').addEventListener('click', () => {
-  tray.length = 0;
+  app.tray.length = 0;
   trayRender();
   schakelRechts('rp-home');
   laadDossiers(); // Herlaad vanuit Supabase — anders toont de grid stale data
 });
 
-// ── Document-tray ─────────────────────────────────────
+// ── Document-app.tray ─────────────────────────────────────
 const DOC_TYPES = [
   { value: 'convenant',              label: 'Convenant' },
   { value: 'ouderschapsplan',        label: 'Ouderschapsplan' },
@@ -10115,7 +10115,7 @@ function raadDocType(bestandsnaam) {
   return 'overig';
 }
 
-let tray = []; // { id, bestand (File|null), type, bestandsnaam, storageInfo (null|{pad,naam}), fromStorage }
+// app.tray (was: app.tray) — { id, bestand (File|null), type, bestandsnaam, storageInfo (null|{pad,naam}), fromStorage }
 function trayUid() { return Math.random().toString(36).slice(2); }
 
 function trayTypeOpties(geselecteerd) {
@@ -10130,7 +10130,7 @@ function trayRender() {
   const dropzone  = document.getElementById('dropzone');
   const analyseBtn = document.getElementById('analyseBtn');
 
-  if (!tray.length) {
+  if (!app.tray.length) {
     dropzone.style.display  = '';
     lijst.style.display     = 'none';
     voetbalk.style.display  = 'none';
@@ -10146,9 +10146,9 @@ function trayRender() {
   analyseBtn.disabled     = !app.dossierId;
   analyseBtn.textContent  = !app.dossierId
     ? 'Kies eerst een dossier'
-    : tray.length === 1 ? 'Analyseer document' : `Analyseer ${tray.length} documenten`;
+    : app.tray.length === 1 ? 'Analyseer document' : `Analyseer ${app.tray.length} documenten`;
 
-  lijst.innerHTML = tray.map(item => `
+  lijst.innerHTML = app.tray.map(item => `
     <div class="tray-item${item.fromStorage ? ' from-storage' : ''}" data-tray-id="${item.id}">
       <span class="tray-item-icon">${DOC_TYPE_ICONS[item.type] || '📄'}</span>
       <div class="tray-item-info">
@@ -10166,7 +10166,7 @@ function trayRender() {
   // Type-selector events
   lijst.querySelectorAll('.tray-type-sel').forEach(sel => {
     sel.addEventListener('change', () => {
-      const item = tray.find(i => i.id === sel.dataset.trayId);
+      const item = app.tray.find(i => i.id === sel.dataset.trayId);
       if (item) { item.type = sel.value; trayRender(); }
     });
   });
@@ -10180,7 +10180,7 @@ function trayRender() {
   lijst.querySelectorAll('.tray-vervang-input').forEach(input => {
     input.addEventListener('change', () => {
       if (!input.files.length) return;
-      const item = tray.find(i => i.id === input.dataset.trayId);
+      const item = app.tray.find(i => i.id === input.dataset.trayId);
       if (!item) return;
       item.bestand     = input.files[0];
       item.bestandsnaam = input.files[0].name;
@@ -10192,7 +10192,7 @@ function trayRender() {
   // Verwijder-knop
   lijst.querySelectorAll('.tray-item-btn.verwijder').forEach(btn => {
     btn.addEventListener('click', () => {
-      tray = tray.filter(i => i.id !== btn.dataset.trayId);
+      app.tray = app.tray.filter(i => i.id !== btn.dataset.trayId);
       trayRender();
     });
   });
@@ -10200,7 +10200,7 @@ function trayRender() {
 
 function trayVoegToe(fileList) {
   Array.from(fileList).forEach(bestand => {
-    tray.push({
+    app.tray.push({
       id: trayUid(),
       bestand,
       type: raadDocType(bestand.name),
@@ -10214,7 +10214,7 @@ function trayVoegToe(fileList) {
 
 function trayVoegOpslaanToe(opgeslagen) {
   // opgeslagen: array van {naam, type, pad} uit _document_bestanden
-  tray = opgeslagen.map(d => ({
+  app.tray = opgeslagen.map(d => ({
     id: trayUid(),
     bestand: null,
     type: d.type || raadDocType(d.naam),
@@ -10241,7 +10241,7 @@ const fileInputExtra = document.getElementById('fileInputExtra');
 document.getElementById('trayToevoegenBtn').addEventListener('click', () => fileInputExtra.click());
 fileInputExtra.addEventListener('change', e => { if (e.target.files.length) { trayVoegToe(e.target.files); fileInputExtra.value = ''; } });
 
-// Drag & drop op de gevulde tray — wrapper omsluit lijst én voetbalk
+// Drag & drop op de gevulde app.tray — wrapper omsluit lijst én voetbalk
 const trayDropWrap = document.getElementById('trayDropWrap');
 ['dragover','dragenter'].forEach(ev =>
   trayDropWrap.addEventListener(ev, e => { e.preventDefault(); trayDropWrap.classList.add('drag'); }));
@@ -10256,7 +10256,7 @@ trayDropWrap.addEventListener('drop', e => {
 });
 
 // Alles wissen
-document.getElementById('trayWisBtn').addEventListener('click', () => { tray = []; trayRender(); });
+document.getElementById('trayWisBtn').addEventListener('click', () => { app.tray = []; trayRender(); });
 
 // ── Analyseer-knop ────────────────────────────────────
 const analyseBtn = document.getElementById('analyseBtn');
@@ -10264,7 +10264,7 @@ const scanning   = document.getElementById('scanning');
 const errorBox   = document.getElementById('errorBox');
 
 analyseBtn.addEventListener('click', async () => {
-  if (!tray.length) return;
+  if (!app.tray.length) return;
   errorBox.style.display = 'none';
   analyseBtn.disabled    = true;
   scanning.classList.add('active');
@@ -10293,7 +10293,7 @@ analyseBtn.addEventListener('click', async () => {
 
   try {
     const { classificatie, rapport, resolvedFiles, primaireBestanden, extractedTexts } = await analyseDocument(
-      tray,
+      app.tray,
       (tekst, pct, label) => {
         if (tekst !== null) scanText.textContent = tekst;
         zetVoortgang(label, pct);
@@ -10306,7 +10306,7 @@ analyseBtn.addEventListener('click', async () => {
     app.primaireBest   = primaireBestanden || [resolvedFiles];
     huidigePdfDocCache    = {};
     docPanelGereed        = false;
-    huidigeBestandsnaam   = samenstellenBestandsnaam(classificatie, tray.map(i => ({ name: i.bestandsnaam })));
+    huidigeBestandsnaam   = samenstellenBestandsnaam(classificatie, app.tray.map(i => ({ name: i.bestandsnaam })));
     voegStandaardveldenToe(rapport);
     await toonRapport(classificatie, rapport);
     geslaagd = true;
@@ -10316,7 +10316,7 @@ analyseBtn.addEventListener('click', async () => {
   } finally {
     scanning.classList.remove('active');
     scanVoortgang.classList.remove('actief');
-    analyseBtn.disabled = !tray.length || !app.dossierId;
+    analyseBtn.disabled = !app.tray.length || !app.dossierId;
   }
 
   // Direct automatisch opslaan na succesvolle analyse (buiten try/finally)
@@ -11105,7 +11105,7 @@ async function toonDossierDetail(id) {
     if (versies.length) {
       const bestV = versies[0].rapport?._document_bestanden;
       const tooltip = bestV?.length
-        ? `Nieuwe versie op basis van V${versies[0].versie_nr} — pre-vult tray met: ${bestV.map(b=>b.naam).join(', ')}`
+        ? `Nieuwe versie op basis van V${versies[0].versie_nr} — pre-vult app.tray met: ${bestV.map(b=>b.naam).join(', ')}`
         : `Nieuwe versie aanmaken voor dit dossier`;
       nvBtn.title = tooltip;
     }
@@ -11416,7 +11416,7 @@ function openWizardBestaandDossier() {
   document.getElementById('wizRoepBInp').value   = '';
   document.getElementById('wizVersieInp').value  = '';
 
-  // Pre-populeer wizard-tray met bestanden uit de meest recente versie
+  // Pre-populeer wizard-app.tray met bestanden uit de meest recente versie
   const versie0 = huidigDossierVersies[0];
   const bestanden = versie0?.rapport?._document_bestanden
     || (versie0?.rapport?._document_pad
@@ -11655,7 +11655,7 @@ async function wizAnalyseStarten() {
   if (versie) document.getElementById('versieLabelInput').value = versie;
 
   for (const item of erkend) {
-    tray.push({ id: trayUid(), bestand: item.bestand, type: item.type,
+    app.tray.push({ id: trayUid(), bestand: item.bestand, type: item.type,
       bestandsnaam: item.naam,
       storageInfo: item.storageInfo || null,
       fromStorage: item.fromStorage || false });
