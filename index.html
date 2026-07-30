@@ -9564,6 +9564,22 @@ async function cleanupDocxArtefacten(docxBlob) {
   const body   = xmlDoc.getElementsByTagNameNS(wNs, 'body')[0];
   if (!body) return docxBlob;
 
+  // ── Verwijder tussenpagina-sectie-einden ─────────────────────────────────────
+  // Adobe plaatst per originele PDF-pagina een <w:sectPr> in <w:pPr> → elke
+  // sectie begint op een nieuwe pagina → lege pagina's in het DOCX-resultaat.
+  // De document-niveau <w:sectPr> (directe child van <w:body>) wordt NIET geraakt:
+  // getElementsByTagNameNS op body vindt alleen <w:pPr>-descendants.
+  let sectPrVerwijderd = 0;
+  for (const pPrEl of Array.from(body.getElementsByTagNameNS(wNs, 'pPr'))) {
+    for (const sectPr of Array.from(pPrEl.getElementsByTagNameNS(wNs, 'sectPr'))) {
+      pPrEl.removeChild(sectPr);
+      sectPrVerwijderd++;
+    }
+  }
+  if (sectPrVerwijderd > 0) {
+    console.log(`[cleanup] ${sectPrVerwijderd} tussenpagina-sectie-einde(n) verwijderd`);
+  }
+
   const paras = Array.from(body.childNodes).filter(n =>
     n.nodeType === 1 && n.localName === 'p');
 
