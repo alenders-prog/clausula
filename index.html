@@ -2615,8 +2615,8 @@ const app = {
   rapport:      null,   // huidigRapport
   documenten:   [],     // app.documenten
   docIdx:       0,      // huidigeDocIdx
-  bestanden:    [],     // huidigeBestandenLijst
-  primaireBest: [],     // huidigePrimaireBest
+  bestanden:    [],     // app.bestanden
+  primaireBest: [],     // app.primaireBest
   tray:         [],     // tray
 };
 window.app = app;
@@ -3713,18 +3713,18 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     app.documenten     = [];   // wordt gevuld na klaar-event door toonRapport()
     huidigeDocIdx         = 0;
     // Sorteer op dezelfde volgorde als de tabs in toonRapport zodat
-    // huidigePrimaireBest[0] altijd overeenkomt met tab 0 (OP), ongeacht uploadvolgorde.
+    // app.primaireBest[0] altijd overeenkomt met tab 0 (OP), ongeacht uploadvolgorde.
     const _PRIM_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
     const _gesorteerdeHoofd = [...effectieveHoofdItems].sort(
       (a, b) => (_PRIM_VOLGORDE[a.type] ?? 9) - (_PRIM_VOLGORDE[b.type] ?? 9)
     );
-    huidigePrimaireBest   = _gesorteerdeHoofd.map(hoofd => {
+    app.primaireBest   = _gesorteerdeHoofd.map(hoofd => {
       const relevantCtx = effectieveContextItems
         .filter(ctx => contextVoorHoofd(ctx.type, hoofd.type))
         .map(i => i.bestand).filter(Boolean);
       return [hoofd.bestand, ...relevantCtx].filter(Boolean);
     });
-    huidigeBestandenLijst = huidigePrimaireBest[0] || [];
+    app.bestanden = app.primaireBest[0] || [];
     docPanelGereed        = false;
     huidigePdfDocCache    = {};
 
@@ -3971,8 +3971,8 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
           _metaEl.querySelectorAll('.db-tab-doc').forEach(b => b.classList.toggle('actief', b === btn));
           const item = effectieveHoofdItems[idx];
           _renderProgressief(item.bestandsnaam);
-          const bestVoorTab = huidigePrimaireBest[idx];
-          huidigeBestandenLijst = bestVoorTab?.length ? bestVoorTab : [];
+          const bestVoorTab = app.primaireBest[idx];
+          app.bestanden = bestVoorTab?.length ? bestVoorTab : [];
           huidigePdfDocCache = {};
           docPanelGereed     = false;
           await renderDocPanel('');
@@ -4280,7 +4280,7 @@ function buildRtf(naam,cls,rp) {
 }
 
 // ── Document-panel rendering ──────────────────────────
-let huidigeBestandenLijst = [];
+// app.bestanden (was: app.bestanden) — zie window.app
 let huidigePdfDocCache    = {};
 let docPanelGereed        = false;
 let renderGeneratie       = 0; // verhoogd bij elke nieuwe render; oude renders aborteren zodra ze dit merken
@@ -4346,12 +4346,12 @@ function _dossierNaamHtml(cls) {
 
 async function renderDocPanel(searchText) {
   const panel = document.getElementById('documentPanel');
-  // Defensieve fallback: als huidigeBestandenLijst leeg is maar huidigePrimaireBest[huidigeDocIdx]
+  // Defensieve fallback: als app.bestanden leeg is maar app.primaireBest[huidigeDocIdx]
   // wel bestanden bevat, gebruik die. Vangt timing-edge-cases op bij snelle tab-wissels.
-  if (!huidigeBestandenLijst.length && huidigePrimaireBest[huidigeDocIdx]?.length) {
-    huidigeBestandenLijst = huidigePrimaireBest[huidigeDocIdx];
+  if (!app.bestanden.length && app.primaireBest[huidigeDocIdx]?.length) {
+    app.bestanden = app.primaireBest[huidigeDocIdx];
   }
-  if (!huidigeBestandenLijst.length) { toonTekstFallback(panel, searchText); return; }
+  if (!app.bestanden.length) { toonTekstFallback(panel, searchText); return; }
 
   if (!docPanelGereed) {
     // Verhoog generatie zodat eventueel nog lopende renders direct aborteren
@@ -4360,9 +4360,9 @@ async function renderDocPanel(searchText) {
     panel.classList.remove('tekst-modus');
     panel.innerHTML = '';
     panel.scrollTop = 0;
-    for (let i = 0; i < huidigeBestandenLijst.length; i++) {
+    for (let i = 0; i < app.bestanden.length; i++) {
       if (gen !== renderGeneratie) return; // nieuwere render gestart → stoppen
-      const bestand = huidigeBestandenLijst[i];
+      const bestand = app.bestanden[i];
       if (i > 0) {
         const sch = document.createElement('div');
         sch.className = 'doc-scheiding';
@@ -4840,7 +4840,7 @@ let splitOrigin          = 'main'; // 'main' | 'dossier'
 // app.documenten (was: app.documenten)
 let huidigeDocIdx        = 0;  // index van actief tabblad
 let gewenstDocIdx        = 0;  // gewenst tab-index bij openen vanuit dossierkaart
-let huidigePrimaireBest  = []; // [[File], ...] per primair document
+// app.primaireBest (was: app.primaireBest)
 
 function voegStandaardveldenToe(rapport) {
   const vulaan = r => {
@@ -5610,9 +5610,9 @@ async function toonRapport(cls, rp) {
         }
         activeerAnalysePanel(huidigRapport);
         updateConceptKnop();
-        const bestVoorTab = huidigePrimaireBest[idx];
-        console.log('[tabklik] idx:', idx, '| huidigePrimaireBest[idx]:', bestVoorTab?.map(f => f.name), '| huidigePrimaireBest:', huidigePrimaireBest.map(arr => arr.map(f => f.name)));
-        huidigeBestandenLijst = bestVoorTab?.length ? bestVoorTab : [];
+        const bestVoorTab = app.primaireBest[idx];
+        console.log('[tabklik] idx:', idx, '| app.primaireBest[idx]:', bestVoorTab?.map(f => f.name), '| app.primaireBest:', app.primaireBest.map(arr => arr.map(f => f.name)));
+        app.bestanden = bestVoorTab?.length ? bestVoorTab : [];
         huidigePdfDocCache = {};
         docPanelGereed     = false;
         await renderDocPanel('');
@@ -5641,7 +5641,7 @@ async function toonRapport(cls, rp) {
   // Bij auto-click: huidigRapport is al ingesteld door de tab-click-handler op het gewenste doc
   activeerAnalysePanel(_autoGeklikt ? huidigRapport : drpVoorBanner);
   openSplitView();
-  console.log('[toonRapport] renderDocPanel aanroepen met huidigeBestandenLijst:', huidigeBestandenLijst.map(f => f.name), '| huidigePrimaireBest:', huidigePrimaireBest.map(arr => arr.map(f => f.name)));
+  console.log('[toonRapport] renderDocPanel aanroepen met app.bestanden:', app.bestanden.map(f => f.name), '| app.primaireBest:', app.primaireBest.map(arr => arr.map(f => f.name)));
   await renderDocPanel('');
 }
 
@@ -5855,7 +5855,7 @@ function closeSplitView() {
   docxPerBestandsnaam.clear();
   app.documenten        = [];
   huidigeDocIdx            = 0;
-  huidigePrimaireBest      = [];
+  app.primaireBest      = [];
   // Reset docbar en gecentreerde partijnamen
   const _headerTabsEl = document.getElementById('splitHeaderTabs');
   if (_headerTabsEl) _headerTabsEl.innerHTML = '';
@@ -6019,10 +6019,10 @@ async function opslaan() {
     // ── PDF-bestanden uploaden naar Storage (alleen bij nieuwe screening) ──
     // AVG: pad bevat geen persoonsdata — format {screeningId}/{volgnummer}.pdf.
     // Originele bestandsnaam wordt opgeslagen als metadata (naam) en niet in het pad.
-    if (_wasInsert && huidigeBestandenLijst.length > 0 && !huidigRapport._document_bestanden) {
+    if (_wasInsert && app.bestanden.length > 0 && !huidigRapport._document_bestanden) {
       const _upBest = [];
-      for (let _i = 0; _i < huidigeBestandenLijst.length; _i++) {
-        const _f   = huidigeBestandenLijst[_i];
+      for (let _i = 0; _i < app.bestanden.length; _i++) {
+        const _f   = app.bestanden[_i];
         const _pad = `${data.id}/${_i}.pdf`;
         try {
           const { error: _sErr } = await db.storage.from('documenten').upload(_pad, _f, { upsert: true });
@@ -7845,7 +7845,7 @@ function bouwAnonMap(classificatie) {
     classificatie?.dossier_naam || '',
     classificatie?.dossier_partij_a || '',
     classificatie?.dossier_partij_b || '',
-    ...(typeof huidigeBestandenLijst !== 'undefined' ? huidigeBestandenLijst.map(f => f.name) : []),
+    ...(typeof app.bestanden !== 'undefined' ? app.bestanden.map(f => f.name) : []),
   ].filter(Boolean);
 
   if (_bronNamen.length) {
@@ -9150,9 +9150,9 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
     .filter(Boolean)
     .join('\n\n');
   // Origineel PDF-bestand voor Adobe DOCX-conversie
-  const snapBestand    = huidigePrimaireBest[huidigeDocIdx]
+  const snapBestand    = app.primaireBest[huidigeDocIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
-    || huidigePrimaireBest[huidigeDocIdx]?.[0]
+    || app.primaireBest[huidigeDocIdx]?.[0]
     || null;
   // Pseudonimiseringsmap op basis van de bekende namen
   const { naarAnon: snapNaarAnon, naarEcht: snapNaarEcht } = bouwAnonMap(huidigeClassificatie || {});
@@ -9517,9 +9517,9 @@ document.getElementById('bekijkConceptBtn').addEventListener('click', () => {
   const concept  = huidigRapport?._concepts?.[docType]   // nieuw: per doctype
                 || (docType === (huidigeClassificatie?.doc_type || '') ? huidigRapport?._concept : null); // oud: alleen zelfde doctype
   if (!concept) return;
-  const pdfVoorReview = huidigePrimaireBest[huidigeDocIdx]
+  const pdfVoorReview = app.primaireBest[huidigeDocIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
-    || huidigePrimaireBest[huidigeDocIdx]?.[0] || null;
+    || app.primaireBest[huidigeDocIdx]?.[0] || null;
   _conceptDocType = docType;
   // Zoek meest recente _generaties-entry voor dit doctype om acceptatie te herstellen
   const matchGen = [..._generaties.entries()]
@@ -9927,8 +9927,8 @@ ${bodyXml}
 // schoon=false (default) → track-changes bewaard (voor download/weergave in Word).
 async function _bouwExportDocx(meldBtn, schoon = false) {
   const pdfBestand = _conceptOriginelePdf
-    || huidigePrimaireBest[huidigeDocIdx]?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
-    || huidigePrimaireBest[huidigeDocIdx]?.[0]
+    || app.primaireBest[huidigeDocIdx]?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
+    || app.primaireBest[huidigeDocIdx]?.[0]
     || null;
 
   const idbSleutel = huidigeId && _conceptDocType ? _docxIdb.sleutel(huidigeId, _conceptDocType) : null;
@@ -10302,8 +10302,8 @@ analyseBtn.addEventListener('click', async () => {
     huidigeId             = null;
     huidigeExtractedTexts = extractedTexts || [];   // bewaard voor cache-backfill in opslaan()
     // Toon in het doc-panel het eerste primaire document; bij single-doc = resolvedFiles
-    huidigeBestandenLijst = (primaireBestanden?.[0]) || resolvedFiles;
-    huidigePrimaireBest   = primaireBestanden || [resolvedFiles];
+    app.bestanden = (primaireBestanden?.[0]) || resolvedFiles;
+    app.primaireBest   = primaireBestanden || [resolvedFiles];
     huidigePdfDocCache    = {};
     docPanelGereed        = false;
     huidigeBestandsnaam   = samenstellenBestandsnaam(classificatie, tray.map(i => ({ name: i.bestandsnaam })));
@@ -11767,7 +11767,7 @@ async function laadScreening(id, origin = 'main') {
     huidigeBestandsnaam      = data.bestandsnaam;
     huidigePdfDocCache       = {};
     docPanelGereed           = false;
-    huidigeBestandenLijst    = [];
+    app.bestanden    = [];
 
     // Bestanden ophalen uit Storage (backward compat: enkel of meerdere)
     const bestandenMeta = data.rapport._document_bestanden
@@ -11782,7 +11782,7 @@ async function laadScreening(id, origin = 'main') {
         const resp = await fetch(signed.signedUrl);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const blob = await resp.blob();
-        huidigeBestandenLijst.push(new File([blob], naam, { type: blob.type }));
+        app.bestanden.push(new File([blob], naam, { type: blob.type }));
       } catch (e) {
         console.warn('Bestand laden mislukt:', naam, e.message);
       }
@@ -11800,34 +11800,34 @@ async function laadScreening(id, origin = 'main') {
       ? [...rDocs].sort((a, b) => (_TAB_VOLGORDE[a.doc_type] ?? 99) - (_TAB_VOLGORDE[b.doc_type] ?? 99))
       : null;
     if (rDocsSorted) {
-      console.log('[laadScreening] bestanden in lijst:', huidigeBestandenLijst.map(f => f.name));
+      console.log('[laadScreening] bestanden in lijst:', app.bestanden.map(f => f.name));
       console.log('[laadScreening] docs gesorteerd:', rDocsSorted.map(d => d.doc_type + ':' + d.bestandsnaam));
       const contextMap = data.rapport._context_per_hoofd; // opgeslagen tijdens analyse
-      huidigePrimaireBest = rDocsSorted.map(doc => {
-        let eigen = huidigeBestandenLijst.filter(f => f.name === doc.bestandsnaam);
+      app.primaireBest = rDocsSorted.map(doc => {
+        let eigen = app.bestanden.filter(f => f.name === doc.bestandsnaam);
         console.log('[laadScreening] match', doc.bestandsnaam, '→', eigen.length, 'gevonden');
         if (!eigen.length) {
           // Fallback: naam komt niet overeen — probeer doc_type-heuristiek op bestandsnaam
-          eigen = huidigeBestandenLijst.filter(f => raadDocType(f.name) === doc.doc_type);
+          eigen = app.bestanden.filter(f => raadDocType(f.name) === doc.doc_type);
           if (eigen.length) {
             console.warn('[laadScreening] naam-match mislukt voor', doc.bestandsnaam,
               '→ fallback op doc_type-heuristiek, gevonden:', eigen.map(f => f.name));
           } else {
             console.warn('[laadScreening] geen bestand gevonden voor', doc.bestandsnaam,
-              '(doc_type:', doc.doc_type, ') beschikbaar:', huidigeBestandenLijst.map(f => f.name));
+              '(doc_type:', doc.doc_type, ') beschikbaar:', app.bestanden.map(f => f.name));
           }
         }
         if (contextMap) {
           // Gebruik de opgeslagen toewijzing: alleen relevante contextbestanden per tab
           const mapping   = contextMap.find(m => m.bestandsnaam === doc.bestandsnaam);
           const ctxNamen  = new Set(mapping?.context || []);
-          const ctxBest   = huidigeBestandenLijst.filter(f => ctxNamen.has(f.name));
+          const ctxBest   = app.bestanden.filter(f => ctxNamen.has(f.name));
           return [...eigen, ...ctxBest];
         } else {
           // Oudere rapporten zonder _context_per_hoofd: gebruik type-mapping als fallback
           const hoofdNamen = new Set(rDocsSorted.map(d => d.bestandsnaam).filter(Boolean));
           const eigenNamen = new Set(eigen.map(f => f.name));
-          const alleCtx    = huidigeBestandenLijst.filter(f => !hoofdNamen.has(f.name) && !eigenNamen.has(f.name));
+          const alleCtx    = app.bestanden.filter(f => !hoofdNamen.has(f.name) && !eigenNamen.has(f.name));
           const docType    = doc.doc_type || '';
           const relevanteCtx = alleCtx.filter(f => {
             const ctxType = raadDocType(f.name);
@@ -11837,17 +11837,17 @@ async function laadScreening(id, origin = 'main') {
         }
       });
       // Initieel het eerste hoofddocument + context tonen (na sortering = ouderschapsplan)
-      console.log('[laadScreening] huidigePrimaireBest[0]:', huidigePrimaireBest[0]?.map(f => f.name));
-      if (huidigePrimaireBest[0]?.length) {
-        huidigeBestandenLijst = huidigePrimaireBest[0];
-        console.log('[laadScreening] huidigeBestandenLijst ingesteld op:', huidigeBestandenLijst.map(f => f.name));
+      console.log('[laadScreening] app.primaireBest[0]:', app.primaireBest[0]?.map(f => f.name));
+      if (app.primaireBest[0]?.length) {
+        app.bestanden = app.primaireBest[0];
+        console.log('[laadScreening] app.bestanden ingesteld op:', app.bestanden.map(f => f.name));
       } else {
-        huidigeBestandenLijst = [];
-        console.warn('[laadScreening] huidigePrimaireBest[0] is leeg — huidigeBestandenLijst ingesteld op []');
+        app.bestanden = [];
+        console.warn('[laadScreening] app.primaireBest[0] is leeg — app.bestanden ingesteld op []');
       }
     } else {
       // Enkelvoudige analyse: alle bestanden samen (hoofd + context) in één viewer
-      huidigePrimaireBest = [huidigeBestandenLijst];
+      app.primaireBest = [app.bestanden];
     }
 
     // Dossier-context instellen als de screening bij een dossier hoort
