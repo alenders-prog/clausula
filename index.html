@@ -2612,7 +2612,7 @@ const app = {
   dossierNaam:  null,   // app.dossierNaam
   screeningId:  null,   // app.screeningId
   classificatie: null,  // app.classificatie
-  rapport:      null,   // huidigRapport
+  rapport:      null,   // app.rapport
   documenten:   [],     // app.documenten
   docIdx:       0,      // app.docIdx
   bestanden:    [],     // app.bestanden
@@ -3170,7 +3170,7 @@ function vindDocVolgorde(issuesArr) {
   // Gebruik alleen de tekst van het actieve tabblad, niet de gecombineerde tekst.
   // Zo worden cross-doc passages die ook in het andere document staan niet op een
   // vroege positie gematcht (Convenant staat eerst in de gecombineerde tekst).
-  const volledigeTekst = huidigRapport?._document_tekst || '';
+  const volledigeTekst = app.rapport?._document_tekst || '';
   const huidigDocType  = app.documenten[app.docIdx]?.doc_type
                       || app.classificatie?.doc_type || '';
   const tabTekst = haalDocTypeTekst(volledigeTekst, huidigDocType);
@@ -3763,10 +3763,10 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       ];
 
       // Zet global zodat issueKaart() en de checkbox-handlers kloppen
-      // Samenvatting ALLEEN uit eigen acc.structuur — nooit fallback naar huidigRapport.samenvatting
+      // Samenvatting ALLEEN uit eigen acc.structuur — nooit fallback naar app.rapport.samenvatting
       // (die kan van een ander tabblad zijn als de Convenant-structuur later binnenkomt dan het OP).
-      huidigRapport = {
-        ...(huidigRapport || {}),
+      app.rapport = {
+        ...(app.rapport || {}),
         issues:       alleI,
         samenvatting: acc.structuur?.samenvatting ?? '',
         mfn_score:    acc.structuur?.mfn_score    || null,
@@ -3803,7 +3803,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       ].filter(Boolean).join(' · ');
 
       // MfN eigen score (aparte berekening — telt niet mee in gewogen score)
-      const _mfnEl   = huidigRapport?.mfn_score?.elementen || [];
+      const _mfnEl   = app.rapport?.mfn_score?.elementen || [];
       const _mfnAanw = _mfnEl.filter(e => e.status === 'aanwezig').length;
       const _mfnStat = _mfnEl.length
         ? `${_mfnAanw}/${_mfnEl.length}`
@@ -3817,7 +3817,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
           ? `<button class="a-fiche-chip a-fiche-chip--laden" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn||''}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">—</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">—</strong><span>Totaal</span></div></div></button>`
           : '';
       const _mfnSectieHtml = (() => {
-        const _mfn = huidigRapport?.mfn_score;
+        const _mfn = app.rapport?.mfn_score;
         if (!_mfn?.elementen?.length) return '';
         const _mt = _mfn.elementen.length;
         const _ma = _mfn.elementen.filter(e => e.status === 'aanwezig').length;
@@ -3865,8 +3865,8 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         }</div>
       </div>`;
 
-      const samenvattingHtml = huidigRapport.samenvatting
-        ? `<div class="samenvatting">${escH(huidigRapport.samenvatting)}</div>` : '';
+      const samenvattingHtml = app.rapport.samenvatting
+        ? `<div class="samenvatting">${escH(app.rapport.samenvatting)}</div>` : '';
 
       // Filter-knopjes — loading-dims krijgen kop-pulse animatie; klare dims gekleurde tellers
       const dims = ['juridisch','volledigheid','balans','conflicten','cross_doc','grammatica'];
@@ -3936,7 +3936,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const _progDtLbl = _progLbl ? _progLbl.toUpperCase() : '';
       const _pA = huidigDossierPartijA || app.classificatie?.partij_a_naam || '';
       const _pB = huidigDossierPartijB || app.classificatie?.partij_b_naam || '';
-      const _samen = huidigRapport.samenvatting;
+      const _samen = app.rapport.samenvatting;
       const _progHeroHtml = `<div class="summary-row">
         ${scoreHtml}
         <div class="sum-title">Samenvatting</div>
@@ -4579,8 +4579,8 @@ function normPassage(s) {
 // Geeft een fractie (0–1) terug van waar de passage zich bevindt, of null als niet gevonden.
 // Belangrijk: _document_tekst is pseudonimiseerd → passage wordt eerst terug-pseudonimiseerd.
 function vindPassageFractie(passage) {
-  if (!passage || !huidigRapport?._document_tekst) return null;
-  const docNorm = normPassage(huidigRapport._document_tekst);
+  if (!passage || !app.rapport?._document_tekst) return null;
+  const docNorm = normPassage(app.rapport._document_tekst);
   // Passage is gede-anonimiseerd (echte namen); terug-pseudonimiseren voor match in _document_tekst
   const zoekTekst = anonimiseerTekst(passage, huidigeNaarAnon);
   const pasNorm = normPassage(zoekTekst);
@@ -4610,7 +4610,7 @@ function vindPassageFractie(passage) {
 // Gebruikt pseudonimiseerde vergelijking (consistent met de opgeslagen _document_tekst).
 // Geeft de tab-index terug, of null als niet bepaald.
 function bepaalPassageDocIdx(passage) {
-  const docTekst = huidigRapport?._document_tekst;
+  const docTekst = app.rapport?._document_tekst;
   if (!docTekst || app.documenten.length <= 1) return null;
 
   const zoekTekst = anonimiseerTekst(passage, huidigeNaarAnon);
@@ -4777,7 +4777,7 @@ function highlightInDocx(searchText) {
 
 function toonTekstFallback(panel, searchText) {
   panel.classList.add('tekst-modus');
-  const volledigeTekst = huidigRapport?._document_tekst || '';
+  const volledigeTekst = app.rapport?._document_tekst || '';
   if (!volledigeTekst) { panel.innerHTML = '<p class="doc-leeg">Documenttekst niet beschikbaar.</p>'; return; }
 
   // Bij meerdere hoofddocumenten: toon alleen de tekst van het actieve tabblad
@@ -4829,7 +4829,7 @@ function toonTekstFallback(panel, searchText) {
 // app.screeningId (was: app.screeningId)
 let huidigeBestandsnaam  = null;
 // app.classificatie (was: app.classificatie)
-let huidigRapport        = null;
+// app.rapport (was: app.rapport)
 let huidigeExtractedTexts = []; // [{bestandsnaam, tekst}] — gevuld na analyse, voor cache-backfill in opslaan()
 // Pseudonimiseringsmappen — worden gezet na analyse (bouwAnonMap) en na laden (decrypt)
 let huidigeNaarAnon         = new Map(); // lowercase naam → placeholder    (voor opslaan)
@@ -4894,7 +4894,7 @@ function toggleTabFilter(btn) {
 }
 
 function kaart(cat, idx, extraClass, kopHtml, metaHtml, citaatHtml) {
-  const item     = huidigRapport[cat][idx];
+  const item     = app.rapport[cat][idx];
   const passage  = getPassage(item, cat);
   const klikbaar = !!passage;
   const suggestie = item.suggestie || '';
@@ -4903,7 +4903,7 @@ function kaart(cat, idx, extraClass, kopHtml, metaHtml, citaatHtml) {
   <div class="card ${extraClass}${klikbaar?' heeft-passage':''}" data-cat="${cat}" data-idx="${idx}" data-ok="${isOk?'1':'0'}">
     <div class="item-row">
       <input type="checkbox" ${item.afgehandeld?'checked':''}
-        onchange="huidigRapport['${cat}'][${idx}].afgehandeld=this.checked;updateConceptKnop();autoSlaOp()">
+        onchange="app.rapport['${cat}'][${idx}].afgehandeld=this.checked;updateConceptKnop();autoSlaOp()">
       <div class="item-body">
         <div class="card-kop">
           <div class="label">${kopHtml}</div>
@@ -4913,7 +4913,7 @@ function kaart(cat, idx, extraClass, kopHtml, metaHtml, citaatHtml) {
         ${citaatHtml||''}
         ${suggestie?`<div class="suggestie-wrap"><div class="suggestie-label">💡 Suggestie</div>${escH(suggestie)}</div>`:''}
         <textarea class="opmerking" placeholder="Opmerking toevoegen..."
-          oninput="huidigRapport['${cat}'][${idx}].opmerking=this.value;autoSlaOp()">${item.opmerking||''}</textarea>
+          oninput="app.rapport['${cat}'][${idx}].opmerking=this.value;autoSlaOp()">${item.opmerking||''}</textarea>
       </div>
     </div>
   </div>`;
@@ -4957,7 +4957,7 @@ function _alleMiniRingHtml(issues) {
 
 
 function herlaadChipTellers() {
-  const issues = huidigRapport?.issues;
+  const issues = app.rapport?.issues;
   if (!issues) return;
   document.querySelectorAll('.filter-chip-grid .a-fiche-chip').forEach(chip => {
     const dim = chip.dataset.dim;
@@ -5039,7 +5039,7 @@ function sorteerIssues() {
 
   if (_activeerAnalysePanelFn) {
     // Na voltooide analyse: volledige panel-rebuild via toonRapport-closure
-    _activeerAnalysePanelFn(huidigRapport);
+    _activeerAnalysePanelFn(app.rapport);
     // Herstel actieve filter (bouwAnalyseHtml reset altijd naar 'alle')
     const herstelBtn = _vindHerstelBtn(huidigeDim);
     if (herstelBtn) filterIssues(herstelBtn);
@@ -5047,7 +5047,7 @@ function sorteerIssues() {
   }
 
   // Fallback: directe DOM-manipulatie (tijdens progressieve render of als closure nog null is)
-  const issues = huidigRapport?.issues;
+  const issues = app.rapport?.issues;
   const lijstEl = document.getElementById('issuesLijst');
   if (!issues || !lijstEl) return;
 
@@ -5068,7 +5068,7 @@ function sorteerIssues() {
 }
 
 function issueKaart(idx, nr) {
-  const issue = huidigRapport.issues[idx];
+  const issue = app.rapport.issues[idx];
   if (!issue || typeof issue !== 'object') return '';
   const ernstKlas    = 'sev-' + (issue.ernst || 'midden');
   const isOk         = issue.ernst === 'laag';
@@ -5117,13 +5117,13 @@ function issueKaart(idx, nr) {
           </div>`
         : `<button class="ib-ext-btn" style="margin-bottom:9px" onclick="diepteAnalyse(${idx});event.stopPropagation()">⟳ Extra verificatie</button>`}
       <textarea class="ib-textarea opmerking" placeholder="Opmerking toevoegen..." rows="2"
-        oninput="huidigRapport.issues[${idx}].opmerking=this.value;${syncOpmFn}autoSlaOp()">${issue.opmerking||''}</textarea>
+        oninput="app.rapport.issues[${idx}].opmerking=this.value;${syncOpmFn}autoSlaOp()">${issue.opmerking||''}</textarea>
     </div>
   </div>`;
 }
 
 function cycleCardCheck(idx) {
-  const issue = huidigRapport.issues[idx];
+  const issue = app.rapport.issues[idx];
   if (!issue) return;
   const cur  = issue.negeer ? 2 : issue.afgehandeld ? 1 : 0;
   const next = (cur + 1) % 3;
@@ -5160,7 +5160,7 @@ function toggleCardBody(caretBtn) {
 function setSortModus(value) {
   _issueSortModus = value;
   const ERNST_ORD = { hoog: 0, midden: 1, laag: 2 };
-  const issues = huidigRapport?.issues;
+  const issues = app.rapport?.issues;
   const lijstEl = document.getElementById('issuesLijst');
   if (!issues || !lijstEl) return;
   const gesorteerdeIdx = value === 'volgorde'
@@ -5220,7 +5220,7 @@ function _diepteMarkdown(tekst) {
 }
 
 async function diepteAnalyse(idx) {
-  const issue = huidigRapport.issues[idx];
+  const issue = app.rapport.issues[idx];
   if (!issue) return;
 
   const modal = document.getElementById('diepteModal');
@@ -5337,7 +5337,7 @@ function filterIssues(btn) {
 
 async function toonRapport(cls, rp) {
   app.classificatie = cls;
-  huidigRapport        = rp;
+  app.rapport        = rp;
   _issueSortModus      = 'ernst'; // reset sorteermodus bij openen opgeslagen rapport
 
   // Multi-doc: rapport.documenten[] aanwezig? — gesorteerd: OP → Zorgverdeling → Convenant → Waardeoverzicht → rest
@@ -5602,13 +5602,13 @@ async function toonRapport(cls, rp) {
         if (idx === app.docIdx) return;
         app.docIdx = idx;
         metaEl.querySelectorAll('.db-tab-doc').forEach(b => b.classList.toggle('actief', b === btn));
-        const _voorgaandConcepten = huidigRapport?._concepts;
+        const _voorgaandConcepten = app.rapport?._concepts;
         const _subRap = app.documenten[idx] || {};
-        huidigRapport = { ...rp, ..._subRap, samenvatting: _subRap.samenvatting ?? '' };
+        app.rapport = { ...rp, ..._subRap, samenvatting: _subRap.samenvatting ?? '' };
         if (_voorgaandConcepten) {
-          huidigRapport._concepts = { ...(huidigRapport._concepts || {}), ..._voorgaandConcepten };
+          app.rapport._concepts = { ...(app.rapport._concepts || {}), ..._voorgaandConcepten };
         }
-        activeerAnalysePanel(huidigRapport);
+        activeerAnalysePanel(app.rapport);
         updateConceptKnop();
         const bestVoorTab = app.primaireBest[idx];
         console.log('[tabklik] idx:', idx, '| app.primaireBest[idx]:', bestVoorTab?.map(f => f.name), '| app.primaireBest:', app.primaireBest.map(arr => arr.map(f => f.name)));
@@ -5636,10 +5636,10 @@ async function toonRapport(cls, rp) {
   const drpVoorBanner = docs ? { ...rp, ...docs[0] } : rp;
   if (docs && !_autoGeklikt) {
     // Geen auto-click: standaard tonen van docs[0] (ouderschapsplan)
-    huidigRapport = drpVoorBanner;
+    app.rapport = drpVoorBanner;
   }
-  // Bij auto-click: huidigRapport is al ingesteld door de tab-click-handler op het gewenste doc
-  activeerAnalysePanel(_autoGeklikt ? huidigRapport : drpVoorBanner);
+  // Bij auto-click: app.rapport is al ingesteld door de tab-click-handler op het gewenste doc
+  activeerAnalysePanel(_autoGeklikt ? app.rapport : drpVoorBanner);
   openSplitView();
   console.log('[toonRapport] renderDocPanel aanroepen met app.bestanden:', app.bestanden.map(f => f.name), '| app.primaireBest:', app.primaireBest.map(arr => arr.map(f => f.name)));
   await renderDocPanel('');
@@ -5806,14 +5806,14 @@ document.getElementById('analysePanel').addEventListener('click', async e => {
   if (!isNaN(issueIdx)) {
     // Nieuw schema v2: issues[idx]
     // Volgorde van voorkeur: verbatim passage > onderwerp (kort & specifiek) > bevinding
-    const issue = huidigRapport.issues?.[issueIdx];
+    const issue = app.rapport.issues?.[issueIdx];
     passage = issue?.passage || '';
     _isCrossDoc = !!issue?.cross_doc_id;
   } else {
     // Oud schema (backward compat): cat/idx
     const cat = card.dataset.cat;
     const idx = parseInt(card.dataset.idx, 10);
-    passage = getPassage(huidigRapport[cat]?.[idx], cat);
+    passage = getPassage(app.rapport[cat]?.[idx], cat);
   }
 
   if (!passage) return;
@@ -5882,7 +5882,7 @@ async function opslaan() {
     // 1. Bestanden uploaden naar Storage (eenmalig)
     //    - fromStorage items: pad al bekend, hoeven niet opnieuw geüpload
     //    - lokale items: upload + sla pad op
-    if (tray.length > 0 && !huidigRapport._document_bestanden) {
+    if (tray.length > 0 && !app.rapport._document_bestanden) {
       const nieuweLokaal = tray.filter(i => !i.fromStorage && i.bestand);
       if (nieuweLokaal.length > 0)
         status.textContent = `Document${nieuweLokaal.length > 1 ? 'en' : ''} uploaden...`;
@@ -5901,19 +5901,19 @@ async function opslaan() {
         }
       }
       if (geupload.length) {
-        huidigRapport._document_bestanden = geupload;
+        app.rapport._document_bestanden = geupload;
 
         // Backfill tekstcache: koppel de zojuist toegewezen Storage-paden aan de
         // geëxtraheerde teksten die tijdens de analyse zijn uitgelezen.
         // Zo slaan we _teksten_per_pad correct op in het rapport, en hoeft OCR
         // bij een volgende analyse van dezelfde bestanden niet opnieuw te draaien.
-        if (!huidigRapport._teksten_per_pad) huidigRapport._teksten_per_pad = {};
+        if (!app.rapport._teksten_per_pad) app.rapport._teksten_per_pad = {};
         for (const g of geupload) {
           if (tekstPerPad.has(g.pad)) continue; // al in cache (fromStorage-item)
           const gevonden = huidigeExtractedTexts.find(t => t.bestandsnaam === g.naam);
           if (gevonden?.tekst) {
             tekstPerPad.set(g.pad, gevonden.tekst);
-            huidigRapport._teksten_per_pad[g.pad] = gevonden.tekst;
+            app.rapport._teksten_per_pad[g.pad] = gevonden.tekst;
           }
         }
         // Tray-items bijwerken zodat volgende analyse direct uit cache leest
@@ -5925,9 +5925,9 @@ async function opslaan() {
           }
         }
       }
-    } else if (tray.length > 0 && huidigRapport._document_bestanden) {
+    } else if (tray.length > 0 && app.rapport._document_bestanden) {
       // Types bijwerken als gebruiker ze heeft aangepast in de tray
-      huidigRapport._document_bestanden = huidigRapport._document_bestanden.map(d => {
+      app.rapport._document_bestanden = app.rapport._document_bestanden.map(d => {
         const item = tray.find(i => i.bestandsnaam === d.naam);
         return item ? { ...d, type: item.type } : d;
       });
@@ -5981,9 +5981,9 @@ async function opslaan() {
     // strip ook _teksten_per_pad (grote bulk-tekst, herinstelbaar via Storage).
     // _document_tekst wordt gepseudonymiseerd bewaard (nodig voor vindDocVolgorde na laden).
     const _opsl_classificatie = namen_map ? bouwClassificatiePseudo(app.classificatie) : app.classificatie;
-    let   _opsl_rapport       = huidigRapport;
+    let   _opsl_rapport       = app.rapport;
     if (namen_map) {
-      const { _teksten_per_pad, ...rapportZonderBulk } = huidigRapport;
+      const { _teksten_per_pad, ...rapportZonderBulk } = app.rapport;
       _opsl_rapport = anonimiseerObj(rapportZonderBulk, huidigeNaarAnon);
     }
 
@@ -6019,7 +6019,7 @@ async function opslaan() {
     // ── PDF-bestanden uploaden naar Storage (alleen bij nieuwe screening) ──
     // AVG: pad bevat geen persoonsdata — format {screeningId}/{volgnummer}.pdf.
     // Originele bestandsnaam wordt opgeslagen als metadata (naam) en niet in het pad.
-    if (_wasInsert && app.bestanden.length > 0 && !huidigRapport._document_bestanden) {
+    if (_wasInsert && app.bestanden.length > 0 && !app.rapport._document_bestanden) {
       const _upBest = [];
       for (let _i = 0; _i < app.bestanden.length; _i++) {
         const _f   = app.bestanden[_i];
@@ -6031,7 +6031,7 @@ async function opslaan() {
         } catch (_e) { console.warn('[opslaan] Storage fout:', _e.message); }
       }
       if (_upBest.length) {
-        huidigRapport._document_bestanden = _upBest;
+        app.rapport._document_bestanden = _upBest;
         // Update rapport in Supabase met bestanden-metadata (na INSERT, apart request)
         await db.from('screeningen')
           .update({ rapport: { ..._opsl_rapport, _document_bestanden: _upBest } })
@@ -6047,8 +6047,8 @@ async function opslaan() {
     }
 
     // Versie-info in rapport bewaren voor PDF-rapport
-    huidigRapport._versie_nr    = versieNr;
-    huidigRapport._versie_label = versieLabel;
+    app.rapport._versie_nr    = versieNr;
+    app.rapport._versie_label = versieLabel;
 
     status.textContent = 'Opgeslagen ✓';
     setTimeout(() => { if (status.textContent === 'Opgeslagen ✓') status.textContent = ''; }, 3000);
@@ -6678,7 +6678,7 @@ function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam
 }
 
 document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-  const drp = huidigRapport;
+  const drp = app.rapport;
   const partijA  = huidigDossierPartijA || document.getElementById('dossierPartijAEdit')?.value?.trim() || (app.classificatie?.partij_a_naam || '');
   const partijB  = huidigDossierPartijB || document.getElementById('dossierPartijBEdit')?.value?.trim() || (app.classificatie?.partij_b_naam || '');
   const namenStr = [partijA, partijB].filter(Boolean).join(' & ');
@@ -6808,7 +6808,7 @@ function updateConceptKnop() {
   const areaEl    = document.getElementById('splitConceptArea');
   const titleEl   = document.getElementById('splitConceptTitle');
   const subEl     = document.getElementById('splitConceptSub');
-  if (!huidigRapport || !genBtn) return;
+  if (!app.rapport || !genBtn) return;
 
   const items = verzamelAangevinkt();
   const n = items.length;
@@ -6818,14 +6818,14 @@ function updateConceptKnop() {
   const isBezig = [..._generaties.values()].some(
     g => g.docType === huidigDocType && g.status === 'bezig'
   );
-  const heeftConcept = !!(huidigRapport._concepts?.[huidigDocType]
-    || (huidigDocType === (app.classificatie?.doc_type || '') ? huidigRapport._concept : null));
+  const heeftConcept = !!(app.rapport._concepts?.[huidigDocType]
+    || (huidigDocType === (app.classificatie?.doc_type || '') ? app.rapport._concept : null));
 
   // Concept-info bovenin
   if (areaEl) areaEl.style.display = '';
-  if (huidigRapport?.issues) {
-    const openH      = huidigRapport.issues.filter(i => i.ernst === 'hoog' && !i.afgehandeld && !i.negeer).length;
-    const aangebracht = huidigRapport.issues.filter(i => i.afgehandeld).length;
+  if (app.rapport?.issues) {
+    const openH      = app.rapport.issues.filter(i => i.ernst === 'hoog' && !i.afgehandeld && !i.negeer).length;
+    const aangebracht = app.rapport.issues.filter(i => i.afgehandeld).length;
     const titelTekst = isBezig ? 'Concept wordt gegenereerd…'
       : openH > 0 ? `Nog ${openH} hoge prioriteit${openH !== 1 ? 'en' : ''} open`
       : 'Klaar voor concept';
@@ -6859,12 +6859,12 @@ function updateConceptKnop() {
 }
 
 function verzamelAangevinkt() {
-  if (!huidigRapport) return [];
+  if (!app.rapport) return [];
   const resultaat = [];
 
   // Nieuw schema v2
-  if (Array.isArray(huidigRapport.issues)) {
-    huidigRapport.issues.forEach(issue => {
+  if (Array.isArray(app.rapport.issues)) {
+    app.rapport.issues.forEach(issue => {
       if (issue.afgehandeld) resultaat.push({ ...issue, categorie: 'Issues' });
     });
     return resultaat;
@@ -6878,7 +6878,7 @@ function verzamelAangevinkt() {
     { cat: 'grammatica',   label: 'Grammatica & taal' },
   ];
   for (const { cat, label } of cats) {
-    const lijst = huidigRapport[cat];
+    const lijst = app.rapport[cat];
     if (!Array.isArray(lijst)) continue;
     lijst.forEach(item => {
       if (item.afgehandeld) resultaat.push({ ...item, categorie: label });
@@ -8856,10 +8856,10 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
       clearTimeout(_acceptatieSaveTimer);
       _acceptatieSaveTimer = setTimeout(async () => {
         if (!app.screeningId || !_conceptDocType) return;
-        if (!huidigRapport?._concepts?.[_conceptDocType]) return;
+        if (!app.rapport?._concepts?.[_conceptDocType]) return;
         try {
           await db.from('screeningen')
-            .update({ rapport: huidigRapport })
+            .update({ rapport: app.rapport })
             .eq('id', app.screeningId);
         } catch (e) { console.warn('[acceptatie] Supabase-opslag mislukt:', e.message); }
       }, 1500);
@@ -8876,14 +8876,14 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
           else genEntry.acceptatie[idx] = status;
         }
       }
-      // Persisteer ook in huidigRapport → Supabase (andere computer / na herstart)
-      if (_conceptDocType && huidigRapport?._concepts?.[_conceptDocType]) {
-        if (!huidigRapport._concepts[_conceptDocType].acceptatie)
-          huidigRapport._concepts[_conceptDocType].acceptatie = {};
+      // Persisteer ook in app.rapport → Supabase (andere computer / na herstart)
+      if (_conceptDocType && app.rapport?._concepts?.[_conceptDocType]) {
+        if (!app.rapport._concepts[_conceptDocType].acceptatie)
+          app.rapport._concepts[_conceptDocType].acceptatie = {};
         if (status === undefined)
-          delete huidigRapport._concepts[_conceptDocType].acceptatie[idx];
+          delete app.rapport._concepts[_conceptDocType].acceptatie[idx];
         else
-          huidigRapport._concepts[_conceptDocType].acceptatie[idx] = status;
+          app.rapport._concepts[_conceptDocType].acceptatie[idx] = status;
         _planAcceptatieSave();
       }
       // Herteken alleen de actiebalk van deze kaart
@@ -8943,12 +8943,12 @@ async function slaConceptOp(documentTekst, wijzigingen) {
     wijzigingen:    wijzigingen || [],
     gegenereerd_op: new Date().toISOString(),
   };
-  if (huidigRapport) huidigRapport._concept = conceptData;
+  if (app.rapport) app.rapport._concept = conceptData;
   const bekijkBtn = document.getElementById('bekijkConceptBtn');
   if (bekijkBtn) bekijkBtn.style.display = 'inline-flex';
-  if (app.screeningId && huidigRapport) {
+  if (app.screeningId && app.rapport) {
     try {
-      await db.from('screeningen').update({ rapport: huidigRapport }).eq('id', app.screeningId);
+      await db.from('screeningen').update({ rapport: app.rapport }).eq('id', app.screeningId);
     } catch (e) {
       console.warn('Concept opslaan mislukt (niet-fataal):', e.message);
     }
@@ -9106,7 +9106,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   const huidigDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
 
   // Alleen de tekst van dit documenttype — niet de volledige gecombineerde tekst met alle docs
-  const volledigeTekst = huidigRapport._document_tekst || '';
+  const volledigeTekst = app.rapport._document_tekst || '';
   const origineleTekst = haalDocTypeTekst(volledigeTekst, huidigDocType);
   if (!origineleTekst) {
     alert('Geen documenttekst beschikbaar. Analyseer het document opnieuw om conceptgeneratie te gebruiken.');
@@ -9115,8 +9115,8 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
 
   // Controleer of er al een concept is voor dit documenttype — vraag bevestiging
   // Legacy _concept terugval alleen als het actieve doctype overeenkomt met de hoofdclassificatie
-  const bestaandConcept = huidigRapport._concepts?.[huidigDocType]
-    || (huidigDocType === (app.classificatie?.doc_type || '') ? huidigRapport._concept : null);
+  const bestaandConcept = app.rapport._concepts?.[huidigDocType]
+    || (huidigDocType === (app.classificatie?.doc_type || '') ? app.rapport._concept : null);
   if (bestaandConcept) {
     const datum = bestaandConcept.gegenereerd_op
       ? new Date(bestaandConcept.gegenereerd_op).toLocaleString('nl-NL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
@@ -9132,7 +9132,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
 
   // Snapshot van de huidige context (gebruiker kan ondertussen wisselen)
   const snapId      = app.screeningId;
-  const snapRapport = huidigRapport;
+  const snapRapport = app.rapport;
   const snapDocType = huidigDocType;
   const snapAangevinkt = aangevinkt;
   const snapOrigineel  = origineleTekst;
@@ -9490,8 +9490,8 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 
       // Als gebruiker nog op hetzelfde document zit → direct openen
       if (app.screeningId === snapId) {
-        if (!huidigRapport._concepts) huidigRapport._concepts = {};
-        huidigRapport._concepts[snapDocType] = { ...conceptData, origineel_tekst: snapOrigineel };
+        if (!app.rapport._concepts) app.rapport._concepts = {};
+        app.rapport._concepts[snapDocType] = { ...conceptData, origineel_tekst: snapOrigineel };
         // Toon "Bekijk concept" alleen als de actieve tab overeenkomt met het gegenereerde doctype
         const _activeDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
         const bekijkBtn = document.getElementById('bekijkConceptBtn');
@@ -9514,8 +9514,8 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 document.getElementById('bekijkConceptBtn').addEventListener('click', () => {
   // Actieve tab-doctype (multi-doc) of hoofdclassificatie (enkelvoudig)
   const docType  = (app.documenten[app.docIdx]?.doc_type) || app.classificatie?.doc_type || '';
-  const concept  = huidigRapport?._concepts?.[docType]   // nieuw: per doctype
-                || (docType === (app.classificatie?.doc_type || '') ? huidigRapport?._concept : null); // oud: alleen zelfde doctype
+  const concept  = app.rapport?._concepts?.[docType]   // nieuw: per doctype
+                || (docType === (app.classificatie?.doc_type || '') ? app.rapport?._concept : null); // oud: alleen zelfde doctype
   if (!concept) return;
   const pdfVoorReview = app.primaireBest[app.docIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
@@ -12042,12 +12042,12 @@ function _assistKoppelDossier(id, naam) {
   _assist.dossierId    = id;
   _assist.dossierNaam  = naam;
 
-  // Bouw dossiercontext op vanuit huidigRapport als het het actieve dossier is.
+  // Bouw dossiercontext op vanuit app.rapport als het het actieve dossier is.
   // AVG: anonimiseer alle echte namen met de bestaande naarAnon-map zodat er geen
   // persoonsgegevens naar de Anthropic API gaan.
   let ctx = `Dossier: ${id === app.screeningId && app.dossierNaam ? '[DOSSIER]' : '[DOSSIER]'}`;
-  if (id === app.screeningId && huidigRapport) {
-    const rp = huidigRapport;
+  if (id === app.screeningId && app.rapport) {
+    const rp = app.rapport;
     // Gebruik pseudoniemen (naarAnon) in plaats van echte namen
     const pA = app.classificatie?.partij_a_naam || '';
     const pB = app.classificatie?.partij_b_naam || '';
@@ -12309,9 +12309,9 @@ function _assistKopieerBuf(bufId, btn) {
   _assistKopieerTekst(tekst, btn, origHtml);
 }
 
-// Voeg clausule toe als nieuw issue in huidigRapport (eenvoudigste concept-integratie)
+// Voeg clausule toe als nieuw issue in app.rapport (eenvoudigste concept-integratie)
 async function _assistVoegToeAlsIssue(bufId, docType) {
-  if (!app.screeningId || !huidigRapport) {
+  if (!app.screeningId || !app.rapport) {
     alert('Geen actief dossier. Open een dossier om de clausule toe te voegen.');
     return;
   }
@@ -12349,7 +12349,7 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
     doc_type: docType !== 'beide' ? docType : null,
   };
   // Voeg toe aan het juiste issues-array
-  const rp = huidigRapport;
+  const rp = app.rapport;
   if (!Array.isArray(rp.issues)) rp.issues = [];
   rp.issues.push(nieuweIssue);
   // Bij multi-doc: ook toevoegen aan de juiste documenten[]-entry
