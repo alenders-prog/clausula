@@ -2604,6 +2604,24 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 <script>
 'use strict';
 
+// ── Centrale app-state (Fase 2 refactor) ─────────────────────────────────
+// Zie src/state.js voor de canonieke definitie en eigenaren per property.
+// window.app = app zodat inline handlers en niet-module code werken.
+const app = {
+  dossierId:    null,   // app.dossierId
+  dossierNaam:  null,   // app.dossierNaam
+  screeningId:  null,   // huidigeId
+  classificatie: null,  // huidigeClassificatie
+  rapport:      null,   // huidigRapport
+  documenten:   [],     // huidigeDocumenten
+  docIdx:       0,      // huidigeDocIdx
+  bestanden:    [],     // huidigeBestandenLijst
+  primaireBest: [],     // huidigePrimaireBest
+  tray:         [],     // tray
+};
+window.app = app;
+// ─────────────────────────────────────────────────────────────────────────
+
 // ── Init ──────────────────────────────────────────────
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -3940,7 +3958,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     const _ctrNamen = document.getElementById('splitCenterNamen');
     const _pAn = huidigDossierPartijA || classificatie?.partij_a_naam || '';
     const _pBn = huidigDossierPartijB || classificatie?.partij_b_naam || '';
-    if (_ctrNamen) _ctrNamen.textContent = huidigDossierNaam || (_pAn && _pBn ? `${_pAn} – ${_pBn}` : _pAn || _pBn || '');
+    if (_ctrNamen) _ctrNamen.textContent = app.dossierNaam || (_pAn && _pBn ? `${_pAn} – ${_pBn}` : _pAn || _pBn || '');
     if (effectieveHoofdItems.length > 1) {
       _metaEl.innerHTML = effectieveHoofdItems.map((item, i) =>
         `<button class="db-tab-doc${i === 0 ? ' actief' : ''}" data-idx="${i}">${escH((s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())(DOC_TYPE_LABELS[item.type] || item.type))}</button>`
@@ -5568,7 +5586,7 @@ async function toonRapport(cls, rp) {
   const namenEl = document.getElementById('splitCenterNamen');
   const _pAnm = huidigDossierPartijA || cls?.partij_a_naam || '';
   const _pBnm = huidigDossierPartijB || cls?.partij_b_naam || '';
-  if (namenEl) namenEl.textContent = huidigDossierNaam || (_pAnm && _pBnm ? `${_pAnm} – ${_pBnm}` : _pAnm || _pBnm || '');
+  if (namenEl) namenEl.textContent = app.dossierNaam || (_pAnm && _pBnm ? `${_pAnm} – ${_pBnm}` : _pAnm || _pBnm || '');
   // Verwijder bestaande tabs
   if (metaEl) metaEl.innerHTML = '';
   // Bewaar of er een auto-click gaat plaatsvinden vóór het resetten van gewenstDocIdx.
@@ -5819,7 +5837,7 @@ document.getElementById('analysePanel').addEventListener('click', async e => {
 // ── Split-overlay ─────────────────────────────────────
 function openSplitView() {
   // Toon versielabel-veld alleen in dossier-context voor nieuwe analyses
-  const heeftDossier = !!huidigeDossierId;
+  const heeftDossier = !!app.dossierId;
   const isNieuw = !huidigeId;
   document.getElementById('versieLabelHeaderInput').style.display =
     (heeftDossier && isNieuw) ? 'block' : 'none';
@@ -5918,10 +5936,10 @@ async function opslaan() {
     // 2. Versienummer berekenen voor nieuwe dossier-versie
     let versieNr    = 1;
     let versieLabel = null;
-    if (huidigeDossierId && !huidigeId) {
+    if (app.dossierId && !huidigeId) {
       const { count } = await db.from('screeningen')
         .select('id', { count: 'exact', head: true })
-        .eq('dossier_id', huidigeDossierId);
+        .eq('dossier_id', app.dossierId);
       versieNr    = (count || 0) + 1;
       versieLabel = document.getElementById('versieLabelHeaderInput')?.value.trim() || null;
       if (!versieLabel) {
@@ -5986,7 +6004,7 @@ async function opslaan() {
         bestandsnaam:  huidigeBestandsnaam,
         classificatie: _opsl_classificatie,
         rapport:       _opsl_rapport,
-        dossier_id:    huidigeDossierId || null,
+        dossier_id:    app.dossierId || null,
         versie_nr:     versieNr,
         versie_label:  versieLabel,
       };
@@ -6022,8 +6040,8 @@ async function opslaan() {
     }
 
     // 4. Dossier updated_at bijwerken
-    if (huidigeDossierId) {
-      await db.from('dossiers').update({ updated_at: new Date().toISOString() }).eq('id', huidigeDossierId);
+    if (app.dossierId) {
+      await db.from('dossiers').update({ updated_at: new Date().toISOString() }).eq('id', app.dossierId);
       splitOrigin = 'dossier'; // Terug-knop gaat nu naar dossier
       document.getElementById('versieLabelHeaderInput').style.display = 'none';
     }
@@ -7475,7 +7493,7 @@ async function documentTekstNaarDocx(tekst) {
 
   // Documenttitel: doctype + dossier (zelfde als HTML-preview)
   const docTypeLabel = DOC_TYPES.find(d => d.value === (huidigeClassificatie?.doc_type || ''))?.label || '';
-  const titelTekst   = [docTypeLabel, huidigDossierNaam].filter(Boolean).join(' — ') || 'Verbeterd concept';
+  const titelTekst   = [docTypeLabel, app.dossierNaam].filter(Boolean).join(' — ') || 'Verbeterd concept';
   kinderen.push(maakPar(titelTekst,
     { bold: true, size: 32, spaceAfter: 80, align: AlignmentType.CENTER }));
   kinderen.push(maakPar(
@@ -8346,7 +8364,7 @@ function preprocessConceptTekst(tekst) {
 // skipPreprocess: true als de tekst al preprocessed is (bijv. al TC-markers bevat)
 function documentTekstNaarHtml(tekst, wijzigingen = [], skipPreprocess = false) {
   const docTypeLabel = DOC_TYPES.find(d => d.value === (huidigeClassificatie?.doc_type || ''))?.label || '';
-  const titelTekst   = [docTypeLabel, huidigDossierNaam].filter(Boolean).join(' — ') || 'Verbeterd concept';
+  const titelTekst   = [docTypeLabel, app.dossierNaam].filter(Boolean).join(' — ') || 'Verbeterd concept';
 
   // Preprocessing: PDF-artefacten verwijderen + structuur herstellen (overgeslagen als al gedaan)
   const schoneTekst = skipPreprocess ? tekst : preprocessConceptTekst(tekst);
@@ -9140,7 +9158,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   const { naarAnon: snapNaarAnon, naarEcht: snapNaarEcht } = bouwAnonMap(huidigeClassificatie || {});
   // Chip-label: "Convenant · Familie De Vries"
   const snapDocLabel  = DOC_TYPES.find(d => d.value === snapDocType)?.label || snapDocType;
-  const snapDossier   = huidigDossierNaam || '';
+  const snapDossier   = app.dossierNaam || '';
   const snapNaam      = snapDossier ? `${snapDocLabel} · ${snapDossier}` : snapDocLabel;
 
   // Registreer generatie en toon chip — niet-blokkerend
@@ -9987,7 +10005,7 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
     const docTypeLabel  = DOC_TYPES.find(d => d.value === activeDocType)?.label || 'Concept';
     // Voorkeur: dossier-naam; fallback: partijnamen uit classificatie
     const namenDeel = (() => {
-      if (huidigDossierNaam) return ` — ${huidigDossierNaam}`;
+      if (app.dossierNaam) return ` — ${app.dossierNaam}`;
       const a = (huidigeClassificatie?.partij_a_naam || '').trim();
       const b = (huidigeClassificatie?.partij_b_naam || '').trim();
       const namen = [a, b].filter(Boolean).join(' - ');
@@ -10022,14 +10040,13 @@ function markeerRijAct(id) {
 }
 
 // ── Dossier-context in upload-scherm ──────────────────
-let huidigeDossierId    = null;
-let huidigDossierNaam   = null;
+// app.dossierId (was: app.dossierId) en app.dossierNaam (was: app.dossierNaam) leven in window.app
 let huidigDossierPartijA = null;
 let huidigDossierPartijB = null;
 
 function zetDossierContext(id, naam) {
-  huidigeDossierId  = id;
-  huidigDossierNaam = naam;
+  app.dossierId  = id;
+  app.dossierNaam = naam;
   document.getElementById('versieContextNaam').textContent = naam;
   document.getElementById('koppelNaamText').textContent = naam;
   document.getElementById('versieLabelInput').value = '';
@@ -10126,8 +10143,8 @@ function trayRender() {
   lijst.style.display     = '';
   voetbalk.style.display  = '';
   // Knop alleen actief als er ook een dossier geselecteerd is
-  analyseBtn.disabled     = !huidigeDossierId;
-  analyseBtn.textContent  = !huidigeDossierId
+  analyseBtn.disabled     = !app.dossierId;
+  analyseBtn.textContent  = !app.dossierId
     ? 'Kies eerst een dossier'
     : tray.length === 1 ? 'Analyseer document' : `Analyseer ${tray.length} documenten`;
 
@@ -10299,7 +10316,7 @@ analyseBtn.addEventListener('click', async () => {
   } finally {
     scanning.classList.remove('active');
     scanVoortgang.classList.remove('actief');
-    analyseBtn.disabled = !tray.length || !huidigeDossierId;
+    analyseBtn.disabled = !tray.length || !app.dossierId;
   }
 
   // Direct automatisch opslaan na succesvolle analyse (buiten try/finally)
@@ -10964,8 +10981,8 @@ async function laadDossiers() {
         e.stopPropagation();
         const dos = alleDosCacheData.find(d => d.id === btn.dataset.dosId);
         if (!dos) return;
-        huidigeDossierId     = dos.id;
-        huidigDossierNaam    = dos.naam;
+        app.dossierId     = dos.id;
+        app.dossierNaam    = dos.naam;
         huidigDossierPartijA = dos.partij_a || null;
         huidigDossierPartijB = dos.partij_b || null;
         huidigDossierVersies = (dos.screeningen || [])
@@ -11065,8 +11082,8 @@ async function toonDossierDetail(id) {
       .from('dossiers').select('*').eq('id', id).single();
     if (dosErr) throw dosErr;
     huidigDossierData = dos;
-    huidigeDossierId     = dos.id;
-    huidigDossierNaam    = dos.naam;
+    app.dossierId     = dos.id;
+    app.dossierNaam    = dos.naam;
     huidigDossierPartijA = dos.partij_a || null;
     huidigDossierPartijB = dos.partij_b || null;
 
@@ -11235,8 +11252,8 @@ async function toonDossierDetail(id) {
 
 function gaTerug() {
   schakelRechts('rp-home');
-  huidigeDossierId     = null;
-  huidigDossierNaam    = null;
+  app.dossierId     = null;
+  app.dossierNaam    = null;
   huidigDossierData    = null;
   huidigDossierVersies = [];
   laadDossiers();
@@ -11245,15 +11262,15 @@ document.getElementById('dossierBackBtn').addEventListener('click', gaTerug);
 document.getElementById('dossiersOverzichtBtn').addEventListener('click', gaTerug);
 
 document.getElementById('dossierVerwijderBtn').addEventListener('click', async () => {
-  if (!huidigeDossierId) return;
-  const naam = huidigDossierNaam || 'dit dossier';
+  if (!app.dossierId) return;
+  const naam = app.dossierNaam || 'dit dossier';
   if (!confirm(`Dossier "${naam}" verwijderen?\n\nDe analyses in dit dossier worden niet verwijderd — ze verschijnen daarna onder "Losse analyses".`)) return;
   try {
-    const { error } = await db.from('dossiers').delete().eq('id', huidigeDossierId);
+    const { error } = await db.from('dossiers').delete().eq('id', app.dossierId);
     if (error) throw error;
     schakelRechts('rp-home');
-    huidigeDossierId  = null;
-    huidigDossierNaam = null;
+    app.dossierId  = null;
+    app.dossierNaam = null;
     huidigDossierData = null;
     laadDossiers();
   } catch (err) {
@@ -11262,23 +11279,23 @@ document.getElementById('dossierVerwijderBtn').addEventListener('click', async (
 });
 
 document.getElementById('dossierStatusSel').addEventListener('change', async function() {
-  if (!huidigeDossierId) return;
-  await db.from('dossiers').update({ status: this.value }).eq('id', huidigeDossierId);
-  laadDossiers().then(() => { if (huidigeDossierId) markeerRijAct(huidigeDossierId); });
+  if (!app.dossierId) return;
+  await db.from('dossiers').update({ status: this.value }).eq('id', app.dossierId);
+  laadDossiers().then(() => { if (app.dossierId) markeerRijAct(app.dossierId); });
 });
 
 // Namen partij A / B opslaan bij verlaten veld (blur) of Enter
 async function slaPartijNamenOp() {
-  if (!huidigeDossierId) return;
+  if (!app.dossierId) return;
   const partij_a = document.getElementById('dossierPartijAEdit').value.trim() || null;
   const partij_b = document.getElementById('dossierPartijBEdit').value.trim() || null;
   const naam     = [partij_a, partij_b].filter(Boolean).join(' - ') || 'Naamloos';
   try {
-    await db.from('dossiers').update({ partij_a, partij_b, naam }).eq('id', huidigeDossierId);
-    huidigDossierNaam    = naam;
+    await db.from('dossiers').update({ partij_a, partij_b, naam }).eq('id', app.dossierId);
+    app.dossierNaam    = naam;
     huidigDossierPartijA = partij_a;
     huidigDossierPartijB = partij_b;
-    laadDossiers().then(() => { if (huidigeDossierId) markeerRijAct(huidigeDossierId); });
+    laadDossiers().then(() => { if (app.dossierId) markeerRijAct(app.dossierId); });
   } catch (err) {
     console.error('Namen opslaan mislukt:', err.message);
   }
@@ -11388,8 +11405,8 @@ function openWizard() {
 }
 
 function openWizardBestaandDossier() {
-  _wizDossierId   = huidigeDossierId;
-  _wizDossierNaam = huidigDossierNaam;
+  _wizDossierId   = app.dossierId;
+  _wizDossierNaam = app.dossierNaam;
   wizardRoepnaamA = null;
   wizardRoepnaamB = null;
   _wizTray        = [];
@@ -11420,7 +11437,7 @@ function openWizardBestaandDossier() {
   document.getElementById('awiz-stap2').style.display  = '';
   document.getElementById('wbc1').className = 'awiz-bc-step done';
   document.getElementById('wbc2').className = 'awiz-bc-step active';
-  document.getElementById('awizPageTitle2').textContent = huidigDossierNaam || 'Nieuwe versie';
+  document.getElementById('awizPageTitle2').textContent = app.dossierNaam || 'Nieuwe versie';
   wizRenderDocs();
   document.getElementById('analyseWizard').classList.add('active');
   setTimeout(() => document.getElementById('wizVersieInp').focus(), 50);
@@ -11835,16 +11852,16 @@ async function laadScreening(id, origin = 'main') {
 
     // Dossier-context instellen als de screening bij een dossier hoort
     if (data.dossier_id) {
-      huidigeDossierId  = data.dossier_id;
+      app.dossierId  = data.dossier_id;
       const _dos = alleDosCacheData.find(d => d.id === data.dossier_id);
       if (_dos) {
         huidigDossierPartijA = _dos.partij_a || null;
         huidigDossierPartijB = _dos.partij_b || null;
-        huidigDossierNaam    = _dos.naam || null;
+        app.dossierNaam    = _dos.naam || null;
       } else {
         const pA = document.getElementById('dossierPartijAEdit')?.value || '';
         const pB = document.getElementById('dossierPartijBEdit')?.value || '';
-        huidigDossierNaam = [pA, pB].filter(Boolean).join(' - ');
+        app.dossierNaam = [pA, pB].filter(Boolean).join(' - ');
       }
     }
 
@@ -11934,7 +11951,7 @@ function toggleAssistPanel() {
       _assistTonenLinkDialog();
     } else if (huidigeId && _assist.dossierId !== huidigeId) {
       // Gebruiker is naar ander dossier gewisseld — laad de bijbehorende sessie
-      _assistKoppelDossier(huidigeId, huidigDossierNaam || '');
+      _assistKoppelDossier(huidigeId, app.dossierNaam || '');
     }
   }
 }
@@ -11945,10 +11962,10 @@ function _assistTonenLinkDialog() {
   msgs.innerHTML = '';
 
   // Bepaal of we al in een dossier zitten
-  const inDossier = !!(huidigeId && huidigDossierNaam);
+  const inDossier = !!(huidigeId && app.dossierNaam);
 
   const vraag = inDossier
-    ? `Heeft deze vraag betrekking op het dossier <strong>${escH(huidigDossierNaam)}</strong>?`
+    ? `Heeft deze vraag betrekking op het dossier <strong>${escH(app.dossierNaam)}</strong>?`
     : 'Heeft deze vraag betrekking op een dossier?';
 
   let dossierkeuze = '';
@@ -11989,11 +12006,11 @@ async function _assistLaadDossiers() {
 }
 
 function _assistLinkJa() {
-  const inDossier = !!(huidigeId && huidigDossierNaam);
+  const inDossier = !!(huidigeId && app.dossierNaam);
 
   if (inDossier) {
     // Direct koppelen aan huidig dossier
-    _assistKoppelDossier(huidigeId, huidigDossierNaam);
+    _assistKoppelDossier(huidigeId, app.dossierNaam);
   } else {
     // Toon dossierkeuzebox
     const sel = document.getElementById('assistDossierKeuze');
@@ -12028,7 +12045,7 @@ function _assistKoppelDossier(id, naam) {
   // Bouw dossiercontext op vanuit huidigRapport als het het actieve dossier is.
   // AVG: anonimiseer alle echte namen met de bestaande naarAnon-map zodat er geen
   // persoonsgegevens naar de Anthropic API gaan.
-  let ctx = `Dossier: ${id === huidigeId && huidigDossierNaam ? '[DOSSIER]' : '[DOSSIER]'}`;
+  let ctx = `Dossier: ${id === huidigeId && app.dossierNaam ? '[DOSSIER]' : '[DOSSIER]'}`;
   if (id === huidigeId && huidigRapport) {
     const rp = huidigRapport;
     // Gebruik pseudoniemen (naarAnon) in plaats van echte namen
