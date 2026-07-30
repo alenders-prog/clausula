@@ -5340,10 +5340,9 @@ async function toonRapport(cls, rp) {
   app.rapport        = rp;
   _issueSortModus      = 'ernst'; // reset sorteermodus bij openen opgeslagen rapport
 
-  // Multi-doc: rapport.documenten[] aanwezig? — gesorteerd: OP → Zorgverdeling → Convenant → Waardeoverzicht → rest
-  const _DOC_VOLGORDE = { ouderschapsplan: 0, zorgverdeling: 1, convenant: 10, waarde_verdeling: 11 };
+  // Multi-doc: rapport.documenten[] aanwezig? — gesorteerd via sorteer-docs.js
   const docs = Array.isArray(rp.documenten) && rp.documenten.length > 1
-    ? [...rp.documenten].sort((a, b) => (_DOC_VOLGORDE[a.doc_type] ?? 99) - (_DOC_VOLGORDE[b.doc_type] ?? 99))
+    ? sorteerOpDocType(rp.documenten)
     : null;
   app.documenten = docs || [];
   app.docIdx     = 0;
@@ -5604,10 +5603,7 @@ async function toonRapport(cls, rp) {
         metaEl.querySelectorAll('.db-tab-doc').forEach(b => b.classList.toggle('actief', b === btn));
         const _voorgaandConcepten = app.rapport?._concepts;
         const _subRap = app.documenten[idx] || {};
-        app.rapport = { ...rp, ..._subRap, samenvatting: _subRap.samenvatting ?? '' };
-        if (_voorgaandConcepten) {
-          app.rapport._concepts = { ...(app.rapport._concepts || {}), ..._voorgaandConcepten };
-        }
+        app.rapport = bouwSubRapport(rp, _subRap, _voorgaandConcepten);
         activeerAnalysePanel(app.rapport);
         updateConceptKnop();
         const bestVoorTab = app.primaireBest[idx];
@@ -8051,30 +8047,7 @@ function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
 }
 
 // PII-anonimisering voor de AI-assistent (identiek aan src/pii-anonimiseer.js).
-// Vervangt financiële en contactgegevens door tokens vóór verzending naar Anthropic.
-// Bij aanpassing: ook src/pii-anonimiseer.js bijwerken.
-function piiAnonimiseer(tekst) {
-  if (!tekst) return tekst;
-  let t = tekst;
-  // IBANs — genummerd, consistent met [IBAN_n]-conventie in api/_iban.js
-  let ibanTeller = 0;
-  const ibanMap  = new Map();
-  t = t.replace(/\b[A-Z]{2}\d{2}[A-Z0-9]{10,26}\b/g, iban => {
-    if (!ibanMap.has(iban)) ibanMap.set(iban, `[IBAN_${ibanTeller++}]`);
-    return ibanMap.get(iban);
-  });
-  // BSN: 9 cijfers. Lookbehind "[A-Z]{4} " voorkomt false positive op
-  // IBAN-accountcijfers (bankcode = altijd 4 hoofdletters, bijv. ABNA).
-  // "BSN 123456789" wordt WEL vervangen — "BSN" heeft maar 3 letters.
-  t = t.replace(/(?<![A-Z]{4} )\b\d{9}\b/g, '[BSN]');
-  // Nederlandse postcodes
-  t = t.replace(/\b(\d{4})\s?([A-Z]{2})\b/g, '[POSTCODE]');
-  // Telefoonnummers
-  t = t.replace(/(?<![A-Z\d])(?:0[1-9]\d{1,2}[-.\s]?\d{6,8}|\+31[-.\s]?[1-9]\d{8}|06[-.\s]?\d{8})(?!\d)/g, '[TEL]');
-  // E-mailadressen
-  t = t.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
-  return t;
-}
+// piiAnonimiseer — zie src/pii-anonimiseer.js (geladen via module bridge)
 
 // Herstel nep-namen en legacy-placeholders recursief in elk object/array/string.
 // naarEcht-map bevat twee soorten keys:
@@ -10089,31 +10062,7 @@ const DOC_TYPE_ICONS  = {
 // Fallback: als er geen hoofddocumenten aanwezig zijn, worden alle docs als hoofddocument behandeld.
 const HOOFD_TYPES = new Set(['convenant', 'ouderschapsplan']);
 
-// Welk contextdocument-type hoort bij welk hoofddocument-type?
-// Types die NIET in deze map staan worden bij alle hoofddocumenten getoond.
-const CONTEXT_HOOFD_MAP = {
-  zorgverdeling:          'ouderschapsplan',  // bijlage bij ouderschapsplan
-  waarde_verdeling:       'convenant',        // bijlage bij convenant
-  huwelijkse_voorwaarden: 'convenant',        // bijlage bij convenant
-  pensioenopgave:         'convenant',        // bijlage bij convenant
-};
-
-function contextVoorHoofd(contextType, hoofdType) {
-  const eigenaar = CONTEXT_HOOFD_MAP[contextType];
-  return !eigenaar || eigenaar === hoofdType; // geen eigenaar → voor iedereen
-}
-
-function raadDocType(bestandsnaam) {
-  const n = bestandsnaam.toLowerCase();
-  if (n.includes('convenant'))                           return 'convenant';
-  if (n.includes('ouderschap'))                          return 'ouderschapsplan';
-  if (n.includes('zorgverdeling') || n.includes('zorgregeling') || n.includes('zorg-')) return 'zorgverdeling';
-  if (n.includes('huwelijkse') || n.includes('hvw') || /\bhv\b/.test(n)) return 'huwelijkse_voorwaarden';
-  if (n.includes('waarde') || n.includes('waardebepaling') || n.includes('bijlage')) return 'waarde_verdeling';
-  if (n.includes('pensioen'))                            return 'pensioenopgave';
-  if (n.includes('paspoort') || n.includes('rijbewijs') || /\bid\b/.test(n)) return 'id_bewijs';
-  return 'overig';
-}
+// contextVoorHoofd, raadDocType — zie src/viewer/primaire-best.js (geladen via module bridge)
 
 // app.tray (was: app.tray) — { id, bestand (File|null), type, bestandsnaam, storageInfo (null|{pad,naam}), fromStorage }
 function trayUid() { return Math.random().toString(36).slice(2); }
@@ -10516,27 +10465,7 @@ function dossierChipsHtml(versies) {
 }
 
 // ── Cirkel-helpers (globaal herbruikbaar) ────────────────────────────────────
-const maakGrad = (segs) => {
-  const som = segs.reduce((a, s) => a + s.n, 0);
-  if (som === 0) return 'var(--status-ok) 0deg 360deg';
-  const GAP = 5;
-  const stops = []; let pos = 0;
-  const validSegs = segs.filter(s => s.n > 0);
-  const meerdere  = validSegs.length > 1;
-  const wrapGap   = meerdere && validSegs[0].kleur !== validSegs[validSegs.length - 1].kleur;
-  for (let i = 0; i < validSegs.length; i++) {
-    const s = validSegs[i];
-    const d = (s.n / som) * 360;
-    const gb = i === 0 ? (wrapGap ? GAP / 2 : 0) : GAP / 2;
-    const ga = i === validSegs.length - 1 ? (wrapGap ? GAP / 2 : 0) : GAP / 2;
-    const vs = pos + gb, ve = pos + d - ga;
-    if (gb) stops.push(`white ${pos}deg ${vs}deg`);
-    if (vs < ve) stops.push(`${s.kleur} ${vs}deg ${ve}deg`);
-    if (ga) stops.push(`white ${ve}deg ${pos + d}deg`);
-    pos += d;
-  }
-  return stops.join(',');
-};
+// maakGrad — zie src/chips/hml-counts.js (geladen via module bridge)
 const segCircle = (lbl, segs, inhoud) => {
   const grad = maakGrad(segs);
   return `<div class="v2-mini">
@@ -12976,6 +12905,29 @@ function _assistNieuwGesprek() {
   if (strip) strip.style.display = 'none';
   _assistTonenLinkDialog();
 }
+</script>
+<!-- Fase 3: src/-modules via native ESM -->
+<script type="module">
+import { piiAnonimiseer }                                   from './src/pii-anonimiseer.js';
+import { raadDocType, contextVoorHoofd,
+         vindEigenBestanden, bouwPrimaireBest }             from './src/viewer/primaire-best.js';
+import { maakGrad, telHml, filterActief, kopKlasse, hmlSegs } from './src/chips/hml-counts.js';
+import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/sorteer-docs.js';
+import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
+
+window.piiAnonimiseer    = piiAnonimiseer;
+window.raadDocType       = raadDocType;
+window.contextVoorHoofd  = contextVoorHoofd;
+window.vindEigenBestanden = vindEigenBestanden;
+window.bouwPrimaireBest  = bouwPrimaireBest;
+window.maakGrad          = maakGrad;
+window.telHml            = telHml;
+window.filterActief      = filterActief;
+window.kopKlasse         = kopKlasse;
+window.hmlSegs           = hmlSegs;
+window.sorteerOpDocType  = sorteerOpDocType;
+window.sorteerOpType     = sorteerOpType;
+window.bouwSubRapport    = bouwSubRapport;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>
