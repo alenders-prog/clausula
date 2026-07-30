@@ -6,20 +6,14 @@
 //   { status: 'done', docxBase64: string }       — klaar, DOCX als base64
 //   HTTP 500 + { error }                         — mislukt
 
+import { verifieerJWT } from './_auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
 
-  // ── JWT-verificatie ────────────────────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'Niet geautoriseerd' });
-  const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
-    },
-  });
-  if (!authCheck.ok) return res.status(401).json({ error: 'Sessie verlopen — log opnieuw in' });
-  // ──────────────────────────────────────────────────────────────────────────
+  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
 
   const clientId     = process.env.ADOBE_CLIENT_ID;
   const clientSecret = process.env.ADOBE_CLIENT_SECRET;

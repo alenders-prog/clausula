@@ -10,6 +10,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { verifieerJWT } from './_auth.js';
 
 const sbService = createClient(
   process.env.SUPABASE_URL,
@@ -20,17 +21,9 @@ const sbService = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST' });
 
-  // ── JWT verificatie ──────────────────────────────────
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'Niet ingelogd' });
-
-  const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': process.env.SUPABASE_ANON_KEY,
-    },
-  });
-  if (!authCheck.ok) return res.status(401).json({ error: 'Ongeldige sessie' });
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
 
   // Supabase-client met JWT (voor RLS-functies)
   const sbUser = createClient(

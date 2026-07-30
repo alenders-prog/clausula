@@ -221,21 +221,48 @@ button.secundair:hover{background:#FFF1EA;}
 .v2-kop{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
 .v2-label{font-weight:600;font-size:.96rem;color:var(--ink);}
 .v2-datum-lbl{font-size:.78rem;color:var(--ink-soft);white-space:nowrap;}
-/* Per-document kolommen naast elkaar */
+/* Per-document kolommen — vergelijkingslayout */
 .v2-docs-rij{display:flex;gap:0;align-items:stretch;flex:1;min-width:0;}
-/* Elke kolom: titel+ernst boven (alleen boven chips), ring+chips onder */
-.v2-doc-kolom{display:flex;flex-direction:column;
-  flex:1;min-width:0;padding:0 22px 0 0;gap:4px;}
-.v2-doc-kolom+.v2-doc-kolom{padding:0 0 0 22px;border-left:1px solid var(--line);}
+.v2-doc-kolom{display:flex;flex-direction:column;flex:1;min-width:0;
+  padding:0 20px 14px;gap:8px;}
+.v2-doc-kolom+.v2-doc-kolom{border-left:1px solid var(--line);}
 .v2-doc-kolom--leeg{visibility:hidden;pointer-events:none;}
 .v2-doc-kolom--leeg+.v2-doc-kolom{border-left:none;}
-/* Titel-rij: 95px inspringing zodat titel alleen boven chipgrid staat */
-.v2-doc-top{margin-left:95px;display:flex;flex-direction:column;align-items:center;gap:2px;}
-/* Onderste rij: ring + chips, verticaal gecentreerd op elkaar */
-.v2-doc-bottom{display:flex;flex-direction:row;align-items:center;gap:8px;width:100%;}
-/* Ring: vaste 87px, centreert op chipgrid-hoogte */
-.v2-doc-ring-wrap{flex-shrink:0;width:87px;height:87px;
-  border-radius:50%;padding:5px;box-sizing:border-box;}
+/* Kolomtitel */
+.v2-doc-titel{text-align:center;font-size:.82rem;font-weight:700;
+  color:var(--ink-soft);letter-spacing:.03em;flex-shrink:0;}
+/* Vergelijkingsrij: [prev ring] [pijl] [curr ring] [legenda] */
+.v2-cmp-rij{display:flex;align-items:center;gap:10px;}
+/* Ringen */
+.v2-ring{border-radius:50%;flex-shrink:0;box-sizing:border-box;}
+.v2-ring-prev{width:82px;height:82px;padding:7px;}
+.v2-ring-curr{width:100px;height:100px;padding:8px;}
+.v2-ring-inner{width:100%;height:100%;border-radius:50%;background:var(--paper);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-weight:800;color:var(--ink-mid);line-height:1;}
+.v2-ring-prev .v2-ring-inner{font-size:1.2rem;}
+.v2-ring-curr .v2-ring-inner{font-size:1.6rem;}
+/* Legenda */
+.v2-legend{display:flex;flex-direction:column;gap:5px;flex-shrink:1;min-width:80px;}
+.v2-legend-item{display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;
+  color:var(--ink-mid);white-space:nowrap;}
+.v2-ld{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.v2-ld-h{background:var(--status-risico);}
+.v2-ld-m{background:var(--status-aandacht);}
+.v2-ld-l{background:var(--status-ok);}
+.v2-leg-lbl{flex:1;}
+.v2-delta-pos{font-size:.72rem;font-weight:700;color:var(--status-ok);white-space:nowrap;min-width:42px;text-align:right;margin-left:auto;}
+.v2-delta-neg{font-size:.72rem;font-weight:700;color:var(--status-risico);white-space:nowrap;min-width:42px;text-align:right;margin-left:auto;}
+/* Statistieken */
+.v2-cmp-stats{display:flex;flex-direction:column;gap:4px;}
+.v2-stat-pct{font-size:.85rem;font-weight:700;}
+.v2-prog-bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden;}
+.v2-prog-fill{height:100%;border-radius:3px;}
+.v2-stat-txt{font-size:.72rem;color:var(--ink-soft);white-space:nowrap;}
+/* Placeholder */
+.v2-doc-placeholder{flex:1;border:1.5px dashed #C5BDB4;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:14px 16px;color:#A09890;font-size:.78rem;line-height:1.45;min-height:90px;}
 /* Grote ring (88px) — bewaard voor analyse-overzicht boven samenvatting */
 .v2-doc-seg-ring{flex-shrink:0;width:88px;height:88px;border-radius:50%;
   padding:6px;box-sizing:border-box;}
@@ -243,46 +270,6 @@ button.secundair:hover{background:#FFF1EA;}
   display:flex;align-items:center;justify-content:center;
   font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:1.3rem;
   color:var(--ink-mid);line-height:1;text-align:center;}
-/* Rechterkolom: titel + ernst + chips */
-.v2-doc-right{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
-/* Titel: boven chips, kleur = toolbar-blauw */
-.v2-doc-titel{font-size:.86rem;font-weight:800;color:var(--nav-bg);text-transform:uppercase;
-  letter-spacing:.08em;text-align:center;margin-bottom:1px;}
-/* Ernst-rij: 4 hoog · 8 midden · 6 laag — gecentreerd */
-.v2-doc-ernst-rij{display:flex;gap:6px;align-items:center;justify-content:center;
-  font-size:.96rem;font-weight:700;line-height:1.2;margin-bottom:4px;}
-.v2-ernst-sep{opacity:.22;font-size:.65rem;font-weight:400;}
-/* Chip grid: 2×3, beide rijen gelijke hoogte */
-.v2-doc-dims{flex:1;min-width:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;grid-auto-rows:1fr;}
-/* Dimensie-chip — exact fiche-stijl (clausula-fiche-iconen.html), H/M/L cellen behouden */
-.v2-dim-chip{display:flex;
-  border:1px solid #E3E1DA;border-radius:6px;overflow:hidden;background:#fff;}
-/* Navy icoon-paneel — 26px */
-.v2-dim-chip-icn{flex:0 0 30px;background:var(--nav-bg);color:#fff;
-  display:flex;align-items:center;justify-content:center;}
-.v2-dim-chip-icn svg{width:17px;height:17px;display:block;
-  fill:none;stroke:currentColor;stroke-width:1.75;
-  stroke-linecap:round;stroke-linejoin:round;}
-/* Body: kop + cellen */
-.v2-dim-chip-body{flex:1;min-width:0;display:flex;flex-direction:column;}
-/* Kop — exact fiche: 11px/600/0.06em letterspacing, kleur via klasse */
-.v2-dim-chip-top{color:#fff;font-size:11px;font-weight:700;letter-spacing:.05em;
-  font-family:system-ui,-apple-system,sans-serif;
-  text-align:center;padding:4px 0;text-transform:uppercase;
-  white-space:nowrap;overflow:hidden;}
-.v2-dim-chip-top.kop-hoog  {background:#C0392B;}
-.v2-dim-chip-top.kop-midden{background:#E07200;}
-.v2-dim-chip-top.kop-laag  {background:#1E8449;}
-/* Cellen — fiche flex-structuur, H/M/L uitlijning behouden */
-.v2-dim-chip-bot{display:flex;flex:1;text-align:center;}
-.v2-dim-chip-h,.v2-dim-chip-m,.v2-dim-chip-l{
-  flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
-  font-size:.7rem;font-weight:800;line-height:1;padding:5px 0;}
-.v2-dim-chip-h{color:#C0392B;border-right:1px solid #EEECE6;}
-.v2-dim-chip-m{color:#B9770E;border-right:1px solid #EEECE6;}
-.v2-dim-chip-l{color:#1E8449;}
-/* MfN chip-onderkant */
-.v2-dim-chip-mfn{justify-content:center;gap:2px;}
 /* Fallback voor score-ring (bewaard) */
 .v2-doc-score-ring{flex-shrink:0;width:88px;height:88px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
@@ -342,15 +329,15 @@ button.secundair:hover{background:#FFF1EA;}
 
 /* ── Dossier-kaarten (home-overzicht) ─────────────────── */
 .dos-filter-tabs{display:flex;gap:2px;background:rgba(255,255,255,.08);border-radius:8px;padding:3px;flex-shrink:0;}
-.dos-filter-tab{border:none;background:none;padding:5px 14px;font-family:inherit;
-  font-size:.78rem;font-weight:600;color:rgba(245,241,232,.5);border-radius:6px;cursor:pointer;
+.dos-filter-tab{border:none;background:none;padding:9px 14px;font-family:inherit;
+  font-size:.88rem;font-weight:600;color:rgba(245,241,232,.5);border-radius:6px;cursor:pointer;
   transition:all .15s;}
 .dos-filter-tab:hover{color:#F5F1E8;}
 .dos-filter-tab.act{background:rgba(255,255,255,.15);color:#F5F1E8;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 
 .dos-kaart{background:var(--paper);border:1px solid var(--line);border-radius:10px;
-  margin:0 0 10px;}
-.dos-kaart-hoofd{display:grid;grid-template-columns:168px 1fr auto;
+  margin-bottom:0;}
+.dos-kaart-hoofd{display:grid;grid-template-columns:270px 1fr auto;
   align-items:stretch;padding:18px 18px 18px;gap:20px;}
 .dos-kaart-links{display:flex;flex-direction:column;}
 .dos-naam-inp{display:block;width:100%;font-family:'Source Serif 4',serif;font-weight:600;
@@ -362,6 +349,12 @@ button.secundair:hover{background:#FFF1EA;}
 .dos-naam-a{font-size:1.1rem;margin-bottom:1px;}
 .dos-naam-b{font-size:1.1rem;margin-bottom:8px;}  /* zelfde grootte als naam-a */
 .dos-naam-b:focus{color:var(--ink);}
+/* Dossiernaam-titel in kaartoverzicht */
+.dos-naam-titel{font-size:1rem;font-weight:700;letter-spacing:.01em;color:var(--ink);
+  line-height:1.35;word-break:break-word;margin-bottom:8px;cursor:text;outline:none;
+  border-bottom:1.5px solid transparent;transition:border-color .15s;}
+.dos-naam-titel:hover{border-bottom-color:var(--line);}
+.dos-naam-titel:focus{border-bottom-color:var(--coral);}
 .dos-status-sel{font-family:inherit;font-size:.77rem;font-weight:600;width:fit-content;
   color:var(--ink-soft);border:1px solid var(--line);border-radius:6px;
   background:var(--bg);padding:4px 8px;cursor:pointer;outline:none;transition:border-color .15s;}
@@ -370,7 +363,7 @@ button.secundair:hover{background:#FFF1EA;}
 .dos-versie-meta{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:8px;}
 .dos-versie-lbl{font-size:.9rem;font-weight:700;color:var(--ink-mid);}
 .dos-versie-dat{font-size:.82rem;color:var(--ink-soft);}
-.dos-kaart-midden{min-width:0;display:flex;align-items:center;}
+.dos-kaart-midden{min-width:0;display:flex;align-items:stretch;}
 /* Rechter knoppenblok: verticale kolom icon-knoppen */
 .dos-kaart-rechts{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;align-self:center;}
 /* Primaire actie: nieuwe versie (coral +) */
@@ -395,7 +388,7 @@ button.secundair:hover{background:#FFF1EA;}
 .dos-kaart-midden{cursor:pointer;}
 .dos-oudere-sectie{border-top:1px solid var(--line);}
 /* Oudere versiekaart: zelfde grid als hoofdkaart voor exacte uitlijning */
-.dos-oud-kaart{display:grid;grid-template-columns:168px 1fr auto;
+.dos-oud-kaart{display:grid;grid-template-columns:270px 1fr auto;
   align-items:stretch;padding:14px 18px;gap:20px;}
 .dos-oud-kaart+.dos-oud-kaart{border-top:1px solid var(--line);}
 /* Linkerkolom: versie-info (zelfde breedte als dos-kaart-links) */
@@ -522,11 +515,11 @@ button.primair{padding:9px 20px;background:var(--coral);color:#fff;border:none;
 button.primair:hover{background:var(--coral-dark);}
 
 /* ── Concept review full-screen ─────────────────────── */
-.concept-review{position:fixed;top:76px;left:0;right:0;bottom:0;z-index:600;background:var(--bg);
+.concept-review{position:fixed;top:52px;left:0;right:0;bottom:0;z-index:600;background:var(--bg);
   display:flex;flex-direction:column;}
 .concept-review-header{display:flex;align-items:center;gap:16px;
-  padding:10px 20px;background:var(--nav-bg);border-bottom:1px solid var(--nav-border);
-  flex-shrink:0;min-height:52px;}
+  padding:14px 20px;background:var(--nav-bg);border-bottom:1px solid var(--nav-border);
+  flex-shrink:0;}
 .concept-review-titel{flex:1;font-family:'Source Serif 4',serif;font-weight:600;
   font-size:1.05rem;color:rgba(245,241,232,.9);}
 .concept-review-body{display:flex;flex:1;overflow:hidden;}
@@ -725,28 +718,27 @@ button.primair:hover{background:var(--coral-dark);}
 .uitloggen-btn:hover{background:#FCEFEC;color:var(--terra);border-color:var(--terra);}
 
 /* ── Split-overlay (analyse) ──────────────────────── */
-.split-overlay{display:none;position:fixed;top:76px;left:0;right:0;bottom:0;
+.split-overlay{display:none;position:fixed;top:52px;left:0;right:0;bottom:0;
   z-index:200;flex-direction:column;background:var(--bg);}
 .split-overlay.active{display:flex;}
 /* ── Split-header: donker (nav-bg), acties als lichte knoppen ── */
-.split-header{display:flex;align-items:center;gap:10px;padding:10px 20px;
-  background:var(--nav-bg);border-bottom:1px solid var(--nav-border);flex-shrink:0;flex-wrap:wrap;
-  min-height:52px;}
-.back-btn{padding:7px 14px;background:none;border:1px solid rgba(245,241,232,.22);border-radius:8px;
-  font-family:inherit;font-size:.88rem;color:rgba(245,241,232,.75);cursor:pointer;white-space:nowrap;
-  transition:all .15s;}
-.back-btn:hover{background:rgba(255,255,255,.08);color:#F5F1E8;}
+.split-header{display:flex;align-items:center;gap:10px;padding:14px 20px;
+  background:var(--nav-bg);border-bottom:1px solid var(--nav-border);flex-shrink:0;flex-wrap:wrap;}
+.back-btn{padding:9px 12px;background:none;border:1px solid rgba(245,241,232,.25);border-radius:8px;
+  font-family:inherit;font-size:.88rem;color:rgba(245,241,232,.8);cursor:pointer;white-space:nowrap;
+  transition:all .15s;display:flex;align-items:center;gap:5px;}
+.back-btn:hover{background:rgba(255,255,255,.1);color:#fff;}
 .split-meta{flex:1;display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden;}
 .split-meta .doctype{flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:.72rem;
   letter-spacing:.04em;text-transform:uppercase;color:var(--brass);
   background:rgba(191,160,91,.12);border:1px solid rgba(191,160,91,.28);padding:3px 9px;border-radius:5px;}
 .split-meta .titel{font-size:.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#F5F1E8;}
 .split-acties{display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
-.split-acties button.secundair{background:transparent;color:rgba(245,241,232,.85);
-  border-color:rgba(245,241,232,.28);}
+.split-acties button.secundair{padding:6px 12px;background:transparent;color:rgba(245,241,232,.85);
+  border:1px solid rgba(245,241,232,.28);font-size:.82rem;}
 .split-acties button.secundair:hover{background:rgba(255,255,255,.1);border-color:rgba(245,241,232,.5);color:#F5F1E8;}
-.versie-label-header{padding:7px 10px;border:1px solid rgba(245,241,232,.2);border-radius:7px;
-  font-family:inherit;font-size:.83rem;background:rgba(255,255,255,.06);
+.versie-label-header{padding:6px 10px;border:1px solid rgba(245,241,232,.2);border-radius:7px;
+  font-family:inherit;font-size:.82rem;background:rgba(255,255,255,.06);
   outline:none;min-width:180px;color:#F5F1E8;}
 .versie-label-header:focus{border-color:var(--brass);}
 .versie-label-header::placeholder{color:rgba(245,241,232,.35);}
@@ -928,10 +920,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .scherm-hero-rechts{flex-shrink:0;width:420px;}
 .scherm-hero-rechts .aq-blok{margin-bottom:0;}
 .filter-bar-top{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:8px;}
-.filter-chip-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+.filter-chip-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
 /* ─── Fiche-chip — kaart-stijl ──────────────────────────────────────────── */
 .a-fiche-chip{display:flex;flex-direction:column;background:var(--paper);
-  border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;
+  border:1px solid #e5e7eb;border-radius:11px;padding:8px 13px;
   box-shadow:0 2px 8px rgba(0,0,0,.05);cursor:pointer;text-align:left;
   transition:border-color .15s;position:relative;}
 .a-fiche-chip:hover{border-color:var(--border);}
@@ -945,32 +937,45 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .a-fiche-chip[data-dim="cross_doc"].actief{border-color:#2466B8!important;}
 .a-fiche-chip[data-dim="mfn"].actief{border-color:#1B3050!important;}
 /* Chip header */
-.a-fiche-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-.a-fiche-title{display:flex;align-items:center;gap:10px;}
-.a-fiche-label{font-size:.88rem;font-weight:700;color:var(--ink);line-height:1.25;}
+.a-fiche-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.a-fiche-title{display:flex;align-items:center;gap:8px;min-width:0;flex:1;}
+.a-fiche-label{flex:1;min-width:0;font-size:.85rem;font-weight:700;color:var(--ink);line-height:1.25;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
 /* Icon */
-.a-fiche-icn{flex:0 0 40px;width:40px;height:40px;border-radius:10px;
+.a-fiche-icn{flex:0 0 30px;width:30px;height:30px;border-radius:8px;font-size:1rem;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.a-fiche-icn svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;
+.a-fiche-icn svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;
   stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;}
 /* Icon achtergrond per categorie */
-.a-fiche-chip[data-dim="alle"]         .a-fiche-icn{background:#e8efff;color:#2563eb;}
-.a-fiche-chip[data-dim="juridisch"]    .a-fiche-icn{background:#FEF2EB;color:#C86A3C;}
+.a-fiche-chip[data-dim="alle"]         .a-fiche-icn{background:transparent;padding:0;}
+.a-fiche-chip[data-dim="juridisch"]    .a-fiche-icn{background:#fff3e6;color:#ea580c;}
 .a-fiche-chip[data-dim="volledigheid"] .a-fiche-icn{background:#EBF6F4;color:#2A7260;}
 .a-fiche-chip[data-dim="conflicten"]   .a-fiche-icn{background:#FFF7E6;color:#D4890A;}
 .a-fiche-chip[data-dim="balans"]       .a-fiche-icn{background:#FDF0F0;color:#C82020;}
 .a-fiche-chip[data-dim="grammatica"]   .a-fiche-icn{background:#EDEAE4;color:#7A7068;}
 .a-fiche-chip[data-dim="cross_doc"]    .a-fiche-icn{background:#EBF3FC;color:#2466B8;}
 .a-fiche-chip[data-dim="mfn"]         .a-fiche-icn{background:#EBF0F7;color:#1B3050;}
+/* Donut ring voor "Alle Issues" */
+.alle-mini-ring{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:5px;flex-shrink:0;}
+.alle-mini-center{width:100%;height:100%;border-radius:50%;background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800;color:var(--ink);}
 /* Stats rij */
-.a-fiche-stats{display:flex;align-items:center;border-top:1px solid var(--line);padding-top:10px;}
-.a-fiche-stat{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;}
-.a-fiche-stat strong{display:block;font-size:1.55rem;font-weight:800;line-height:1;}
-.a-fiche-stat span{color:var(--ink-soft);font-size:.68rem;font-weight:500;}
-.a-fiche-divider{width:1px;height:38px;background:var(--line);flex-shrink:0;}
+.a-fiche-stats{display:flex;align-items:center;border-top:1px solid #ececec;padding-top:7px;}
+.a-fiche-stat{flex:1;text-align:center;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.a-fiche-stat strong{display:block;font-size:1.1rem;font-weight:800;line-height:1;margin-bottom:0;}
+.a-fiche-stat span{color:#6b7280;font-size:.62rem;font-weight:500;}
+.a-fiche-divider{width:1px;height:29px;background:#e5e7eb;flex-shrink:0;}
 .a-fiche-h{color:#dc2626;}
 .a-fiche-m{color:#ea580c;}
 .a-fiche-l{color:#16a34a;}
+/* ─── Compact mode: chips na scroll ─────────────────────────────────────── */
+.filter-chip-grid.compact{gap:5px;}
+.filter-chip-grid.compact .a-fiche-chip{flex-direction:row;align-items:center;padding:5px 9px;gap:7px;}
+.filter-chip-grid.compact .a-fiche-header{margin-bottom:0;flex-shrink:0;}
+.filter-chip-grid.compact .a-fiche-label,
+.filter-chip-grid.compact .chip-info-icn{display:none;}
+.filter-chip-grid.compact .a-fiche-stats{border-top:none;padding-top:0;flex:1;}
+.filter-chip-grid.compact .a-fiche-stat strong{font-size:.92rem;}
+.filter-chip-grid.compact .a-fiche-divider{height:20px;}
 @keyframes kop-pulse{0%,100%{opacity:.5}50%{opacity:1}}
 .a-fiche-leeg{opacity:1;}
 .sectie-kop{font-size:.93rem;font-weight:700;color:var(--nav-bg,#1B3050);
@@ -1242,11 +1247,41 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .db-zoek-wrap{flex:1;display:flex;align-items:center;gap:6px;min-width:0;background:#fff;border:1px solid #DDD8D0;border-radius:6px;padding:3px 8px;}
 
 /* Gecentreerde partijnamen in topnav */
-.split-center-namen{flex:1;text-align:center;font-family:'Source Serif 4',serif;font-size:1rem;font-weight:600;color:#fff;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.split-center-namen{flex:1;text-align:center;font-family:'Manrope',sans-serif;font-size:1.2rem;font-weight:600;color:#fff;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-/* CTA bar twee tekstregels */
-.anal-cta-title{font-size:.86rem;font-weight:700;color:#fff;display:block;}
-.anal-cta-sub{font-size:.71rem;color:rgba(255,255,255,.5);display:block;margin-top:1px;}
+/* Tabs in de blauwe split-header */
+.split-header-tabs{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.split-header-tabs .db-tab-doc{background:none;border:1px solid rgba(245,241,232,.25);color:rgba(245,241,232,.5);border-radius:7px;padding:9px 11px;font-size:.88rem;}
+.split-header-tabs .db-tab-doc.actief{background:rgba(245,241,232,.15);border-color:rgba(245,241,232,.45);color:#F5F1E8;}
+.split-header-tabs .db-tab-doc:not(.actief):hover{color:rgba(245,241,232,.8);border-color:rgba(245,241,232,.35);}
+
+/* Concept-area rechts in split-header */
+.split-concept-area{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.split-concept-info{display:flex;flex-direction:column;text-align:right;}
+#genereerConceptBtn{background:var(--coral);border:none;color:#fff;border-radius:8px;
+  font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;
+  white-space:nowrap;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;}
+#genereerConceptBtn:hover:not(:disabled){background:var(--coral-dark);}
+#genereerConceptBtn:disabled{opacity:.8;cursor:default;}
+@keyframes gcb-spin{to{transform:rotate(360deg);}}
+#genereerConceptBtn.bezig::before{
+  content:'';display:inline-block;width:13px;height:13px;flex-shrink:0;
+  border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;
+  animation:gcb-spin .7s linear infinite;}
+#conceptBadge{display:none;}
+.opslagstatus{display:none;}
+.split-hergen-btn{padding:9px 14px;border:none;border-radius:8px;
+  background:var(--coral);color:#fff;cursor:pointer;font-size:.88rem;font-weight:700;
+  font-family:inherit;white-space:nowrap;transition:opacity .15s;flex-shrink:0;}
+.split-hergen-btn:hover{opacity:.88;}
+.split-bekijk-btn{padding:9px 16px;border:none;border-radius:8px;
+  background:var(--coral);color:#fff;font-size:.88rem;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:opacity .15s;white-space:nowrap;}
+.split-bekijk-btn:hover{opacity:.88;}
+
+/* CTA-tekst stijlen (concept-info in split-header) */
+.anal-cta-title{font-size:.78rem;font-weight:700;color:#fff;display:block;}
+.anal-cta-sub{font-size:.65rem;color:rgba(255,255,255,.5);display:block;margin-top:1px;}
 
 /* ── MfN-score ─────────────────────────────────────── */
 .mfn-score-blok{padding:4px 0 8px;}
@@ -1300,33 +1335,50 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 
 /* Topbar */
 /* ── Topbar: wit, Clausula-logo donker ───────────────── */
-.topbar{height:72px;background:var(--paper);border-bottom:1px solid var(--line);
-  display:flex;align-items:center;justify-content:space-between;padding:0 28px;flex-shrink:0;
+.topbar{height:48px;background:var(--paper);border-bottom:1px solid var(--line);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 20px;flex-shrink:0;
   position:relative;z-index:600;}
-.topbar-brand{display:flex;align-items:center;gap:14px;}
-.brand-mark{width:50px;height:50px;background:var(--nav-bg);border-radius:9px;
+.topbar-brand{display:flex;align-items:center;gap:10px;}
+.topbar-center{display:flex;justify-content:center;}
+.mob-assist-topbar-btn{display:flex;align-items:center;gap:6px;padding:5px 13px;
+  border-radius:20px;background:var(--coral);color:#fff;font-size:.73rem;font-weight:600;letter-spacing:.01em;
+  border:none;cursor:pointer;text-decoration:none;white-space:nowrap;}
+.mob-assist-topbar-btn:hover{opacity:.82;}
+.brand-mark{width:34px;height:34px;background:var(--nav-bg);border-radius:7px;
   border:none;display:flex;align-items:center;justify-content:center;
-  font-family:'Old English Text MT',serif;font-size:2.3rem;line-height:1;
+  font-family:'Old English Text MT',serif;font-size:1.5rem;line-height:1;
   color:var(--brass);flex-shrink:0;}
 .brand-stack{display:flex;flex-direction:column;justify-content:center;line-height:1.2;}
-.brand-name{font-family:'Manrope',sans-serif;font-weight:500;font-size:1.18rem;
+.brand-name{font-family:'Manrope',sans-serif;font-weight:500;font-size:.95rem;
   letter-spacing:-.02em;color:var(--ink);}
 .brand-sep{display:none;}
-.brand-sub{font-family:'Manrope',sans-serif;font-size:.58rem;font-weight:500;
-  letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-top:3px;}
-.topbar-right{display:flex;align-items:center;gap:14px;}
-.topbar-firm{font-family:'IBM Plex Mono',monospace;font-size:.66rem;font-weight:500;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;}
-.topbar-icon-btn{width:32px;height:32px;background:none;border:none;border-radius:6px;
-  cursor:pointer;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;
-  font-size:1.1rem;line-height:1;transition:all .15s;font-family:inherit;}
-.topbar-icon-btn:hover{background:var(--bg);color:var(--ink);}
-.topbar-divider{width:1px;height:18px;background:var(--line);margin:0 0;}
-.topbar-email{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink-soft);}
-.topbar-logout{background:none;border:1px solid var(--line);border-radius:6px;
-  padding:4px 11px;font-family:inherit;font-size:.75rem;font-weight:500;
-  color:var(--ink-mid);cursor:pointer;transition:all .15s;}
-.topbar-logout:hover{border-color:var(--ink);color:var(--ink);}
+.brand-sub{font-family:'Manrope',sans-serif;font-size:.5rem;font-weight:500;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--gold);margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:10px;position:relative;justify-content:flex-end;}
+.topbar-firm{display:none;}
+.topbar-icon-btn{display:none;}
+.topbar-divider{display:none;}
+.topbar-email{display:none;}
+.topbar-logout{display:none;}
+/* Avatar + dropdown */
+.topbar-avatar{width:30px;height:30px;border-radius:50%;background:#6366f1;
+  color:#fff;font-size:.75rem;font-weight:700;cursor:pointer;border:none;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:inherit;transition:opacity .15s;}
+.topbar-avatar:hover{opacity:.85;}
+.topbar-menu{position:absolute;top:calc(100% + 8px);right:0;
+  background:var(--paper);border:1px solid var(--line);border-radius:9px;
+  box-shadow:0 4px 20px rgba(0,0,0,.13);padding:6px;min-width:210px;
+  z-index:999;display:none;}
+.topbar-menu.open{display:block;}
+.topbar-menu-header{padding:8px 10px 10px;border-bottom:1px solid var(--line);margin-bottom:5px;}
+.topbar-menu-email{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink-soft);word-break:break-all;}
+.topbar-menu-firm{font-size:.7rem;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.topbar-menu-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;
+  font-size:.82rem;cursor:pointer;background:none;border:none;width:100%;text-align:left;
+  color:var(--ink);font-family:inherit;transition:background .12s;}
+.topbar-menu-btn:hover{background:var(--bg);}
+.topbar-menu-btn svg{flex-shrink:0;opacity:.6;}
 .topbar-rule{height:4px;flex-shrink:0;background:var(--nav-bg);position:relative;z-index:600;}
 
 /* Master-detail frame */
@@ -1348,9 +1400,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .v2-oudere-body.open{max-height:12000px;}
 
 /* Home-scherm (dossiersoverzicht) */
-.rp-home-bar{display:flex;align-items:center;gap:12px;padding:16px 28px;
+.rp-home-bar{display:flex;align-items:center;gap:12px;padding:14px 28px;
   border-bottom:1px solid var(--nav-border);flex-shrink:0;background:var(--nav-bg);}
-.rp-home-lijst{flex:1;padding:20px 24px 32px;}
+.rp-home-lijst{flex:1;padding:20px 24px 32px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.rp-home-lijst>*{width:100%;max-width:1080px;min-width:860px;}
 .list-search-wrap{flex:1;position:relative;max-width:280px;}
 .list-search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);
   width:14px;height:14px;color:rgba(245,241,232,.4);pointer-events:none;}
@@ -1395,7 +1448,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .list-row-datum{font-size:.71rem;color:var(--ink-soft);}
 
 /* Detailpanel (rechts) */
-.detail-panel{flex:1;min-width:0;overflow-y:auto;background:var(--bg);}
+.detail-panel{flex:1;min-width:0;overflow-y:auto;overflow-x:auto;background:var(--bg);}
 .rp{display:none;min-height:100%;flex-direction:column;}
 .rp.act{display:flex;}
 
@@ -1408,7 +1461,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .rp-header-analyse .rp-meta{color:rgba(255,255,255,.65);}
 .rp-header-analyse .rp-meta strong{color:rgba(255,255,255,.9);}
 .rp-back{background:none;border:1px solid var(--line);border-radius:8px;
-  padding:6px 12px;font-family:inherit;font-size:.82rem;color:var(--ink-soft);
+  padding:9px 12px;font-family:inherit;font-size:.88rem;color:var(--ink-soft);
   cursor:pointer;transition:background .15s;white-space:nowrap;flex-shrink:0;}
 .rp-back:hover{background:var(--bg);}
 .rp-header-analyse .rp-back{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.8);}
@@ -1504,7 +1557,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 
 /* ── Dimensie-noot (onder chips) ────────────────────── */
 .dim-noot{display:none;}
-.chip-info-icn{font-size:.75rem;color:var(--ink-soft);cursor:default;font-weight:400;line-height:1;flex-shrink:0;}
+.chip-info-icn{background:transparent;border:none;color:#9ca3af;cursor:help;font-size:0.9rem;line-height:1;flex-shrink:0;}
 
 /* ── Clausula rapport-header ─────────────────────────── */
 .rp-hdr{background:#1A2F4E;padding:16px 24px;border-bottom:2.5px solid #C8A84B;
@@ -1602,12 +1655,12 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 }
 
 /* ═══ Analyse-wizard ══════════════════════════════════ */
-.awiz-overlay{display:none;position:fixed;top:76px;left:0;right:0;bottom:0;z-index:500;background:var(--bg);flex-direction:column;overflow:hidden;}
+.awiz-overlay{display:none;position:fixed;top:52px;left:0;right:0;bottom:0;z-index:500;background:var(--bg);flex-direction:column;overflow:hidden;}
 .awiz-stap-hdr{max-width:1080px;margin:0 auto;padding-bottom:14px;}
 .awiz-overlay.active{display:flex;}
 /* Toolbar (dark navy) */
 .awiz-hdr{display:flex;align-items:center;gap:16px;padding:14px 20px;background:var(--nav-bg);flex-shrink:0;}
-.awiz-terug{background:none;border:1px solid rgba(255,255,255,.25);border-radius:8px;cursor:pointer;color:rgba(255,255,255,.8);font-size:.82rem;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit;}
+.awiz-terug{background:none;border:1px solid rgba(255,255,255,.25);border-radius:8px;cursor:pointer;color:rgba(255,255,255,.8);font-size:.88rem;padding:9px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:inherit;}
 .awiz-terug:hover{background:rgba(255,255,255,.1);color:#fff;}
 .awiz-bc{display:flex;align-items:center;gap:10px;flex:1;justify-content:center;}
 .awiz-bc-step{display:flex;align-items:center;gap:7px;font-size:.8rem;color:rgba(255,255,255,.4);font-weight:500;}
@@ -1716,6 +1769,198 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .awiz-time-val{font-size:.82rem;font-weight:600;color:var(--ink-mid);}
 .awiz-sp{flex:1;}
 
+/* ══════════════════════════════════════════════════════
+   AI ASSISTENT PANEL
+══════════════════════════════════════════════════════ */
+/* Topbar-knop */
+.assist-topbar-btn{display:flex;align-items:center;gap:6px;padding:5px 11px;
+  border:1px solid var(--line);border-radius:7px;background:none;
+  font-family:inherit;font-size:.78rem;font-weight:600;color:var(--ink-mid);
+  cursor:pointer;transition:background .13s,border-color .13s;}
+.assist-topbar-btn:hover{background:var(--bg);border-color:var(--ink-soft);}
+.assist-topbar-btn svg{flex-shrink:0;}
+
+/* Overlay backdrop */
+.assist-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.18);
+  z-index:3000;opacity:0;pointer-events:none;transition:opacity .22s;}
+.assist-backdrop.open{opacity:1;pointer-events:all;}
+
+/* Panel zelf */
+.assist-panel{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);
+  background:var(--paper);border-left:1px solid var(--line);
+  box-shadow:-4px 0 32px rgba(0,0,0,.12);
+  display:flex;flex-direction:column;z-index:3001;
+  transform:translateX(100%);transition:transform .24s cubic-bezier(.4,0,.2,1);}
+.assist-panel.open{transform:translateX(0);}
+
+/* Panel header */
+.assist-hdr{display:flex;align-items:center;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--line);flex-shrink:0;}
+.assist-hdr-icon{width:32px;height:32px;border-radius:8px;background:var(--nav-bg);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.assist-hdr-title{font-weight:700;font-size:.9rem;color:var(--ink);flex:1;}
+.assist-hdr-sub{font-size:.68rem;color:var(--ink-soft);}
+.assist-close{width:28px;height:28px;border:none;background:none;cursor:pointer;
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.75);transition:background .12s;}
+.assist-close:hover{background:rgba(255,255,255,.18);color:#fff;}
+
+/* Disclaimer banner */
+.assist-disclaimer{display:flex;align-items:flex-start;gap:8px;
+  margin:10px 14px 0;padding:9px 11px;border-radius:8px;
+  background:#FFF8E6;border:1px solid #F5C842;font-size:.73rem;line-height:1.45;
+  color:#7A5C00;flex-shrink:0;}
+.assist-disclaimer svg{flex-shrink:0;margin-top:1px;opacity:.8;}
+
+/* Dossier-koppelingsstrip */
+.assist-dossier-strip{display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border-bottom:1px solid var(--line);
+  font-size:.75rem;color:var(--ink-mid);flex-shrink:0;}
+.assist-dossier-lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.assist-dossier-lbl strong{color:var(--ink);}
+.assist-dossier-btn{padding:3px 9px;border:1px solid var(--line);border-radius:5px;
+  background:none;font-size:.72rem;cursor:pointer;color:var(--ink-soft);
+  font-family:inherit;transition:background .12s;}
+.assist-dossier-btn:hover{background:var(--bg);}
+
+/* Koppel-dialog (opent bovenin chatarea) */
+.assist-link-dialog{padding:16px;flex-shrink:0;}
+.assist-link-title{font-weight:700;font-size:.85rem;color:var(--ink);margin-bottom:6px;}
+.assist-link-sub{font-size:.78rem;color:var(--ink-soft);margin-bottom:12px;line-height:1.5;}
+.assist-link-btns{display:flex;gap:8px;flex-wrap:wrap;}
+.assist-link-btn{padding:7px 14px;border-radius:7px;font-family:inherit;font-size:.8rem;
+  font-weight:600;cursor:pointer;transition:background .12s;}
+.assist-link-btn-ja{background:var(--nav-bg);color:#fff;border:none;}
+.assist-link-btn-ja:hover{opacity:.88;}
+.assist-link-btn-nee{background:none;border:1px solid var(--line);color:var(--ink-mid);}
+.assist-link-btn-nee:hover{background:var(--bg);}
+.assist-dossier-select{width:100%;padding:7px 10px;border:1px solid var(--line);
+  border-radius:7px;font-family:inherit;font-size:.8rem;color:var(--ink);
+  background:var(--paper);margin-top:8px;cursor:pointer;}
+
+/* Chat berichten */
+.assist-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px;}
+.assist-msg{max-width:100%;}
+.assist-msg-user{align-self:flex-end;max-width:82%;}
+.assist-msg-user .assist-bubble{background:var(--nav-bg);color:#fff;
+  border-radius:12px 12px 3px 12px;padding:10px 13px;font-size:.83rem;line-height:1.55;}
+.assist-msg-assist .assist-bubble{background:var(--bg);border:1px solid var(--line);
+  border-radius:3px 12px 12px 12px;padding:11px 14px;font-size:.83rem;line-height:1.6;
+  color:var(--ink);}
+.assist-bubble p{margin:0 0 .5em;}
+.assist-bubble p:last-child{margin-bottom:0;}
+.assist-bubble h2,.assist-bubble h3{font-size:.82rem;font-weight:700;margin:.7em 0 .3em;}
+.assist-bubble ul,.assist-bubble ol{padding-left:1.2em;margin:.3em 0;}
+.assist-bubble li{margin-bottom:.25em;}
+.assist-bubble strong{font-weight:700;}
+.assist-bubble code{font-family:'IBM Plex Mono',monospace;font-size:.78em;
+  background:rgba(0,0,0,.05);padding:1px 4px;border-radius:3px;}
+
+/* Bronnen */
+.assist-bronnen{margin-top:9px;padding-top:9px;border-top:1px solid var(--line);}
+.assist-bronnen-lbl{font-size:.67rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px;}
+.assist-bron{display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border:1px solid var(--line);border-radius:12px;
+  font-size:.7rem;color:var(--ink-mid);margin:2px 3px 2px 0;
+  background:var(--paper);cursor:default;max-width:100%;overflow:hidden;}
+.assist-bron.web{cursor:pointer;text-decoration:none;}
+.assist-bron.web:hover{border-color:var(--nav-bg);color:var(--nav-bg);}
+
+/* Clausule-knop */
+.assist-clausule-btn{display:inline-flex;align-items:center;gap:6px;
+  margin-top:10px;padding:7px 13px;border-radius:7px;
+  background:none;border:1.5px solid var(--coral);
+  color:var(--coral);font-family:inherit;font-size:.78rem;font-weight:600;
+  cursor:pointer;transition:background .13s;}
+.assist-clausule-btn:hover{background:#FFF0EC;}
+
+/* Thinking indicator */
+.assist-thinking{display:flex;align-items:center;gap:8px;
+  padding:11px 14px;background:var(--bg);border:1px solid var(--line);
+  border-radius:3px 12px 12px 12px;font-size:.8rem;color:var(--ink-soft);}
+.assist-dot{width:6px;height:6px;border-radius:50%;background:var(--ink-soft);
+  animation:assist-bounce .9s ease-in-out infinite;}
+.assist-dot:nth-child(2){animation-delay:.2s;}
+.assist-dot:nth-child(3){animation-delay:.4s;}
+@keyframes assist-bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* Input area */
+.assist-input-area{padding:12px 14px;border-top:1px solid var(--line);flex-shrink:0;}
+.assist-input-row{display:flex;gap:8px;align-items:flex-end;}
+.assist-input{flex:1;min-height:38px;max-height:120px;padding:9px 11px;
+  border:1px solid var(--line);border-radius:8px;resize:none;
+  font-family:inherit;font-size:.83rem;color:var(--ink);background:var(--paper);
+  line-height:1.45;outline:none;transition:border-color .13s;}
+.assist-input:focus{border-color:var(--nav-bg);}
+.assist-send{width:36px;height:36px;border-radius:8px;border:none;flex-shrink:0;
+  background:var(--nav-bg);color:#fff;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;transition:opacity .13s;}
+.assist-send:hover:not(:disabled){opacity:.85;}
+.assist-send:disabled{opacity:.4;cursor:default;}
+.assist-hdr-actions{display:flex;gap:4px;margin-left:auto;margin-right:6px;}
+.assist-hdr-btn{width:28px;height:28px;border:none;background:rgba(255,255,255,.22);
+  color:#fff;border-radius:6px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:background .13s;flex-shrink:0;}
+.assist-hdr-btn:hover{background:rgba(255,255,255,.38);}
+.assist-sessies-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 8px;font-size:.75rem;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--line);}
+.assist-sessies-terug{border:none;background:none;color:var(--nav-bg);font-size:.8rem;
+  cursor:pointer;padding:2px 6px;border-radius:4px;transition:background .12s;font-weight:500;}
+.assist-sessies-terug:hover{background:var(--bg);}
+
+.assist-sessie-titel{font-size:.83rem;color:var(--ink);line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.assist-sessie-meta{font-size:.74rem;color:var(--muted);margin-top:2px;}
+.assist-sessies-leeg{padding:40px 14px;text-align:center;font-size:.83rem;color:var(--muted);}
+.assist-keuze-bubble{padding:12px 14px;}
+.assist-keuze-sectie{margin-top:10px;}
+.assist-keuze-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.assist-keuze-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.assist-keuze-chip{padding:5px 13px;border:1.5px solid var(--line);border-radius:20px;
+  background:var(--paper);color:var(--ink);font-size:.8rem;cursor:pointer;
+  font-family:inherit;transition:all .13s;}
+.assist-keuze-chip:hover{border-color:var(--nav-bg);color:var(--nav-bg);}
+.assist-keuze-chip.actief{background:var(--nav-bg);border-color:var(--nav-bg);color:#fff;}
+.assist-keuze-hint{font-size:.75rem;color:var(--muted);line-height:1.4;margin-top:6px;min-height:1.2em;transition:opacity .15s;}
+.assist-variant-groep{display:flex;gap:0;align-items:center;}
+.assist-variant-groep+.assist-variant-groep{margin-top:2px;}
+.assist-positie-input{width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid var(--line);
+  border-radius:8px;font-size:.8rem;font-family:inherit;color:var(--ink);background:var(--paper);
+  outline:none;transition:border-color .13s;}
+.assist-positie-input:focus{border-color:var(--nav-bg);}
+.assist-gen-trigger-btn{margin-top:12px;width:100%;padding:7px 14px;border:none;border-radius:8px;
+  background:var(--nav-bg);color:#fff;font-size:.82rem;font-family:inherit;font-weight:600;
+  cursor:pointer;transition:opacity .13s;}
+.assist-gen-trigger-btn:hover:not(:disabled){opacity:.88;}
+.assist-gen-trigger-btn:disabled{opacity:.35;cursor:default;}
+.assist-klanttekst-btn{margin-top:10px;padding:6px 14px;border:1.5px solid var(--nav-bg);
+  border-radius:6px;background:transparent;color:var(--nav-bg);font-size:.8rem;
+  cursor:pointer;font-family:inherit;transition:all .13s;display:inline-flex;align-items:center;gap:6px;}
+.assist-klanttekst-btn:hover{background:var(--nav-bg);color:#fff;}
+.assist-klanttekst-btn:disabled{opacity:.4;cursor:default;}
+.assist-tbl-wrap{overflow-x:auto;margin:8px 0;}
+.assist-tbl{border-collapse:collapse;width:100%;font-size:.82rem;line-height:1.45;}
+.assist-tbl th,.assist-tbl td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top;}
+.assist-tbl th{background:var(--chip-bg,rgba(0,0,0,.04));font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;}
+.assist-copy-btn{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:4px 11px;
+  border:1.5px solid var(--line);border-radius:6px;background:transparent;
+  color:var(--muted);font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .13s;}
+.assist-copy-btn:hover{border-color:var(--nav-bg);color:var(--nav-bg);}
+.assist-copy-btn.gekopieerd{border-color:var(--ok,#2a9d8f);color:var(--ok,#2a9d8f);}
+.assist-concept-btn{display:inline-flex;align-items:center;gap:5px;margin-top:6px;margin-left:6px;
+  padding:4px 11px;border:1.5px solid var(--nav-bg);border-radius:6px;background:transparent;
+  color:var(--nav-bg);font-size:.75rem;cursor:pointer;font-family:inherit;transition:all .13s;}
+.assist-concept-btn:hover{background:var(--nav-bg);color:#fff;}
+.assist-del-sessie{border:none;background:none;color:var(--muted);font-size:.8rem;cursor:pointer;
+  padding:2px 6px;border-radius:4px;opacity:.6;flex-shrink:0;}
+.assist-del-sessie:hover{color:#c0392b;opacity:1;}
+.assist-sessie-row{flex:1;min-width:0;cursor:pointer;}
+.assist-sessie-item{padding:8px 14px;border-bottom:1px solid var(--line);
+  transition:background .12s;display:flex;align-items:center;gap:6px;}
+.assist-sessie-item:hover{background:var(--bg);}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/5.2.0/diff.min.js"></script>
@@ -1738,18 +1983,32 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         <span class="brand-sub">Juridische toetsing &middot; scheidingsmediation</span>
       </div>
     </div>
+    <div class="topbar-center">
+      <a href="/assistent-mobiel.html" class="mob-assist-topbar-btn" target="_blank" rel="noopener">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        Mobiele assistent
+      </a>
+    </div>
     <div class="topbar-right">
-      <span class="topbar-firm" id="topbarFirm"></span>
-      <div class="topbar-divider"></div>
-      <button class="topbar-icon-btn" id="instellingenBtn" title="Praktijkinstellingen">
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6">
-          <circle cx="10" cy="10" r="3"/>
-          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke-linecap="round"/>
-        </svg>
+      <button class="assist-topbar-btn" id="assistBtn" onclick="toggleAssistPanel()" title="AI Assistent">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Juridisch assistent
       </button>
-      <div class="topbar-divider"></div>
-      <span class="topbar-email" id="topbarEmail"></span>
-      <button class="topbar-logout" id="uitloggenBtn">Uitloggen</button>
+      <button class="topbar-avatar" id="topbarAvatar" onclick="toggleUserMenu(event)" title="Account">?</button>
+      <div class="topbar-menu" id="topbarMenu">
+        <div class="topbar-menu-header">
+          <div class="topbar-menu-firm" id="topbarFirm"></div>
+          <div class="topbar-menu-email" id="topbarEmail"></div>
+        </div>
+        <button class="topbar-menu-btn" id="instellingenBtn">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+          Praktijkinstellingen
+        </button>
+        <button class="topbar-menu-btn" id="uitloggenBtn">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 3h4v14h-4M9 14l4-4-4-4M13 10H5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Uitloggen
+        </button>
+      </div>
     </div>
   </header>
   <div class="topbar-rule"></div>
@@ -2021,8 +2280,17 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             </div>
             <div class="awiz-row">
               <div class="awiz-f1">
-                <label class="awiz-lbl" for="wizPartijAInp">Volledige naam <span style="color:var(--terra)">*</span></label>
-                <input class="awiz-inp" id="wizPartijAInp" type="text" placeholder="Voornamen achternaam" autocomplete="off">
+                <div class="awiz-row" style="gap:10px">
+                  <div style="flex:1;min-width:0;">
+                    <label class="awiz-lbl" for="wizVoornaamAInp">Voornamen <span style="color:var(--terra)">*</span></label>
+                    <input class="awiz-inp" id="wizVoornaamAInp" type="text" placeholder="Voornamen" autocomplete="off">
+                  </div>
+                  <div style="flex:1;min-width:0;">
+                    <label class="awiz-lbl" for="wizAchternaamAInp">Achternaam</label>
+                    <input class="awiz-inp" id="wizAchternaamAInp" type="text" placeholder="Achternaam" autocomplete="off">
+                  </div>
+                </div>
+                <input type="hidden" id="wizPartijAInp">
               </div>
               <div class="awiz-f-roep">
                 <label class="awiz-lbl" for="wizRoepAInp">Roepnaam (optioneel)</label>
@@ -2037,8 +2305,17 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             </div>
             <div class="awiz-row">
               <div class="awiz-f1">
-                <label class="awiz-lbl" for="wizPartijBInp">Volledige naam</label>
-                <input class="awiz-inp" id="wizPartijBInp" type="text" placeholder="Voornamen achternaam" autocomplete="off">
+                <div class="awiz-row" style="gap:10px">
+                  <div style="flex:1;min-width:0;">
+                    <label class="awiz-lbl" for="wizVoornaamBInp">Voornamen</label>
+                    <input class="awiz-inp" id="wizVoornaamBInp" type="text" placeholder="Voornamen" autocomplete="off">
+                  </div>
+                  <div style="flex:1;min-width:0;">
+                    <label class="awiz-lbl" for="wizAchternaamBInp">Achternaam</label>
+                    <input class="awiz-inp" id="wizAchternaamBInp" type="text" placeholder="Achternaam" autocomplete="off">
+                  </div>
+                </div>
+                <input type="hidden" id="wizPartijBInp">
               </div>
               <div class="awiz-f-roep">
                 <label class="awiz-lbl" for="wizRoepBInp">Roepnaam (optioneel)</label>
@@ -2229,20 +2506,22 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 <!-- ═══ Split-overlay (rapport + document) ══════════ -->
 <div class="split-overlay" id="splitOverlay">
   <div class="split-header">
-    <button class="back-btn" id="backBtn">← Terug</button>
+    <button class="back-btn" id="backBtn">←</button>
+    <div id="splitHeaderTabs" class="split-header-tabs"></div>
     <div class="split-center-namen" id="splitCenterNamen"></div>
-    <div class="split-meta" style="display:none">
-      <span class="doctype" id="splitDoctype"></span>
-      <span class="titel"   id="splitTitel"></span>
-    </div>
-    <div class="split-acties">
-      <input type="text" class="versie-label-header" id="versieLabelHeaderInput"
-        placeholder="Versielabel (optioneel)" style="display:none">
-      <button class="secundair" id="genereerConceptBtn" style="display:none">✦ Genereer concept <span id="conceptBadge" class="concept-badge">0</span></button>
-      <button class="secundair" id="bekijkConceptBtn"   style="display:none">✦ Bekijk concept</button>
-      <span id="conceptGenChips"></span>
+    <div class="split-concept-area" id="splitConceptArea" style="display:none">
+      <div class="split-concept-info">
+        <span class="anal-cta-title" id="splitConceptTitle"></span>
+        <span class="anal-cta-sub" id="splitConceptSub"></span>
+      </div>
+      <button id="genereerConceptBtn" style="display:none">Concept genereren → <span id="conceptBadge" class="concept-badge">0</span></button>
+      <button class="split-hergen-btn" id="hergenConceptBtn" style="display:none"
+        title="Opnieuw genereren" onclick="document.getElementById('genereerConceptBtn').click()">↺</button>
+      <button class="split-bekijk-btn" id="bekijkConceptBtn" style="display:none">Bekijk concept →</button>
       <span class="opslagstatus" id="opslagStatus"></span>
     </div>
+    <input type="text" class="versie-label-header" id="versieLabelHeaderInput"
+      placeholder="Versielabel (optioneel)" style="display:none">
   </div>
   <!-- Docbar: document-controls links | analyse-header + PDF rechts -->
   <div class="docbar">
@@ -2287,10 +2566,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     </div>
     <div class="panel-analyse-col">
       <div class="panel-analyse" id="analysePanel"></div>
-      <div class="anal-cta-bar" id="analCtaBar" style="display:none">
-        <div class="anal-cta-info" id="analCtaInfo"></div>
-        <button class="anal-cta-btn" id="analCtaKnop" onclick="document.getElementById('genereerConceptBtn').click()">CONCEPT GENEREREN →</button>
-      </div>
     </div>
   </div>
 </div>
@@ -2377,7 +2652,11 @@ let _orgNaam = '';     // naam van de organisatie (uit organisaties-tabel)
   _orgNaam = org?.naam || getPraktijknaam() || '';
 
   const emailEl = document.getElementById('topbarEmail');
-  if (emailEl) emailEl.textContent = session.user?.email || '';
+  const userEmail = session.user?.email || '';
+  if (emailEl) emailEl.textContent = userEmail;
+  const avatarEl = document.getElementById('topbarAvatar');
+  const avatarInitial = _mediatorNaam ? _mediatorNaam.trim()[0].toUpperCase() : (userEmail ? userEmail[0].toUpperCase() : '?');
+  if (avatarEl) avatarEl.textContent = avatarInitial;
   const firmEl = document.getElementById('topbarFirm');
   if (firmEl) firmEl.textContent = _orgNaam;
 
@@ -2409,6 +2688,33 @@ async function uitloggen() {
 }
 document.getElementById('uitloggenBtn').addEventListener('click', uitloggen);
 document.getElementById('uitloggenBtn2').addEventListener('click', uitloggen);
+
+function setupChipsCompact(panelEl) {
+  const scrollBoven = panelEl.querySelector('.analyse-scroll-boven');
+  const chipGrid = panelEl.querySelector('.filter-chip-grid');
+  if (!scrollBoven || !chipGrid) return;
+  const enterAt = scrollBoven.offsetHeight;
+  const exitAt  = Math.round(enterAt * 0.4);
+  let compact = false;
+  function update() {
+    const st = panelEl.scrollTop;
+    if (!compact && st > enterAt) { compact = true;  chipGrid.classList.add('compact'); }
+    else if (compact && st < exitAt) { compact = false; chipGrid.classList.remove('compact'); }
+  }
+  panelEl.addEventListener('scroll', update, { passive: true });
+  update();
+}
+
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  document.getElementById('topbarMenu').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('topbarMenu');
+  if (menu && !menu.contains(e.target) && e.target.id !== 'topbarAvatar') {
+    menu.classList.remove('open');
+  }
+});
 
 // ── MfN-compliantievereisten per documenttype ─────────
 const MFN_ELEMENTEN = {
@@ -3296,7 +3602,10 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   // max_tokens 2048: bij 4 documenten kan de output (namen + kenmerken + samenvatting) >1024 tokens zijn
   const classificatie = await askClaudeForJson(
     `Je classificeert een set Nederlandse echtscheidingsdocumenten. Roep de tool ÉÉNMAAL aan met een gecombineerde classificatie die alle documenten dekt — niet één aanroep per document. Haal de volledige namen en geboortedatums van beide partijen eruit (partij_a_naam, partij_a_geboortedatum in dd-mm-jjjj, partij_b_naam, partij_b_geboortedatum in dd-mm-jjjj). Als alleen het jaar bekend is, gebruik dan partij_a_geboortejaar / partij_b_geboortejaar. Noteer ook de namen en geboortedatums van alle minderjarige kinderen (kinderen_namen, kinderen_geboortedatums in dd-mm-jjjj in dezelfde volgorde; gebruik kinderen_geboortejaren als fallback). Noteer de mediator/advocaat (mediator_naam) en notaris (notaris_naam) als die worden vermeld. Laat velden weg als niet vermeld.
-LET OP ROEPNAMEN: als een partij in het document wordt aangeduid met een andere naam dan de formele naam in 'Ondergetekenden' (bijv. de formele naam is 'Herma Eugenie ten Brink' maar elders in het document staat consistent 'Manon ten Brink'), vul dan partij_a_roepnaam of partij_b_roepnaam in met alleen de gangbare voornaam (bijv. 'Manon'). Laat het veld weg als de gangbare naam gelijk is aan de formele voornaam.
+LET OP ROEPNAMEN: vul partij_a_roepnaam / partij_b_roepnaam in als de gangbare voornaam van een partij AFWIJKT van het eerste naamsdeel in partij_a_naam / partij_b_naam. Gevallen waarbij dit speelt:
+(1) Elders in het document staat consistent een andere voornaam (bijv. formeel 'Herma Eugenie ten Brink' maar in de lopende tekst 'Manon ten Brink') — vul dan 'Manon' in.
+(2) De intro-bullet in 'Ondergetekenden' gebruikt een ANDERE voornaam dan wat in handtekening/officieel gedeelte staat (bijv. intro-bullet: 'Grada Berendina Roseboom' maar handtekening/officieel deel: 'Dieneke Bedrendina Roseboom') — gebruik dan de naam uit de intro-bullet als roepnaam (bijv. 'Grada'), want die is de naam die de mediator en partijen herkennen.
+Laat het veld WEG als de gangbare voornaam gelijk is aan het eerste naamsdeel van de formele naam.
 Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijst}`,
     classificatieTekst, classificatieTool, 2048,
     { model: 'claude-haiku-4-5-20251001' }
@@ -3419,10 +3728,12 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 
       // Alle issues die tot nu toe zijn binnengekomen
       // Als consolidatie al klaar is: gebruik die; anders browser-side dedup
+      // Zelfde _geenIssuePat-filter als _docResultaten — chip toont precies wat opgeslagen wordt.
+      const _rp_geenIssuePat = /geen\s+issue|geen\s+actie\s+vereist|voldoet\s+aan|correct\s+geregeld|geen\s+probleem/i;
       const alleI = [
         ...(
           Array.isArray(acc.consolidatie?.issues) && acc.consolidatie.issues.length
-            ? acc.consolidatie.issues
+            ? acc.consolidatie.issues.filter(i => { const t = `${i.bevinding||''} ${i.aanbeveling||''}`; return !_rp_geenIssuePat.test(t); })
             : dedupIssues([
                 Array.isArray(acc.structuur?.issues)  ? acc.structuur.issues  : [],
                 Array.isArray(acc.juridisch?.issues)  ? acc.juridisch.issues  : [],
@@ -3483,7 +3794,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       // MfN chip voor de filterbar + volledige checklist — al zichtbaar zodra structuur arriveert,
       // vóór het klaar-event (dat vertraagd wordt door de cross-doc call).
       const _mfnChipHtml = _mfnEl.length
-        ? `<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong style="color:#16a34a;font-size:1.55rem;font-weight:800;display:block;line-height:1">${_mfnAanw}</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong style="color:var(--ink-soft);font-size:1.55rem;font-weight:800;display:block;line-height:1">${_mfnEl.length}</strong><span>Totaal</span></div></div></button>`
+        ? `<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong style="color:#16a34a;font-size:1.1rem;font-weight:800;display:block;line-height:1">${_mfnAanw}</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong style="color:var(--ink-soft);font-size:1.1rem;font-weight:800;display:block;line-height:1">${_mfnEl.length}</strong><span>Totaal</span></div></div></button>`
         : _structuurLoadt
           ? `<button class="a-fiche-chip a-fiche-chip--laden" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn||''}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">—</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">—</strong><span>Totaal</span></div></div></button>`
           : '';
@@ -3567,7 +3878,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const _alleHoog = _alleOpen.filter(i => i.ernst === 'hoog').length;
       const _alleMid  = _alleOpen.filter(i => i.ernst === 'midden').length;
       const _alleLaag = _alleOpen.filter(i => i.ernst === 'laag').length;
-      const _alleChip = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.alle||''}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_alleHoog||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_alleMid||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_alleLaag||'—'}</strong><span>Laag</span></div></div></button>`;
+      const _alleChip = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${_alleMiniRingHtml(alleI)}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_alleHoog||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_alleMid||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_alleLaag||'—'}</strong><span>Laag</span></div></div></button>`;
       const filterBar = `<div class="issue-filter-bar">
         <div class="filter-chip-grid">${_alleChip}${dims.map(d => {
           const loading = dimLoadt[d];
@@ -3619,28 +3930,21 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         `<div class="sticky-chips-bar">${filterBar}</div>` +
         `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div>${_mfnSectieHtml ? '<div id="mfnSectie" style="display:none">' + _mfnSectieHtml + '</div>' : ''}</div>`;
       requestAnimationFrame(ajusteerDonutPositie);
+      setupChipsCompact(document.getElementById('analysePanel'));
       const _stickyTitelEl = document.getElementById('stickySectieTitel');
       if (_stickyTitelEl) { _stickyTitelEl.textContent = _progSectieLabel; _stickyTitelEl.dataset.label = _progSectieLabel; }
     };
 
-    // Document-tabs in de docbar (multi-doc) of enkel tab (single) + partijnamen in topnav
-    const _metaEl = document.getElementById('docbarLeft');
+    // Document-tabs in de split-header (multi-doc) of enkel tab (single) + partijnamen in topnav
+    const _metaEl = document.getElementById('splitHeaderTabs');
     const _ctrNamen = document.getElementById('splitCenterNamen');
     const _pAn = huidigDossierPartijA || classificatie?.partij_a_naam || '';
     const _pBn = huidigDossierPartijB || classificatie?.partij_b_naam || '';
-    if (_ctrNamen) _ctrNamen.textContent = _pAn && _pBn ? `${_pAn} – ${_pBn}` : _pAn || _pBn || '';
-    const _zoekWrap = document.getElementById('docbarLeft')?.querySelector('.db-zoek-wrap');
-    const _sepZoek  = document.getElementById('dbSepZoek');
+    if (_ctrNamen) _ctrNamen.textContent = huidigDossierNaam || (_pAn && _pBn ? `${_pAn} – ${_pBn}` : _pAn || _pBn || '');
     if (effectieveHoofdItems.length > 1) {
-      const _tabsHtml = effectieveHoofdItems.map((item, i) =>
-        `<button class="db-tab-doc${i === 0 ? ' actief' : ''}" data-idx="${i}">${escH((DOC_TYPE_LABELS[item.type] || item.type).toUpperCase())}</button>`
+      _metaEl.innerHTML = effectieveHoofdItems.map((item, i) =>
+        `<button class="db-tab-doc${i === 0 ? ' actief' : ''}" data-idx="${i}">${escH((s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())(DOC_TYPE_LABELS[item.type] || item.type))}</button>`
       ).join('');
-      if (_zoekWrap) {
-        _metaEl.insertAdjacentHTML('afterbegin', _tabsHtml);
-      } else {
-        _metaEl.innerHTML = _tabsHtml;
-      }
-      if (_sepZoek) _sepZoek.style.display = '';
       _metaEl.querySelectorAll('.db-tab-doc').forEach(btn => {
         btn.addEventListener('click', async () => {
           const idx = parseInt(btn.dataset.idx, 10);
@@ -3659,10 +3963,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     } else {
       const _enkel = effectieveHoofdItems[0];
       const _enkLbl = _enkel ? (DOC_TYPE_LABELS[_enkel.type] || _enkel.type).toUpperCase() : '';
-      if (_enkLbl && _zoekWrap) {
-        _metaEl.insertAdjacentHTML('afterbegin', `<button class="db-tab-doc actief">${escH(_enkLbl)}</button>`);
-      }
-      if (_sepZoek) _sepZoek.style.display = '';
+      if (_enkLbl) _metaEl.innerHTML = `<button class="db-tab-doc actief">${escH(_enkLbl)}</button>`;
     }
 
     openSplitView();
@@ -4027,6 +4328,11 @@ function _dossierNaamHtml(cls) {
 
 async function renderDocPanel(searchText) {
   const panel = document.getElementById('documentPanel');
+  // Defensieve fallback: als huidigeBestandenLijst leeg is maar huidigePrimaireBest[huidigeDocIdx]
+  // wel bestanden bevat, gebruik die. Vangt timing-edge-cases op bij snelle tab-wissels.
+  if (!huidigeBestandenLijst.length && huidigePrimaireBest[huidigeDocIdx]?.length) {
+    huidigeBestandenLijst = huidigePrimaireBest[huidigeDocIdx];
+  }
   if (!huidigeBestandenLijst.length) { toonTekstFallback(panel, searchText); return; }
 
   if (!docPanelGereed) {
@@ -4239,7 +4545,7 @@ function normChars(s) {
   return s
     .replace(/­/g, '')                    // zachte koppeltekens (PDF-regelafbreking)
     .replace(/[“”„«»""„«»]/g, '"') // aanhalingstekens
-    .replace(/[‘’‚''‚]/g, "'")  // apostrofs
+    .replace(/[''‚''‚]/g, "'")  // apostrofs
     .replace(/[—–‒—–]/g, '-')   // gedachtestreepjes
     .replace(/ﬁ/g, 'fi').replace(/ﬂ/g, 'fl')
     .replace(/ﬃ/g, 'ffi').replace(/ﬄ/g, 'ffl')
@@ -4604,15 +4910,32 @@ function lijstKaarten(cat, items, renderFn, leegTekst) {
 
 const DIM_LABELS = { volledigheid:'Volledigheid', juridisch:'Juridische toets', balans:'Balans', grammatica:'Grammatica', conflicten:'Conflicten', cross_doc:'Cross-document' };
 const DIM_SVG_ICONS = {
-  juridisch:   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 3l6 6-3 3-6-6z"/><path d="M12.5 10.5L20 18"/><path d="M3 21h9"/></svg>`,
+  juridisch:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 182"><path fill="currentColor" d="M101.719414,31.819653C102.62899,33.957069 103.16584,35.959068 103.878235,37.896523C104.346771,39.170769 104.820709,40.589584 105.723114,41.53035C108.464882,44.388664 111.416054,47.046116 114.737213,50.213924C117.634918,53.072781 120.028496,55.555458 122.538841,57.913853C126.934013,62.042992 130.490616,67.715324 138.08313,66.738876C138.93132,67.267525 139.572815,67.610573 140.372437,68.24791C147.099365,75.193489 147.077469,76.821381 140.396698,83.462021C139.586746,84.267113 138.889343,85.185417 138.092072,86.045082C131.627457,92.593521 125.81263,98.795479 119.677238,105.133301C113.552788,110.582855 112.409111,110.560471 105.63797,104.705688C104.360596,102.321312 103.082886,100.299301 102.137627,98.132271C100.914642,95.32856 99.956978,92.409126 98.665878,88.952667C93.045425,95.114464 88.530472,100.064278 83.702896,105.135323C78.241722,110.814438 73.093185,116.372322 67.673187,122.076401C66.623451,123.158806 65.845184,124.095009 64.772552,125.190384C59.717491,130.580841 54.956779,135.812149 50.196068,141.043457C49.510406,141.693222 48.824745,142.342987 47.699223,143.437729C42.26889,148.897461 36.551888,150.157013 30.022495,147.217575C28.118458,145.320801 26.214418,143.424042 24.110935,141.258896C21.343182,134.010742 23.118679,128.269882 29.033918,123.363701C29.525349,123.064659 29.771227,122.934792 30.329216,122.326996C38.843342,114.88932 47.043697,107.876251 55.086147,100.686539C58.879387,97.295494 62.369656,93.565544 66.303375,89.853943C72.141319,85.027771 77.673103,80.336815 83.918335,75.040863C80.024155,72.136887 76.839371,69.351402 73.25518,67.245796C71.164192,66.01741 68.434273,65.87661 65.991821,65.246498C60.316734,59.146759 60.294106,57.023586 66.221252,51.278858C73.104454,44.607494 80.062042,38.011776 87.049988,31.449936C93.30674,25.574707 95.282646,25.644003 101.719414,31.819653z"/><path fill="currentColor" d="M156.359222,161.021332C150.314636,161.057434 144.614441,161.010284 138.449738,161.034973C132.302811,161.057693 126.620392,161.008575 120.476379,161.035095C114.31469,161.063431 108.614594,161.016129 102.450104,161.04071C96.303726,161.062881 90.621758,161.013199 84.477966,161.036743C81.396049,161.048874 78.776108,160.944962 76.1558,160.934586C67.852173,160.901733 66.657898,159.749344 66.491913,150.694794C68.583336,147.097488 70.487762,144.114807 72.759453,141.053696C75.118629,140.441711 77.110542,139.908173 79.077591,139.381287C79.679962,135.144684 78.643028,130.337433 84.496506,128.600159C90.650009,128.463135 96.351059,128.297913 102.430458,128.209595C108.546936,128.237228 114.285065,128.187927 120.413994,128.237244C126.520615,128.286194 132.236435,128.236511 138.297867,128.362091C147.27356,129.003571 149.649139,139.654587 151.775101,140.12706C153.868713,140.592346 155.962326,141.057632 161.698746,145.527481C163.578766,151.248596 161.286438,158.636292 159.66629,159.661301C158.184952,160.299683 156.359222,161.021332M102.891685,139.863266C108.609291,139.81488 114.326889,139.766495 120.964668,139.856262C126.623329,139.820389 132.281998,139.784531 138.745605,139.896988C141.001205,140.081284 143.029465,140.06192 142.848862,136.850815C142.640717,133.149765 140.108307,134.106476 137.018341,134.138779C131.360291,134.187607 125.70224,134.23645 119.113441,134.128891C113.39653,134.18042 107.679626,134.231964 101.043388,134.137802C96.109032,134.137802 91.174675,134.137802 85.897919,134.137802C86.026611,136.356033 86.117981,137.930878 86.221458,139.714493C91.724754,139.714493 96.843567,139.714493 102.891685,139.863266M137.072281,145.80928C131.382278,145.86232 125.692276,145.915359 119.079193,145.794113C113.385406,145.853256 107.691612,145.912415 101.072533,145.816284C95.382538,145.866928 89.692535,145.917572 83.139313,145.793213C74.162323,145.671112 71.76313,147.897247 73.627625,154.803452C77.051224,154.803452 80.516579,154.803452 84.91304,154.923294C90.615265,154.882416 96.31749,154.841522 102.945358,154.926926C108.622871,154.885468 114.300392,154.844009 120.90995,154.92366C126.612434,154.884659 132.314926,154.845657 138.943741,154.933762C144.531738,154.933762 150.119736,154.933762 155.634247,154.933762C156.172836,148.220856 154.238174,145.868195 148.442505,145.763199C144.963348,145.7001 141.479675,145.88707 137.072281,145.80928z"/></svg>`,
   conflicten:  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 3L6 13h5l-1 8 7-10h-5l1-8z"/></svg>`,
   volledigheid:`<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3.5 5.5L5 7l3-3"/><path d="M11 5.5h9"/><path d="M3.5 12.5L5 14l3-3"/><path d="M11 12.5h9"/><path d="M4 19.5h3"/><path d="M11 19.5h9"/></svg>`,
   balans:      `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16"/><path d="M7 20h10"/><path d="M5 7h14"/><path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7"/><path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7"/></svg>`,
-  grammatica:  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 5h16"/><path d="M4 10h12"/><path d="M3.5 17c1.4-1.8 2.8-1.8 4.25 0s2.8 1.8 4.25 0 2.8-1.8 4.25 0 2.8 1.8 4.25 0"/></svg>`,
+  grammatica:  `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M12 46C18 46 18 38 24 38C30 38 30 46 36 46C42 46 42 38 48 38C54 38 54 46 52 46" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M14 34L22 14L30 34M17 27H27" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 16H52M38 24H52M38 32H52" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>`,
   mfn:         `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M19 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/><path d="M7 8h9"/><path d="M7 12h5"/><circle cx="16.5" cy="15" r="2.75"/><path d="M14.8 17.2l-.8 4 2.5-1.7 2.5 1.7-.8-4"/></svg>`,
-  cross_doc:   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="8" height="11" rx="1"/><rect x="15" y="4" width="8" height="11" rx="1"/><path d="M9 8l2.5 2.5L9 13"/><path d="M15 8l-2.5 2.5L15 13"/></svg>`,
+  cross_doc:   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="5" width="10" height="13" rx="2"/><rect x="5" y="9" width="10" height="13" rx="2"/><path d="M8 15h4M8 18h3"/></svg>`,
   alle:        `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
 };
+
+function _alleMiniRingHtml(issues) {
+  const actief = issues.filter(i => !i.negeer && !i.afgehandeld);
+  const h = actief.filter(i => i.ernst === 'hoog').length;
+  const m = actief.filter(i => i.ernst === 'midden').length;
+  const l = actief.filter(i => i.ernst === 'laag').length;
+  const tot = h + m + l;
+  let grad;
+  if (tot > 0) {
+    const hDeg = Math.round(h / tot * 360);
+    const mDeg = Math.round((h + m) / tot * 360);
+    grad = `conic-gradient(#C82020 0deg ${hDeg}deg,#D4890A ${hDeg}deg ${mDeg}deg,#2A7260 ${mDeg}deg 360deg)`;
+  } else {
+    grad = 'conic-gradient(var(--line) 0deg 360deg)';
+  }
+  return `<span class="alle-mini-ring" style="background:${grad}"><span class="alle-mini-center">${tot || '—'}</span></span>`;
+}
 
 
 function herlaadChipTellers() {
@@ -4633,6 +4956,10 @@ function herlaadChipTellers() {
     if (hEl) hEl.textContent = h || '—';
     if (mEl) mEl.textContent = m || '—';
     if (lEl) lEl.textContent = l || '—';
+    if (dim === 'alle') {
+      const ringSlot = chip.querySelector('.a-fiche-icn');
+      if (ringSlot) ringSlot.innerHTML = _alleMiniRingHtml(dimIss);
+    }
   });
 
   // Update de grote donut card (samenvatting rechts)
@@ -4995,10 +5322,10 @@ async function toonRapport(cls, rp) {
   huidigRapport        = rp;
   _issueSortModus      = 'ernst'; // reset sorteermodus bij openen opgeslagen rapport
 
-  // Multi-doc: rapport.documenten[] aanwezig? — gesorteerd: ouderschapsplan eerst, convenant tweede
-  const _DOC_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
+  // Multi-doc: rapport.documenten[] aanwezig? — gesorteerd: OP → Zorgverdeling → Convenant → Waardeoverzicht → rest
+  const _DOC_VOLGORDE = { ouderschapsplan: 0, zorgverdeling: 1, convenant: 10, waarde_verdeling: 11 };
   const docs = Array.isArray(rp.documenten) && rp.documenten.length > 1
-    ? [...rp.documenten].sort((a, b) => (_DOC_VOLGORDE[a.doc_type] ?? 9) - (_DOC_VOLGORDE[b.doc_type] ?? 9))
+    ? [...rp.documenten].sort((a, b) => (_DOC_VOLGORDE[a.doc_type] ?? 99) - (_DOC_VOLGORDE[b.doc_type] ?? 99))
     : null;
   huidigeDocumenten = docs || [];
   huidigeDocIdx     = 0;
@@ -5168,14 +5495,14 @@ async function toonRapport(cls, rp) {
       return `<button class="a-fiche-chip" data-dim="${d}" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-label">${DIM_LABELS[d]}</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${h||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${m||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${l||'—'}</strong><span>Laag</span></div></div></button>`;
     };
     const mfnChipHtml = mfnHtml
-      ? `<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong style="color:#16a34a;font-size:1.55rem;font-weight:800;display:block;line-height:1">${mfnAanw}</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong style="color:var(--ink-soft);font-size:1.55rem;font-weight:800;display:block;line-height:1">${mfnEl.length}</strong><span>Totaal</span></div></div></button>`
+      ? `<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong style="color:#16a34a;font-size:1.1rem;font-weight:800;display:block;line-height:1">${mfnAanw}</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong style="color:var(--ink-soft);font-size:1.1rem;font-weight:800;display:block;line-height:1">${mfnEl.length}</strong><span>Totaal</span></div></div></button>`
       : '';
 
     const _openIss = issues.filter(i => !i.negeer && !i.afgehandeld);
     const _totalH = _openIss.filter(i => i.ernst === 'hoog').length;
     const _totalM = _openIss.filter(i => i.ernst === 'midden').length;
     const _totalL = _openIss.filter(i => i.ernst === 'laag').length;
-    const _alleChipHtml = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.alle||''}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_totalH||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_totalM||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_totalL||'—'}</strong><span>Laag</span></div></div></button>`;
+    const _alleChipHtml = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${_alleMiniRingHtml(issues)}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_totalH||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_totalM||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_totalL||'—'}</strong><span>Laag</span></div></div></button>`;
 
     const _docLblSectie = (() => {
       const dt = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
@@ -5231,31 +5558,25 @@ async function toonRapport(cls, rp) {
     panel.scrollTop = 0;
     updateConceptKnop();
     requestAnimationFrame(ajusteerDonutPositie);
+    setupChipsCompact(panel);
   }
   // Stel module-level referentie in zodat sorteerIssues() er buiten toonRapport bij kan
   _activeerAnalysePanelFn = activeerAnalysePanel;
 
-  // ── Docbar: tabs (multi-doc) of enkel tab (single) + partijnamen in topnav ──
-  const metaEl = document.getElementById('docbarLeft');
+  // ── Tabs in split-header (multi-doc) of enkel tab (single) + partijnamen in topnav ──
+  const metaEl = document.getElementById('splitHeaderTabs');
   const namenEl = document.getElementById('splitCenterNamen');
   const _pAnm = huidigDossierPartijA || cls?.partij_a_naam || '';
   const _pBnm = huidigDossierPartijB || cls?.partij_b_naam || '';
-  if (namenEl) namenEl.textContent = _pAnm && _pBnm ? `${_pAnm} – ${_pBnm}` : _pAnm || _pBnm || '';
-  const _zoekWrapEl = metaEl?.querySelector('.db-zoek-wrap');
-  const _sepZoekEl  = document.getElementById('dbSepZoek');
-  // Verwijder bestaande tabs (maar laat zoekbalk intact)
-  metaEl?.querySelectorAll(':scope > .db-tab-doc, :scope > .db-sep:not(#dbSepZoek)').forEach(el => el.remove());
+  if (namenEl) namenEl.textContent = huidigDossierNaam || (_pAnm && _pBnm ? `${_pAnm} – ${_pBnm}` : _pAnm || _pBnm || '');
+  // Verwijder bestaande tabs
+  if (metaEl) metaEl.innerHTML = '';
   // Bewaar of er een auto-click gaat plaatsvinden vóór het resetten van gewenstDocIdx.
-  // De sync-code van de click-handler stelt huidigRapport, huidigeBestandenLijst en
-  // huidigeDocIdx al correct in op het gewenste document — die toestand mag NIET worden
-  // overschreven door de drpVoorBanner-code hieronder.
   let _autoGeklikt = false;
   if (docs) {
-    const _tabsHtml = docs.map((d, i) =>
-      `<button class="db-tab-doc${i === 0 ? ' actief' : ''}" data-idx="${i}">${escH((DOC_TYPE_LABELS[d.doc_type] || d.doc_type).toUpperCase())}</button>`
+    if (metaEl) metaEl.innerHTML = docs.map((d, i) =>
+      `<button class="db-tab-doc${i === 0 ? ' actief' : ''}" data-idx="${i}">${escH((s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())(DOC_TYPE_LABELS[d.doc_type] || d.doc_type))}</button>`
     ).join('');
-    if (metaEl) metaEl.insertAdjacentHTML('afterbegin', _tabsHtml);
-    if (_sepZoekEl) _sepZoekEl.style.display = '';
 
     metaEl?.querySelectorAll('.db-tab-doc').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -5270,12 +5591,7 @@ async function toonRapport(cls, rp) {
           huidigRapport._concepts = { ...(huidigRapport._concepts || {}), ..._voorgaandConcepten };
         }
         activeerAnalysePanel(huidigRapport);
-        const tabDocType   = huidigeDocumenten[idx]?.doc_type || '';
-        const tabConcept   = huidigRapport._concepts?.[tabDocType]
-                          || rp._concepts?.[tabDocType]
-                          || (tabDocType === (huidigeClassificatie?.doc_type) ? rp._concept : null);
-        const bekijkBtn    = document.getElementById('bekijkConceptBtn');
-        if (bekijkBtn) bekijkBtn.style.display = tabConcept ? 'inline-flex' : 'none';
+        updateConceptKnop();
         const bestVoorTab = huidigePrimaireBest[idx];
         console.log('[tabklik] idx:', idx, '| huidigePrimaireBest[idx]:', bestVoorTab?.map(f => f.name), '| huidigePrimaireBest:', huidigePrimaireBest.map(arr => arr.map(f => f.name)));
         huidigeBestandenLijst = bestVoorTab?.length ? bestVoorTab : [];
@@ -5289,13 +5605,12 @@ async function toonRapport(cls, rp) {
     if (_autoGeklikt) {
       const targetTab = metaEl?.querySelector(`.db-tab-doc[data-idx="${gewenstDocIdx}"]`);
       if (targetTab) targetTab.click();
-      else _autoGeklikt = false; // tab niet in DOM — val terug op OP-standaard
+      else _autoGeklikt = false;
     }
     gewenstDocIdx = 0;
   } else {
     const _enkLbl = cls?.doc_type ? (DOC_TYPE_LABELS[cls.doc_type] || cls.doc_type).toUpperCase() : '';
-    if (_enkLbl && metaEl) metaEl.insertAdjacentHTML('afterbegin', `<button class="db-tab-doc actief">${escH(_enkLbl)}</button>`);
-    if (_sepZoekEl) _sepZoekEl.style.display = '';
+    if (_enkLbl && metaEl) metaEl.innerHTML = `<button class="db-tab-doc actief">${escH(_enkLbl)}</button>`;
   }
 
   // Multi-doc: geef het eerste sub-document mee zodat de score-banner
@@ -5524,10 +5839,10 @@ function closeSplitView() {
   huidigeDocIdx            = 0;
   huidigePrimaireBest      = [];
   // Reset docbar en gecentreerde partijnamen
-  const _docbarLeftEl = document.getElementById('docbarLeft');
-  if (_docbarLeftEl) _docbarLeftEl.querySelectorAll('.db-tab-doc').forEach(el => el.remove());
-  const _dbSep = document.getElementById('dbSepZoek');
-  if (_dbSep) _dbSep.style.display = 'none';
+  const _headerTabsEl = document.getElementById('splitHeaderTabs');
+  if (_headerTabsEl) _headerTabsEl.innerHTML = '';
+  const _conceptAreaEl = document.getElementById('splitConceptArea');
+  if (_conceptAreaEl) _conceptAreaEl.style.display = 'none';
   const _namenEl = document.getElementById('splitCenterNamen');
   if (_namenEl) _namenEl.textContent = '';
   document.getElementById('opslagStatus').textContent = '';
@@ -5535,12 +5850,11 @@ function closeSplitView() {
 
 document.getElementById('backBtn').addEventListener('click', () => {
   const origin = splitOrigin;
-  const dossierId = huidigeDossierId;
   closeSplitView();
   if (origin === 'dossier') {
     schakelRechts('rp-home');
-    laadDossiers();
   }
+  laadDossiers(); // altijd verversen — nieuwe versie kan zijn toegevoegd
 });
 
 // ── Opslaan ───────────────────────────────────────────
@@ -5983,8 +6297,8 @@ function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam
     _oud: !Array.isArray(rp.issues) ? rp : null,
   }];
   if (docs) {
-    const volgorde = { ouderschapsplan:0, convenant:1, onbekend:2 };
-    alleDoc.sort((a,b) => (volgorde[a.doc_type]??2) - (volgorde[b.doc_type]??2));
+    const volgorde = { ouderschapsplan:0, zorgverdeling:1, convenant:10, waarde_verdeling:11 };
+    alleDoc.sort((a,b) => (volgorde[a.doc_type]??99) - (volgorde[b.doc_type]??99));
   }
 
   const partijA = cls.partij_a_naam || '';
@@ -6469,49 +6783,60 @@ function ajusteerDonutPositie() {
 
 // Reflecteert ook de "bezig"-status als er een generatie loopt voor het huidige doctype.
 function updateConceptKnop() {
-  const btn   = document.getElementById('genereerConceptBtn');
-  const badge = document.getElementById('conceptBadge');
-  if (!huidigRapport || !btn) return;
+  const genBtn    = document.getElementById('genereerConceptBtn');
+  const badge     = document.getElementById('conceptBadge');
+  const bekijkBtn = document.getElementById('bekijkConceptBtn');
+  const hergenBtn = document.getElementById('hergenConceptBtn');
+  const areaEl    = document.getElementById('splitConceptArea');
+  const titleEl   = document.getElementById('splitConceptTitle');
+  const subEl     = document.getElementById('splitConceptSub');
+  if (!huidigRapport || !genBtn) return;
+
   const items = verzamelAangevinkt();
   const n = items.length;
-  badge.textContent = n;
+  if (badge) badge.textContent = n;
 
-  // Controleer of er een actieve generatie loopt voor het huidige doctype
   const huidigDocType = huidigeDocumenten[huidigeDocIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
   const isBezig = [..._generaties.values()].some(
     g => g.docType === huidigDocType && g.status === 'bezig'
   );
+  const heeftConcept = !!(huidigRapport._concepts?.[huidigDocType]
+    || (huidigDocType === (huidigeClassificatie?.doc_type || '') ? huidigRapport._concept : null));
 
-  btn.style.display   = 'inline-flex';
-  btn.disabled        = isBezig || n === 0;
-  btn.title           = isBezig ? 'Concept wordt gegenereerd…' : '';
-  // Vervang alleen het tekstgedeelte (laat de badge-span staan)
-  const tekstNode = btn.childNodes[0];
-  if (tekstNode?.nodeType === Node.TEXT_NODE) {
-    tekstNode.textContent = isBezig ? '⏳ Genereren… ' : '✦ Genereer concept ';
+  // Concept-info bovenin
+  if (areaEl) areaEl.style.display = '';
+  if (huidigRapport?.issues) {
+    const openH      = huidigRapport.issues.filter(i => i.ernst === 'hoog' && !i.afgehandeld && !i.negeer).length;
+    const aangebracht = huidigRapport.issues.filter(i => i.afgehandeld).length;
+    const titelTekst = isBezig ? 'Concept wordt gegenereerd…'
+      : openH > 0 ? `Nog ${openH} hoge prioriteit${openH !== 1 ? 'en' : ''} open`
+      : 'Klaar voor concept';
+    if (titleEl) titleEl.textContent = titelTekst;
+    if (subEl)   subEl.textContent   = `${aangebracht} verbeterpunt${aangebracht !== 1 ? 'en' : ''} aangebracht`;
   }
-  // Verberg "Bekijk concept" zolang er een generatie bezig is (verouderd resultaat)
-  const bekijkBtn = document.getElementById('bekijkConceptBtn');
-  if (bekijkBtn && isBezig) bekijkBtn.style.display = 'none';
 
-  // CTA-bar onderaan analyse-kolom
-  const ctaBar  = document.getElementById('analCtaBar');
-  const ctaInfo = document.getElementById('analCtaInfo');
-  const ctaKnop = document.getElementById('analCtaKnop');
-  if (ctaBar) {
-    ctaBar.style.display = '';
-    if (ctaInfo && huidigRapport?.issues) {
-      const openH = huidigRapport.issues.filter(i => i.ernst === 'hoog' && !i.afgehandeld && !i.negeer).length;
-      const aangebracht = huidigRapport.issues.filter(i => i.afgehandeld).length;
-      const titelTekst = openH > 0
-        ? `Nog ${openH} hoge prioriteit${openH !== 1 ? 'en' : ''} open`
-        : 'Klaar voor concept';
-      ctaInfo.innerHTML = `<span class="anal-cta-title">${titelTekst}</span><span class="anal-cta-sub">${aangebracht} verbeterpunt${aangebracht !== 1 ? 'en' : ''} aangebracht</span>`;
-    }
-    if (ctaKnop) {
-      ctaKnop.disabled = isBezig;
-      ctaKnop.textContent = isBezig ? '⏳ GENEREREN…' : 'CONCEPT GENEREREN →';
-    }
+  if (isBezig) {
+    genBtn.style.display = 'inline-flex';
+    genBtn.disabled = true;
+    genBtn.classList.add('bezig');
+    const t = genBtn.childNodes[0];
+    if (t?.nodeType === Node.TEXT_NODE) t.textContent = 'Genereren… ';
+    if (hergenBtn) hergenBtn.style.display = 'none';
+    if (bekijkBtn) bekijkBtn.style.display = 'none';
+  } else if (heeftConcept) {
+    genBtn.style.display = 'none';
+    genBtn.classList.remove('bezig');
+    if (hergenBtn) hergenBtn.style.display = '';
+    if (bekijkBtn) bekijkBtn.style.display = '';
+  } else {
+    genBtn.style.display = 'inline-flex';
+    genBtn.disabled = n === 0;
+    genBtn.classList.remove('bezig');
+    genBtn.title = n === 0 ? 'Vink eerst verbeterpunten aan' : '';
+    const t = genBtn.childNodes[0];
+    if (t?.nodeType === Node.TEXT_NODE) t.textContent = 'Concept genereren → ';
+    if (hergenBtn) hergenBtn.style.display = 'none';
+    if (bekijkBtn) bekijkBtn.style.display = 'none';
   }
 }
 
@@ -6742,6 +7067,15 @@ async function voegVoettekstToeAanDocx(docxBlob) {
       .replace(/[:\s_\-\/]/g, '');
     return restTekst.length > 8 ? match : ''; // Bewaar als er andere inhoud in zit
   });
+
+  // Ensure xmlns:r is declared — XMLSerializer or the text-fallback path may omit it,
+  // and an unbound r: prefix makes the XML invalid (Word refuses to open the file).
+  if (!docXml.includes('xmlns:r=')) {
+    docXml = docXml.replace(
+      /<w:document([^>]*)>/,
+      (_, attrs) => `<w:document${attrs} xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`
+    );
+  }
 
   if (!docXml.includes(relId)) {
     const ftrRef = `<w:footerReference w:type="default" r:id="${relId}"/>`;
@@ -7025,7 +7359,7 @@ function markeerWijzigingenInDom(container, wijzigingen) {
   const norm = s => s
     .replace(/\s+/g, ' ')
     .replace(/[‑‒–—―]/g, '-')
-    .replace(/[‘’‚‛]/g, "'")
+    .replace(/[''‚‛]/g, "'")
     .replace(/[“”„‟]/g, '"')
     .toLowerCase()
     .trim();
@@ -7668,9 +8002,10 @@ function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
   //   gebruiken naarAnon dat na de eerste aanroep de IBAN-mapping al bevat.
   if (piiPh) t = t.replace(/\bNL\d{2}[A-Z]{4}\d{10}\b/g, iban => piiPh('IBAN', iban));
   // - BSN maskeren: uniek persoonskenmerk, nooit nodig voor analyse.
-  // - Negatieve lookbehind (?<![A-Z] ): voorkomt dat IBAN-accountcijfers (bijv. "ASNB 010203040")
-  //   als BSN worden gemaskeerd — bankcode + spatie + cijfers is altijd IBAN, nooit BSN.
-  t = t.replace(/(?<![A-Z] )\b\d{9}\b/g, '[BSN]');
+  // - Lookbehind (?<![A-Z]{4} ): voorkomt false positive op IBAN-accountcijfers
+  //   (bankcode is altijd 4 hoofdletters, bijv. ABNA). "BSN 123456789" wordt WEL
+  //   vervangen — "BSN" heeft maar 3 letters.
+  t = t.replace(/(?<![A-Z]{4} )\b\d{9}\b/g, '[BSN]');
 
   if (piiPh) {
     // Straatnamen + huisnummer VOOR postcode (postcode-regex mag geen straatdelen opslokken).
@@ -7694,6 +8029,32 @@ function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
   // E-mailadressen
   t = t.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
 
+  return t;
+}
+
+// PII-anonimisering voor de AI-assistent (identiek aan src/pii-anonimiseer.js).
+// Vervangt financiële en contactgegevens door tokens vóór verzending naar Anthropic.
+// Bij aanpassing: ook src/pii-anonimiseer.js bijwerken.
+function piiAnonimiseer(tekst) {
+  if (!tekst) return tekst;
+  let t = tekst;
+  // IBANs — genummerd, consistent met [IBAN_n]-conventie in api/_iban.js
+  let ibanTeller = 0;
+  const ibanMap  = new Map();
+  t = t.replace(/\b[A-Z]{2}\d{2}[A-Z0-9]{10,26}\b/g, iban => {
+    if (!ibanMap.has(iban)) ibanMap.set(iban, `[IBAN_${ibanTeller++}]`);
+    return ibanMap.get(iban);
+  });
+  // BSN: 9 cijfers. Lookbehind "[A-Z]{4} " voorkomt false positive op
+  // IBAN-accountcijfers (bankcode = altijd 4 hoofdletters, bijv. ABNA).
+  // "BSN 123456789" wordt WEL vervangen — "BSN" heeft maar 3 letters.
+  t = t.replace(/(?<![A-Z]{4} )\b\d{9}\b/g, '[BSN]');
+  // Nederlandse postcodes
+  t = t.replace(/\b(\d{4})\s?([A-Z]{2})\b/g, '[POSTCODE]');
+  // Telefoonnummers
+  t = t.replace(/(?<![A-Z\d])(?:0[1-9]\d{1,2}[-.\s]?\d{6,8}|\+31[-.\s]?[1-9]\d{8}|06[-.\s]?\d{8})(?!\d)/g, '[TEL]');
+  // E-mailadressen
+  t = t.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
   return t;
 }
 
@@ -8786,6 +9147,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   const genId = ++_genTeller;
   _generaties.set(genId, { naam: snapNaam, screeningId: snapId, docType: snapDocType, status: 'bezig' });
   renderConceptChips();
+  updateConceptKnop();
 
   // Start op de achtergrond — geen await, geen modal
   (async () => {
@@ -8853,9 +9215,14 @@ ABSOLUTE VERBODEN (nooit overtreden):
 - NOOIT inhoud van aangrenzende artikelen of alinea's meenemen in zoek_tekst.
 - NOOIT twee aparte wijzigingen maken voor hetzelfde artikel of dezelfde passage. Als meerdere verbeterpunten dezelfde tekstpassage raken: combineer alles in één zoek_tekst + vervang_door.
 
+OPMERKING MEDIATOR — BESLISSINGSREGELS:
+- Als een verbeterpunt een "Opmerking mediator" bevat, is dat de definitieve beslissing van de mediator en heeft het ALTIJD prioriteit boven de Suggestie/Bevinding.
+- Als de opmerking aangeeft dat er GEEN actie nodig is (bijv. "geen inhaalregeling", "niet opnemen", "partijen akkoord zonder dit", "niet van toepassing", "bewuste keuze"), genereer dan GEEN wijziging voor dat verbeterpunt — het is al afgehandeld door de mediator en mag niet in het concept worden verwerkt.
+- Als de opmerking een alternatieve formulering of richting geeft, gebruik die EXACT in plaats van de Suggestie.
+- Als de opmerking ontbreekt of puur beschrijvend is, volg dan de Suggestie.
+
 OVERIGE KERNREGELS:
 - Behoud EXACT de structuur, nummering en formele toon van het origineel.
-- Gebruik concrete "Suggestie" of "Opmerking mediator" letterlijk als leidraad.
 - Behoud namen van partijen zoals ze in het origineel staan.`;
 
       const conceptTool = {
@@ -9486,7 +9853,8 @@ async function maakDocxVanTekst(tekst) {
 
   const documentXml =
 `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <w:body>
 ${bodyXml}
 <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1701" w:bottom="1134" w:left="1701"/></w:sectPr>
@@ -9926,9 +10294,8 @@ analyseBtn.addEventListener('click', async () => {
 document.getElementById('dossierZoek').addEventListener('input', function() {
   const q = this.value.trim().toLowerCase();
   document.querySelectorAll('#dossierLijst .dos-kaart').forEach(kaart => {
-    const a = kaart.querySelector('.dos-naam-a')?.value.toLowerCase() || '';
-    const b = kaart.querySelector('.dos-naam-b')?.value.toLowerCase() || '';
-    kaart.style.display = (a + ' ' + b).includes(q) ? '' : 'none';
+    const naam = (kaart.querySelector('.dos-naam-titel')?.textContent || '').toLowerCase();
+    kaart.style.display = naam.includes(q) ? '' : 'none';
   });
 });
 
@@ -10244,112 +10611,176 @@ const maakDocCircels = (drp) => {
   ];
   return { html: c, grootSegs };
 };
-function maakDocKolommenHtml(rp) {
+function maakDocKolommenHtml(rp, prevRp) {
   const DOC_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
-  const docsArr = rp.documenten?.length ? rp.documenten : null;
-  const allDrps = docsArr || [rp];
-  const docsMetData = allDrps
-    .filter(drp => drp.samenvatting)
-    .sort((a, b) => (DOC_VOLGORDE[a.doc_type] ?? 9) - (DOC_VOLGORDE[b.doc_type] ?? 9));
-  if (!docsMetData.length) return '';
+  const DOC_TYPEN    = ['ouderschapsplan', 'convenant'];
 
-  const kolommenHtml = docsMetData.map(drp => {
-    const lbl    = DOC_TYPE_LABELS[drp.doc_type] || drp.doc_type || 'Document';
-    const issues = Array.isArray(drp.issues) ? drp.issues : [];
-    const h      = issues.filter(i => i.ernst === 'hoog').length;
-    const m      = issues.filter(i => i.ernst === 'midden').length;
-    const l      = issues.filter(i => i.ernst === 'laag').length;
-    const tot    = h + m + l;
+  function getDocs(r) {
+    if (!r) return [];
+    const arr = r.documenten?.length ? r.documenten : [r];
+    return arr.filter(d => d.samenvatting || Array.isArray(d.issues));
+  }
 
-    // Conic-gradient ring (64px) — dezelfde visuele taal als tabs
-    const segs = tot > 0
-      ? [{ kleur:'var(--status-risico)',n:h },{ kleur:'var(--status-aandacht)',n:m },{ kleur:'var(--status-ok)',n:l }]
-      : [];
-    const grad   = tot > 0 ? `conic-gradient(${maakGrad(segs)})` : `conic-gradient(var(--line) 0deg 360deg)`;
-    const center = tot > 0
-      ? String(tot)
-      : `<span style="color:var(--status-ok);font-size:1rem">✓</span>`;
+  function ringGrad(h, m, l) {
+    if (h + m + l === 0) return 'conic-gradient(from -90deg,var(--line) 0deg 360deg)';
+    return `conic-gradient(from -90deg,${maakGrad([
+      { kleur: 'var(--status-risico)',   n: h },
+      { kleur: 'var(--status-aandacht)', n: m },
+      { kleur: 'var(--status-ok)',       n: l },
+    ])})`;
+  }
 
-    // Ernst-samenvatting: 4 hoog · 8 midden · 6 laag
-    const SEP = '<span class="v2-ernst-sep">·</span>';
-    const ernstRij = [
-      h > 0 ? `<span style="color:var(--status-risico)">${h} hoog</span>`   : '',
-      m > 0 ? `<span style="color:var(--status-aandacht)">${m} midden</span>` : '',
-      l > 0 ? `<span style="color:var(--status-ok)">${l} laag</span>`       : '',
-    ].filter(Boolean).join(SEP)
-      || `<span style="color:var(--status-ok);font-size:.78rem;font-weight:600">Geen issues</span>`;
+  function legItem(cls, count, label, delta) {
+    let d = '';
+    if (delta != null) {
+      if (delta < 0)      d = `<span class="v2-delta-pos">−${-delta} ↓</span>`;
+      else if (delta > 0) d = `<span class="v2-delta-neg">+${delta} ↑</span>`;
+    }
+    return `<div class="v2-legend-item"><span class="v2-ld ${cls}"></span><span class="v2-leg-lbl">${count} ${label}</span>${d}</div>`;
+  }
 
-    // Per-dimensie chips (alleen niet-nul) — fiche-stijl met navy SVG-icoon
-    const DIMS    = ['juridisch','conflicten','volledigheid','balans','grammatica'];
-    const DIM_LBL = { volledigheid:'Volledigheid', juridisch:'Juridisch', balans:'Balans', grammatica:'Grammatica', conflicten:'Conflicten' };
-    const DIM_SVG = {
-      juridisch:   `<svg viewBox="0 0 24 24"><path d="M8 3l6 6-3 3-6-6z"/><path d="M12.5 10.5L20 18"/><path d="M3 21h9"/></svg>`,
-      conflicten:  `<svg viewBox="0 0 24 24"><path d="M13 3L6 13h5l-1 8 7-10h-5l1-8z"/></svg>`,
-      volledigheid:`<svg viewBox="0 0 24 24"><path d="M3.5 5.5L5 7l3-3"/><path d="M11 5.5h9"/><path d="M3.5 12.5L5 14l3-3"/><path d="M11 12.5h9"/><path d="M4 19.5h3"/><path d="M11 19.5h9"/></svg>`,
-      balans:      `<svg viewBox="0 0 24 24"><path d="M12 4v16"/><path d="M7 20h10"/><path d="M5 7h14"/><path d="M5 7l-2.5 5a2.5 2.5 0 0 0 5 0L5 7"/><path d="M19 7l-2.5 5a2.5 2.5 0 0 0 5 0L19 7"/></svg>`,
-      grammatica:  `<svg viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 10h12"/><path d="M3.5 17c1.4-1.8 2.8-1.8 4.25 0s2.8 1.8 4.25 0 2.8-1.8 4.25 0 2.8 1.8 4.25 0"/></svg>`,
-      mfn:         `<svg viewBox="0 0 24 24"><path d="M19 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6"/><path d="M7 8h9"/><path d="M7 12h5"/><circle cx="16.5" cy="15" r="2.75"/><path d="M14.8 17.2l-.8 4 2.5-1.7 2.5 1.7-.8-4"/></svg>`,
-    };
-    const dimChips = DIMS
-      .map(d => {
-        const dIss = issues.filter(i => i.dimensies?.includes(d));
-        const dh = dIss.filter(i => i.ernst === 'hoog').length;
-        const dm = dIss.filter(i => i.ernst === 'midden').length;
-        const dl = dIss.filter(i => i.ernst === 'laag').length;
-        const dtot = dh + dm + dl;
-        const kopKls = dh > 0 ? 'kop-hoog' : dm > 0 ? 'kop-midden' : 'kop-laag';
-        const botHtml = dtot === 0
-          ? `<span class="v2-dim-chip-bot"><span class="v2-dim-chip-h" style="color:var(--ink-soft)">–</span></span>`
-          : `<span class="v2-dim-chip-bot"><span class="v2-dim-chip-h">${dh || ''}</span><span class="v2-dim-chip-m">${dm || ''}</span><span class="v2-dim-chip-l">${dl || ''}</span></span>`;
-        return `<span class="v2-dim-chip">
-          <span class="v2-dim-chip-icn">${DIM_SVG[d] || ''}</span>
-          <span class="v2-dim-chip-body">
-            <span class="v2-dim-chip-top ${kopKls}">${DIM_LBL[d]}</span>
-            ${botHtml}
-          </span>
-        </span>`;
-      }).join('');
+  const currDocs = getDocs(rp);
+  const prevDocs = getDocs(prevRp || null);
+  if (!currDocs.length && !prevDocs.length) return '';
 
-    // MfN — eigen score als chip (fiche-stijl, amber kop, gecentreerd aanwezig/totaal)
-    const mfnEl   = drp.mfn_score?.elementen || [];
-    const mfnAanw = mfnEl.filter(e => e.status === 'aanwezig').length;
-    const mfnChip = mfnEl.length
-      ? `<span class="v2-dim-chip">
-          <span class="v2-dim-chip-icn">${DIM_SVG.mfn}</span>
-          <span class="v2-dim-chip-body">
-            <span class="v2-dim-chip-top kop-midden">MfN</span>
-            <span class="v2-dim-chip-bot v2-dim-chip-mfn">
-              <span style="color:#1E8449;font-weight:800;font-size:.7rem">${mfnAanw}</span>
-              <span style="color:#A6A399;font-weight:400;font-size:.65rem;margin:0 1px">/</span>
-              <span style="color:#B9770E;font-weight:800;font-size:.7rem">${mfnEl.length}</span>
-            </span>
-          </span>
-        </span>`
-      : '';
+  const currByType = Object.fromEntries(currDocs.map(d => [d.doc_type, d]));
+  const prevByType = Object.fromEntries(prevDocs.map(d => [d.doc_type, d]));
 
-    return `<div class="v2-doc-kolom">
-      <div class="v2-doc-top">
+  let typesToShow = DOC_TYPEN.filter(t => currByType[t] || prevByType[t]);
+  if (!typesToShow.length) {
+    typesToShow = [...new Set([...currDocs, ...prevDocs].map(d => d.doc_type))];
+  }
+
+  const ARROW = `<svg width="36" height="23" viewBox="0 0 36 23" fill="none" style="flex-shrink:0"><path d="M0 7.5H24V1.5L36 11.5L24 21.5V15.5H0V7.5Z" fill="#D0CAC0"/></svg>`;
+
+  const kolomHtml = typesToShow.map(docType => {
+    const lbl  = DOC_TYPE_LABELS[docType] || docType || 'Document';
+    const curr = currByType[docType];
+    const prev = prevByType[docType];
+
+    if (!curr) {
+      return `<div class="v2-doc-kolom">
         <div class="v2-doc-titel">${escH(lbl)}</div>
-        <div class="v2-doc-ernst-rij">${ernstRij}</div>
-      </div>
-      <div class="v2-doc-bottom">
-        <div class="v2-doc-ring-wrap" style="background:${grad}">
-          <div class="v2-doc-seg-inner" style="font-size:1.35rem;font-weight:800;color:var(--ink)">${center}</div>
+        <div class="v2-doc-placeholder">Nog niet geanalyseerd</div>
+      </div>`;
+    }
+
+    const issues = (Array.isArray(curr.issues) ? curr.issues : []).filter(i => !i.negeer && !i.afgehandeld);
+    const h = issues.filter(i => i.ernst === 'hoog').length;
+    const m = issues.filter(i => i.ernst === 'midden').length;
+    const l = issues.filter(i => i.ernst === 'laag').length;
+    const tot = h + m + l;
+    const currGrad = ringGrad(h, m, l);
+    const currCtr  = tot > 0 ? String(tot) : `<span style="font-size:.9rem;color:var(--status-ok)">✓</span>`;
+
+    if (prev) {
+      const pi   = (Array.isArray(prev.issues) ? prev.issues : []).filter(i => !i.negeer && !i.afgehandeld);
+      const ph   = pi.filter(i => i.ernst === 'hoog').length;
+      const pm   = pi.filter(i => i.ernst === 'midden').length;
+      const pl   = pi.filter(i => i.ernst === 'laag').length;
+      const ptot = ph + pm + pl;
+      const pct  = ptot > 0 ? Math.round((ptot - tot) / ptot * 100) : 0;
+      const pctTx = pct > 0 ? `+ ${pct}%` : pct < 0 ? `${pct}%` : '±0%';
+      const clr   = pct > 0 ? 'var(--status-ok)' : pct < 0 ? 'var(--status-risico)' : 'var(--ink-soft)';
+      const opg   = Math.max(0, ptot - tot);
+      const progW = Math.max(0, Math.min(100, pct));
+
+      return `<div class="v2-doc-kolom">
+        <div class="v2-doc-titel">${escH(lbl)}</div>
+        <div class="v2-cmp-rij">
+          <div class="v2-ring v2-ring-prev" style="background:${ringGrad(ph,pm,pl)}">
+            <div class="v2-ring-inner">${ptot > 0 ? ptot : '✓'}</div>
+          </div>
+          ${ARROW}
+          <div class="v2-ring v2-ring-curr" style="background:${currGrad}">
+            <div class="v2-ring-inner">${currCtr}</div>
+          </div>
+          <div class="v2-legend">
+            ${legItem('v2-ld-h', h, 'hoog',   h - ph)}
+            ${legItem('v2-ld-m', m, 'midden', m - pm)}
+            ${legItem('v2-ld-l', l, 'laag',   l - pl)}
+          </div>
         </div>
-        <div class="v2-doc-dims">${dimChips}${mfnChip}</div>
+        <div class="v2-cmp-stats">
+          <span class="v2-stat-pct" style="color:${clr}">${pctTx}</span>
+          <div class="v2-prog-bar"><div class="v2-prog-fill" style="width:${progW}%;background:${clr}"></div></div>
+          <span class="v2-stat-txt">• ${opg} van ${ptot} verbeterpunten opgelost</span>
+        </div>
+      </div>`;
+    }
+
+    // Vergelijking binnen één versie: toon voor/na als er afgehandelde issues zijn.
+    // allIssues = ALLE issues incl. genegeerde — zo klopt het "voor"-totaal met wat de
+    // gebruiker bij de eerste analyse zag (genegeerde issues tellen ook mee als beoordeeld).
+    const allIssues    = Array.isArray(curr.issues) ? curr.issues : [];
+    const handledCount = allIssues.filter(i => i.afgehandeld).length;
+    const negeerdCount = allIssues.filter(i => i.negeer).length;
+    if (handledCount > 0) {
+      const ph   = allIssues.filter(i => i.ernst === 'hoog').length;
+      const pm   = allIssues.filter(i => i.ernst === 'midden').length;
+      const pl   = allIssues.filter(i => i.ernst === 'laag').length;
+      const ptot = ph + pm + pl;
+      const pct  = ptot > 0 ? Math.round((ptot - tot) / ptot * 100) : 0;
+      const pctTx = pct > 0 ? `+ ${pct}%` : pct < 0 ? `${pct}%` : '±0%';
+      const clr   = pct > 0 ? 'var(--status-ok)' : pct < 0 ? 'var(--status-risico)' : 'var(--ink-soft)';
+      const beoordeeld = ptot - tot;
+      const progW = Math.max(0, Math.min(100, pct));
+      const statTxt = negeerdCount > 0
+        ? `• ${handledCount} afgehandeld, ${negeerdCount} genegeerd — ${beoordeeld} van ${ptot} beoordeeld`
+        : `• ${beoordeeld} van ${ptot} verbeterpunten afgehandeld`;
+      return `<div class="v2-doc-kolom">
+        <div class="v2-doc-titel">${escH(lbl)}</div>
+        <div class="v2-cmp-rij">
+          <div class="v2-ring v2-ring-prev" style="background:${ringGrad(ph,pm,pl)}">
+            <div class="v2-ring-inner">${ptot > 0 ? ptot : '✓'}</div>
+          </div>
+          ${ARROW}
+          <div class="v2-ring v2-ring-curr" style="background:${currGrad}">
+            <div class="v2-ring-inner">${currCtr}</div>
+          </div>
+          <div class="v2-legend">
+            ${legItem('v2-ld-h', h, 'hoog',   h - ph)}
+            ${legItem('v2-ld-m', m, 'midden', m - pm)}
+            ${legItem('v2-ld-l', l, 'laag',   l - pl)}
+          </div>
+        </div>
+        <div class="v2-cmp-stats">
+          <span class="v2-stat-pct" style="color:${clr}">${pctTx}</span>
+          <div class="v2-prog-bar"><div class="v2-prog-fill" style="width:${progW}%;background:${clr}"></div></div>
+          <span class="v2-stat-txt">${statTxt}</span>
+        </div>
+      </div>`;
+    }
+
+    // Enkelvoudige ring (geen eerdere versie, niets afgehandeld)
+    const hasConcept = !!(rp?._concepts?.[docType] || (rp?.doc_type === docType && rp?._concept));
+    const conceptBox = hasConcept ? '' : `<div class="v2-doc-placeholder">Nog geen concept<br>gegenereerd</div>`;
+    return `<div class="v2-doc-kolom">
+      <div class="v2-doc-titel">${escH(lbl)}</div>
+      <div class="v2-cmp-rij">
+        <div class="v2-ring v2-ring-curr" style="background:${currGrad}">
+          <div class="v2-ring-inner">${currCtr}</div>
+        </div>
+        <div class="v2-legend">
+          ${legItem('v2-ld-h', h, 'hoog',   null)}
+          ${legItem('v2-ld-m', m, 'midden', null)}
+          ${legItem('v2-ld-l', l, 'laag',   null)}
+        </div>
+        ${conceptBox}
       </div>
     </div>`;
   }).join('');
 
-  // Bij één document met vaste positie: phantom-kolom op de vrije positie zodat
-  // convenant altijd rechts en ouderschapsplan altijd links staat.
-  let inhoud = kolommenHtml;
-  if (docsMetData.length === 1) {
-    const pos = DOC_VOLGORDE[docsMetData[0].doc_type];
-    const phantom = '<div class="v2-doc-kolom v2-doc-kolom--leeg" aria-hidden="true"></div>';
-    if (pos === 1) inhoud = phantom + kolommenHtml;      // convenant → OP-placeholder links
-    else if (pos === 0) inhoud = kolommenHtml + phantom; // OP → conv-placeholder rechts
+  // Phantom: als slechts één standaard-type bestaat, vul de andere positie met placeholder
+  let inhoud = kolomHtml;
+  if (typesToShow.length === 1 && DOC_TYPEN.includes(typesToShow[0])) {
+    const pos        = DOC_VOLGORDE[typesToShow[0]];
+    const missType   = DOC_TYPEN[1 - pos];
+    const missLbl    = DOC_TYPE_LABELS[missType] || missType;
+    const phantom    = `<div class="v2-doc-kolom"><div class="v2-doc-titel">${escH(missLbl)}</div><div class="v2-doc-placeholder">Nog niet geanalyseerd</div></div>`;
+    inhoud = pos === 1 ? phantom + kolomHtml : kolomHtml + phantom;
   }
+
   return `<div class="v2-docs-rij">${inhoud}</div>`;
 }
 function maakBestandenHtml(rp) {
@@ -10357,7 +10788,7 @@ function maakBestandenHtml(rp) {
     || (rp._document_pad ? [{ pad: rp._document_pad, naam: rp._document_naam }] : []);
   if (!bestanden.length) return '';
   return `<details class="v2-bestanden-detail" onclick="event.stopPropagation()" title="${bestanden.length} bestand${bestanden.length !== 1 ? 'en' : ''}">
-    <summary>📎<span class="best-lbl"> ${bestanden.length} bestand${bestanden.length !== 1 ? 'en' : ''}</span></summary>
+    <summary><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><span class="best-lbl"> ${bestanden.length} bestand${bestanden.length !== 1 ? 'en' : ''}</span></summary>
     <div class="versie-bestanden">
       ${bestanden.map(b => `<span class="versie-bestand-chip">
         <span class="versie-bestand-naam" title="${escH(b.naam)}">${escH(b.naam)}</span>
@@ -10406,7 +10837,7 @@ async function laadDossiers() {
         const lbl = v.versie_label || `Versie ${v.versie_nr}`;
         const dat = new Date(v.created_at).toLocaleString('nl-NL',
           { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
-        middenHtml = maakDocKolommenHtml(rp);
+        middenHtml = maakDocKolommenHtml(rp, versies.length > 1 ? (versies[1].rapport || null) : null);
 
         const bestH = maakBestandenHtml(rp);
         footerHtml = {
@@ -10431,7 +10862,7 @@ async function laadDossiers() {
                 <div class="dos-kaart-midden" data-versie-id="${ov.id}">${maakDocKolommenHtml(oRp)}</div>
                 <div class="dos-rechts-oud">
                   ${oBH || ''}
-                  <button class="v2-icon-btn versie-verwijder-btn" data-versie-id="${ov.id}" title="Versie verwijderen">🗑</button>
+                  <button class="v2-icon-btn versie-verwijder-btn" data-versie-id="${ov.id}" title="Versie verwijderen"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
                 </div>
               </div>`;
             }).join('') + '</div>';
@@ -10448,10 +10879,8 @@ async function laadDossiers() {
       return `<div class="dos-kaart" data-dos-id="${dos.id}">
         <div class="dos-kaart-hoofd">
           <div class="dos-kaart-links">
-            <input class="dos-naam-inp dos-naam-a" type="text" value="${escH(dos.partij_a||'')}"
-                   placeholder="Naam partij A" data-dos-id="${dos.id}" autocomplete="off">
-            <input class="dos-naam-inp dos-naam-b" type="text" value="${escH(dos.partij_b||'')}"
-                   placeholder="Naam partij B" data-dos-id="${dos.id}" autocomplete="off">
+            <div class="dos-naam-titel" contenteditable="true" spellcheck="false"
+                 data-dos-id="${dos.id}">${escH(dos.naam||'')}</div>
             <select class="dos-status-sel" data-dos-id="${dos.id}">${statusOpties}</select>
             ${versieMeta}
           </div>
@@ -10461,8 +10890,8 @@ async function laadDossiers() {
               <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
             ${footerHtml.bestanden || ''}
-            <button class="v2-icon-btn dos-del-btn" data-dos-id="${dos.id}" title="Dossier verwijderen">🗑</button>
-            ${footerHtml.expandDosId ? `<button class="v2-icon-btn dos-expand-btn" data-dos-id="${footerHtml.expandDosId}" title="Oudere versies">▼</button>` : ''}
+            <button class="v2-icon-btn dos-del-btn" data-dos-id="${dos.id}" title="Dossier verwijderen"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+            ${footerHtml.expandDosId ? `<button class="v2-icon-btn dos-expand-btn" data-dos-id="${footerHtml.expandDosId}" title="Oudere versies"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>` : ''}
           </div>
         </div>
         ${ouderHtml}
@@ -10478,13 +10907,15 @@ async function laadDossiers() {
         if (!sectie) return;
         const open = sectie.style.display === 'none';
         sectie.style.display = open ? '' : 'none';
-        btn.textContent = open ? '▲' : '▼';
+        btn.innerHTML = open
+          ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`
+          : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
       });
     });
-    // Namen opslaan
-    el.querySelectorAll('.dos-naam-inp').forEach(inp => {
-      inp.addEventListener('blur',    () => slaDosnamenOp(inp.dataset.dosId));
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    // Dossiernaam opslaan (contenteditable div)
+    el.querySelectorAll('.dos-naam-titel').forEach(div => {
+      div.addEventListener('blur', () => slaDosnamenOp(div.dataset.dosId));
+      div.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); div.blur(); }});
     });
     // Status wijzigen
     el.querySelectorAll('.dos-status-sel').forEach(sel => {
@@ -10584,14 +11015,12 @@ async function laadDossiers() {
 async function slaDosnamenOp(dosId) {
   const kaart = document.querySelector(`.dos-kaart[data-dos-id="${dosId}"]`);
   if (!kaart) return;
-  const partij_a = kaart.querySelector('.dos-naam-a')?.value.trim() || null;
-  const partij_b = kaart.querySelector('.dos-naam-b')?.value.trim() || null;
-  const naam = [partij_a, partij_b].filter(Boolean).join(' - ') || 'Naamloos';
+  const naam = (kaart.querySelector('.dos-naam-titel')?.textContent || '').trim() || 'Naamloos';
   try {
-    await db.from('dossiers').update({ partij_a, partij_b, naam }).eq('id', dosId);
+    await db.from('dossiers').update({ naam }).eq('id', dosId);
     const cached = alleDosCacheData.find(d => d.id === dosId);
-    if (cached) { cached.partij_a = partij_a; cached.partij_b = partij_b; cached.naam = naam; }
-  } catch (err) { console.error('Namen opslaan mislukt:', err.message); }
+    if (cached) { cached.naam = naam; }
+  } catch (err) { console.error('Naam opslaan mislukt:', err.message); }
 }
 
 // Filter-tabs klikken
@@ -10685,7 +11114,7 @@ async function toonDossierDetail(id) {
         </div>
         <div class="v2-acties" onclick="event.stopPropagation()">
           <div class="v2-acties-knoppen">
-            <button class="v2-icon-btn versie-verwijder-btn" title="Versie verwijderen">🗑</button>
+            <button class="v2-icon-btn versie-verwijder-btn" title="Versie verwijderen"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
           </div>
           <div class="v2-acties-footer">
             ${bestandenHtml ? `<div class="v2-acties-wrap">${bestandenHtml}</div>` : ''}
@@ -10917,11 +11346,16 @@ function wizFmtBytes(b) {
 }
 
 function openWizard() {
+  document.getElementById('wizVoornaamAInp').value  = '';
+  document.getElementById('wizAchternaamAInp').value = '';
+  document.getElementById('wizVoornaamBInp').value  = '';
+  document.getElementById('wizAchternaamBInp').value = '';
   document.getElementById('wizPartijAInp').value    = '';
   document.getElementById('wizPartijBInp').value    = '';
   document.getElementById('wizRoepAInp').value      = '';
   document.getElementById('wizRoepBInp').value      = '';
   document.getElementById('wizDossierNaamInp').value = '';
+  document.getElementById('wizDossierNaamInp')._handmatig = false;
   document.getElementById('wizVersieInp').value     = '';
   _wizTray        = [];
   _wizDossierId   = null;
@@ -10988,17 +11422,23 @@ function wizTerug() {
   }
 }
 
-function wizUpdateDossierNaam() {
-  const a = document.getElementById('wizPartijAInp').value.trim();
-  const b = document.getElementById('wizPartijBInp').value.trim();
+function wizUpdatePartijNamen() {
+  const voornA  = (document.getElementById('wizVoornaamAInp')?.value  || '').trim();
+  const achterA = (document.getElementById('wizAchternaamAInp')?.value || '').trim();
+  const voornB  = (document.getElementById('wizVoornaamBInp')?.value  || '').trim();
+  const achterB = (document.getElementById('wizAchternaamBInp')?.value || '').trim();
+  document.getElementById('wizPartijAInp').value = [voornA, achterA].filter(Boolean).join(' ');
+  document.getElementById('wizPartijBInp').value = [voornB, achterB].filter(Boolean).join(' ');
   const naamEl = document.getElementById('wizDossierNaamInp');
-  if (!naamEl._handmatig) naamEl.value = [a, b].filter(Boolean).join(' – ');
+  if (!naamEl._handmatig) naamEl.value = [achterA, achterB].filter(Boolean).join(' - ');
 }
+function wizUpdateDossierNaam() { wizUpdatePartijNamen(); }
 
 async function wizNaarStap2() {
+  wizUpdatePartijNamen();
   const partijA = document.getElementById('wizPartijAInp').value.trim();
   if (!partijA) {
-    const inp = document.getElementById('wizPartijAInp');
+    const inp = document.getElementById('wizVoornaamAInp');
     inp.focus();
     inp.style.borderColor = 'var(--terra)';
     setTimeout(() => { inp.style.borderColor = ''; }, 2000);
@@ -11212,14 +11652,14 @@ async function wizAnalyseStarten() {
     if (files.length) wizVoegBestandenToe(files);
   });
   // Enter in stap 1 velden → volgende stap
-  ['wizPartijAInp','wizPartijBInp','wizRoepAInp','wizRoepBInp'].forEach(id => {
+  ['wizVoornaamAInp','wizAchternaamAInp','wizVoornaamBInp','wizAchternaamBInp','wizRoepAInp','wizRoepBInp'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
       if (e.key === 'Enter') wizNaarStap2();
     });
   });
-  // Auto-update dossier naam vanuit partijnamen
-  ['wizPartijAInp','wizPartijBInp'].forEach(id => {
-    document.getElementById(id).addEventListener('input', wizUpdateDossierNaam);
+  // Auto-update partijvelden + dossiernaam vanuit voornamen/achternamen
+  ['wizVoornaamAInp','wizAchternaamAInp','wizVoornaamBInp','wizAchternaamBInp'].forEach(id => {
+    document.getElementById(id).addEventListener('input', wizUpdatePartijNamen);
   });
   // Als gebruiker dossier naam handmatig aanpast, auto-update stoppen
   document.getElementById('wizDossierNaamInp').addEventListener('input', function() {
@@ -11230,6 +11670,17 @@ async function wizAnalyseStarten() {
 // ── Screening laden ───────────────────────────────────
 async function laadScreening(id, origin = 'main') {
   splitOrigin = origin;
+
+  // Als de AI-assistent open staat en aan een ander dossier gekoppeld is: direct resetten
+  if (_assist.open && _assist.dossierId && _assist.dossierId !== id) {
+    _assist.dossierId      = null;
+    _assist.dossierNaam    = '';
+    _assist.dossierContext = '';
+    _assist.sessieId       = null;
+    _assist.conversatie    = [];
+    _assist.linkDialogAf   = false;
+    _assistTonenLinkDialog();
+  }
 
   // Toon meteen de overlay met een laadspinner — bestanden downloaden duurt even
   // huidigeId alvast zetten zodat openSplitView weet dat het geen nieuwe versie is
@@ -11310,11 +11761,10 @@ async function laadScreening(id, origin = 'main') {
     // rapport.documenten[] bestaat alleen bij multi-doc analyses (meerdere hoofddocs).
     const rDocs = Array.isArray(data.rapport.documenten) && data.rapport.documenten.length > 1
       ? data.rapport.documenten : null;
-    // Sorteer in DEZELFDE volgorde als de tabs in toonRapport: ouderschapsplan eerst, convenant tweede.
-    // Zonder deze sortering wijst huidigePrimaireBest[0] naar het verkeerde bestand.
-    const _TAB_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
+    // Sorteer in DEZELFDE volgorde als de tabs in toonRapport: OP → Zorgverdeling → Convenant → Waardeoverzicht → rest.
+    const _TAB_VOLGORDE = { ouderschapsplan: 0, zorgverdeling: 1, convenant: 10, waarde_verdeling: 11 };
     const rDocsSorted = rDocs
-      ? [...rDocs].sort((a, b) => (_TAB_VOLGORDE[a.doc_type] ?? 9) - (_TAB_VOLGORDE[b.doc_type] ?? 9))
+      ? [...rDocs].sort((a, b) => (_TAB_VOLGORDE[a.doc_type] ?? 99) - (_TAB_VOLGORDE[b.doc_type] ?? 99))
       : null;
     if (rDocsSorted) {
       console.log('[laadScreening] bestanden in lijst:', huidigeBestandenLijst.map(f => f.name));
@@ -11400,10 +11850,1164 @@ async function laadScreening(id, origin = 'main') {
     if (bekijkBtn) bekijkBtn.style.display = heeftConcept ? 'inline-flex' : 'none';
   } catch (err) { alert('Kon de analyse niet laden: ' + err.message); }
 }
+
+// ══════════════════════════════════════════════════════════════
+//  AI ASSISTENT
+// ══════════════════════════════════════════════════════════════
+const _ASSIST_PFX = 'assist_chat_';
+const _assist = {
+  open:              false,
+  bezig:             false,
+  conversatie:       [],
+  dossierId:         null,
+  dossierNaam:       '',
+  dossierContext:    '',
+  sessieId:          null,
+  pendingClausule:   null,   // { btn, docType, varianten, positie, stijl, diepte, referentie, needsStijl }
+  pendingKlanttekst: null,   // { btn, schrijfstijl, mailAanpak, needsMailAanpak }
+  lastVarianten:     null,   // 'enkelvoudig' | 'conditioneel' | 'inclusief_exclusief'
+  linkDialogAf:      false,
+};
+const _assistClausuleBuffer = new Map();
+
+// ── Markdown → HTML (simpel subset) ─────────────────────────
+function _assistMd(tekst) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Stap 1: pipe-tabellen extracteren vóór HTML-escaping
+  const tbls = [];
+  let t = tekst.replace(/(?:^|\n)((?:\|[^\n]+\|\n?)+)/gm, (_, blok) => {
+    const regels = blok.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if (regels.length < 2) return _;
+    const sepIdx = regels.findIndex(l => /^\|[-: |]+\|$/.test(l));
+    if (sepIdx < 0) return _;
+    const parseRij = (rij, tag) =>
+      '<tr>' + rij.split('|').slice(1,-1).map(c => `<${tag}>${esc(c.trim())}</${tag}>`).join('') + '</tr>';
+    const html = `<div class="assist-tbl-wrap"><table class="assist-tbl"><thead>${
+      regels.slice(0,sepIdx).map(r=>parseRij(r,'th')).join('')
+    }</thead><tbody>${
+      regels.slice(sepIdx+1).map(r=>parseRij(r,'td')).join('')
+    }</tbody></table></div>`;
+    tbls.push(html);
+    return `\nTBLPH${tbls.length-1}END\n`;
+  });
+  // Stap 2: rest verwerken
+  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^#{1,3}\s+(.+)$/gm,'<h3>$1</h3>')
+    .replace(/^[-*]\s+(.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g,'<ul>$1</ul>')
+    .split('\n\n').map(p => p.startsWith('<') ? p : `<p>${p.replace(/\n/g,' ')}</p>`).join('')
+    .replace(/<\/ul>\s*<ul>/g,'');
+  // Stap 3: tabellen terugplaatsen
+  tbls.forEach((html, i) => { t = t.replace(`TBLPH${i}END`, html); });
+  return t;
+}
+
+// ── Panel toggle ─────────────────────────────────────────────
+function toggleAssistPanel() {
+  const panel    = document.getElementById('assistPanel');
+  const backdrop = document.getElementById('assistBackdrop');
+  _assist.open   = !_assist.open;
+  panel.classList.toggle('open', _assist.open);
+  backdrop.classList.toggle('open', _assist.open);
+  document.getElementById('assistBtn').style.background = _assist.open ? 'var(--bg)' : '';
+
+  if (_assist.open) {
+    if (!_assist.linkDialogAf) {
+      _assistTonenLinkDialog();
+    } else if (huidigeId && _assist.dossierId !== huidigeId) {
+      // Gebruiker is naar ander dossier gewisseld — laad de bijbehorende sessie
+      _assistKoppelDossier(huidigeId, huidigDossierNaam || '');
+    }
+  }
+}
+
+// ── Koppelingsflow ───────────────────────────────────────────
+function _assistTonenLinkDialog() {
+  const msgs = document.getElementById('assistMsgs');
+  msgs.innerHTML = '';
+
+  // Bepaal of we al in een dossier zitten
+  const inDossier = !!(huidigeId && huidigDossierNaam);
+
+  const vraag = inDossier
+    ? `Heeft deze vraag betrekking op het dossier <strong>${escH(huidigDossierNaam)}</strong>?`
+    : 'Heeft deze vraag betrekking op een dossier?';
+
+  let dossierkeuze = '';
+  if (!inDossier) {
+    dossierkeuze = `<select class="assist-dossier-select" id="assistDossierKeuze" style="display:none">
+      <option value="">— kies dossier —</option>
+    </select>`;
+  }
+
+  msgs.innerHTML = `<div class="assist-link-dialog">
+    <div class="assist-link-title">Even instellen</div>
+    <div class="assist-link-sub">${vraag}</div>
+    ${dossierkeuze}
+    <div class="assist-link-btns" style="margin-top:10px">
+      <button class="assist-link-btn assist-link-btn-ja" id="assistLinkJa"
+        onclick="_assistLinkJa()">Ja</button>
+      <button class="assist-link-btn assist-link-btn-nee"
+        onclick="_assistLinkNee()">Nee, algemene vraag</button>
+    </div>
+  </div>`;
+
+  if (!inDossier) {
+    // Laad dossierlijst asynchroon
+    _assistLaadDossiers();
+  }
+}
+
+async function _assistLaadDossiers() {
+  const sel = document.getElementById('assistDossierKeuze');
+  if (!sel) return;
+  try {
+    const { data, error } = await db.from('dossiers').select('id, naam').order('naam');
+    if (!error && data?.length) {
+      sel.innerHTML = '<option value="">— kies dossier —</option>' +
+        data.map(d => `<option value="${escH(d.id)}">${escH(d.naam)}</option>`).join('');
+    }
+  } catch { /* stil falen */ }
+}
+
+function _assistLinkJa() {
+  const inDossier = !!(huidigeId && huidigDossierNaam);
+
+  if (inDossier) {
+    // Direct koppelen aan huidig dossier
+    _assistKoppelDossier(huidigeId, huidigDossierNaam);
+  } else {
+    // Toon dossierkeuzebox
+    const sel = document.getElementById('assistDossierKeuze');
+    const btn = document.getElementById('assistLinkJa');
+    if (!sel) return;
+    sel.style.display = 'block';
+    if (btn) {
+      btn.textContent = 'Koppel dossier';
+      btn.onclick = () => {
+        const gekozen = sel.value;
+        const naam    = sel.options[sel.selectedIndex]?.text || '';
+        if (!gekozen) return;
+        _assistKoppelDossier(gekozen, naam);
+      };
+    }
+  }
+}
+
+function _assistLinkNee() {
+  _assist.linkDialogAf  = true;
+  _assist.dossierId     = null;
+  _assist.dossierNaam   = '';
+  _assist.dossierContext = '';
+  _assistStartChat('Geen dossier gekoppeld. Stel gerust een algemene juridische vraag over echtscheidingsdocumenten.');
+}
+
+function _assistKoppelDossier(id, naam) {
+  _assist.linkDialogAf = true;
+  _assist.dossierId    = id;
+  _assist.dossierNaam  = naam;
+
+  // Bouw dossiercontext op vanuit huidigRapport als het het actieve dossier is.
+  // AVG: anonimiseer alle echte namen met de bestaande naarAnon-map zodat er geen
+  // persoonsgegevens naar de Anthropic API gaan.
+  let ctx = `Dossier: ${id === huidigeId && huidigDossierNaam ? '[DOSSIER]' : '[DOSSIER]'}`;
+  if (id === huidigeId && huidigRapport) {
+    const rp = huidigRapport;
+    // Gebruik pseudoniemen (naarAnon) in plaats van echte namen
+    const pA = huidigeClassificatie?.partij_a_naam || '';
+    const pB = huidigeClassificatie?.partij_b_naam || '';
+    const pseudoA = (huidigeNaarAnon && pA) ? (anonimiseerTekst(pA, huidigeNaarAnon) || 'Partij A') : 'Partij A';
+    const pseudoB = (huidigeNaarAnon && pB) ? (anonimiseerTekst(pB, huidigeNaarAnon) || 'Partij B') : 'Partij B';
+    ctx = `Dossier (geanonimiseerd): Partij A = ${pseudoA}, Partij B = ${pseudoB}`;
+    const openIssues = (Array.isArray(rp.issues) ? rp.issues : [])
+      .filter(i => !i.negeer && !i.afgehandeld)
+      .slice(0, 6)
+      .map(i => {
+        const tekst = i.signalering || i.bevinding || '';
+        // Stap 1: namen → Stap 2: IBANs, BSN, postcodes, etc.
+        const naNamen = huidigeNaarAnon ? anonimiseerTekst(tekst, huidigeNaarAnon) : tekst;
+        return `${i.ernst?.toUpperCase()}: ${piiAnonimiseer(naNamen)}`;
+      })
+      .join('; ');
+    if (openIssues) ctx += ` | Open issues: ${openIssues}`;
+  }
+  _assist.dossierContext = ctx;
+
+  // Update strip
+  const strip = document.getElementById('assistDossierStrip');
+  const lbl   = document.getElementById('assistDossierLbl');
+  if (strip) strip.style.display = 'flex';
+  if (lbl)   lbl.innerHTML = `Dossier: <strong>${escH(naam)}</strong>`;
+
+  _assist.sessieId = `${_ASSIST_PFX}dossier_${id}`;
+  const _bestaandeSessie = localStorage.getItem(_assist.sessieId);
+  if (_bestaandeSessie) {
+    try {
+      const _bs = JSON.parse(_bestaandeSessie);
+      if (Array.isArray(_bs.conversatie) && _bs.conversatie.length > 0) {
+        _assist.conversatie = _bs.conversatie;
+        _assistHertekenConversatie();
+        return;
+      }
+    } catch(e) {}
+  }
+  _assistStartChat(`Dossier **${naam}** is gekoppeld. Welke vraag kan ik voor u beantwoorden?`);
+}
+
+function _assistOntkoppelDossier() {
+  _assist.dossierId      = null;
+  _assist.dossierNaam    = '';
+  _assist.dossierContext = '';
+  _assist.sessieId       = null;
+  const strip = document.getElementById('assistDossierStrip');
+  if (strip) strip.style.display = 'none';
+  _assist.conversatie = [];
+  _assist.linkDialogAf = false;
+  _assistTonenLinkDialog();
+}
+
+function _assistStartChat(welkomstTekst) {
+  const msgs = document.getElementById('assistMsgs');
+  msgs.innerHTML = '';
+  _assist.conversatie = [];
+  _assistVoegAssistBerichtToe(welkomstTekst, [], 'geen');
+  document.getElementById('assistInput')?.focus();
+}
+
+// ── Berichten weergeven ──────────────────────────────────────
+function _assistVoegGebruikerBerichtToe(tekst) {
+  const msgs = document.getElementById('assistMsgs');
+  const div  = document.createElement('div');
+  div.className = 'assist-msg assist-msg-user';
+  div.innerHTML = `<div class="assist-bubble">${escH(tekst)}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistVoegSysteemMeldingToe(tekst) {
+  const msgs = document.getElementById('assistMsgs');
+  const div  = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:flex-start;gap:6px;padding:6px 10px;' +
+    'background:#F0F7FF;border:1px solid #B8D8F8;border-radius:7px;' +
+    'font-size:.72rem;color:#1A5276;line-height:1.45;margin:0 2px;';
+  div.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${escH(tekst)}</span>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistVoegThinkingToe() {
+  const msgs = document.getElementById('assistMsgs');
+  const div  = document.createElement('div');
+  div.id        = 'assistThinking';
+  div.className = 'assist-msg assist-msg-assist';
+  div.innerHTML = `<div class="assist-thinking">
+    <div class="assist-dot"></div><div class="assist-dot"></div><div class="assist-dot"></div>
+    <span>Aan het zoeken en denken…</span>
+  </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistVerwijderThinking() {
+  document.getElementById('assistThinking')?.remove();
+}
+
+function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausuleTekstRuw, type) {
+  const msgs = document.getElementById('assistMsgs');
+  const div  = document.createElement('div');
+  div.className = 'assist-msg assist-msg-assist';
+
+  // Bronnen HTML
+  let bronnenHtml = '';
+  if (bronnen?.length) {
+    const items = bronnen.map(b => {
+      if (b.type === 'wet') {
+        return `<span class="assist-bron" title="${escH(b.citation)}">${escH(b.citation)}</span>`;
+      } else {
+        return `<a class="assist-bron web" href="${escH(b.url)}" target="_blank" rel="noopener" title="${escH(b.titel)}">${escH(b.titel?.slice(0,40) + (b.titel?.length > 40 ? '…' : ''))}</a>`;
+      }
+    }).join('');
+    bronnenHtml = `<div class="assist-bronnen">
+      <div class="assist-bronnen-lbl">Bronnen</div>
+      ${items}
+    </div>`;
+  }
+
+  // Clausule-knop
+  let clausuleHtml = '';
+  if (clausuleRelevant && clausuleRelevant !== 'geen') {
+    const labels = {
+      convenant:       'Genereer clausule voor convenant',
+      ouderschapsplan: 'Genereer clausule voor ouderschapsplan',
+      beide:           'Genereer clausule',
+    };
+    const lbl = labels[clausuleRelevant] || 'Genereer clausule';
+    clausuleHtml = `<button class="assist-clausule-btn" onclick="_assistGenClausule(this,'${clausuleRelevant}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      → ${lbl}
+    </button>`;
+  }
+
+  const plusIco = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+  const ts = Date.now();
+  let knoppenHtml;
+
+  if (type === 'mail') {
+    // Mail-respons: splits op sectie-grens "**2. Concept-mail" of "## 2. Concept-mail"
+    const splitM = tekst.match(/\n(?=\*\*2\.|##\s*2\.)/i);
+    if (splitM) {
+      const idx = splitM.index;
+      const ktTekst   = tekst.slice(0, idx).trim();
+      const mailTekst = tekst.slice(idx).trim();
+      const bufKt   = `cb_${ts}_kt`;
+      const bufMail = `cb_${ts}_mail`;
+      _assistClausuleBuffer.set(bufKt,   ktTekst);
+      _assistClausuleBuffer.set(bufMail, mailTekst);
+      knoppenHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;align-items:center;">
+        <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufKt}',this)">${_KOPIEER_ICO} Kopieer klanttekst</button>
+        <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufMail}',this)">${_KOPIEER_ICO} Kopieer mailvoorstel</button>
+      </div>`;
+    } else {
+      knoppenHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;align-items:center;">
+        <button class="assist-copy-btn" onclick="_assistKopieer(this)">${_KOPIEER_ICO} Kopieer</button>
+      </div>`;
+    }
+  } else if (_clausuleTekstRuw) {
+    const docTypeRef = clausuleRelevant && clausuleRelevant !== 'geen' ? clausuleRelevant : 'convenant';
+    const varAMatch = _clausuleTekstRuw.match(/---\s*VARIANT A[^\n]*\n([\s\S]+?)(?=---\s*VARIANT B|\s*$)/i);
+    const varBMatch = _clausuleTekstRuw.match(/---\s*VARIANT B[^\n]*\n([\s\S]+?)(?=---|$)/i);
+    if (varAMatch && varBMatch) {
+      const bufIdA = `cb_${ts}_a`;
+      const bufIdB = `cb_${ts}_b`;
+      _assistClausuleBuffer.set(bufIdA, varAMatch[0].trim());
+      _assistClausuleBuffer.set(bufIdB, varBMatch[0].trim());
+      knoppenHtml = `
+        <div class="assist-variant-groep">
+          <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufIdA}',this)">${_KOPIEER_ICO} Kopieer variant A</button>
+          <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufIdA}','${docTypeRef}')">${plusIco} Variant A als issue</button>
+        </div>
+        <div class="assist-variant-groep">
+          <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufIdB}',this)">${_KOPIEER_ICO} Kopieer variant B</button>
+          <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufIdB}','${docTypeRef}')">${plusIco} Variant B als issue</button>
+        </div>`;
+    } else {
+      const bufId = `cb_${ts}`;
+      _assistClausuleBuffer.set(bufId, _clausuleTekstRuw);
+      knoppenHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;align-items:center;">
+        <button class="assist-copy-btn" onclick="_assistKopieer(this)">${_KOPIEER_ICO} Kopieer</button>
+        <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufId}','${docTypeRef}')">${plusIco} Voeg toe als issue</button>
+      </div>`;
+    }
+  } else {
+    knoppenHtml = `<div style="display:flex;flex-wrap:wrap;gap:0;align-items:center;">
+      <button class="assist-copy-btn" onclick="_assistKopieer(this)">${_KOPIEER_ICO} Kopieer</button>
+    </div>`;
+  }
+
+  div.innerHTML = `<div class="assist-bubble">
+    ${_assistMd(tekst)}
+    ${bronnenHtml}
+    ${knoppenHtml}
+    ${clausuleHtml}
+  </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── Versturen ────────────────────────────────────────────────
+function _assistInputKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    _assistVerstuur();
+  }
+}
+
+function _assistInputResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// Vervang pseudoniemen (bijv. "Thomas", "Lisette") door echte roepnamen in antwoordtekst
+function _assistHerstelNamen(tekst) {
+  if (!huidigeNaarEcht || huidigeNaarEcht.size === 0) return tekst;
+  let t = tekst;
+  const entries = [...huidigeNaarEcht.entries()].sort((a,b) => b[0].length - a[0].length);
+  for (const [nep, echt] of entries) {
+    if (!nep || nep.length < 2) continue;
+    const escaped = nep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    t = t.replace(new RegExp(`\\b${escaped}\\b`, 'g'), echt);
+  }
+  return t;
+}
+
+// Geeft "RoepnaamA en RoepnaamB" terug op basis van huidige classificatie
+function _assistRoepnamen() {
+  const a = huidigeClassificatie?.partij_a_roepnaam || huidigeClassificatie?.partij_a_naam?.trim().split(/\s+/)[0] || 'Partij A';
+  const b = huidigeClassificatie?.partij_b_roepnaam || huidigeClassificatie?.partij_b_naam?.trim().split(/\s+/)[0] || 'Partij B';
+  return `${a} en ${b}`;
+}
+
+const _KOPIEER_ICO  = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const _CHECK_ICO    = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+function _assistKopieerTekst(tekst, btn, origLabel) {
+  navigator.clipboard.writeText(tekst).then(() => {
+    btn.classList.add('gekopieerd');
+    btn.innerHTML = `${_CHECK_ICO} Gekopieerd`;
+    setTimeout(() => { btn.classList.remove('gekopieerd'); btn.innerHTML = origLabel; }, 2000);
+  }).catch(() => {});
+}
+
+// Copy-knop handler — volledige bubble (voor enkelvoudige berichten)
+function _assistKopieer(btn) {
+  const bubble = btn.closest('.assist-bubble');
+  if (!bubble) return;
+  const clone = bubble.cloneNode(true);
+  clone.querySelectorAll('.assist-bronnen,.assist-clausule-btn,.assist-copy-btn,.assist-concept-btn').forEach(el => el.remove());
+  _assistKopieerTekst(clone.innerText.trim(), btn, `${_KOPIEER_ICO} Kopieer`);
+}
+
+// Copy-knop handler — tekst uit buffer (voor per-variant / per-sectie knoppen)
+function _assistKopieerBuf(bufId, btn) {
+  const origHtml = btn.innerHTML;
+  const tekst = _assistClausuleBuffer.get(bufId) || '';
+  _assistKopieerTekst(tekst, btn, origHtml);
+}
+
+// Voeg clausule toe als nieuw issue in huidigRapport (eenvoudigste concept-integratie)
+async function _assistVoegToeAlsIssue(bufId, docType) {
+  if (!huidigeId || !huidigRapport) {
+    alert('Geen actief dossier. Open een dossier om de clausule toe te voegen.');
+    return;
+  }
+  const volledigeTekst = _assistClausuleBuffer.get(bufId) || bufId;
+
+  // Titel: eerste ## of ### heading, anders fallback
+  const headerMatch = volledigeTekst.match(/^#{1,3}\s+(.+)/m);
+  const onderwerp = headerMatch
+    ? headerMatch[1].replace(/\*+/g, '').trim().slice(0, 90)
+    : 'Clausulevoorstel vanuit AI Assistent';
+
+  // Bevinding: markdown stripped voor leesbare kaartweergave
+  const bevinding = volledigeTekst
+    .replace(/^#{1,4}\s+/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/^>\s*/gm, '')
+    .replace(/^---+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 2000);
+
+  const nieuweIssue = {
+    id: `assistent_${Date.now()}`,
+    onderwerp,
+    dimensies: ['volledigheid'],
+    ernst: 'hoog',
+    signalering: 'Zelf toegevoegd via AI Assistent',
+    bevinding,
+    aanbeveling: 'Handmatig toegevoegd. Controleer de clausuletekst en pas aan waar nodig.',
+    afgehandeld: false,
+    negeer: false,
+    opmerking: '',
+    bron: 'assistent',
+    doc_type: docType !== 'beide' ? docType : null,
+  };
+  // Voeg toe aan het juiste issues-array
+  const rp = huidigRapport;
+  if (!Array.isArray(rp.issues)) rp.issues = [];
+  rp.issues.push(nieuweIssue);
+  // Bij multi-doc: ook toevoegen aan de juiste documenten[]-entry
+  if (Array.isArray(rp.documenten) && docType && docType !== 'beide') {
+    const doc = rp.documenten.find(d => d.doc_type === docType);
+    if (doc) { if (!Array.isArray(doc.issues)) doc.issues = []; doc.issues.push(nieuweIssue); }
+  }
+  try {
+    await db.from('screeningen').update({ rapport: rp }).eq('id', huidigeId);
+  } catch(e) { /* niet fataal */ }
+  // Herteken de issue-lijst in de UI als die zichtbaar is
+  if (typeof renderIssues === 'function') renderIssues();
+  const _fb = document.createElement('div');
+  _fb.className = 'assist-systeem-melding';
+  _fb.style.cssText = 'background:var(--ok,#2a9d8f);color:#fff;font-size:.78rem;padding:6px 12px;border-radius:6px;margin:4px 0;';
+  _fb.textContent = '✓ Clausule toegevoegd als issue in het dossier. Zichtbaar in de issuelijst.';
+  const _msgs = document.getElementById('assistMsgs');
+  if (_msgs) { _msgs.appendChild(_fb); _msgs.scrollTop = _msgs.scrollHeight; }
+}
+
+async function _assistVerstuur() {
+  if (_assist.bezig) return;
+  const inp  = document.getElementById('assistInput');
+  const tekst = inp?.value?.trim();
+  if (!tekst) return;
+
+  if (!_assist.linkDialogAf) {
+    return;
+  }
+  // Nieuwe vraag annuleert een eventuele lopende clausule-keuze
+  _assist.pendingClausule = null;
+
+  // AVG: anonimiseer de gebruikersinvoer vóór verzending naar de API.
+  // Stap 1: bekende namen → pseudoniemen. Stap 2: IBANs, BSN, postcodes, etc.
+  const _naNamen = (huidigeNaarAnon && huidigeNaarAnon.size > 0)
+    ? anonimiseerTekst(tekst, huidigeNaarAnon)
+    : tekst;
+  const tekstAnon = piiAnonimiseer(_naNamen);
+  const wasGeanonimiseerd = tekstAnon !== tekst;
+
+  // UI
+  inp.value = '';
+  inp.style.height = 'auto';
+  document.getElementById('assistSend').disabled = true;
+  _assist.bezig = true;
+
+  _assistVoegGebruikerBerichtToe(tekst);
+  if (wasGeanonimiseerd) {
+    _assistVoegSysteemMeldingToe(
+      'Persoonsgegevens (namen) zijn geanonimiseerd voordat uw vraag naar de AI is verstuurd. De AI werkt met pseudoniemen.'
+    );
+  }
+  _assistVoegThinkingToe();
+
+  try {
+    const token = db.auth.session?.()?.access_token
+      || (await db.auth.getSession())?.data?.session?.access_token || '';
+
+    const resp = await fetch('/api/ai-assistent', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        vraag:          tekstAnon,   // geanonimiseerde versie naar API
+        conversatie:    _assist.conversatie,
+        dossierContext: _assist.dossierContext || null,
+      }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    _assistVerwijderThinking();
+    _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), data.bronnen, data.clausuleRelevant);
+
+    _assist.conversatie.push({ role: 'user',      content: tekstAnon }); // geanonimiseerd opslaan
+    _assist.conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [], clausuleRelevant: data.clausuleRelevant || 'geen' });
+    if (_assist.conversatie.length > 20) _assist.conversatie = _assist.conversatie.slice(-20);
+    _assistSlaOpInStorage();
+
+  } catch (err) {
+    _assistVerwijderThinking();
+    _assistVoegAssistBerichtToe(
+      `Er is een fout opgetreden: ${escH(err.message)}. Probeer het opnieuw.`,
+      [], 'geen'
+    );
+  } finally {
+    _assist.bezig = false;
+    document.getElementById('assistSend').disabled = false;
+    document.getElementById('assistInput')?.focus();
+  }
+}
+
+// ── Clausule genereren ───────────────────────────────────────
+function _assistGenClausule(btn, docType) {
+  if (_assist.bezig) return;
+  btn.disabled = true;
+  _assist.pendingClausule = {
+    btn, docType,
+    varianten:  null,
+    positie:    '',
+    stijl:      null,
+    diepte:     null,
+    referentie: null,
+    needsStijl: !!_assist.dossierId,
+  };
+  _assistVoegKeuzeVraagToe();
+}
+
+function _assistVoegKeuzeVraagToe() {
+  const heeftDossier = !!_assist.dossierId;
+
+  let sectiesHtml = `
+    <div class="assist-keuze-sectie">
+      <div class="assist-keuze-label">Clausule-variant</div>
+      <div class="assist-keuze-chips">
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('varianten','enkelvoudig',this)">Enkelvoudig</button>
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('varianten','conditioneel',this)">Twee varianten — conditioneel</button>
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('varianten','inclusief_exclusief',this)">Twee varianten — inclusief / exclusief</button>
+      </div>
+      <div id="assistVariantenHint" class="assist-keuze-hint"></div>
+    </div>`;
+
+  if (heeftDossier) {
+    sectiesHtml += `
+      <div class="assist-keuze-sectie">
+        <div class="assist-keuze-label">Type tekst</div>
+        <div class="assist-keuze-chips">
+          <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('stijl','los',this)">Los artikel</button>
+          <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('stijl','wijziging',this)">Wijziging bestaand artikel</button>
+        </div>
+      </div>`;
+  }
+
+  sectiesHtml += `
+    <div class="assist-keuze-sectie">
+      <div class="assist-keuze-label">Uitwerking</div>
+      <div class="assist-keuze-chips">
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('diepte','volledig',this)">Zo volledig mogelijk</button>
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('diepte','compact',this)">Compact (aanvaardbare risico's)</button>
+      </div>
+    </div>
+    <div class="assist-keuze-sectie">
+      <div class="assist-keuze-label">Partijverwijzing</div>
+      <div class="assist-keuze-chips">
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('referentie','roepnamen',this)">Voornamen</button>
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('referentie','geslacht',this)">Man / Vrouw</button>
+        <button class="assist-keuze-chip" onclick="_assistKeuzeKiezen('referentie','partij',this)">Partij A / Partij B</button>
+      </div>
+    </div>
+    <div class="assist-keuze-sectie">
+      <div class="assist-keuze-label">Positie in document <span style="font-weight:400;opacity:.65">(optioneel)</span></div>
+      <input id="assistPositieInput" type="text" class="assist-positie-input"
+        placeholder="bijv. na artikel 3.1 of in sectie Verdeling van schulden"
+        oninput="_assist.pendingClausule && (_assist.pendingClausule.positie = this.value.trim())"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();_assistKeuzeGenereer();}">
+    </div>`;
+
+  const msgs = document.getElementById('assistMsgs');
+  const div = document.createElement('div');
+  div.className = 'assist-msg-assist';
+  div.innerHTML = `<div class="assist-bubble assist-keuze-bubble">
+    <p style="margin:0 0 10px;font-size:.84rem">Voordat ik de tekst genereer, een paar korte vragen:</p>
+    ${sectiesHtml}
+    <button id="assistKeuzeGenereerBtn" class="assist-gen-trigger-btn" onclick="_assistKeuzeGenereer()" disabled>Genereer →</button>
+  </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistKeuzeKiezen(veld, waarde, el) {
+  const pc = _assist.pendingClausule;
+  if (!pc) return;
+  pc[veld] = waarde;
+  el.closest('.assist-keuze-chips').querySelectorAll('.assist-keuze-chip').forEach(b => b.classList.remove('actief'));
+  el.classList.add('actief');
+
+  if (veld === 'varianten') {
+    const hints = {
+      enkelvoudig:        'Één volledige clausuletekst, direct toepasbaar. Gebruik dit als de situatie al duidelijk is.',
+      conditioneel:       'Twee volledige teksten: Variant A geldt als de situatie van toepassing is, Variant B als dat niet zo is. Partijen of mediator bepaalt welke van toepassing is.',
+      inclusief_exclusief:'Twee volledige teksten: Variant A neemt de bepaling op, Variant B sluit haar uit. Gebruik dit als nog niet zeker is of de clausule überhaupt nodig is.',
+    };
+    const hintEl = document.getElementById('assistVariantenHint');
+    if (hintEl) hintEl.textContent = hints[waarde] || '';
+  }
+
+  const allAnswered = pc.varianten !== null && pc.diepte !== null && pc.referentie !== null && (!pc.needsStijl || pc.stijl !== null);
+  const genBtn = document.getElementById('assistKeuzeGenereerBtn');
+  if (genBtn) genBtn.disabled = !allAnswered;
+}
+
+function _assistKeuzeGenereer() {
+  const pc = _assist.pendingClausule;
+  if (!pc) return;
+  const allAnswered = pc.varianten !== null && pc.diepte !== null && pc.referentie !== null && (!pc.needsStijl || pc.stijl !== null);
+  if (!allAnswered) return;
+  const positieEl = document.getElementById('assistPositieInput');
+  if (positieEl) pc.positie = positieEl.value.trim();
+  _assistGenClausuleUitvoeren();
+}
+
+async function _assistGenClausuleUitvoeren() {
+  const pc = _assist.pendingClausule;
+  if (!pc) return;
+  _assist.lastVarianten = pc.varianten || 'enkelvoudig';
+  _assist.pendingClausule = null;
+  _assist.bezig = true;
+
+  const { btn, docType } = pc;
+  const labelMap = {
+    convenant:       'convenant',
+    ouderschapsplan: 'ouderschapsplan',
+    beide:           'convenant en/of ouderschapsplan',
+  };
+
+  const stijlInstr = pc.needsStijl
+    ? (pc.stijl === 'los'
+        ? 'Genereer een volledig zelfstandig nieuw artikel dat los kan worden ingevoegd.'
+        : 'Genereer een concreet wijzigingsvoorstel voor het meest relevante bestaande artikel in het document, inclusief de wijzigingsinstructie (bijv. "Artikel X lid Y wordt als volgt gewijzigd: …").')
+    : '';
+
+  const diepteInstr = pc.diepte === 'compact'
+    ? 'Houd de tekst compact en praktisch. Benoem de risico\'s die acceptabel zijn en die de mediator bewust kan laten staan. Geen uitgebreide uitzonderingsbepalingen.'
+    : 'Maak de tekst zo compleet mogelijk: dek alle voorzienbare situaties af, voeg relevante uitzonderingsclausules toe en minimaliseer het risico op toekomstige discussie.';
+
+  const referentieMap = {
+    roepnamen: `Verwijs naar partijen met hun voornamen: ${_assistRoepnamen()}.`,
+    geslacht:  'Verwijs naar partijen als "de man" en "de vrouw".',
+    partij:    'Verwijs naar partijen als "Partij A" en "Partij B".',
+  };
+  const referentieInstr = referentieMap[pc.referentie] || '';
+
+  const variantenInstr = {
+    conditioneel:       'Genereer TWEE varianten. Label elke variant duidelijk:\n--- VARIANT A: [voorwaarde is van toepassing] ---\n--- VARIANT B: [voorwaarde is niet van toepassing] ---\nZet elke variant als volledige, zelfstandige clausuletekst.',
+    inclusief_exclusief:'Genereer TWEE varianten. Label elke variant duidelijk:\n--- VARIANT A: Opnemen (inclusief) ---\n--- VARIANT B: Uitsluiten (exclusief) ---\nZet elke variant als volledige, zelfstandige clausuletekst.',
+  }[pc.varianten] || '';
+
+  const positieInstr = pc.positie
+    ? `Voeg de clausule in op de volgende positie in het document: ${pc.positie}.`
+    : '';
+
+  const instructie = `Genereer op basis van ons gesprek een concrete clausuletekst voor opname in een Nederlands ${labelMap[docType] || 'echtscheidingsdocument'}. Gebruik de formele schrijfstijl die gebruikelijk is in dergelijke documenten. ${stijlInstr} ${positieInstr} ${variantenInstr} ${diepteInstr} ${referentieInstr} Geef daarna kort aan: (1) welke fiscale of juridische valkuilen de tekst opvangt, (2) welke omstandigheid in de toekomst alsnog tot discussie kan leiden en hoe de mediator dat nu al kan dichttimmeren. Sluit af met: "Dit is een aanbeveling — eindverantwoordelijkheid ligt bij de mediator of advocaat."`;
+
+  const labelStijl = pc.needsStijl ? (pc.stijl === 'los' ? 'los artikel' : 'wijzigingsvoorstel') : 'clausule';
+  const variantLabel = { conditioneel: ' — twee conditionele varianten', inclusief_exclusief: ' — twee varianten (inclusief/exclusief)' }[pc.varianten] || '';
+  const positieLabel = pc.positie ? ` (positie: ${pc.positie})` : '';
+  _assistVoegGebruikerBerichtToe(`Genereer een ${labelStijl} voor het ${labelMap[docType] || 'document'} — ${pc.diepte === 'compact' ? 'compact' : 'volledig'}${variantLabel}${positieLabel}.`);
+  _assistVoegThinkingToe();
+
+  try {
+    const token = db.auth.session?.()?.access_token
+      || (await db.auth.getSession())?.data?.session?.access_token || '';
+
+    const resp = await fetch('/api/ai-assistent', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        vraag:          instructie,
+        conversatie:    _assist.conversatie,
+        dossierContext: _assist.dossierContext || null,
+      }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    _assistVerwijderThinking();
+    const antwoordHerstel = _assistHerstelNamen(data.antwoord);
+    _assistVoegAssistBerichtToe(antwoordHerstel, data.bronnen, 'geen', data.antwoord);
+    _assist.conversatie.push({ role: 'user',      content: instructie });
+    _assist.conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: [], clausuleRelevant: 'geen' });
+    _assistSlaOpInStorage();
+    _assistVoegKlanttekstKnopToe();
+
+  } catch (err) {
+    _assistVerwijderThinking();
+    _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
+  } finally {
+    _assist.bezig = false;
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+function _assistVoegKlanttekstKnopToe() {
+  const msgs = document.getElementById('assistMsgs');
+  const div = document.createElement('div');
+  div.className = 'assist-msg-assist';
+  div.style.paddingTop = '0';
+  div.innerHTML = `<button class="assist-klanttekst-btn" onclick="_assistGenKlanttekst(this)">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+    Klanttekst &amp; mail opstellen
+  </button>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistGenKlanttekst(btn) {
+  if (_assist.bezig) return;
+  btn.disabled = true;
+  const isTweeVarianten = _assist.lastVarianten === 'conditioneel' || _assist.lastVarianten === 'inclusief_exclusief';
+  _assist.pendingKlanttekst = { btn, schrijfstijl: null, mailAanpak: null, needsMailAanpak: isTweeVarianten };
+
+  const variantLabels = _assist.lastVarianten === 'conditioneel'
+    ? { a: 'Variant A — voorwaarde van toepassing', b: 'Variant B — voorwaarde niet van toepassing' }
+    : { a: 'Variant A — opnemen (inclusief)', b: 'Variant B — uitsluiten (exclusief)' };
+
+  let sectiesHtml = '';
+  if (isTweeVarianten) {
+    sectiesHtml += `
+      <div class="assist-keuze-sectie">
+        <div class="assist-keuze-label">Wat leg ik de partijen voor?</div>
+        <div class="assist-keuze-chips">
+          <button class="assist-keuze-chip" onclick="_assistKlanttekstMailAanpakKiezen('beide',this)">Beide varianten — zij bepalen</button>
+          <button class="assist-keuze-chip" onclick="_assistKlanttekstMailAanpakKiezen('variant_a',this)">${escH(variantLabels.a)}</button>
+          <button class="assist-keuze-chip" onclick="_assistKlanttekstMailAanpakKiezen('variant_b',this)">${escH(variantLabels.b)}</button>
+        </div>
+      </div>`;
+  }
+  sectiesHtml += `
+    <div class="assist-keuze-sectie">
+      <div class="assist-keuze-label">Schrijfstijl</div>
+      <div class="assist-keuze-chips">
+        <button class="assist-keuze-chip" onclick="_assistKlanttekstKeuzeKiezen('formeel',this)">Formeel (u)</button>
+        <button class="assist-keuze-chip" onclick="_assistKlanttekstKeuzeKiezen('informeel',this)">Informeel (je/jij)</button>
+      </div>
+    </div>`;
+
+  const msgs = document.getElementById('assistMsgs');
+  const div = document.createElement('div');
+  div.className = 'assist-msg-assist';
+  div.innerHTML = `<div class="assist-bubble assist-keuze-bubble">
+    <p style="margin:0 0 10px;font-size:.84rem">${isTweeVarianten ? 'Twee korte vragen:' : 'Eén korte vraag:'}</p>
+    ${sectiesHtml}
+    ${isTweeVarianten ? '<button id="assistKlanttekstGenereerBtn" class="assist-gen-trigger-btn" onclick="_assistKlanttekstGenereer()" disabled>Genereer →</button>' : ''}
+  </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistKlanttekstMailAanpakKiezen(aanpak, el) {
+  const pk = _assist.pendingKlanttekst;
+  if (!pk) return;
+  pk.mailAanpak = aanpak;
+  el.closest('.assist-keuze-chips').querySelectorAll('.assist-keuze-chip').forEach(b => b.classList.remove('actief'));
+  el.classList.add('actief');
+  _assistKlanttekstCheckAllAnswered();
+}
+
+function _assistKlanttekstKeuzeKiezen(schrijfstijl, el) {
+  const pk = _assist.pendingKlanttekst;
+  if (!pk) return;
+  pk.schrijfstijl = schrijfstijl;
+  el.closest('.assist-keuze-chips').querySelectorAll('.assist-keuze-chip').forEach(b => b.classList.remove('actief'));
+  el.classList.add('actief');
+  _assistKlanttekstCheckAllAnswered();
+}
+
+function _assistKlanttekstCheckAllAnswered() {
+  const pk = _assist.pendingKlanttekst;
+  if (!pk) return;
+  const allAnswered = pk.schrijfstijl !== null && (!pk.needsMailAanpak || pk.mailAanpak !== null);
+  if (pk.needsMailAanpak) {
+    const genBtn = document.getElementById('assistKlanttekstGenereerBtn');
+    if (genBtn) genBtn.disabled = !allAnswered;
+  } else if (allAnswered) {
+    setTimeout(_assistGenKlanttekstEnMail, 350);
+  }
+}
+
+function _assistKlanttekstGenereer() {
+  const pk = _assist.pendingKlanttekst;
+  if (!pk) return;
+  const allAnswered = pk.schrijfstijl !== null && (!pk.needsMailAanpak || pk.mailAanpak !== null);
+  if (allAnswered) _assistGenKlanttekstEnMail();
+}
+
+async function _assistGenKlanttekstEnMail() {
+  const pk = _assist.pendingKlanttekst;
+  if (!pk) return;
+  _assist.pendingKlanttekst = null;
+  _assist.bezig = true;
+
+  const schrijfstijlInstr = pk.schrijfstijl === 'informeel'
+    ? 'Gebruik "je" en "jij" en informele maar respectvolle taal.'
+    : 'Gebruik "u" en formele maar toegankelijke taal.';
+
+  const roepnamen = _assistRoepnamen();
+  const aanhef = `Beste ${roepnamen},`;
+
+  let instructie;
+  if (pk.mailAanpak === 'beide') {
+    instructie = `Op basis van de zojuist gegenereerde clausuletekst (twee varianten), doe nu het volgende in één antwoord:
+
+**1. Klanttekst (eenvoudig leesbaar)**
+Leg kort uit welke keuze of situatie partijen moeten bepalen, en wat elk van de twee varianten inhoudt. Gebruik heldere taal zonder juridisch jargon. Maximaal 140 woorden. ${schrijfstijlInstr}
+
+**2. Concept-mail aan beide partijen**
+De partijen hebben nog geen beslissing genomen. De mail legt de keuze voor en vraagt om een reactie.
+
+De mail bevat:
+- Korte uitleg van de situatie of het dilemma in gewone taal
+- Optie A: wat het inhoudt, gevolgd door een concrete toelichting op de risico's of gevolgen als zij hiervoor kiezen — denk aan financiële gevolgen, juridische consequenties, en wat er mis kan gaan als dit later betwist wordt
+- Optie B: zelfde opbouw — wat het inhoudt en een concrete toelichting op de bijbehorende risico's of gevolgen
+- Wat er gebeurt als zij niets regelen (of dit punt open laten) — benoem dit expliciet als dat relevant is
+- Een concrete vraag: "Welke situatie is op jullie van toepassing?" of "Welke optie sluit aan bij jullie wens?"
+- Verzoek om reactie vóór [datum in te vullen]
+- Uitnodiging om contact op te nemen bij vragen
+
+Wees bij de risico-toelichting concreet en specifiek voor deze casus — geen algemene formuleringen, maar wat er in de praktijk werkelijk op het spel staat.
+
+Gebruik als aanhef: "${aanhef}" — gebruik de voornamen ook in de verdere tekst waar van toepassing.
+Gebruik als afsluiting: "Met vriendelijke groet,\\n[naam mediator]"
+${schrijfstijlInstr}`;
+  } else {
+    const variantOmschr = pk.mailAanpak === 'variant_a'
+      ? (_assist.lastVarianten === 'conditioneel' ? 'Variant A (voorwaarde is van toepassing)' : 'Variant A (opnemen/inclusief)')
+      : (_assist.lastVarianten === 'conditioneel' ? 'Variant B (voorwaarde is niet van toepassing)' : 'Variant B (uitsluiten/exclusief)');
+    instructie = `Op basis van de zojuist gegenereerde clausuletekst is ${variantOmschr} van toepassing. Doe nu het volgende in één antwoord op basis van die variant:
+
+**1. Klanttekst (eenvoudig leesbaar)**
+Stel een begrijpelijke samenvatting op van de strekking van de bepaling, geschikt voor directe communicatie met de partijen (niet-juristen). Gebruik heldere taal zonder juridisch jargon. Licht ook de risico's toe die de bepaling afdekt: waarom is het relevant om dit nu te regelen, en wat kan er misgaan als dit open blijft? Maximaal 150 woorden. ${schrijfstijlInstr}
+
+**2. Concept-mail aan beide partijen**
+Schrijf een mail aan beide partijen. Context: dit is een voorstel waarover zij nog een beslissing moeten nemen — de mail stelt de vraag en vraagt om een reactie.
+
+De mail bevat:
+- Uitleg van het voorstel in gewone taal
+- Concrete toelichting op de risico's: waarom is dit punt belangrijk om nu vast te leggen, en wat zijn de praktische of financiële gevolgen als zij het open laten of betwisten? Wees specifiek voor deze situatie — geen algemene formuleringen
+- Wat er gebeurt als zij niets regelen, als dat relevant is
+- De concrete vraag: gaan zij akkoord met opname van deze bepaling, of hebben zij vragen of opmerkingen?
+- Uitnodiging om contact op te nemen bij vragen
+
+Gebruik als aanhef: "${aanhef}" — gebruik de voornamen ook in de verdere tekst waar van toepassing.
+Gebruik als afsluiting: "Met vriendelijke groet,\\n[naam mediator]"
+${schrijfstijlInstr}`;
+  }
+
+  _assistVoegGebruikerBerichtToe(
+    pk.mailAanpak === 'beide'
+      ? 'Stel een klanttekst en mail op — beide varianten ter keuze aan de partijen.'
+      : 'Stel een klanttekst en mail op voor verificatie door de partijen.'
+  );
+  _assistVoegThinkingToe();
+
+  try {
+    const token = db.auth.session?.()?.access_token
+      || (await db.auth.getSession())?.data?.session?.access_token || '';
+
+    const resp = await fetch('/api/ai-assistent', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        vraag:          instructie,
+        conversatie:    _assist.conversatie,
+        dossierContext: _assist.dossierContext || null,
+      }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    _assistVerwijderThinking();
+    _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), data.bronnen, 'geen', null, 'mail');
+    _assist.conversatie.push({ role: 'user',      content: instructie });
+    _assist.conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: [], clausuleRelevant: 'geen' });
+    _assistSlaOpInStorage();
+
+  } catch (err) {
+    _assistVerwijderThinking();
+    _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
+  } finally {
+    _assist.bezig = false;
+    if (pk.btn) pk.btn.disabled = false;
+  }
+}
+
+// ── Sessie-opslag (localStorage) ─────────────────────────────────────────────
+
+function _assistSlaOpInStorage() {
+  if (!_assist.conversatie.length) return;
+  if (!_assist.sessieId) {
+    _assist.sessieId = `${_ASSIST_PFX}algemeen_${Date.now()}`;
+  }
+  const eersteVraag = _assist.conversatie.find(b => b.role === 'user')?.content || 'Gesprek';
+  const sessie = {
+    id:             _assist.sessieId,
+    titel:          eersteVraag.slice(0, 60),
+    timestamp:      Date.now(),
+    conversatie:    _assist.conversatie,
+    dossierId:      _assist.dossierId,
+    dossierNaam:    _assist.dossierNaam,
+    dossierContext: _assist.dossierContext,
+  };
+  try {
+    localStorage.setItem(_assist.sessieId, JSON.stringify(sessie));
+    if (!_assist.dossierId) _assistOpruimenAlgemeen();
+  } catch(e) {
+    console.warn('[assist] localStorage opslaan mislukt:', e.message);
+  }
+}
+
+function _assistOpruimenAlgemeen() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(`${_ASSIST_PFX}algemeen_`)) keys.push(k);
+  }
+  keys.sort().reverse().slice(10).forEach(k => localStorage.removeItem(k));
+}
+
+function _assistLaadSessies() {
+  const sessies = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(_ASSIST_PFX)) continue;
+    try {
+      const s = JSON.parse(localStorage.getItem(k));
+      if (s?.conversatie?.length) sessies.push(s);
+    } catch(e) {}
+  }
+  return sessies.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+function _assistVerwijderConversatie() {
+  if (!confirm('Huidig gesprek verwijderen?')) return;
+  if (_assist.sessieId) localStorage.removeItem(_assist.sessieId);
+  _assist.sessieId   = null;
+  _assist.conversatie = [];
+  _assist.pendingClausule   = null;
+  _assist.pendingKlanttekst = null;
+  const msgs = document.getElementById('assistMsgs');
+  if (msgs) msgs.innerHTML = '';
+  _assistStartChat(_assist.dossierId
+    ? `Dossier **${_assist.dossierNaam}** is gekoppeld. Welke vraag kan ik voor u beantwoorden?`
+    : 'Welke juridische vraag kan ik voor u beantwoorden?');
+}
+
+function _assistVerwijderSessie(sessieId, ev) {
+  ev.stopPropagation();
+  localStorage.removeItem(sessieId);
+  if (_assist.sessieId === sessieId) {
+    _assist.sessieId = null;
+    _assist.conversatie = [];
+  }
+  _assistTonenSessies();
+}
+
+function _assistTonenSessies() {
+  const sessies = _assistLaadSessies();
+  const msgs = document.getElementById('assistMsgs');
+  const hdr = `<div class="assist-sessies-hdr"><span>Eerdere gesprekken</span><button class="assist-sessies-terug" onclick="_assistSessiesVerbergen()">← Terug</button></div>`;
+  if (!sessies.length) {
+    msgs.innerHTML = hdr + `<div class="assist-sessies-leeg">Geen opgeslagen gesprekken.</div>`;
+    return;
+  }
+  const items = sessies.map(s => {
+    const datum = new Date(s.timestamp).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+    const label = s.dossierNaam ? `Dossier: ${escH(s.dossierNaam)}` : 'Algemeen';
+    return `<div class="assist-sessie-item">
+      <div class="assist-sessie-row" onclick="_assistHerlaadSessie('${s.id}')">
+        <div class="assist-sessie-titel">${escH(s.titel)}</div>
+        <div class="assist-sessie-meta">${label} · ${datum}</div>
+      </div>
+      <button class="assist-del-sessie" title="Verwijder gesprek" onclick="_assistVerwijderSessie('${s.id}',event)">✕</button>
+    </div>`;
+  }).join('');
+  msgs.innerHTML = hdr + items;
+}
+
+function _assistSessiesVerbergen() {
+  _assistHertekenConversatie();
+}
+
+function _assistHerlaadSessie(sessieId) {
+  const raw = localStorage.getItem(sessieId);
+  if (!raw) return;
+  try {
+    const s = JSON.parse(raw);
+    _assist.sessieId       = s.id;
+    _assist.conversatie    = s.conversatie   || [];
+    _assist.dossierId      = s.dossierId     || null;
+    _assist.dossierNaam    = s.dossierNaam   || '';
+    _assist.dossierContext = s.dossierContext || '';
+    _assist.linkDialogAf   = true;
+
+    const strip = document.getElementById('assistDossierStrip');
+    const lbl   = document.getElementById('assistDossierLbl');
+    if (_assist.dossierId && _assist.dossierNaam) {
+      if (strip) strip.style.display = 'flex';
+      if (lbl)   lbl.innerHTML = `Dossier: <strong>${escH(_assist.dossierNaam)}</strong>`;
+    } else {
+      if (strip) strip.style.display = 'none';
+    }
+    _assistHertekenConversatie();
+  } catch(e) {
+    console.error('[assist] Sessie laden mislukt:', e.message);
+  }
+}
+
+function _assistHertekenConversatie() {
+  const msgs = document.getElementById('assistMsgs');
+  msgs.innerHTML = '';
+  for (const b of _assist.conversatie) {
+    if (b.role === 'user') {
+      _assistVoegGebruikerBerichtToe(b.content);
+    } else if (b.role === 'assistant') {
+      _assistVoegAssistBerichtToe(b.content, b.bronnen || [], b.clausuleRelevant || 'geen');
+    }
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistNieuwGesprek() {
+  _assist.sessieId       = null;
+  _assist.conversatie    = [];
+  _assist.dossierId      = null;
+  _assist.dossierNaam    = '';
+  _assist.dossierContext = '';
+  _assist.linkDialogAf   = false;
+  const strip = document.getElementById('assistDossierStrip');
+  if (strip) strip.style.display = 'none';
+  _assistTonenLinkDialog();
+}
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>
   <span id="printVoettekstRechts"></span>
 </div>
+
+<!-- ══ AI Assistent Panel ══════════════════════════════ -->
+<div class="assist-backdrop" id="assistBackdrop" onclick="toggleAssistPanel()"></div>
+<aside class="assist-panel" id="assistPanel" aria-label="AI Assistent">
+
+  <!-- Header -->
+  <div class="assist-hdr">
+    <div class="assist-hdr-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5F1E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/><path d="M12 16v-4M12 8h.01"/></svg>
+    </div>
+    <div>
+      <div class="assist-hdr-title">Clausula Assistent</div>
+      <div class="assist-hdr-sub">Juridische vragen &amp; clausuleadviezen</div>
+    </div>
+    <div class="assist-hdr-actions">
+      <button class="assist-hdr-btn" onclick="_assistTonenSessies()" title="Eerdere gesprekken">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </button>
+      <button class="assist-hdr-btn" onclick="_assistVerwijderConversatie()" title="Gesprek verwijderen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+      <button class="assist-hdr-btn" onclick="_assistNieuwGesprek()" title="Nieuw gesprek">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <button class="assist-close" onclick="toggleAssistPanel()" title="Sluiten" aria-label="Sluiten">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="assist-disclaimer">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Antwoorden zijn <strong>aanbevelingen</strong>. Eindverantwoordelijkheid voor documenten en beslissingen ligt bij de mediator of advocaat.</span>
+  </div>
+
+  <!-- Dossier-koppelingsstrip (zichtbaar na koppeling) -->
+  <div class="assist-dossier-strip" id="assistDossierStrip" style="display:none">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    <span class="assist-dossier-lbl" id="assistDossierLbl">Dossier: —</span>
+    <button class="assist-dossier-btn" onclick="_assistOntkoppelDossier()">Ontkoppel</button>
+  </div>
+
+  <!-- Berichten + koppelingsflow -->
+  <div class="assist-msgs" id="assistMsgs">
+    <!-- Gevuld via JS -->
+  </div>
+
+  <!-- Input -->
+  <div class="assist-input-area">
+    <div class="assist-input-row">
+      <textarea class="assist-input" id="assistInput" rows="1"
+        placeholder="Stel een juridische vraag…"
+        onkeydown="_assistInputKeydown(event)"
+        oninput="_assistInputResize(this)"></textarea>
+      <button class="assist-send" id="assistSend" onclick="_assistVerstuur()" title="Verstuur">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
 </body>
 </html>

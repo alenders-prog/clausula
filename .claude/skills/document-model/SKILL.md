@@ -244,3 +244,23 @@ if (_isCrossDoc && !isGehighlightd() && huidigeDocumenten.length > 1) {
 ```
 
 Zie de `screening-categorien` skill voor categoriedefinities en ernst-criteria.
+
+---
+
+## Issue-telling: chip vs. overzichtsring vs. opgeslagen rapport
+
+Er zijn drie plaatsen die issue-aantallen tonen — ze gebruiken bewust dezelfde filter:
+
+| Context | Functie | Filter |
+|---------|---------|--------|
+| Analyse-chip (split-view) | `_renderProgressief` | `!negeer && !afgehandeld` + `_geenIssuePat` |
+| Dossier-overzichtsring | `maakDocKolommenHtml` | `!negeer && !afgehandeld` |
+| Opgeslagen rapport (`_docResultaten`) | `analyseer.js` → `index.html` | `_geenIssuePat` |
+
+**Valkuilen:**
+- `_geenIssuePat` verwijdert positieve bevestigingen die Claude toch laat doorglippen (bijv. `"Geen actie vereist"`). Deze filter staat in zowel `_docResultaten` als `_renderProgressief` — ze moeten synchroon blijven.
+- `negeer: true` = permanent verborgen door gebruiker → telt nooit mee in chip of overzichtsring.
+- `afgehandeld: true` = afgehandeld door gebruiker → telt ook niet mee (behandeld als gesloten).
+- De overzichtsring toont aantallen **open issues** (= wat de chip toont), NIET het historische totaal.
+
+**Bij wijziging van de issue-filter:** pas altijd `_renderProgressief` (index.html) EN de toelichting in dit skill-bestand aan.

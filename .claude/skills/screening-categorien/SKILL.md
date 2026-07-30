@@ -88,6 +88,14 @@ Toetst of afspraken juridisch correct, geldig en afdwingbaar zijn naar Nederland
 - Niet-ingevulde velden (lege bedragen, sjabloonplaatshouders, "€ ,–") → altijd volledigheid
 - Inhoudelijk lege zinnen (zin noemt onderwerp maar bevat geen concrete afspraak) → altijd volledigheid
 
+**IPR-checks (iprChecks in sysBevindingen — alleen convenant):**
+Claude detecteert internationaal elementen in de documenttekst (buitenlandse nationaliteit, huwelijk in buitenland, woonhistorie buiten NL, buitenlands vermogen) en rapporteert:
+- IPR-A: toepasselijk recht niet benoemd → volledigheid (midden)
+- IPR-B: huwelijk 1992–2019 + buitenlandse woonhistorie + geen wagonstelsel-vaststelling → volledigheid (midden)
+- IPR-C: verdeling op NL gemeenschap terwijl buitenlands recht van toepassing lijkt → juridisch (hoog)
+- IPR-D: buitenlands pensioen zonder verevening-afspraak (WVPS niet automatisch) → volledigheid (midden)
+Als GEEN internationaal signaal aanwezig → géén IPR-issues. Verwijzingsregel per tijdvak: zie `legal_chunks` IPR-HVR-chunks (SQL 009).
+
 ### 2. conflicten
 Toetst op interne tegenstrijdigheden en toekomstige geschilrisico's binnen het document.
 

@@ -1,0 +1,910 @@
+<title>Clausula — Technische documentatie</title>
+<style>
+/* ── Tokens ───────────────────────────────────────────────── */
+:root {
+  --navy:   #1B3050;
+  --amber:  #E07200;
+  --ice:    #F4F7FB;
+  --slate:  #2D3748;
+  --muted:  #637083;
+  --pale:   #EEF3FB;
+  --line:   #D8E2F0;
+  --green:  #1E8449;
+  --red:    #C0392B;
+  --ink:    #1B3050;
+  --bg:     #F4F7FB;
+  --card:   #ffffff;
+  --code-bg:#EEF3FB;
+  --sidebar-w: 230px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --navy:   #4A8FD4;
+    --amber:  #F0A030;
+    --ice:    #0D1117;
+    --slate:  #C9D1D9;
+    --muted:  #8B949E;
+    --pale:   #161B22;
+    --line:   #21262D;
+    --green:  #3FB950;
+    --red:    #F85149;
+    --ink:    #E6EDF3;
+    --bg:     #0D1117;
+    --card:   #161B22;
+    --code-bg:#0D1117;
+  }
+}
+:root[data-theme="dark"]  { --navy:#4A8FD4;--amber:#F0A030;--ice:#0D1117;--slate:#C9D1D9;--muted:#8B949E;--pale:#161B22;--line:#21262D;--green:#3FB950;--red:#F85149;--ink:#E6EDF3;--bg:#0D1117;--card:#161B22;--code-bg:#0D1117; }
+:root[data-theme="light"] { --navy:#1B3050;--amber:#E07200;--ice:#F4F7FB;--slate:#2D3748;--muted:#637083;--pale:#EEF3FB;--line:#D8E2F0;--green:#1E8449;--red:#C0392B;--ink:#1B3050;--bg:#F4F7FB;--card:#ffffff;--code-bg:#EEF3FB; }
+
+/* ── Reset & base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--slate);
+  background: var(--bg);
+}
+
+/* ── Page header ──────────────────────────────────────────── */
+.page-header {
+  background: var(--navy);
+  color: #fff;
+  padding: 36px 40px 32px;
+}
+.page-header-inner { max-width: 1060px; margin: 0 auto; }
+.ph-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; opacity: .6; margin-bottom: 6px; }
+.ph-title { font-size: 1.75rem; font-weight: 700; line-height: 1.2; }
+.ph-sub { margin-top: 6px; opacity: .75; font-size: .92rem; }
+.ph-meta { display: flex; gap: 20px; margin-top: 16px; flex-wrap: wrap; }
+.ph-pill {
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.layout { display: flex; max-width: 1060px; margin: 0 auto; padding: 0 16px; gap: 0; }
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  padding: 32px 20px 32px 0;
+}
+.sidebar-inner {
+  position: sticky;
+  top: 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.sidebar-heading {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.sidebar nav a {
+  display: block;
+  padding: 6px 14px;
+  font-size: .8rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.sidebar nav a:hover { color: var(--navy); background: var(--pale); }
+.sidebar nav a.active { color: var(--navy); border-left-color: var(--amber); font-weight: 600; }
+.sidebar nav a.sub { padding-left: 24px; font-size: .75rem; }
+
+/* ── Main content ─────────────────────────────────────────── */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 0 64px 32px;
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+.section { margin-bottom: 52px; }
+.section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  padding-left: 14px;
+  border-left: 3px solid var(--amber);
+  margin-bottom: 20px;
+  line-height: 1.3;
+}
+.section-sub {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 28px 0 10px;
+}
+p { margin-bottom: 12px; max-width: 68ch; }
+p:last-child { margin-bottom: 0; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 7px; border: 1px solid var(--line); }
+table { border-collapse: collapse; width: 100%; font-size: .83rem; }
+th {
+  background: var(--pale);
+  color: var(--ink);
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--slate); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--pale); }
+td code { font-size: .8rem; }
+
+/* ── Code ─────────────────────────────────────────────────── */
+code {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: .82em;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--ink);
+}
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: .8rem;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+pre code { background: none; border: none; padding: 0; font-size: inherit; }
+
+/* ── Cards / callouts ─────────────────────────────────────── */
+.callout {
+  border-radius: 7px;
+  padding: 14px 16px;
+  margin: 16px 0;
+  border-left: 3px solid;
+  font-size: .88rem;
+}
+.callout.info  { background: color-mix(in srgb, var(--navy) 7%, var(--bg)); border-color: var(--navy); }
+.callout.warn  { background: color-mix(in srgb, var(--amber) 8%, var(--bg)); border-color: var(--amber); }
+.callout.risk  { background: color-mix(in srgb, var(--red) 7%, var(--bg)); border-color: var(--red); }
+.callout.ok    { background: color-mix(in srgb, var(--green) 7%, var(--bg)); border-color: var(--green); }
+.callout strong { display: block; margin-bottom: 4px; font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ── Decision cards ───────────────────────────────────────── */
+.decision-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin: 16px 0; }
+.decision-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: .85rem;
+}
+.decision-card .dc-title { font-weight: 700; color: var(--ink); margin-bottom: 6px; font-size: .88rem; }
+.decision-card .dc-choice { color: var(--amber); font-weight: 600; font-size: .8rem; margin-bottom: 8px; }
+.decision-card .dc-body { color: var(--muted); line-height: 1.55; }
+
+/* ── Badge ────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.badge.hoog  { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+.badge.mid   { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.badge.ok    { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--green); }
+.badge.info  { background: color-mix(in srgb, var(--navy) 12%, transparent); color: var(--navy); }
+
+/* ── Mermaid diagrams ─────────────────────────────────────── */
+.mermaid { margin: 20px 0; }
+
+/* ── Dim chips ────────────────────────────────────────────── */
+.dim-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.dim-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 10px;
+  font-size: .78rem; font-weight: 600; color: var(--ink);
+}
+.dim-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; padding: 20px 0 0; }
+  .sidebar-inner { position: static; }
+  .main { padding: 24px 0 48px; }
+  .decision-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<!-- Page header -->
+<header class="page-header">
+  <div class="page-header-inner">
+    <div class="ph-eyebrow">Technische documentatie</div>
+    <div class="ph-title">Clausula — Document Screening Platform</div>
+    <div class="ph-sub">Geautomatiseerde juridische analyse van Nederlandse familierechtdocumenten</div>
+    <div class="ph-meta">
+      <span class="ph-pill">Versie 1.x — Juli 2026</span>
+      <span class="ph-pill">Vercel · Supabase · Anthropic Claude</span>
+      <span class="ph-pill">Familierechtmediators</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <div class="sidebar-heading">Inhoud</div>
+      <nav id="toc">
+        <a href="#doel">1. Doelstelling</a>
+        <a href="#stack">2. Technische stack</a>
+        <a href="#architectuur">3. Architectuur</a>
+        <a href="#flows">4. Flows</a>
+        <a href="#flows" class="sub">Analyse-pipeline</a>
+        <a href="#pseudonimisering" class="sub">Pseudonimisering</a>
+        <a href="#crossdoc" class="sub">Cross-document</a>
+        <a href="#opslaan" class="sub">Opslaan & laden</a>
+        <a href="#datamodel">5. Datamodel</a>
+        <a href="#api">6. API-endpoints</a>
+        <a href="#privacy">7. Privacy & beveiliging</a>
+        <a href="#beslissingen">8. Design beslissingen</a>
+        <a href="#beperkingen">9. Bekende beperkingen</a>
+        <a href="#backlog">10. Backlog</a>
+        <a href="#skills">11. Skills-systeem</a>
+        <a href="#deployment">12. Deployment & operatie</a>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- 1. Doelstelling -->
+    <section class="section" id="doel">
+      <h2 class="section-title">1. Doelstelling</h2>
+      <p>Clausula is een webapplicatie waarmee familierechtmediators geüploade juridische documenten — ouderschapsplannen, convenanten en huwelijkse voorwaarden — automatisch laten screenen op juridische volledigheid, juridische juistheid, balans, interne conflicten en taalkundige kwaliteit.</p>
+      <p>De app analyseert documenten via de Anthropic Claude API, streamt resultaten progressief naar de browser (SSE), en toont bevindingen als gefilterde issuekaarten per dimensie. Bij meerdere documenten (OP + Convenant) vindt er een aanvullende cross-document verificatie plaats.</p>
+      <div class="dim-row">
+        <div class="dim-chip"><span class="dot" style="background:#C0392B"></span>Juridisch</div>
+        <div class="dim-chip"><span class="dot" style="background:#3182ce"></span>Volledigheid</div>
+        <div class="dim-chip"><span class="dot" style="background:#E07200"></span>Balans</div>
+        <div class="dim-chip"><span class="dot" style="background:#C0392B"></span>Conflicten</div>
+        <div class="dim-chip"><span class="dot" style="background:#7B4FA6"></span>Cross-doc</div>
+        <div class="dim-chip"><span class="dot" style="background:#1E8449"></span>Grammatica</div>
+        <div class="dim-chip"><span class="dot" style="background:#B9770E"></span>MfN-compliance</div>
+      </div>
+      <p>Naast screening biedt de app dossierbeheer (meerdere versies per dossier), conceptgeneratie van clausules via Claude, en PDF-rapportage.</p>
+    </section>
+
+    <!-- 2. Stack -->
+    <section class="section" id="stack">
+      <h2 class="section-title">2. Technische stack</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Laag</th><th>Technologie</th><th>Toelichting</th></tr>
+          <tr><td><strong>Frontend</strong></td><td><code>index.html</code></td><td>Vanilla HTML/CSS/JS — geen framework, geen build-stap. Alle UI-logica in één bestand (~9 000 regels).</td></tr>
+          <tr><td><strong>Backend</strong></td><td>Vercel Serverless (Node.js ES modules)</td><td>Elke route is een losse <code>/api/*.js</code>-functie. Max. uitvoertijd per route instelbaar via <code>vercel.json</code>.</td></tr>
+          <tr><td><strong>Database</strong></td><td>Supabase (PostgreSQL)</td><td>Auth, RLS, storage en realtime. Vier kerntabellen (zie §5).</td></tr>
+          <tr><td><strong>AI-model</strong></td><td>Anthropic <code>claude-sonnet-4-6</code></td><td>Tool-use voor gestructureerde JSON-output. SSE-streaming via <code>askClaude()</code>-wrapper.</td></tr>
+          <tr><td><strong>PDF→DOCX</strong></td><td>Adobe PDF Services API</td><td>Async job-model: <code>adobe-start.js</code> start de export, <code>adobe-result.js</code> pollt de status.</td></tr>
+          <tr><td><strong>E-mail</strong></td><td>Resend API</td><td>Uitnodigingsmails via <code>api/uitnodigen.js</code>.</td></tr>
+          <tr><td><strong>Versleuteling</strong></td><td>AES-256-GCM</td><td>Namen worden client-side versleuteld vóór opslag in Supabase. Sleutel: <code>NAAM_ENCRYPTION_KEY</code>.</td></tr>
+          <tr><td><strong>Deployment</strong></td><td>Vercel (automatisch via GitHub)</td><td>Push naar <code>main</code> → productie-deploy. <code>vercel dev</code> lokaal.</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. Architectuur -->
+    <section class="section" id="architectuur">
+      <h2 class="section-title">3. Architectuur</h2>
+      <pre class="mermaid">
+graph TB
+  subgraph Browser["Browser (index.html)"]
+    UI["UI / Render-laag"]
+    PSEUDO["Pseudonimisering\n(naarAnon / naarEcht)"]
+    CRYPTO["AES-256-GCM\n(naam-encrypt/decrypt)"]
+  end
+
+  subgraph Vercel["Vercel Serverless (Node.js)"]
+    AN["api/analyseer.js\n(analyse + SSE-stream)"]
+    CE["api/claude-edge.js\n(concept + Q&A)"]
+    NE["api/naam-encrypt.js\napi/naam-decrypt.js"]
+    AD["api/adobe-start.js\napi/adobe-result.js"]
+    UI2["api/uitnodigen.js"]
+    RG["api/registreer.js"]
+  end
+
+  subgraph External["Externe diensten"]
+    CLAUDE["Anthropic Claude\nclaude-sonnet-4-6"]
+    SB["Supabase\n(PostgreSQL + Auth + Storage)"]
+    ADOBE["Adobe PDF Services"]
+    RESEND["Resend (e-mail)"]
+  end
+
+  UI -->|"document + JWT"| AN
+  AN -->|"SSE stream"| UI
+  AN -->|"tool-use calls"| CLAUDE
+  CLAUDE -->|"JSON resultaten"| AN
+  UI -->|"opslaan"| SB
+  NE -->|"encrypt/decrypt"| SB
+  CE --> CLAUDE
+  AD --> ADOBE
+  UI2 --> RESEND
+  SB -->|"Auth JWT"| AN
+      </pre>
+
+      <div class="callout info">
+        <strong>Kernprincipe</strong>
+        Echte namen en persoonsgegevens verlaten de browser nooit onversleuteld. Pseudonimisering vindt client-side plaats vóórdat het document naar de server gaat. Claude ziet uitsluitend pseudoniemen.
+      </div>
+    </section>
+
+    <!-- 4. Flows -->
+    <section class="section" id="flows">
+      <h2 class="section-title">4. Flows</h2>
+
+      <h3 class="section-sub">4.1 Analyse-pipeline (hoofd-flow)</h3>
+      <pre class="mermaid">
+sequenceDiagram
+  participant B as Browser
+  participant V as Vercel (analyseer.js)
+  participant C as Claude API
+  participant S as Supabase
+
+  B->>B: Tekst extraheren uit PDF/DOCX
+  B->>B: Pseudonimiseren (namen → nep-namen, IBAN → [TEL])
+  B->>V: POST /api/analyseer (SSE-request)
+  V->>S: JWT valideren (/auth/v1/user)
+  V->>S: Wetsartikelen ophalen (legal_chunks)
+  V->>S: Document-templates ophalen (document_templates)
+
+  par Parallel Claude-calls
+    V->>C: Call 1 — Structuur/Volledigheid/MfN
+    C-->>V: SSE: structuur-event
+    and
+    V->>C: Call 2 — Juridisch/Balans/Grammatica/Conflicten
+    C-->>V: SSE: juridisch-event
+  end
+
+  V-->>B: SSE: structuur + juridisch events
+  B->>B: De-pseudonimiseren
+  B->>B: Progressive render (tussenstand)
+
+  opt 2+ documenten
+    V->>C: Call 3 — Cross-document verificatie
+    C-->>V: SSE: cross_doc-event
+    V-->>B: SSE: cross_doc
+    B->>B: De-pseudonimiseren + render
+  end
+
+  B->>B: Eindrender (bouwAnalyseHtml)
+      </pre>
+
+      <h3 class="section-sub" id="pseudonimisering">4.2 Pseudonimisering</h3>
+      <p>Vóór verzending naar de server vervangt de browser alle persoonsgegevens door fictieve equivalenten. Dit gebeurt via een deterministisch <code>bouwAnonMap(classificatie)</code>-algoritme dat een bidirectionele vertaalkaart opbouwt.</p>
+      <pre class="mermaid">
+flowchart LR
+  A["Echte namen\n(classificatie)"] -->|"bouwAnonMap()"| B["naarAnon-map\n(echt → pseudo)"]
+  B -->|"anonimiseerTekst()"| C["Gepseudonimiseerd\ndocument"]
+  C -->|"→ Claude API"| D["Claude-output\n(pseudoniemen)"]
+  D -->|"herstelAnonObj()"| E["Herstelde output\n(echte namen)"]
+  B -.->|"inverse"| F["naarEcht-map\n(pseudo → echt)"]
+  F --> E
+      </pre>
+      <div class="callout warn">
+        <strong>Naamcomponent-mapping</strong>
+        Voornaam-pseudoniem (bijv. "Thomas") herstelt naar de volledige echte naam. Achternaam-pseudoniem (bijv. "Bergman") herstelt naar alleen de echte achternaam. Dit voorkomt het samenvoegen van een verkorte voornaam uit een bankrekening met de volledige naam na herstel.
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>Type</th><th>Voorbeeld origineel</th><th>Na pseudonimisering</th></tr>
+          <tr><td>Partijnaam</td><td>Alexander Johannes Franciscus Schreven</td><td>Thomas Bergman</td></tr>
+          <tr><td>Kindnaam</td><td>Maatje Wilma Antonia Schreven</td><td>Finn</td></tr>
+          <tr><td>IBAN</td><td>NL86 ABNA 0480533520</td><td>NL86 ABNA [TEL]</td></tr>
+          <tr><td>Adres/woonplaats</td><td>Grote Lijster 1, Olst</td><td>(placeholder)</td></tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub" id="crossdoc">4.3 Cross-document verificatie</h3>
+      <p>Als er 2+ hoofddocumenten zijn (bijv. OP + Convenant), voert de server ná de per-document analyse een derde Claude-call uit die beide documenten naast elkaar legt. Cross-doc issues krijgen een stabiele gedeelde <code>cross_doc_id</code> zodat afhandeling in één document gesynchroniseerd wordt met het andere.</p>
+      <pre class="mermaid">
+flowchart TD
+  A["Per-doc analyse\n(OP)"] & B["Per-doc analyse\n(Convenant)"] --> C["Cross-doc call\n(beide docs tegelijk)"]
+  C --> D["Issues met cross_doc_id"]
+  D --> E["Sync via syncCrossDocIssue()"]
+  E --> F["OP-panel"] & G["Convenant-panel"]
+      </pre>
+      <div class="callout info">
+        <strong>Dimensie-beperking cross-doc</strong>
+        Cross-doc issues mogen uitsluitend de dimensies <code>juridisch</code>, <code>volledigheid</code> of <code>balans</code> krijgen — nooit <code>conflicten</code> of <code>grammatica</code>. Die zijn gereserveerd voor intra-document bevindingen.
+      </div>
+
+      <h3 class="section-sub" id="opslaan">4.4 Opslaan & laden</h3>
+      <pre class="mermaid">
+sequenceDiagram
+  participant B as Browser
+  participant V as Vercel
+  participant SB as Supabase
+
+  B->>V: POST /api/naam-encrypt (namen_map)
+  V-->>B: encrypted namen_map (AES-256-GCM)
+  B->>SB: INSERT/UPDATE screeningen\n(rapport + encrypted namen_map)
+  SB-->>B: id
+
+  Note over B,SB: Laden
+  B->>SB: SELECT screeningen WHERE id=...
+  SB-->>B: rapport (pseudoniemen) + encrypted namen_map
+  B->>V: POST /api/naam-decrypt
+  V-->>B: namen_map (plaintext)
+  B->>B: herstelAnonObj() — echte namen weergeven
+      </pre>
+    </section>
+
+    <!-- 5. Datamodel -->
+    <section class="section" id="datamodel">
+      <h2 class="section-title">5. Datamodel (Supabase)</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Tabel</th><th>Kolommen (selectie)</th><th>Doel</th></tr>
+          <tr>
+            <td><code>screeningen</code></td>
+            <td><code>id</code>, <code>bestandsnaam</code>, <code>classificatie</code> jsonb, <code>rapport</code> jsonb, <code>namen_map</code> text (AES), <code>dossier_id</code> uuid, <code>versie_nr</code> int, <code>versie_label</code> text, <code>created_at</code>, <code>updated_at</code></td>
+            <td>Opgeslagen analyses per document-versie</td>
+          </tr>
+          <tr>
+            <td><code>situatie_kenmerken</code></td>
+            <td><code>key</code>, <code>label</code>, <code>categorie</code></td>
+            <td>Taxonomie voor documenttype-selectie in de UI</td>
+          </tr>
+          <tr>
+            <td><code>document_templates</code></td>
+            <td><code>doc_type</code>, <code>section_name</code>, <code>required</code>, <code>applies_when</code>, <code>section_order</code>, <code>instructions</code></td>
+            <td>Verwachte secties per documenttype (volledigheidscheck)</td>
+          </tr>
+          <tr>
+            <td><code>legal_chunks</code></td>
+            <td><code>citation</code>, <code>content</code>, <code>topic_tags</code> text[]</td>
+            <td>Wetsartikelen; gefilterd via <code>.overlaps()</code> op topic_tags</td>
+          </tr>
+        </table>
+      </div>
+      <div class="callout warn">
+        <strong>Multi-tenancy</strong>
+        RLS-policies op <code>screeningen</code> isoleren rijen per <code>org_id</code>. Storage-paden beginnen met <code>{org_id}/...</code> zodat ook bestandsopslag per kantoor afgeschermd is. De <code>service_role</code>-sleutel is uitsluitend server-side beschikbaar.
+      </div>
+    </section>
+
+    <!-- 6. API endpoints -->
+    <section class="section" id="api">
+      <h2 class="section-title">6. API-endpoints</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Endpoint</th><th>Methode</th><th>Auth vereist</th><th>Doel</th></tr>
+          <tr><td><code>api/analyseer.js</code></td><td>POST</td><td>✓ JWT</td><td>Document analyseren, SSE-stream met progressieve resultaten</td></tr>
+          <tr><td><code>api/claude-edge.js</code></td><td>POST</td><td>✓ JWT</td><td>Claude-proxy voor conceptgeneratie en vrije Q&A (SSE)</td></tr>
+          <tr><td><code>api/naam-encrypt.js</code></td><td>POST</td><td>✓ JWT</td><td>Namen versleutelen (AES-256-GCM) voor opslag</td></tr>
+          <tr><td><code>api/naam-decrypt.js</code></td><td>POST</td><td>✓ JWT</td><td>Namen ontsleutelen voor weergave of export</td></tr>
+          <tr><td><code>api/adobe-start.js</code></td><td>POST</td><td>✓ JWT</td><td>PDF uploaden naar Adobe, export-job starten</td></tr>
+          <tr><td><code>api/adobe-result.js</code></td><td>POST</td><td>✓ JWT</td><td>Adobe-job pollen; DOCX ophalen als klaar</td></tr>
+          <tr><td><code>api/uitnodigen.js</code></td><td>POST</td><td>✓ JWT</td><td>Uitnodigingsmail sturen via Resend</td></tr>
+          <tr><td><code>api/registreer.js</code></td><td>POST</td><td>✗ open</td><td>Nieuwe gebruiker aanmaken (geen JWT vereist)</td></tr>
+        </table>
+      </div>
+      <p>Alle beveiligde endpoints valideren het Supabase JWT via een <code>GET /auth/v1/user</code>-call met de <code>SUPABASE_ANON_KEY</code> als verificatiesleutel.</p>
+
+      <h3 class="section-sub">Prompt-caching strategie</h3>
+      <p>Elke Claude-call plaatst content-blokken in volgorde van meest-stabiel naar minst-stabiel om Anthropic's prompt-cache maximaal te benutten (TTL: 5 minuten):</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Cache-breakpoint</th><th>Inhoud</th><th>Varieert per…</th></tr>
+          <tr><td>1 (system)</td><td>System-prompt (instructies)</td><td>Call-type (structuur / bevindingen / cross-doc)</td></tr>
+          <tr><td>2 (user)</td><td>Bijlagen-context (HV etc.)</td><td>Dossier</td></tr>
+          <tr><td>3 (user)</td><td>Gedeeld regelsblok + wetsartikelen</td><td>Documenttype</td></tr>
+          <tr><td>4 (user)</td><td>Document-inhoud</td><td>Elke call (niet gecached)</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 7. Privacy & beveiliging -->
+    <section class="section" id="privacy">
+      <h2 class="section-title">7. Privacy & beveiliging</h2>
+      <div class="decision-grid">
+        <div class="decision-card">
+          <div class="dc-title">Pseudonimisering vóór AI</div>
+          <div class="dc-choice">Client-side, in browser</div>
+          <div class="dc-body">Echte namen en IBAN-nummers verlaten de browser nooit onverwerkt. Claude-output bevat uitsluitend pseudoniemen die direct na ontvangst worden hersteld.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Namen-versleuteling in Supabase</div>
+          <div class="dc-choice">AES-256-GCM, server-side sleutel</div>
+          <div class="dc-body"><code>namen_map</code> (de vertaalkaart pseudoniem→echt) wordt versleuteld opgeslagen. De sleutel (<code>NAAM_ENCRYPTION_KEY</code>) staat uitsluitend in de Vercel-omgeving.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Supabase RLS</div>
+          <div class="dc-choice">Row-level security per org_id</div>
+          <div class="dc-body">Elke rij in <code>screeningen</code> is gebonden aan een <code>org_id</code>. Gebruikers van kantoor A kunnen nooit data van kantoor B zien, ook niet via directe API-aanroepen.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Service role key</div>
+          <div class="dc-choice">Uitsluitend server-side</div>
+          <div class="dc-body">De <code>SUPABASE_SERVICE_ROLE_KEY</code> staat nooit in de client-bundle. De browser gebruikt uitsluitend een Supabase JWT (via magic link / sessie).</div>
+        </div>
+      </div>
+      <h3 class="section-sub">Datastromen — wat gaat waarheen</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Data</th><th>Opslag</th><th>Bewerking</th></tr>
+          <tr><td>Rapport-JSON (issues, scores)</td><td>Supabase DB <code>screeningen.rapport</code></td><td>Gepseudonimiseerd via <code>anonimiseerObj()</code></td></tr>
+          <tr><td>Classificatie (partijnamen, doctype)</td><td>Supabase DB <code>screeningen.classificatie</code></td><td>Gepseudonimiseerd via <code>bouwClassificatiePseudo()</code></td></tr>
+          <tr><td>Naam-koppeling (nep → echt)</td><td>Supabase DB <code>screeningen.namen_map</code></td><td>AES-256-GCM versleuteld met <code>NAAM_ENCRYPTION_KEY</code></td></tr>
+          <tr><td>Ruwe documenttekst (<code>_teksten_per_pad</code>)</td><td><strong>Nooit opgeslagen</strong></td><td>Gestript vóór opslaan in <code>opslaan()</code></td></tr>
+          <tr><td>PDF-bestanden</td><td>Supabase Storage bucket <code>documenten</code> (privaat)</td><td>Pad-formaat: <code>{screeningId}/{volgnummer}.pdf</code> — geen persoonsdata in pad</td></tr>
+          <tr><td>Persoonsdata in geheugen</td><td>Browser-sessie (RAM)</td><td>Verdwijnt bij afsluiten tab</td></tr>
+          <tr><td>E-mailadres gebruiker</td><td>Supabase Auth</td><td>Wordt gebruikt voor magic-link authenticatie</td></tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub">Regels bij nieuwe features</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Situatie</th><th>Verplichting</th></tr>
+          <tr><td>Nieuw veld opslaan in rapport</td><td>Controleer of het persoonsdata kan bevatten. Zo ja: zorg dat <code>anonimiseerObj()</code> het verwerkt, of documenteer expliciete uitsluiting.</td></tr>
+          <tr><td>Nieuw bestand uploaden naar Storage</td><td>Gebruik path-formaat <code>{screeningId}/{index}</code> (nooit namen in het pad). Originele naam alleen als metadata.</td></tr>
+          <tr><td>Export-functie</td><td>Exporteer alleen gepseudonimiseerde data, tenzij gebruiker expliciete toestemming geeft (loggen).</td></tr>
+          <tr><td>Nieuw veld in classificatie</td><td>Controleer op persoonsdata; voeg zo nodig toe aan <code>bouwClassificatiePseudo()</code>.</td></tr>
+          <tr><td>Nieuw server-side endpoint</td><td>Ga ervan uit dat de request-body gepseudonimiseerde data bevat. Nooit opslaan zonder te controleren.</td></tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub">Bewaartermijnen</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Datatype</th><th>Locatie</th><th>Huidige bewaartermijn</th><th>Aanbevolen beleid</th></tr>
+          <tr><td>Screeningen (rapport + classificatie)</td><td>Supabase DB <code>screeningen</code></td><td><span class="badge hoog">Onbeperkt — geen auto-delete</span></td><td>5 jaar na aanmaken dossier, conform bewaarplicht mediators (NMI-gedragsregels)</td></tr>
+          <tr><td>PDF-documenten</td><td>Supabase Storage bucket <code>documenten</code></td><td><span class="badge hoog">Onbeperkt — geen auto-delete</span></td><td>Gelijktijdig verwijderen met bijbehorende screening</td></tr>
+          <tr><td>Namen-kaart (<code>namen_map</code>, versleuteld)</td><td>Supabase DB <code>screeningen</code></td><td><span class="badge hoog">Onbeperkt — gekoppeld aan screening-rij</span></td><td>Verwijderen bij verwijdering screening</td></tr>
+          <tr><td>Browser-sessie data (namen in geheugen)</td><td>Browser RAM</td><td><span class="badge ok">Sessie — verdwijnt bij tab sluiten</span></td><td>Geen actie vereist</td></tr>
+          <tr><td>Auth-tokens / gebruikersaccounts</td><td>Supabase Auth</td><td>Onbeperkt (gekoppeld aan account)</td><td>Verwijdering op verzoek (zie rechten betrokkenen)</td></tr>
+        </table>
+      </div>
+      <div class="callout warn">
+        <strong>Actie vereist</strong>
+        Er is geen automatisch verwijderbeleid ingesteld. Implementeer een scheduled job (Supabase Edge Function of Vercel Cron) die screeningen ouder dan X jaar markeert en verwijdert, inclusief bijbehorende Storage-bestanden.
+      </div>
+
+      <h3 class="section-sub">Rechten van betrokkenen (AVG art. 15–22)</h3>
+      <p>De <strong>betrokkenen</strong> zijn de scheidende partijen (niet de mediator). Zij hebben zelf geen account in het systeem — de mediator verwerkt hun data namens hen. Dit maakt de mediator tot <strong>verwerkingsverantwoordelijke</strong> en het kantoor tot aanspreekpunt voor rechtenverzoeken.</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Recht</th><th>Status</th><th>Toelichting</th></tr>
+          <tr><td>Inzage (art. 15)</td><td><span class="badge mid">Indirect</span></td><td>Mediator kan screeningen en PDF-rapport exporteren en aan betrokkene tonen. Geen selfservice-portal voor betrokkenen.</td></tr>
+          <tr><td>Verwijdering (art. 17)</td><td><span class="badge ok">Ondersteund</span></td><td>Via de UI kan een mediator een screening verwijderen; Storage-cleanup verwijdert ook de bijbehorende PDFs. Betrokkene moet dit via de mediator aanvragen.</td></tr>
+          <tr><td>Rectificatie (art. 16)</td><td><span class="badge hoog">Niet geïmplementeerd</span></td><td>Namen kunnen niet gecorrigeerd worden zonder de analyse opnieuw te draaien. Workaround: screening verwijderen en opnieuw analyseren.</td></tr>
+          <tr><td>Dataportabiliteit (art. 20)</td><td><span class="badge mid">Gedeeltelijk</span></td><td>PDF-rapport exporteerbaar via <code>window.print()</code>. Geen machine-readable export (JSON/CSV) van de ruwe analysedata.</td></tr>
+          <tr><td>Bezwaar (art. 21)</td><td><span class="badge mid">Indirect</span></td><td>Via verwijdering van de screening. Geen expliciete bezwaar-workflow.</td></tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub">Verwerkersovereenkomsten (DPA-status)</h3>
+      <div class="callout risk">
+        <strong>Kritieke AVG-actiepunten — administratief</strong>
+        Alle onderstaande partijen verwerken persoonsgegevens namens de organisatie en vereisen een DPA (AVG art. 28). Technische maatregelen zijn getroffen (pseudonimisering, versleuteling); de formele overeenkomsten staan nog open.
+      </div>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Partij</th><th>Wat ze verwerken</th><th>DPA-status</th><th>Aanpak</th></tr>
+          <tr><td><strong>Vercel</strong></td><td>Serverless functies — alle API-calls inclusief documenten en rapportdata</td><td><span class="badge hoog">Niet geregeld</span></td><td>DPA beschikbaar in Vercel dashboard → Settings → Legal</td></tr>
+          <tr><td><strong>Supabase</strong></td><td>Database met screeningen, namen_map (encrypted), dossiers; Supabase Storage met PDFs</td><td><span class="badge ok">Geregeld — 2026-07-20</span></td><td>DPA via Supabase dashboard ondertekend. Toezichthoudende autoriteit: Autoriteit Persoonsgegevens (NL). Bijzondere categorieën persoonsgegevens (gezondheids-/financiële data) gedekt.</td></tr>
+          <tr><td><strong>Anthropic</strong></td><td>Gepseudonimiseerde documentteksten voor analyse via Claude API</td><td><span class="badge ok">Geregeld — Commercial Terms</span></td><td>DPA is automatisch onderdeel van de Anthropic Commercial Terms (geaccepteerd bij aanmaken account). Geen apart ondertekenen vereist. Zero Data Retention (ZDR) nog aanvragen via Anthropic support.</td></tr>
+          <tr><td><strong>Resend</strong></td><td>E-mailadressen voor uitnodigings-e-mails</td><td><span class="badge ok">Geregeld — pre-signed</span></td><td>DPA beschikbaar als download via Resend dashboard → Settings → Security. Pre-signed door Resend, geen actie meer vereist.</td></tr>
+          <tr><td><strong>Adobe PDF Services</strong></td><td>PDF-documenten voor PDF→DOCX-conversie</td><td><span class="badge hoog">Niet geregeld</span></td><td>DPA beschikbaar via Adobe Enterprise agreement</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 8. Design beslissingen -->
+    <section class="section" id="beslissingen">
+      <h2 class="section-title">8. Design beslissingen</h2>
+      <div class="decision-grid">
+        <div class="decision-card">
+          <div class="dc-title">Één index.html, geen framework</div>
+          <div class="dc-choice">Gekozen boven React / Vue</div>
+          <div class="dc-body">Geen build-stap, directe Vercel-deploy, minimale afhankelijkheden. Trade-off: minder DX bij schaalbaarheid, maar voor een single-team product ruimschoots voldoende.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Tool-use voor JSON-output</div>
+          <div class="dc-choice">Verplichte tool-aanroep</div>
+          <div class="dc-body">Claude's tool-use geeft gevalideerde JSON zonder parse-fouten. Alternatief (JSON in tekstblok) vereist fragiele regex-extractie en faalt bij lange outputs.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">2 parallelle calls per document</div>
+          <div class="dc-choice">Structuur (call 1) + Bevindingen (call 2)</div>
+          <div class="dc-body">Vroeger 3 calls (juridisch + balans + consolidatie). Samenvoeging tot 2 calls vermindert latency en elimineert cross-call deduplicatie. Claude ziet de volledige context in één run.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">SSE voor progressieve weergave</div>
+          <div class="dc-choice">Server-Sent Events boven polling</div>
+          <div class="dc-body">Resultaten worden direct na binnenkomst gerenderd. De gebruiker ziet al issues verschijnen terwijl andere dimensies nog analyseren. Polling zou merkbaar vertraagd aanvoelen.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Cross-doc als aparte third call</div>
+          <div class="dc-choice">Dedicated micro-call</div>
+          <div class="dc-body">Andere documenten meegeven als context in de per-doc calls veroorzaakte cross-document "besmetting" (issues van OP in Convenant en vice versa). Dedicated call met uitsluitend cross-doc instructies is betrouwbaarder.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Versioning in dossier</div>
+          <div class="dc-choice">versie_nr + versie_label per screening</div>
+          <div class="dc-body">Mediators werken iteratief: document gaat heen en weer. Elke analyse-ronde slaat een nieuwe versie op zodat de voortgang over tijd zichtbaar is.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">Conf+ = conflicten ∪ cross_doc</div>
+          <div class="dc-choice">Samengevoegd in dossier-overzicht</div>
+          <div class="dc-body">In de dossier-cirkelweergave tellen cross-doc issues mee in de "Conflicten"-cirkel. In de analyse-detailweergave blijft cross-doc een aparte chip voor gefilterde navigatie.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">PDF-rapport via window.print()</div>
+          <div class="dc-choice">Browser-print boven server-side rendering</div>
+          <div class="dc-body">Geen extra server-component nodig. Nadeel: opmaak beperkt tot wat browsers afdrukken. Toekomstig alternatief: Gotenberg op EU-VPS voor AVG-conforme server-side PDF-generatie.</div>
+        </div>
+        <div class="decision-card">
+          <div class="dc-title">IndexedDB voor DOCX-cache</div>
+          <div class="dc-choice">Browser-lokaal, geen server betrokken</div>
+          <div class="dc-body">Adobe-geconverteerde DOCX-blobs worden opgeslagen in IndexedDB (key: <code>screeningId:docType</code>). Hierdoor is de Word-export beschikbaar zonder heranalyse of herconversie. AVG-conform: geen persoonsdata verlaat de browser. Valt weg bij tab sluiten of browser-schoon; fallback: tekst-DOCX via <code>maakDocxVanTekst()</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. Bekende beperkingen -->
+    <section class="section" id="beperkingen">
+      <h2 class="section-title">9. Bekende beperkingen</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Beperking</th><th>Impact</th><th>Workaround / plan</th></tr>
+          <tr><td>Gescande PDF's (geen tekst-laag)</td><td>Tekst-extractie faalt; passage-highlighting niet mogelijk</td><td>Passage-banner als fallback; gebruiker wordt geïnformeerd</td></tr>
+          <tr><td>Voornaamwoord-inconsistentie-detectie via Claude</td><td>Hoge kans op fout-positieven bij gezinnen met meerdere kinderen</td><td>Backend-filter op gender-gerelateerde issues; code-gebaseerde detectie staat op backlog</td></tr>
+          <tr><td>Passage-matching na naam-expansie door Claude</td><td>Claude schrijft volledige naam; document gebruikt voornaam → verkeerde locatie highlighted</td><td>Fallback-algoritme slaat leidende eigennamen over (Fallback 1b in zoekEnScrollNaarPassage)</td></tr>
+          <tr><td>IBAN-rekeningnummer toont <code>[TEL]</code> in bevindingstekst</td><td>Het rekeningnummer-deel van een IBAN wordt bij pseudonimisering vervangen door <code>[TEL]</code>. De terugvertaling is niet geïmplementeerd — de <code>namen_map</code> bevat geen IBAN-mapping. De bevindingstekst toont daardoor <code>NL68INGB[TEL]</code> i.p.v. het echte rekeningnummer.</td><td>Passage-zoekfunctie heeft Fallback 1c die <code>[TEL]</code>-patronen in IBAN-context wegstript voor de highlight-zoekopdracht. De bevindingstekst zelf is niet gecorrigeerd — IBAN-herstel staat op backlog.</td></tr>
+          <tr><td>Cross-doc issue getoond in verkeerd documenttabblad</td><td>Cross-doc issues worden door de server toegewezen aan het <code>bestandsnaam</code>-slot van één van de twee documenten. De passage van het issue kan echter in het <em>andere</em> document staan. Bij klik op de kaart zoekt de app automatisch in het andere tabblad als de passage niet in het huidige document wordt gevonden.</td><td>Automatische tabwisseling bij klik (geïmplementeerd 2026-07). Blijvende beperking: de badge "Cross-doc" verschijnt in één document-sectie, terwijl het issue de relatie tussen beide documenten beschrijft.</td></tr>
+          <tr><td>Analyseduur</td><td>2–4 minuten per documentpaar (twee parallelle Claude-calls + cross-doc)</td><td>SSE-streaming voor progressieve weergave; latency acceptabel voor doelgroep</td></tr>
+          <tr><td>Tokenlimieten Claude</td><td>Zeer lange documenten (>~80 pagina's) kunnen max_tokens raken</td><td>max_tokens-event → UI toont waarschuwing; dimensie als "klaar" gemarkeerd met lege issues</td></tr>
+          <tr><td>Geen offline-modus</td><td>Volledige afhankelijkheid van Anthropic, Supabase en Vercel</td><td>Foutafhandeling met gebruiksvriendelijke meldingen</td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10. Backlog -->
+    <section class="section" id="backlog">
+      <h2 class="section-title">10. Openstaande backlog</h2>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Item</th><th>Prioriteit</th><th>Omschrijving</th></tr>
+          <tr>
+            <td>Code-gebaseerde voornaamwoord-detectie</td>
+            <td><span class="badge mid">Middel</span></td>
+            <td>Deterministisch algoritme op documenttekst dat zin-voor-zin controleert of dezelfde volledige naam met inconsistente voornaamwoorden voorkomt. Vervangt onbetrouwbare Claude-promptregel.</td>
+          </tr>
+          <tr>
+            <td>Gotenberg PDF-rapport</td>
+            <td><span class="badge mid">Middel</span></td>
+            <td>Server-side PDF-generatie via Gotenberg op EU-VPS. Betere opmaakcontrole dan <code>window.print()</code>, AVG-conform (data verlaat geen EU).</td>
+          </tr>
+          <tr>
+            <td>Verwerkersovereenkomsten AVG</td>
+            <td><span class="badge mid">Gedeeltelijk</span></td>
+            <td>Supabase ✅ (2026-07-20), Anthropic ✅ (Commercial Terms), Resend ✅ (pre-signed). Nog open: <strong>Vercel</strong> (dashboard → Settings → Legal) en <strong>Adobe PDF Services</strong> (Enterprise agreement). Verwerkingsregister bijwerken zodra volledig.</td>
+          </tr>
+          <tr>
+            <td>IBAN-terugvertaling in bevindingstekst</td>
+            <td><span class="badge mid">Middel</span></td>
+            <td>IBAN-rekeningnummers worden bij pseudonimisering vervangen door <code>[TEL]</code>, maar niet terugvertaald in de bevindingstekst. Oplossing: IBAN-patronen opnemen in de <code>namen_map</code> als extra vertaalentries zodat <code>herstelAnonObj()</code> ze kan herstellen.</td>
+          </tr>
+          <tr>
+            <td>Gemiddelde score dossieroverzicht</td>
+            <td><span class="badge info">Laag</span></td>
+            <td>Score 0–100 per document terugbrengen in het dossieroverzicht. Gewichten zijn al gedefinieerd in <code>berekenGemiddeldeScore()</code>.</td>
+          </tr>
+          <tr>
+            <td>Testdekking</td>
+            <td><span class="badge mid">Middel</span></td>
+            <td>Unit-tests voor pseudonimisering, passage-matching en issue-deduplicatie. End-to-end tests voor analyse-flow.</td>
+          </tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 12. Deployment & operatie -->
+    <section class="section" id="deployment">
+      <h2 class="section-title">12. Deployment & operatie</h2>
+
+      <h3 class="section-sub">Deploymentproces</h3>
+      <pre class="mermaid">
+flowchart LR
+  A["Lokale wijziging"] -->|"git push origin main"| B["GitHub main branch"]
+  B -->|"Webhook → auto-deploy"| C["Vercel productie"]
+  A -->|"vercel dev"| D["Lokale emulatie\n(http://localhost:3000)"]
+  B -->|"PR branch"| E["Vercel preview-URL\n(tijdelijk)"]
+      </pre>
+
+      <div class="table-wrap">
+        <table>
+          <tr><th>Stap</th><th>Commando / actie</th><th>Toelichting</th></tr>
+          <tr><td>Eerste opzet</td><td><code>vercel link</code></td><td>Project koppelen aan Vercel-account. Eenmalig.</td></tr>
+          <tr><td>Lokaal draaien</td><td><code>vercel dev</code></td><td>Emuleert serverless omgeving, leest <code>.env</code> voor API-sleutels.</td></tr>
+          <tr><td>Deployen</td><td><code>git push origin main</code></td><td>Vercel detecteert push automatisch en start deploy. Geen handmatig commando nodig.</td></tr>
+          <tr><td>Rollback</td><td>Vercel dashboard → Deployments → Promote</td><td>Vorige deployment als productie instellen. Geen code-wijziging vereist.</td></tr>
+          <tr><td>Environment variables</td><td>Vercel dashboard → Settings → Environment Variables</td><td>Nooit in code of git. Lokaal via <code>.env</code> (staat in <code>.gitignore</code>).</td></tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub">Environment variables</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Variabele</th><th>Gebruik</th><th>Formaat</th></tr>
+          <tr><td><code>SUPABASE_URL</code></td><td>Supabase project-URL</td><td><code>https://xxxx.supabase.co</code></td></tr>
+          <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Server-side DB-toegang (bypast RLS)</td><td>JWT</td></tr>
+          <tr><td><code>SUPABASE_ANON_KEY</code></td><td>JWT-verificatie (<code>/auth/v1/user</code>)</td><td>JWT</td></tr>
+          <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Claude API-aanroepen</td><td><code>sk-ant-...</code></td></tr>
+          <tr><td><code>NAAM_ENCRYPTION_KEY</code></td><td>AES-256-GCM sleutel voor <code>namen_map</code></td><td>Exact 64 hex-tekens</td></tr>
+          <tr><td><code>RESEND_API_KEY</code></td><td>Uitnodigings-e-mails via Resend</td><td><code>re_...</code></td></tr>
+          <tr><td><code>ADOBE_CLIENT_ID</code></td><td>Adobe PDF Services authenticatie</td><td>UUID-formaat</td></tr>
+          <tr><td><code>ADOBE_CLIENT_SECRET</code></td><td>Adobe PDF Services authenticatie</td><td>String</td></tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub">Incident-runbook</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Incident</th><th>Eerste stappen</th><th>Escalatie</th></tr>
+          <tr>
+            <td><strong>API-fout Claude</strong> (429 / 529)</td>
+            <td>Anthropic-status controleren op <code>status.anthropic.com</code>. De app toont een gebruikersvriendelijke foutmelding en stopt de SSE-stream. Geen data gaat verloren (analyse kan opnieuw gestart worden).</td>
+            <td>Bij aanhoudende 529: Anthropic support. Overweeg exponential backoff in <code>callMetSse()</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>Supabase onbereikbaar</strong></td>
+            <td>Supabase-status controleren. Actieve analyses mislukken; opgeslagen data blijft intact. Vercel-logs controleren op connection errors.</td>
+            <td>Supabase support / status page.</td>
+          </tr>
+          <tr>
+            <td><strong>Vercel deployment mislukt</strong></td>
+            <td>Build-logs bekijken in Vercel dashboard. Vorige deployment promoten als productie.</td>
+            <td>Rollback via Vercel dashboard (zie boven).</td>
+          </tr>
+          <tr>
+            <td><strong>Vermoeden datalek</strong></td>
+            <td>1. Supabase RLS-policies controleren. 2. Vercel access-logs bekijken. 3. Betrokken screeningen identificeren via <code>screeningen</code>-tabel. 4. Supabase-verbindingen tijdelijk uitschakelen indien nodig.</td>
+            <td>AVG art. 33: meldplicht bij Autoriteit Persoonsgegevens binnen 72 uur. Betrokkenen informeren (art. 34) als hoog risico. DPA van betrokken servicepartij activeren.</td>
+          </tr>
+          <tr>
+            <td><strong><code>NAAM_ENCRYPTION_KEY</code> gecompromitteerd</strong></td>
+            <td>Key onmiddellijk roteren in Vercel. Alle bestaande <code>namen_map</code>-records zijn met de oude key versleuteld — deze zijn na rotatie niet meer te ontsleutelen.</td>
+            <td>Alle screeningen opnieuw verwerken of <code>namen_map</code> wissen. Dit is een kritiek scenario — overweeg key-rotatieprocedure vooraf te documenteren.</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <strong>Geen geautomatiseerde monitoring</strong>
+        Er zijn geen uptime-monitors, error-rate-alerts of kosten-alerts geconfigureerd. Aanbevolen minimale set: Vercel-foutmelding via e-mail (ingebouwd), Anthropic spend-limiet instellen in API-dashboard, Supabase database-size-alert.
+      </div>
+    </section>
+
+    <!-- 11. Skills-systeem -->
+    <section class="section" id="skills">
+      <h2 class="section-title">11. Skills-documentatiesysteem</h2>
+      <p>Clausula gebruikt een skill-systeem in <code>.claude/skills/</code> voor het vastleggen van niet-voor-de-hand-liggende technische kennis die niet direct uit de code af te lezen is. Skills worden geladen door Claude Code wanneer een taak raakt aan het onderwerp van de skill (op basis van de <code>description</code> in de frontmatter).</p>
+
+      <div class="callout info">
+        <strong>Doel</strong>
+        Skills zijn de overdrachtslaag tussen sessies. Ze voorkomen dat designbeslissingen, veldnaamconventies, valkuilen en architectuurkeuzes opnieuw uitgelegd moeten worden bij elke nieuwe Claude-sessie.
+      </div>
+
+      <h3 class="section-sub">Beschikbare skills</h3>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Skill</th><th>Bestand</th><th>Wanneer geladen</th><th>Kerninhoud</th></tr>
+          <tr>
+            <td><strong>screening-categorien</strong></td>
+            <td><code>.claude/skills/screening-categorien/SKILL.md</code></td>
+            <td>Bij schrijven/aanpassen van screening-prompts, categoriedefinities, ernst-logica, tool-use schema's, of beoordeling van convenantkwaliteit</td>
+            <td>Definities van 6 dimensies, ernst-criteria (hoog/midden/laag), output-veldnamen van tool-schema, MfN-scorestructuur, twee-parallelle-calls architectuur. Referentiebestanden: <code>mfn-normen.md</code>, <code>severity.md</code>, <code>verplichte-onderdelen.md</code>, <code>voorbeelden.md</code>.</td>
+          </tr>
+          <tr>
+            <td><strong>document-model</strong></td>
+            <td><code>.claude/skills/document-model/SKILL.md</code></td>
+            <td>Bij aanpassen van tab-handling, documenttype-logica, rapport-structuur, <code>huidigRapport</code>-velden of multi-doc-combinaties</td>
+            <td>8 documenttypes en hun rollen (HOOFD_TYPE vs. contextdocument), tabvolgorde, opzoekpatroon voor actief documenttype (<code>huidigeDocumenten[huidigeDocIdx]?.doc_type</code>), <code>_concepts</code>-opslag.</td>
+          </tr>
+          <tr>
+            <td><strong>concept-generatie</strong></td>
+            <td><code>.claude/skills/concept-generatie/SKILL.md</code></td>
+            <td>Bij aanpassen van de conceptknop-handler, <code>markeerWijzigingenInDom</code>, <code>toonConceptReview</code>, DOCX-patcher of prompt-regels voor <code>zoek_tekst</code>/<code>vervang_door</code></td>
+            <td>Twee onafhankelijke code-paden (client-side via <code>registreer_concept</code> vs. server-side via <code>document_wijzigingen</code>), veldnamen door de flow, valkuilen bij verwisseling van de twee paden.</td>
+          </tr>
+          <tr>
+            <td><strong>avg-beleid</strong></td>
+            <td><code>.claude/skills/avg-beleid/SKILL.md</code></td>
+            <td>Bij nieuwe features die persoonsdata opslaan, verwerken of transporteren — bijv. nieuwe velden in screeningen, Storage-uploads, export-functies, wijzigingen in pseudonimisering</td>
+            <td>Welke data waarheen gaat, pseudonimiserings-pipeline (opslaan én laden), PDF-opslag-regels, regels voor nieuwe features, relevante code-locaties.</td>
+          </tr>
+        </table>
+      </div>
+
+      <h3 class="section-sub">Bijwerkregel (verplicht)</h3>
+      <p>Skills worden <strong>niet automatisch bijgewerkt</strong>. Na elke wijziging aan de volgende bestanden moet de bijbehorende skill in dezelfde sessie worden beoordeeld en bijgewerkt vóór de commit:</p>
+      <div class="table-wrap">
+        <table>
+          <tr><th>Gewijzigd bestand</th><th>Betrokken skill(s)</th></tr>
+          <tr><td><code>api/analyseer.js</code></td><td>screening-categorien, document-model</td></tr>
+          <tr><td><code>api/genereer-concept.js</code></td><td>concept-generatie</td></tr>
+          <tr><td><code>api/export-docx.js</code></td><td>concept-generatie</td></tr>
+          <tr><td><code>index.html</code> — analyse-flow</td><td>screening-categorien, document-model</td></tr>
+          <tr><td><code>index.html</code> — concept-flow</td><td>concept-generatie</td></tr>
+          <tr><td><code>index.html</code> — opslaan/laden/pseudonimisering</td><td>avg-beleid</td></tr>
+        </table>
+      </div>
+      <div class="callout warn">
+        <strong>Wanneer wel / niet updaten</strong>
+        Update de skill alleen als de wijziging <strong>non-obvieuze</strong> kennis toevoegt of verandert — veldnamen, algoritmen, valkuilen, designbeslissingen. Triviale fixes (typo, stijlwijziging, kleine bugfix) hoeven niet. Als code en skill <strong>afwijken</strong>: meld dit altijd expliciet aan de gebruiker.
+      </div>
+
+      <h3 class="section-sub">Structuur van een skill-bestand</h3>
+      <pre><code>---
+name: skill-naam          # unieke slug, gebruikt door Claude om de skill te vinden
+description: ...          # wanneer te laden — zo specifiek dat Claude het herkent
+---
+
+# Titel
+## Kernkennis (non-obvieuze details, veldnamen, valkuilen)
+## Referenties naar deelbestanden (optioneel)
+</code></pre>
+      <p>Grote skills gebruiken extra referentiebestanden (bijv. <code>references/severity.md</code>) zodat de hoofd-SKILL.md compact blijft en de referentiebestanden op zichzelf doorzoekbaar zijn.</p>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Sticky sidebar active-state op basis van scroll
+const sections = document.querySelectorAll('.section[id]');
+const links    = document.querySelectorAll('#toc a');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => obs.observe(s));
+</script>

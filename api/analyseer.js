@@ -28,6 +28,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { filterIssuesOpIban } from './_iban.js';
+import { verifieerJWT } from './_auth.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -251,17 +252,9 @@ const crossDocTool = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
 
-  // ── Auth: Supabase JWT valideren ──────────────────────────────────────────
+  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!token) return res.status(401).json({ error: 'Niet geautoriseerd' });
-
-  const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
-    },
-  });
-  if (!authCheck.ok) return res.status(401).json({ error: 'Sessie verlopen — log opnieuw in' });
+  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
 
   // ── Body parsen ───────────────────────────────────────────────────────────
   const { classificatie, documenten, roepnamen } = req.body || {};
@@ -399,6 +392,26 @@ HV-A. STELSEL — Benoem het vermogensrechtelijk stelsel (koude uitsluiting / be
 HV-B. UITSLUITINGSCLAUSULES — Erfenissen/schenkingen (art. 1:94 lid 3 BW) correct buiten verdeling?
 HV-C. REFERENTIE — Verwijst convenant expliciet naar huwelijkse voorwaarden (datum en notaris)?` : '';
 
+      // IPR-checks — alleen bij convenant; detectie op basis van documentinhoud
+      const iprChecks = docType === 'convenant' ? `
+
+IPR — INTERNATIONAAL PRIVAATRECHT (verplicht bij convenant):
+Detecteer of het document een internationaal element bevat. Signalen: buitenlandse nationaliteit van één of beide partijen, huwelijk in het buitenland gesloten, woonhistorie buiten Nederland ná het huwelijk, of vermogen in het buitenland (onroerend goed, bankrekening, pensioen, onderneming).
+
+Als EEN OF MEER signalen aanwezig zijn — check de vier punten hieronder. Als GEEN signaal → maak géén IPR-issues.
+
+IPR-A. TOEPASSELIJK RECHT — Vermeldt het convenant welk recht het huwelijksvermogensregime beheerst (bijv. "Op grond van EU-Verordening 2016/1103 / Haags Huwelijksvermogensverdrag 1978 is het recht van [land] van toepassing")?
+  → Niet vermeld: volledigheid-issue (midden). Signalering: "Internationaal element aanwezig maar toepasselijk huwelijksvermogensrecht niet benoemd in het convenant."
+
+IPR-B. WAGONSTELSEL — Alleen relevant bij huwelijken gesloten 1-9-1992 t/m 28-1-2019 (Haags Verdrag 1978). Als uit het document buitenlandse woonhistorie na het huwelijk blijkt: is vastgesteld of het wagonstelsel (automatische regimewijziging na 10 jaar verblijf in ander land, of vestiging in nationaliteitsland) tot een regimewisseling heeft geleid?
+  → Niet vastgesteld: volledigheid-issue (midden). Signalering: "Buitenlandse woonhistorie tijdens tijdvak wagonstelsel (1992–2019): convenant vermeldt niet of automatische regimewijziging heeft plaatsgevonden."
+
+IPR-C. VERDELING OP VERKEERD STELSEL — Wordt de verdeling berekend op de Nederlandse algehele of beperkte gemeenschap van goederen, terwijl het toepasselijke recht een ander stelsel aanwijst of aannemelijk maakt?
+  → Ja: juridisch-issue (hoog). Signalering: "Verdeling gebaseerd op Nederlands recht terwijl een internationaal element duidt op toepasselijkheid van buitenlands huwelijksvermogensrecht — dit moet vóór ondertekening worden vastgesteld."
+
+IPR-D. BUITENLANDS PENSIOEN — Is er een buitenlands pensioen vermeld zonder concrete afspraak over verevening of afstand?
+  → Ja: volledigheid-issue (midden). Signalering: "Buitenlands pensioen vermeld zonder regeling: de WVPS is niet automatisch van toepassing op buitenlandse pensioenrechten — een expliciete afspraak is vereist."` : '';
+
       const mfnInstructie = heeftMfn ? `
 
 **mfn_score** — Beoordeel op MfN-vereisten. Score_aanwezig = aantal "aanwezig". Score_totaal = ${mfnElemList.length}.
@@ -519,7 +532,7 @@ Drie verplichte regels voor roepnaam-issues:
 2. PASSAGE: citeer de zin ELDERS in het document waar de roepnaam wordt gebruikt (bijv. "Gerjon betaalt maandelijks..."), NIET de introductiezin. De introductiezin is correct — de fout zit in het ontbreken van de roepnaam daarin.
 3. AANBEVELING: altijd in de vorm "Voeg 'ook te noemen [roepnaam]' toe aan de introductiezin: '[volledige officiële naam], ook te noemen '[roepnaam]', geboren te [...]'." NOOIT de introductiezin herschrijven zodat de roepnaam de hoofdnaam wordt.
 
-**issues (juridisch)** — Primaire dimensie: "juridisch". Voeg extra dimensies toe als het issue ook een ander aspect raakt (bijv. ["juridisch","conflicten"] als de clausule zowel wettelijk onjuist als intern tegenstrijdig is).${juridischeChecks}${hvChecks}
+**issues (juridisch)** — Primaire dimensie: "juridisch". Voeg extra dimensies toe als het issue ook een ander aspect raakt (bijv. ["juridisch","conflicten"] als de clausule zowel wettelijk onjuist als intern tegenstrijdig is).${juridischeChecks}${hvChecks}${iprChecks}
 
 - Gebruik uitsluitend wetsartikelen uit de WETSARTIKELEN-sectie.
 - Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.

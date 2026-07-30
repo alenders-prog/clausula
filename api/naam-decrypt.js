@@ -11,6 +11,7 @@
  */
 
 import { ontsleutelNamen } from './_crypto.js';
+import { verifieerJWT } from './_auth.js';
 
 export const config = { runtime: 'edge' };
 
@@ -21,25 +22,13 @@ export default async function handler(req) {
     });
   }
 
-  // ── JWT-verificatie ────────────────────────────────────────────────────────
-  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-  if (!token) {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  if (!await verifieerJWT(token)) {
     return new Response(JSON.stringify({ error: 'Niet geautoriseerd' }), {
       status: 401, headers: { 'Content-Type': 'application/json' },
     });
   }
-  const authCheck = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
-    },
-  });
-  if (!authCheck.ok) {
-    return new Response(JSON.stringify({ error: 'Sessie verlopen — log opnieuw in' }), {
-      status: 401, headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  // ──────────────────────────────────────────────────────────────────────────
 
   try {
     const { blob } = await req.json();
