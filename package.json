@@ -4,11 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test":          "vitest run",
+    "test":          "vitest run && npm run test:e2e",
+    "test:unit":     "vitest run",
     "test:watch":    "vitest",
     "test:related":  "vitest related",
     "test:coverage": "vitest run --coverage",
-    "test:eval":     "vitest run tests/golden/eval.test.js"
+    "test:eval":     "vitest run tests/golden/eval.test.js",
+    "test:e2e":      "playwright test",
+    "test:e2e:ui":   "playwright test --ui"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -17,6 +20,7 @@
     "resend": "^6.16.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@vitest/coverage-v8": "^4.1.10",
     "vitest": "^4.1.10"
   }

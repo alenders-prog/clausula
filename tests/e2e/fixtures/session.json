@@ -1,0 +1,12 @@
+{
+  "access_token": "mock-access-token-for-tests",
+  "refresh_token": "mock-refresh-token",
+  "expires_at": 9999999999,
+  "token_type": "bearer",
+  "user": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "email": "test@clausula.nl",
+    "role": "authenticated",
+    "aud": "authenticated"
+  }
+}

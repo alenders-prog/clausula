@@ -1,0 +1,27 @@
+{
+  "issues": [
+    {
+      "ernst": "hoog",
+      "categorie": "juridisch",
+      "bevinding": "Artikel 1:157 BW — alimentatieduur niet gemotiveerd",
+      "signalering": "De conventionele termijn van 12 jaar voor partneralimentatie is niet onderbouwd.",
+      "type": "issue",
+      "afgehandeld": false,
+      "negeer": false
+    },
+    {
+      "ernst": "midden",
+      "categorie": "volledigheid",
+      "bevinding": "Peildatum vermogensverdeling ontbreekt",
+      "signalering": "Er is geen peildatum opgegeven voor de vermogensverdeling.",
+      "type": "issue",
+      "afgehandeld": false,
+      "negeer": false
+    }
+  ],
+  "samenvatting": "Het convenant bevat twee aandachtspunten die nadere aandacht vereisen.",
+  "mfn_score": null,
+  "_bestandsnaam": "Test Convenant.pdf",
+  "_doc_type": "convenant",
+  "_document_bestanden": ["Test Convenant.pdf"]
+}

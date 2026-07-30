@@ -9,3 +9,7 @@ node_modules
 - kopie.env.old
 index.html.tmp.*
 Clausula_voorstel_redesign.html
+
+# Playwright test-output
+test-results/
+playwright-report/

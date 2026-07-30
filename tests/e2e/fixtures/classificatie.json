@@ -1,0 +1,6 @@
+{
+  "doc_type": "convenant",
+  "doc_naam": "Test Convenant.pdf",
+  "situatie_kenmerken": ["geen_kinderen"],
+  "roepnamen": { "partij_a": "Jan", "partij_b": "Maria" }
+}
