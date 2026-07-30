@@ -401,6 +401,12 @@
   const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   let token = '';
+  // Token bijhouden via onAuthStateChange zodat automatische Supabase-refresh (elk uur)
+  // de variabele bijwerkt — anders verlopen calls na 1 uur met "Niet geautoriseerd".
+  db.auth.onAuthStateChange((_, session) => {
+    if (session) token = session.access_token;
+    else document.getElementById('mobAuthOverlay').style.display = 'flex';
+  });
   try {
     const { data: { session } } = await db.auth.getSession();
     if (!session) throw new Error('geen sessie');
