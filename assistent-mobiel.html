@@ -260,6 +260,31 @@
     .mob-copy-btn:hover { border-color: var(--coral); color: var(--coral); }
     .mob-copy-btn.gekopieerd { color: var(--status-ok); border-color: var(--status-ok); }
 
+    /* Keuze-blokken per vraag */
+    .mob-vraag-blok {
+      margin-top: 10px;
+      padding: 7px 10px;
+      border-left: 3px solid var(--c-accent, #1a4a7a);
+      background: rgba(26,74,122,.04);
+      border-radius: 0 6px 6px 0;
+    }
+    .mob-vraag-label { font-size: .7rem; font-weight: 700; color: var(--ink-mid); margin-bottom: 6px; }
+    .mob-keuzes { display: flex; flex-wrap: wrap; gap: 6px; }
+    .mob-keuze-btn {
+      background: none;
+      border: 1.5px solid var(--c-accent, #1a4a7a);
+      border-radius: 14px;
+      padding: 4px 12px;
+      font-size: .72rem;
+      font-family: inherit;
+      color: var(--c-accent, #1a4a7a);
+      cursor: pointer;
+      transition: background .13s;
+    }
+    .mob-keuze-btn:hover { background: rgba(26,74,122,.08); }
+    .mob-keuze-btn.geselecteerd { background: var(--c-accent, #1a4a7a); color: #fff; }
+    .mob-vraag-blok.inactief { opacity: .45; pointer-events: none; }
+
     /* ── Input area ── */
     .mob-input-area {
       flex-shrink: 0;
@@ -566,7 +591,28 @@
     thinkingEl = null;
   }
 
-  function voegAssistentBericht(tekst, bronnen) {
+  function selecteerKeuze(btn, vraagLabel, keuze) {
+    const blok = btn.closest('.mob-vraag-blok');
+    if (blok) {
+      blok.querySelectorAll('.mob-keuze-btn').forEach(b => b.classList.remove('geselecteerd'));
+      btn.classList.add('geselecteerd');
+      blok.dataset.vraag = vraagLabel;
+      blok.dataset.keuze = keuze;
+    }
+    const wrap = btn.closest('.mob-bubble-wrap');
+    const geselecteerd = wrap
+      ? [...wrap.querySelectorAll('.mob-vraag-blok[data-keuze]')]
+          .map(b => `${b.dataset.vraag}: ${b.dataset.keuze}`)
+      : [`${vraagLabel}: ${keuze}`];
+    inputEl.value = geselecteerd.join('\n');
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+    inputEl.focus();
+  }
+
+  function voegAssistentBericht(tekst, bronnen, vragen = []) {
+    // Deactiveer vraag-blokken van eerdere berichten
+    msgsEl.querySelectorAll('.mob-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
     const wrap = document.createElement('div');
     wrap.className = 'mob-bubble-wrap assist';
 
@@ -607,6 +653,29 @@
         bronnenEl.appendChild(chip);
       });
       wrap.appendChild(bronnenEl);
+    }
+
+    // Vraag-blokken (één per vraag met vaste keuzes)
+    if (vragen && vragen.length > 0) {
+      vragen.forEach(v => {
+        const vraagEl = document.createElement('div');
+        vraagEl.className = 'mob-vraag-blok';
+        const labelEl = document.createElement('div');
+        labelEl.className = 'mob-vraag-label';
+        labelEl.textContent = v.label;
+        vraagEl.appendChild(labelEl);
+        const keuzesEl = document.createElement('div');
+        keuzesEl.className = 'mob-keuzes';
+        v.keuzes.forEach(k => {
+          const btn = document.createElement('button');
+          btn.className = 'mob-keuze-btn';
+          btn.textContent = k;
+          btn.onclick = () => selecteerKeuze(btn, v.label, k);
+          keuzesEl.appendChild(btn);
+        });
+        vraagEl.appendChild(keuzesEl);
+        wrap.appendChild(vraagEl);
+      });
     }
 
     msgsEl.appendChild(wrap);
@@ -651,7 +720,7 @@
       if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
 
       verwijderDenken();
-      voegAssistentBericht(data.antwoord, data.bronnen || []);
+      voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || []);
 
       conversatie.push({ role: 'user',      content: tekst });
       conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [] });

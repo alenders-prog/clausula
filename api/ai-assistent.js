@@ -88,6 +88,32 @@ Geef ALTIJD aan het einde van je antwoord één van deze tags op een eigen regel
   [CLAUSULE_RELEVANT:beide]            — nuttig voor beide documenten
   [CLAUSULE_RELEVANT:geen]             — geen clausule van toepassing
 
+══ KEUZE-OPTIES ══
+Als je meerdere vragen stelt waarvan SOMMIGE vaste antwoordkeuzes hebben en ANDERE open
+zijn (datum, bedrag, naam), gebruik dan PER VRAAG MET VASTE KEUZES een aparte tag.
+Zet alle tags samen ONDERAAN je bericht, na de volledige vraagtekst:
+
+  [VRAAG: Korte vraagformulering? | Optie A | Optie B | Optie C]
+
+BELANGRIJK: Controleer de gespreksgeschiedenis VOORDAT je [VRAAG: ...] tags genereert.
+Stel een vraag NOOIT opnieuw als die al eerder in het gesprek is beantwoord — ook niet
+als het antwoord impliciet volgt uit een eerder gekozen optie. Genereer alleen tags voor
+informatie die nog ONTBREEKT in de gespreksgeschiedenis.
+
+Regels:
+- Maximaal 5 opties per tag, elke optie maximaal 6 woorden
+- Vraagformulering in de tag is maximaal 60 tekens (samenvatting)
+- Open vragen waarbij de gebruiker een vrij bedrag, exacte naam of specifieke datum moet
+  invullen, krijgen GEEN tag — de gebruiker typt zelf
+- Uitzondering: een datumvraag met een binaire grens (bijv. "vóór of ná 1-1-2012?")
+  krijgt WEL een [VRAAG: ...] tag met die vaste opties, bijv.:
+  [VRAAG: Datum van de investering? | Vóór 1-1-2012 | Ná 1-1-2012 | Weet ik niet]
+- Gebruik dit UITSLUITEND voor uitputtende vaste keuzes
+- Optie-labels moeten zelfstandig begrijpelijk zijn zonder de vraagtoelichting te lezen;
+  voeg zo nodig een korte verduidelijking toe, bijv. "Verrekenclausule (periodiek/finaal)"
+  of "Koude uitsluiting (geen gemeenschap)"
+- Combineer vrij met [CLAUSULE_RELEVANT:...], beiden op eigen regels
+
 ══ AVG / PRIVACY ══
 De dossiercontext en gebruikersvragen zijn geanonimiseerd vóór verzending: echte namen zijn
 vervangen door pseudoniemen (bijv. "Partij A" / "Partij B" of roepnamen). Werk uitsluitend
@@ -314,10 +340,21 @@ export default async function handler(req, res) {
     (_, type) => { clausuleRelevant = type.toLowerCase(); return ''; }
   ).trim();
 
+  // ── Vraag-keuzetags uit het antwoord halen ─────────────────────
+  const vragen = [];
+  antwoord = antwoord.replace(
+    /\[VRAAG:\s*([^\]]+)\]/gi,
+    (_, inhoud) => {
+      const delen = inhoud.split('|').map(d => d.trim()).filter(Boolean);
+      if (delen.length >= 2) vragen.push({ label: delen[0], keuzes: delen.slice(1) });
+      return '';
+    }
+  ).trim();
+
   // Dedup bronnen
   const bronnenDedup = [
     ...new Map(bronnen.map(b => [b.citation || b.url, b])).values(),
   ].slice(0, 8);
 
-  return res.status(200).json({ antwoord, bronnen: bronnenDedup, clausuleRelevant });
+  return res.status(200).json({ antwoord, bronnen: bronnenDedup, clausuleRelevant, vragen });
 }

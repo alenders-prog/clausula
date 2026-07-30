@@ -1875,6 +1875,19 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   cursor:pointer;transition:background .13s;}
 .assist-clausule-btn:hover{background:#FFF0EC;}
 
+/* Keuze-blokken per vraag */
+.assist-vraag-blok{margin-top:10px;padding:7px 10px;
+  border-left:3px solid var(--nav-bg,#1e3a5f);
+  background:rgba(30,58,95,.04);border-radius:0 6px 6px 0;}
+.assist-vraag-label{font-size:.72rem;font-weight:700;color:var(--ink-mid);margin-bottom:6px;}
+.assist-keuzes{display:flex;flex-wrap:wrap;gap:6px;}
+.assist-keuze-btn{background:none;border:1.5px solid var(--nav-bg,#1e3a5f);
+  border-radius:14px;padding:3px 11px;font-size:.73rem;font-family:inherit;
+  color:var(--nav-bg,#1e3a5f);cursor:pointer;transition:background .13s,color .13s;}
+.assist-keuze-btn:hover{background:rgba(30,58,95,.08);}
+.assist-keuze-btn.geselecteerd{background:var(--nav-bg,#1e3a5f);color:#fff;}
+.assist-vraag-blok.inactief{opacity:.45;pointer-events:none;}
+
 /* Thinking indicator */
 .assist-thinking{display:flex;align-items:center;gap:8px;
   padding:11px 14px;background:var(--bg);border:1px solid var(--line);
@@ -12076,8 +12089,10 @@ function _assistVerwijderThinking() {
   document.getElementById('assistThinking')?.remove();
 }
 
-function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausuleTekstRuw, type) {
+function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausuleTekstRuw, type, vragen = []) {
   const msgs = document.getElementById('assistMsgs');
+  // Deactiveer vraag-blokken van eerdere berichten
+  msgs.querySelectorAll('.assist-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
   const div  = document.createElement('div');
   div.className = 'assist-msg assist-msg-assist';
 
@@ -12168,14 +12183,52 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
     </div>`;
   }
 
+  // Vraag-blokken (één per vraag met vaste keuzes)
+  let vraagHtml = '';
+  if (vragen?.length) {
+    vraagHtml = vragen.map(v => {
+      const btns = v.keuzes.map(k =>
+        `<button class="assist-keuze-btn" onclick="_assistSelecteerKeuze(this,${JSON.stringify(v.label)},${JSON.stringify(k)})">${escH(k)}</button>`
+      ).join('');
+      return `<div class="assist-vraag-blok">
+        <div class="assist-vraag-label">${escH(v.label)}</div>
+        <div class="assist-keuzes">${btns}</div>
+      </div>`;
+    }).join('');
+  }
+
   div.innerHTML = `<div class="assist-bubble">
     ${_assistMd(tekst)}
+    ${vraagHtml}
     ${bronnenHtml}
     ${knoppenHtml}
     ${clausuleHtml}
   </div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistSelecteerKeuze(btn, vraagLabel, keuze) {
+  // Markeer geselecteerde knop, deselecteer broers in hetzelfde blok
+  const blok = btn.closest('.assist-vraag-blok');
+  if (blok) {
+    blok.querySelectorAll('.assist-keuze-btn').forEach(b => b.classList.remove('geselecteerd'));
+    btn.classList.add('geselecteerd');
+    blok.dataset.vraag  = vraagLabel;
+    blok.dataset.keuze  = keuze;
+  }
+  // Verzamel alle geselecteerde keuzes uit hetzelfde bericht
+  const bericht = btn.closest('.assist-msg-assist');
+  const geselecteerd = bericht
+    ? [...bericht.querySelectorAll('.assist-vraag-blok[data-keuze]')]
+        .map(b => `${b.dataset.vraag}: ${b.dataset.keuze}`)
+    : [`${vraagLabel}: ${keuze}`];
+  const inp = document.getElementById('assistInput');
+  if (inp) {
+    inp.value = geselecteerd.join('\n');
+    _assistInputResize(inp);
+    inp.focus();
+  }
 }
 
 // ── Versturen ────────────────────────────────────────────────
@@ -12354,7 +12407,7 @@ async function _assistVerstuur() {
     if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
 
     _assistVerwijderThinking();
-    _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), data.bronnen, data.clausuleRelevant);
+    _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), data.bronnen, data.clausuleRelevant, null, null, data.vragen || []);
 
     _assist.conversatie.push({ role: 'user',      content: tekstAnon }); // geanonimiseerd opslaan
     _assist.conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [], clausuleRelevant: data.clausuleRelevant || 'geen' });
