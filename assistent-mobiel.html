@@ -331,11 +331,17 @@
     <button class="mob-new-btn" id="mobNieuwBtn" title="Nieuw gesprek" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </button>
+    <button class="mob-new-btn" id="mobHistBtn" title="Eerdere gesprekken" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </button>
     <a href="/" class="mob-back-btn">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Terug
     </a>
   </header>
+
+  <!-- Sessie-overlay -->
+  <div id="mobSessiesOverlay" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:12px 16px;gap:8px"></div>
 
   <!-- Disclaimer -->
   <div class="mob-disclaimer">
@@ -392,6 +398,118 @@
   const conversatie = [];
   let bezig = false;
   let thinkingEl = null;
+  const MOB_PFX = 'assist_mob_';
+  let sessieId = null;
+
+  /* ── Sessie-opslag ───────────────────────────────── */
+  function slaOpInStorage() {
+    if (!conversatie.length) return;
+    if (!sessieId) sessieId = `${MOB_PFX}${Date.now()}`;
+    const eersteVraag = conversatie.find(b => b.role === 'user')?.content || 'Gesprek';
+    try {
+      localStorage.setItem(sessieId, JSON.stringify({
+        id: sessieId, titel: eersteVraag.slice(0, 60),
+        timestamp: Date.now(), conversatie: [...conversatie],
+      }));
+      // Maximaal 10 sessies bewaren
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith(MOB_PFX)) keys.push(k);
+      }
+      keys.sort().reverse().slice(10).forEach(k => localStorage.removeItem(k));
+    } catch(e) {}
+  }
+
+  function laadSessies() {
+    const sessies = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k?.startsWith(MOB_PFX)) continue;
+      try {
+        const s = JSON.parse(localStorage.getItem(k));
+        if (s?.conversatie?.length) sessies.push(s);
+      } catch(e) {}
+    }
+    return sessies.sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  function toonSessies() {
+    const overlay = document.getElementById('mobSessiesOverlay');
+    const sessies = laadSessies();
+    const chatEl  = document.getElementById('mobMsgs');
+    const inputArea = document.getElementById('mobInputArea');
+    const disc    = document.querySelector('.mob-disclaimer');
+
+    chatEl.style.display    = 'none';
+    inputArea.style.display = 'none';
+    if (disc) disc.style.display = 'none';
+    overlay.style.display   = 'flex';
+
+    if (!sessies.length) {
+      overlay.innerHTML = `
+        <div style="color:var(--muted);font-size:.85rem;padding:20px 0;text-align:center">Geen opgeslagen gesprekken.</div>
+        <button onclick="verbergSessies()" style="align-self:center;padding:8px 18px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:.85rem">← Terug</button>`;
+      return;
+    }
+
+    overlay.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:600;font-size:.9rem">Eerdere gesprekken</span>
+        <button onclick="verbergSessies()" style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:.8rem">← Terug</button>
+      </div>` +
+      sessies.map(s => {
+        const datum = new Date(s.timestamp).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer" onclick="herlaadSessie('${s.id}')">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escH(s.titel)}</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${datum}</div>
+          </div>
+          <button onclick="verwijderSessie('${s.id}',event)" title="Verwijderen" style="flex-shrink:0;padding:4px 7px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.8rem">✕</button>
+        </div>`;
+      }).join('');
+  }
+
+  function verbergSessies() {
+    const overlay   = document.getElementById('mobSessiesOverlay');
+    const chatEl    = document.getElementById('mobMsgs');
+    const inputArea = document.getElementById('mobInputArea');
+    const disc      = document.querySelector('.mob-disclaimer');
+    overlay.style.display   = 'none';
+    chatEl.style.display    = 'flex';
+    inputArea.style.display = 'flex';
+    if (disc) disc.style.display = '';
+  }
+
+  function herlaadSessie(id) {
+    const raw = localStorage.getItem(id);
+    if (!raw) return;
+    try {
+      const s = JSON.parse(raw);
+      conversatie.length = 0;
+      conversatie.push(...(s.conversatie || []));
+      sessieId = s.id;
+      verbergSessies();
+      msgsEl.innerHTML = '';
+      for (const b of conversatie) {
+        if (b.role === 'user')      voegGebruikerBericht(b.content);
+        else if (b.role === 'assistant') voegAssistentBericht(b.content, b.bronnen || []);
+      }
+      scrollNaar();
+    } catch(e) {}
+  }
+
+  function verwijderSessie(id, ev) {
+    ev.stopPropagation();
+    localStorage.removeItem(id);
+    if (sessieId === id) { sessieId = null; conversatie.length = 0; }
+    toonSessies();
+  }
+
+  // Globaal bereikbaar voor inline onclick in sessie-lijst
+  window.verbergSessies  = verbergSessies;
+  window.herlaadSessie   = herlaadSessie;
+  window.verwijderSessie = verwijderSessie;
 
   /* ── Helpers ─────────────────────────────────────── */
   function escH(s) {
@@ -536,8 +654,9 @@
       voegAssistentBericht(data.antwoord, data.bronnen || []);
 
       conversatie.push({ role: 'user',      content: tekst });
-      conversatie.push({ role: 'assistant', content: data.antwoord });
+      conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [] });
       if (conversatie.length > 20) conversatie.splice(0, 2);
+      slaOpInStorage();
 
     } catch (err) {
       verwijderDenken();
@@ -568,10 +687,15 @@
   // Nieuw gesprek
   document.getElementById('mobNieuwBtn').addEventListener('click', () => {
     conversatie.length = 0;
+    sessieId = null;
     msgsEl.innerHTML = '';
     voegSysteemMelding('Nieuw gesprek gestart.');
     inputEl.focus();
   });
+
+  // Eerdere gesprekken
+  document.getElementById('mobHistBtn').style.display = 'flex';
+  document.getElementById('mobHistBtn').addEventListener('click', toonSessies);
 
   /* ── Welkomsbericht ──────────────────────────────── */
   voegAssistentBericht(
