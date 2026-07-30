@@ -2611,7 +2611,7 @@ const app = {
   dossierId:    null,   // app.dossierId
   dossierNaam:  null,   // app.dossierNaam
   screeningId:  null,   // app.screeningId
-  classificatie: null,  // huidigeClassificatie
+  classificatie: null,  // app.classificatie
   rapport:      null,   // huidigRapport
   documenten:   [],     // app.documenten
   docIdx:       0,      // app.docIdx
@@ -3172,7 +3172,7 @@ function vindDocVolgorde(issuesArr) {
   // vroege positie gematcht (Convenant staat eerst in de gecombineerde tekst).
   const volledigeTekst = huidigRapport?._document_tekst || '';
   const huidigDocType  = app.documenten[app.docIdx]?.doc_type
-                      || huidigeClassificatie?.doc_type || '';
+                      || app.classificatie?.doc_type || '';
   const tabTekst = haalDocTypeTekst(volledigeTekst, huidigDocType);
   const docNorm  = normPassage(tabTekst);
   if (!docNorm) return issuesArr.map((_, i) => i);
@@ -3708,7 +3708,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   {
     const _bn = samenstellenBestandsnaam(classificatie, resolvedItems.map(i => ({ name: i.bestandsnaam })));
     app.screeningId             = null; // nieuwe analyse — geen opgeslagen versie
-    huidigeClassificatie  = classificatie;
+    app.classificatie  = classificatie;
     huidigeBestandsnaam   = _bn;
     app.documenten     = [];   // wordt gevuld na klaar-event door toonRapport()
     app.docIdx         = 0;
@@ -3931,11 +3931,11 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       // effectieveHoofdItems als tussenliggende fallback zodat het label klopt per tab.
       const _progDt    = app.documenten[app.docIdx]?.doc_type
                       || effectieveHoofdItems[app.docIdx]?.type
-                      || huidigeClassificatie?.doc_type || '';
+                      || app.classificatie?.doc_type || '';
       const _progLbl   = _progDt ? (DOC_TYPE_LABELS[_progDt] || _progDt) : '';
       const _progDtLbl = _progLbl ? _progLbl.toUpperCase() : '';
-      const _pA = huidigDossierPartijA || huidigeClassificatie?.partij_a_naam || '';
-      const _pB = huidigDossierPartijB || huidigeClassificatie?.partij_b_naam || '';
+      const _pA = huidigDossierPartijA || app.classificatie?.partij_a_naam || '';
+      const _pB = huidigDossierPartijB || app.classificatie?.partij_b_naam || '';
       const _samen = huidigRapport.samenvatting;
       const _progHeroHtml = `<div class="summary-row">
         ${scoreHtml}
@@ -4828,7 +4828,7 @@ function toonTekstFallback(panel, searchText) {
 // ── Rapport renderen ──────────────────────────────────
 // app.screeningId (was: app.screeningId)
 let huidigeBestandsnaam  = null;
-let huidigeClassificatie = null;
+// app.classificatie (was: app.classificatie)
 let huidigRapport        = null;
 let huidigeExtractedTexts = []; // [{bestandsnaam, tekst}] — gevuld na analyse, voor cache-backfill in opslaan()
 // Pseudonimiseringsmappen — worden gezet na analyse (bouwAnonMap) en na laden (decrypt)
@@ -5336,7 +5336,7 @@ function filterIssues(btn) {
 }
 
 async function toonRapport(cls, rp) {
-  huidigeClassificatie = cls;
+  app.classificatie = cls;
   huidigRapport        = rp;
   _issueSortModus      = 'ernst'; // reset sorteermodus bij openen opgeslagen rapport
 
@@ -5523,7 +5523,7 @@ async function toonRapport(cls, rp) {
     const _alleChipHtml = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${_alleMiniRingHtml(issues)}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_totalH||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_totalM||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_totalL||'—'}</strong><span>Laag</span></div></div></button>`;
 
     const _docLblSectie = (() => {
-      const dt = app.documenten[app.docIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+      const dt = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
       const lbl = dt ? (DOC_TYPE_LABELS[dt] || dt) : '';
       return lbl ? `${lbl} — Verbeterpunten` : 'Verbeterpunten';
     })();
@@ -5552,9 +5552,9 @@ async function toonRapport(cls, rp) {
       ? gesorteerdeIdx.map((i, pos) => issueKaart(i, pos + 1)).join('')
       : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
-    const _pA = huidigDossierPartijA || huidigeClassificatie?.partij_a_naam || '';
-    const _pB = huidigDossierPartijB || huidigeClassificatie?.partij_b_naam || '';
-    const _actDocType = app.documenten[app.docIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+    const _pA = huidigDossierPartijA || app.classificatie?.partij_a_naam || '';
+    const _pB = huidigDossierPartijB || app.classificatie?.partij_b_naam || '';
+    const _actDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
     const _dtLbl = _actDocType ? (DOC_TYPE_LABELS[_actDocType] || _actDocType).toUpperCase() : '';
     const heroHtml = `<div class="summary-row">
       ${scoreHtml}
@@ -5980,7 +5980,7 @@ async function opslaan() {
     // Pseudonimiseer rapport en classificatie voor opslag —
     // strip ook _teksten_per_pad (grote bulk-tekst, herinstelbaar via Storage).
     // _document_tekst wordt gepseudonymiseerd bewaard (nodig voor vindDocVolgorde na laden).
-    const _opsl_classificatie = namen_map ? bouwClassificatiePseudo(huidigeClassificatie) : huidigeClassificatie;
+    const _opsl_classificatie = namen_map ? bouwClassificatiePseudo(app.classificatie) : app.classificatie;
     let   _opsl_rapport       = huidigRapport;
     if (namen_map) {
       const { _teksten_per_pad, ...rapportZonderBulk } = huidigRapport;
@@ -6679,10 +6679,10 @@ function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam
 
 document.getElementById('downloadPdfBtn').addEventListener('click', () => {
   const drp = huidigRapport;
-  const partijA  = huidigDossierPartijA || document.getElementById('dossierPartijAEdit')?.value?.trim() || (huidigeClassificatie?.partij_a_naam || '');
-  const partijB  = huidigDossierPartijB || document.getElementById('dossierPartijBEdit')?.value?.trim() || (huidigeClassificatie?.partij_b_naam || '');
+  const partijA  = huidigDossierPartijA || document.getElementById('dossierPartijAEdit')?.value?.trim() || (app.classificatie?.partij_a_naam || '');
+  const partijB  = huidigDossierPartijB || document.getElementById('dossierPartijBEdit')?.value?.trim() || (app.classificatie?.partij_b_naam || '');
   const namenStr = [partijA, partijB].filter(Boolean).join(' & ');
-  const _docType = huidigeClassificatie?.doc_type || '';
+  const _docType = app.classificatie?.doc_type || '';
 
   // Datum voor footer
   const _now = new Date();
@@ -6814,12 +6814,12 @@ function updateConceptKnop() {
   const n = items.length;
   if (badge) badge.textContent = n;
 
-  const huidigDocType = app.documenten[app.docIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const huidigDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
   const isBezig = [..._generaties.values()].some(
     g => g.docType === huidigDocType && g.status === 'bezig'
   );
   const heeftConcept = !!(huidigRapport._concepts?.[huidigDocType]
-    || (huidigDocType === (huidigeClassificatie?.doc_type || '') ? huidigRapport._concept : null));
+    || (huidigDocType === (app.classificatie?.doc_type || '') ? huidigRapport._concept : null));
 
   // Concept-info bovenin
   if (areaEl) areaEl.style.display = '';
@@ -7492,7 +7492,7 @@ async function documentTekstNaarDocx(tekst) {
   const kinderen = [];
 
   // Documenttitel: doctype + dossier (zelfde als HTML-preview)
-  const docTypeLabel = DOC_TYPES.find(d => d.value === (huidigeClassificatie?.doc_type || ''))?.label || '';
+  const docTypeLabel = DOC_TYPES.find(d => d.value === (app.classificatie?.doc_type || ''))?.label || '';
   const titelTekst   = [docTypeLabel, app.dossierNaam].filter(Boolean).join(' — ') || 'Verbeterd concept';
   kinderen.push(maakPar(titelTekst,
     { bold: true, size: 32, spaceAfter: 80, align: AlignmentType.CENTER }));
@@ -8363,7 +8363,7 @@ function preprocessConceptTekst(tekst) {
 // wijzigingen: optioneel array — voegt track-changes markering toe (alleen als tekst nog geen TC-markers heeft)
 // skipPreprocess: true als de tekst al preprocessed is (bijv. al TC-markers bevat)
 function documentTekstNaarHtml(tekst, wijzigingen = [], skipPreprocess = false) {
-  const docTypeLabel = DOC_TYPES.find(d => d.value === (huidigeClassificatie?.doc_type || ''))?.label || '';
+  const docTypeLabel = DOC_TYPES.find(d => d.value === (app.classificatie?.doc_type || ''))?.label || '';
   const titelTekst   = [docTypeLabel, app.dossierNaam].filter(Boolean).join(' — ') || 'Verbeterd concept';
 
   // Preprocessing: PDF-artefacten verwijderen + structuur herstellen (overgeslagen als al gedaan)
@@ -8463,7 +8463,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
   _conceptDocumentTekst      = documentTekst;
   _conceptWijzigingen        = Array.isArray(wijzigingen) ? wijzigingen : [];
   const _cnEl = document.getElementById('conceptDossierNaam');
-  if (_cnEl) { const _dn = _dossierNaam(huidigeClassificatie); _cnEl.textContent = _dn; _cnEl.style.display = _dn ? '' : 'none'; }
+  if (_cnEl) { const _dn = _dossierNaam(app.classificatie); _cnEl.textContent = _dn; _cnEl.style.display = _dn ? '' : 'none'; }
   _conceptOriginelePdf       = pdfBestand;
   _conceptGewijzigdDocx      = null;  // reset — wordt opnieuw aangemaakt bij rendering
   _toegepasteWijzigingIdx    = null;  // reset — wordt ingesteld door vervangInDocxXml
@@ -9103,7 +9103,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   if (!aangevinkt.length) return;
 
   // Doc-type van het actieve tabblad (niet de hoofd-classificatie, want die kan een ander doc zijn)
-  const huidigDocType = app.documenten[app.docIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+  const huidigDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
 
   // Alleen de tekst van dit documenttype — niet de volledige gecombineerde tekst met alle docs
   const volledigeTekst = huidigRapport._document_tekst || '';
@@ -9116,7 +9116,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
   // Controleer of er al een concept is voor dit documenttype — vraag bevestiging
   // Legacy _concept terugval alleen als het actieve doctype overeenkomt met de hoofdclassificatie
   const bestaandConcept = huidigRapport._concepts?.[huidigDocType]
-    || (huidigDocType === (huidigeClassificatie?.doc_type || '') ? huidigRapport._concept : null);
+    || (huidigDocType === (app.classificatie?.doc_type || '') ? huidigRapport._concept : null);
   if (bestaandConcept) {
     const datum = bestaandConcept.gegenereerd_op
       ? new Date(bestaandConcept.gegenereerd_op).toLocaleString('nl-NL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
@@ -9155,7 +9155,7 @@ document.getElementById('genereerConceptBtn').addEventListener('click', async ()
     || app.primaireBest[app.docIdx]?.[0]
     || null;
   // Pseudonimiseringsmap op basis van de bekende namen
-  const { naarAnon: snapNaarAnon, naarEcht: snapNaarEcht } = bouwAnonMap(huidigeClassificatie || {});
+  const { naarAnon: snapNaarAnon, naarEcht: snapNaarEcht } = bouwAnonMap(app.classificatie || {});
   // Chip-label: "Convenant · Familie De Vries"
   const snapDocLabel  = DOC_TYPES.find(d => d.value === snapDocType)?.label || snapDocType;
   const snapDossier   = app.dossierNaam || '';
@@ -9493,7 +9493,7 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
         if (!huidigRapport._concepts) huidigRapport._concepts = {};
         huidigRapport._concepts[snapDocType] = { ...conceptData, origineel_tekst: snapOrigineel };
         // Toon "Bekijk concept" alleen als de actieve tab overeenkomt met het gegenereerde doctype
-        const _activeDocType = app.documenten[app.docIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+        const _activeDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
         const bekijkBtn = document.getElementById('bekijkConceptBtn');
         if (bekijkBtn) bekijkBtn.style.display = _activeDocType === snapDocType ? 'inline-flex' : 'none';
         _conceptDocType = snapDocType;
@@ -9513,9 +9513,9 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 // "Bekijk concept" knop — heropent de review met het opgeslagen concept voor de actieve tab
 document.getElementById('bekijkConceptBtn').addEventListener('click', () => {
   // Actieve tab-doctype (multi-doc) of hoofdclassificatie (enkelvoudig)
-  const docType  = (app.documenten[app.docIdx]?.doc_type) || huidigeClassificatie?.doc_type || '';
+  const docType  = (app.documenten[app.docIdx]?.doc_type) || app.classificatie?.doc_type || '';
   const concept  = huidigRapport?._concepts?.[docType]   // nieuw: per doctype
-                || (docType === (huidigeClassificatie?.doc_type || '') ? huidigRapport?._concept : null); // oud: alleen zelfde doctype
+                || (docType === (app.classificatie?.doc_type || '') ? huidigRapport?._concept : null); // oud: alleen zelfde doctype
   if (!concept) return;
   const pdfVoorReview = app.primaireBest[app.docIdx]
     ?.find(f => f.name?.toLowerCase().endsWith('.pdf'))
@@ -9954,7 +9954,7 @@ async function _bouwExportDocx(meldBtn, schoon = false) {
   // Tekst-fallback als laatste redmiddel (geen PDF, geen IDB-cache)
   if (!origDocx) {
     if (meldBtn) meldBtn('⏳ Document genereren vanuit opgeslagen tekst…');
-    const { naarEcht } = bouwAnonMap(huidigeClassificatie || {});
+    const { naarEcht } = bouwAnonMap(app.classificatie || {});
     const eindTekst = herstelAnonObj(_conceptDocumentTekst || '', naarEcht);
     return maakDocxVanTekst(eindTekst);
   }
@@ -9999,15 +9999,15 @@ document.getElementById('conceptDownloadBtn').addEventListener('click', async ()
     gewijzigdDocx = await voegVoettekstToeAanDocx(gewijzigdDocx);
 
     // ── Downloaden ────────────────────────────────────────
-    // Gebruik altijd het actieve tabblad-type, NIET huidigeClassificatie.doc_type —
+    // Gebruik altijd het actieve tabblad-type, NIET app.classificatie.doc_type —
     // dat is het top-level type (bijv. Convenant) en wijkt af bij multi-doc (OP-tab).
-    const activeDocType = app.documenten[app.docIdx]?.doc_type || huidigeClassificatie?.doc_type || '';
+    const activeDocType = app.documenten[app.docIdx]?.doc_type || app.classificatie?.doc_type || '';
     const docTypeLabel  = DOC_TYPES.find(d => d.value === activeDocType)?.label || 'Concept';
     // Voorkeur: dossier-naam; fallback: partijnamen uit classificatie
     const namenDeel = (() => {
       if (app.dossierNaam) return ` — ${app.dossierNaam}`;
-      const a = (huidigeClassificatie?.partij_a_naam || '').trim();
-      const b = (huidigeClassificatie?.partij_b_naam || '').trim();
+      const a = (app.classificatie?.partij_a_naam || '').trim();
+      const b = (app.classificatie?.partij_b_naam || '').trim();
       const namen = [a, b].filter(Boolean).join(' - ');
       return namen ? ` — ${namen}` : '';
     })();
@@ -12049,8 +12049,8 @@ function _assistKoppelDossier(id, naam) {
   if (id === app.screeningId && huidigRapport) {
     const rp = huidigRapport;
     // Gebruik pseudoniemen (naarAnon) in plaats van echte namen
-    const pA = huidigeClassificatie?.partij_a_naam || '';
-    const pB = huidigeClassificatie?.partij_b_naam || '';
+    const pA = app.classificatie?.partij_a_naam || '';
+    const pB = app.classificatie?.partij_b_naam || '';
     const pseudoA = (huidigeNaarAnon && pA) ? (anonimiseerTekst(pA, huidigeNaarAnon) || 'Partij A') : 'Partij A';
     const pseudoB = (huidigeNaarAnon && pB) ? (anonimiseerTekst(pB, huidigeNaarAnon) || 'Partij B') : 'Partij B';
     ctx = `Dossier (geanonimiseerd): Partij A = ${pseudoA}, Partij B = ${pseudoB}`;
@@ -12277,8 +12277,8 @@ function _assistHerstelNamen(tekst) {
 
 // Geeft "RoepnaamA en RoepnaamB" terug op basis van huidige classificatie
 function _assistRoepnamen() {
-  const a = huidigeClassificatie?.partij_a_roepnaam || huidigeClassificatie?.partij_a_naam?.trim().split(/\s+/)[0] || 'Partij A';
-  const b = huidigeClassificatie?.partij_b_roepnaam || huidigeClassificatie?.partij_b_naam?.trim().split(/\s+/)[0] || 'Partij B';
+  const a = app.classificatie?.partij_a_roepnaam || app.classificatie?.partij_a_naam?.trim().split(/\s+/)[0] || 'Partij A';
+  const b = app.classificatie?.partij_b_roepnaam || app.classificatie?.partij_b_naam?.trim().split(/\s+/)[0] || 'Partij B';
   return `${a} en ${b}`;
 }
 
