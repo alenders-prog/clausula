@@ -7,6 +7,7 @@
 //   HTTP 500 + { error }                         — mislukt
 
 import { verifieerJWT } from './_auth.js';
+import JSZip from 'jszip';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
@@ -67,12 +68,61 @@ export default async function handler(req, res) {
     const docxRes = await fetch(downloadUri);
     if (!docxRes.ok) throw new Error(`DOCX download mislukt (${docxRes.status})`);
 
-    const docxBuf    = Buffer.from(await docxRes.arrayBuffer());
+    const rawBuf     = Buffer.from(await docxRes.arrayBuffer());
+    const docxBuf    = await fixDocxArtifacts(rawBuf);
     const docxBase64 = docxBuf.toString('base64');
 
     return res.status(200).json({ status: 'done', docxBase64 });
   } catch (err) {
     console.error('[adobe-result]', err.message);
     return res.status(500).json({ error: err.message });
+  }
+}
+
+// ── DOCX post-processing ──────────────────────────────────────────────────────
+// Verwijdert twee artefacten van Adobe's PDF→DOCX conversie:
+//  1. Lege pagina's: paragrafen die uitsluitend een <w:sectPr> bevatten (geen tekst-runs)
+//     worden door Word als extra pagina gerenderd.
+//  2. Dubbele voettekst: als Word-footers (word/footer*.xml) al "paraaf"-tekst bevatten,
+//     worden identieke body-paragrafen verwijderd.
+async function fixDocxArtifacts(buf) {
+  try {
+    const zip = await JSZip.loadAsync(buf);
+
+    // Controleer of er echte Word-footers zijn met paraaf-inhoud
+    const footerFiles = Object.keys(zip.files).filter(n => /^word\/footer\d*\.xml$/.test(n));
+    let hasProperFooter = false;
+    for (const fname of footerFiles) {
+      const content = await zip.file(fname).async('string');
+      if (content.toLowerCase().includes('paraaf')) { hasProperFooter = true; break; }
+    }
+
+    const docFile = zip.file('word/document.xml');
+    if (!docFile) return buf;
+
+    let xml = await docFile.async('string');
+
+    // Verwerk elke <w:p>…</w:p> — w:p is nooit genest in valide OOXML
+    xml = xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (para) => {
+      const hasRuns  = /<w:r[ >]/.test(para);
+      const hasSectPr = /<w:sectPr[ >]/.test(para);
+
+      // 1. Lege pagina: sectie-einde zonder tekst-runs
+      if (hasSectPr && !hasRuns) return '';
+
+      // 2. Dubbele voettekst: verwijder body-instanties als Word-footer al bestaat
+      if (hasProperFooter && hasRuns) {
+        const tekst = para.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (tekst.includes('paraaf') && tekst.length < 80) return '';
+      }
+
+      return para;
+    });
+
+    zip.file('word/document.xml', xml);
+    return await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+  } catch (e) {
+    console.warn('[adobe-result] DOCX post-processing mislukt, origineel wordt teruggegeven:', e.message);
+    return buf;
   }
 }

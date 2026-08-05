@@ -83,8 +83,10 @@ bijgewerkt moeten worden en doe dat **in dezelfde sessie, vóór de commit**:
 | `api/analyseer.js` | `screening-categorien`, `document-model` |
 | `api/genereer-concept.js` | `concept-generatie` |
 | `api/export-docx.js` | `concept-generatie` |
+| `api/ai-assistent.js` | `clausula-assistent` |
 | `index.html` — analyse-flow | `screening-categorien`, `document-model` |
 | `index.html` — concept-flow | `concept-generatie` |
+| `index.html` — assistent-flow | `clausula-assistent` |
 
 Update de skill alleen als de wijziging **non-obvieuze** kennis toevoegt of verandert
 (veldnamen, algoritmen, valkuilen, designbeslissingen). Triviale fixes hoeven niet.

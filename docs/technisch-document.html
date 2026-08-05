@@ -242,6 +242,81 @@ pre code { background: none; border: none; padding: 0; font-size: inherit; }
   .main { padding: 24px 0 48px; }
   .decision-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Assistent-flowdiagram (sectie 13) ───────────────────── */
+.af-legend { display:flex; flex-wrap:wrap; gap:5px 16px; background:var(--pale);
+  border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin:10px 0 16px; }
+.af-leg { display:flex; align-items:center; gap:5px; font-size:.73rem; color:var(--muted); }
+.af-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+.af-flow { display:flex; align-items:center; flex-wrap:wrap; gap:0; margin:8px 0; }
+.af-arr { color:var(--muted); font-size:12px; padding:0 4px; flex-shrink:0; }
+
+.af-n { border-radius:4px; padding:3px 8px; font-size:.72rem; font-weight:700;
+  color:#fff; white-space:nowrap; flex-shrink:0; display:inline-block; }
+.af-n-start  { background:#1e3a5f; }
+.af-n-user   { background:#1d4ed8; }
+.af-n-ai     { background:#1a5e54; }
+.af-n-dec    { background:#92400e; border-radius:12px; }
+.af-n-spec   { background:#4c1d95; }
+.af-n-once   { background:#9b1c1c; }
+.af-n-grey   { background:#6b7280; }
+
+.af-branches { display:flex; gap:7px; margin:6px 0 10px 16px; flex-wrap:wrap; }
+.af-br { border:1px solid var(--line); border-radius:5px; flex:1; min-width:160px; overflow:hidden; }
+.af-br-hdr { padding:4px 9px; font-size:.7rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.04em; border-bottom:1px solid var(--line); }
+.af-br-hdr-b { background:#dbeafe; color:#1e3a8a; }
+.af-br-hdr-g { background:#d1fae5; color:#065f46; }
+.af-br-hdr-y { background:#fef3c7; color:#78350f; }
+.af-br-hdr-r { background:#fee2e2; color:#7f1d1d; }
+.af-br-body  { padding:6px 9px; font-size:.72rem; color:var(--muted); line-height:1.5; }
+.af-br-body strong { color:var(--ink); }
+
+.af-steps { display:flex; align-items:stretch; flex-wrap:wrap; gap:0; margin:8px 0 4px; }
+.af-step { border:1.5px solid var(--line); border-radius:5px; padding:7px 9px;
+  min-width:100px; max-width:145px; flex:1; background:var(--card); }
+.af-step-n { font-size:13px; font-weight:800; color:var(--navy); line-height:1; }
+.af-step-lbl { font-size:.75rem; font-weight:700; color:var(--ink); margin:2px 0 2px; }
+.af-step-d { font-size:.68rem; color:var(--muted); line-height:1.35; }
+.af-step-arr { align-self:center; color:var(--muted); font-size:15px; padding:0 4px; flex-shrink:0; }
+.af-step.dec { border-color:#fbbf24; background:#fffbeb; }
+.af-step.dec .af-step-n { color:#92400e; }
+.af-step.ai  { border-color:#6ee7b7; background:#f0fdf9; }
+.af-step.ai  .af-step-n { color:#1a5e54; }
+.af-step.act { border-color:#93c5fd; background:#eff6ff; }
+.af-step.spec{ border-color:#c4b5fd; background:#f5f3ff; }
+.af-step.spec .af-step-n { color:#4c1d95; }
+
+.af-chip { display:inline-block; background:var(--pale); border:1px solid var(--line);
+  border-radius:10px; padding:1px 7px; font-size:.68rem; font-weight:600;
+  color:var(--navy); margin:1px 2px 1px 0; white-space:nowrap; }
+.af-chip.once { background:#fee2e2; border-color:#fca5a5; color:#7f1d1d; }
+.af-chip.spec { background:#ede9fe; border-color:#c4b5fd; color:#4c1d95; }
+
+.af-tbl { width:100%; border-collapse:collapse; font-size:.73rem; margin:10px 0; }
+.af-tbl th { background:var(--pale); color:var(--navy); font-weight:700; text-transform:uppercase;
+  font-size:.66rem; letter-spacing:.05em; padding:5px 8px; border:1px solid var(--line); text-align:left; }
+.af-tbl td { padding:5px 8px; border:1px solid var(--line); vertical-align:top; }
+.af-tbl tr:nth-child(even) td { background:var(--bg); }
+
+.af-cl { list-style:none; margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:2px 12px; }
+.af-cl li { display:flex; align-items:flex-start; gap:5px; font-size:.72rem;
+  padding:2px 0; color:var(--muted); }
+.af-cl li input { margin-top:1px; flex-shrink:0; accent-color:#1a5e54; }
+.af-cl li.lbl { font-weight:700; font-size:.68rem; color:var(--navy); text-transform:uppercase;
+  letter-spacing:.04em; grid-column:1/-1; margin-top:5px; padding-top:3px;
+  border-top:1px solid var(--line); }
+.af-cl li.lbl:first-child { border-top:none; margin-top:0; }
+
+.af-note { background:#fffde7; border:1px solid #ffe082; border-radius:4px;
+  padding:5px 10px; font-size:.72rem; color:#7a5c00; margin:7px 0; line-height:1.5; }
+
+@media print {
+  .af-n, .af-br-hdr, .af-chip { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .af-step { break-inside:avoid; }
+}
 </style>
 
 <!-- Page header -->
@@ -281,6 +356,12 @@ pre code { background: none; border: none; padding: 0; font-size: inherit; }
         <a href="#backlog">10. Backlog</a>
         <a href="#skills">11. Skills-systeem</a>
         <a href="#deployment">12. Deployment & operatie</a>
+        <a href="#assistent-flow">13. AI Assistent — flows</a>
+        <a href="#af-opstarten" class="sub">Opstarten & koppelen</a>
+        <a href="#af-intent" class="sub">Intent & vervolgacties</a>
+        <a href="#af-clausule" class="sub">Clausule opstellen</a>
+        <a href="#af-klanttekst" class="sub">Samenvatting & mail</a>
+        <a href="#af-sessie" class="sub">Sessie beheer</a>
       </nav>
     </div>
   </aside>
@@ -889,6 +970,239 @@ description: ...          # wanneer te laden — zo specifiek dat Claude het her
 ## Referenties naar deelbestanden (optioneel)
 </code></pre>
       <p>Grote skills gebruiken extra referentiebestanden (bijv. <code>references/severity.md</code>) zodat de hoofd-SKILL.md compact blijft en de referentiebestanden op zichzelf doorzoekbaar zijn.</p>
+    </section>
+
+    <!-- 13. AI Assistent — flows -->
+    <section class="section" id="assistent-flow">
+      <h2 class="section-title">13. AI Assistent — flows &amp; testpad</h2>
+      <p>Dit diagram beschrijft alle mogelijke paden in de Clausula AI-assistent (<code>index.html</code> + <code>api/ai-assistent.js</code>). Gebruik het als testscript: vink paden af na een testronde.</p>
+
+      <div class="af-legend">
+        <div class="af-leg"><div class="af-dot" style="background:#1e3a5f"></div>Systeemactie</div>
+        <div class="af-leg"><div class="af-dot" style="background:#1d4ed8"></div>Gebruikersactie</div>
+        <div class="af-leg"><div class="af-dot" style="background:#1a5e54"></div>AI-reactie</div>
+        <div class="af-leg"><div class="af-dot" style="background:#92400e;border-radius:50%"></div>Beslismoment</div>
+        <div class="af-leg"><div class="af-dot" style="background:#4c1d95"></div>Speciale flow</div>
+        <div class="af-leg"><div class="af-dot" style="background:#9b1c1c"></div>Eénmalige actie</div>
+      </div>
+
+      <!-- 13.1 Opstarten -->
+      <h3 class="section-sub" id="af-opstarten">13.1 Opstarten &amp; dossier koppelen</h3>
+
+      <div class="af-flow">
+        <div class="af-n af-n-user">Open assistent-panel</div>
+        <div class="af-arr">→</div>
+        <div class="af-n af-n-dec">Dossier open in app?</div>
+      </div>
+      <div class="af-branches">
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-g">Ja — auto-koppelen</div>
+          <div class="af-br-body">Direct koppelen, <strong>geen dialoog</strong><br>"Dossier [naam] is gekoppeld"<br>resolvedFields ingevuld vanuit kenmerken</div>
+        </div>
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-y">Nee — koppeldialoog</div>
+          <div class="af-br-body">Dropdown: kies dossier → koppelen<br>"Nee, algemene vraag" → geen dossier</div>
+        </div>
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-b">Nieuw gesprek (+)</div>
+          <div class="af-br-body"><strong>Altijd dialoog</strong>, ook bij open dossier<br>Bewuste keuze: koppel / ander / geen</div>
+        </div>
+      </div>
+      <div class="af-note">⚠️ <strong>Mid-sessie koppeling</strong>: gesprek gestart zonder dossier → daarna koppelen → per-veld conflictmelding (zie §13.5)</div>
+
+      <ul class="af-cl">
+        <li class="lbl">Testen</li>
+        <li><input type="checkbox"><span>Dossier open → panel openen → auto-koppeling, dossier-strip zichtbaar</span></li>
+        <li><input type="checkbox"><span>Geen dossier open → dialoog getoond</span></li>
+        <li><input type="checkbox"><span>"+" bij open dossier → dialoog toont alsnog</span></li>
+        <li><input type="checkbox"><span>Auto-koppeling: BEKENDE GEGEVENS bevat relatievorm + HV-stelsel</span></li>
+        <li><input type="checkbox"><span>Koude uitsluiting + geen woning in convenant → "Eigen woning: niet in dossier" in BEKENDE GEGEVENS</span></li>
+        <li><input type="checkbox"><span>Eerder gesprek hersteld vanuit localStorage</span></li>
+      </ul>
+
+      <!-- 13.2 Intent -->
+      <h3 class="section-sub" id="af-intent">13.2 Vraag stellen &amp; vervolgacties</h3>
+
+      <div class="af-flow">
+        <div class="af-n af-n-user">Vrije tekst</div>
+        <div class="af-arr">→</div>
+        <div class="af-n af-n-ai">API: intent detectie</div>
+        <div class="af-arr">→</div>
+        <div class="af-n af-n-dec">Intent?</div>
+      </div>
+      <div class="af-branches">
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-b">KENNISVRAAG</div>
+          <div class="af-br-body">Abstracte rechtsvraag<br>Max ~60 woorden, bronnen</div>
+        </div>
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-g">CASUS</div>
+          <div class="af-br-body">Concrete situatie / gevolgen<br>Expliciete aannames verplicht</div>
+        </div>
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-y">OPTIES</div>
+          <div class="af-br-body">Expliciete optie-vraag<br>Max 3 opties als kaartjes</div>
+        </div>
+        <div class="af-br">
+          <div class="af-br-hdr af-br-hdr-r">CLAUSULE</div>
+          <div class="af-br-body">Expliciete clausule-aanvraag<br>of via chip</div>
+        </div>
+      </div>
+
+      <table class="af-tbl">
+        <thead><tr><th>Intent</th><th>Chips</th><th>Eénmalig?</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Kennisvraag</strong></td>
+            <td><span class="af-chip once">Toepassen op casus</span> <span class="af-chip">Samenvatting voor klant</span> <span class="af-chip">📝 Clausule opstellen</span></td>
+            <td>Toepassen op casus ✓</td>
+          </tr>
+          <tr>
+            <td><strong>Casus</strong></td>
+            <td><span class="af-chip">Keuzes uitwerken</span> <span class="af-chip">📝 Clausule opstellen</span> <span class="af-chip once">Fiscale check</span> <span class="af-chip once">Toets aan dossier</span></td>
+            <td>Fiscale check ✓ · Toets aan dossier ✓</td>
+          </tr>
+          <tr>
+            <td><strong>Opties</strong></td>
+            <td><span class="af-chip">Samenvatting voor klant</span> <span class="af-chip">📝 Clausule opstellen</span></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><strong>Clausule</strong></td>
+            <td><span class="af-chip">Samenvatting voor klant</span> <span class="af-chip spec">Andere stijl</span></td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="font-size:.73rem;color:var(--muted);margin-top:4px;">Eénmalige chips verdwijnen na gebruik in dit gesprek; reset bij nieuw gesprek. "Andere stijl" klapt stijlknoppen uit zonder API-aanroep.</p>
+
+      <ul class="af-cl">
+        <li class="lbl">Testen</li>
+        <li><input type="checkbox"><span>CASUS: AI vraagt NIET naar relatievorm als HV-stelsel in BEKENDE GEGEVENS staat</span></li>
+        <li><input type="checkbox"><span>CASUS: AI vraagt NIET naar eigen woning als "Eigen woning: niet in dossier" in BEKENDE GEGEVENS staat</span></li>
+        <li><input type="checkbox"><span>Verduidelijkingsvraag: keuzeknop klikken → antwoord past zich aan</span></li>
+        <li><input type="checkbox"><span>Fiscale check → chip verdwijnt in alle volgende antwoorden</span></li>
+        <li><input type="checkbox"><span>Toets aan dossier → idem eénmalig</span></li>
+        <li><input type="checkbox"><span>"Andere stijl" → stijlknoppen uitklappen, géén API-aanroep</span></li>
+      </ul>
+
+      <!-- 13.3 Clausule -->
+      <h3 class="section-sub" id="af-clausule">13.3 Clausule opstellen</h3>
+      <p style="font-size:.73rem;color:var(--muted);margin-bottom:8px;">Instappunten: chip "📝 Clausule opstellen" · knop na samenvatting · legacy "Genereer clausule"-knop</p>
+
+      <div class="af-steps">
+        <div class="af-step act">
+          <div class="af-step-n">1</div>
+          <div class="af-step-lbl">Instappen</div>
+          <div class="af-step-d">Chip / knop → keuzeformulier</div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step dec">
+          <div class="af-step-n">2</div>
+          <div class="af-step-lbl">Keuzeformulier</div>
+          <div class="af-step-d"><strong>Variant:</strong> enkelvoudig / conditioneel / incl-excl<br><strong>Stijl*:</strong> los art. / wijziging<br><strong>Uitwerking:</strong> volledig / compact<br><strong>Verwijzing:</strong> voornamen / man-vrouw / A-B<br><strong>Positie:</strong> vrij tekst (opt.)<br><em>*alleen bij gekoppeld dossier</em></div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step ai">
+          <div class="af-step-n">3</div>
+          <div class="af-step-lbl">Genereer</div>
+          <div class="af-step-d">rawModus, max 4000 tokens<br>Altijd met <code>---TOELICHTING---</code></div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step">
+          <div class="af-step-n">4</div>
+          <div class="af-step-lbl">Clausule-bubble</div>
+          <div class="af-step-d">Header: doctype + stijl<br>Uitklapbaar:<br>• Minimale vereisten<br>• Valkuilen<br>• Toekomstige punten<br>Kopieer · Voeg toe als issue</div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step spec">
+          <div class="af-step-n">5</div>
+          <div class="af-step-lbl">Herschrijf-balk</div>
+          <div class="af-step-d">Strikt / Juridisch volledig / Begrijpelijk<br>→ nieuwe clausule + nieuwe balk<br>3e stijl na 2e herschrijf</div>
+        </div>
+      </div>
+
+      <ul class="af-cl">
+        <li class="lbl">Testen</li>
+        <li><input type="checkbox"><span>Genereer-knop pas actief na alle verplichte velden</span></li>
+        <li><input type="checkbox"><span>Header toont doctype + schrijfstijl</span></li>
+        <li><input type="checkbox"><span>Toelichting-secties uitklapbaar</span></li>
+        <li><input type="checkbox"><span>"Voeg toe als issue" → issue in dossier</span></li>
+        <li><input type="checkbox"><span>Herschrijf-balk onder clausule</span></li>
+        <li><input type="checkbox"><span>Twee varianten: aparte kopieer + issue-knop per variant</span></li>
+        <li><input type="checkbox"><span>Derde stijlvariant beschikbaar na tweede herschrijf</span></li>
+      </ul>
+
+      <!-- 13.4 Samenvatting & mail -->
+      <h3 class="section-sub" id="af-klanttekst">13.4 Samenvatting voor klant &amp; mailvoorstel</h3>
+
+      <div class="af-steps">
+        <div class="af-step dec">
+          <div class="af-step-n">1</div>
+          <div class="af-step-lbl">Opties in gesprek?</div>
+          <div class="af-step-d">Ja → optie-selectie-dialoog<br>Nee → direct stap 2</div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step ai">
+          <div class="af-step-n">2</div>
+          <div class="af-step-lbl">Samenvatting</div>
+          <div class="af-step-d">rawModus, max 150 woorden<br>Neutraal, toegankelijk</div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step spec">
+          <div class="af-step-n">3</div>
+          <div class="af-step-lbl">Vervolgknoppen</div>
+          <div class="af-step-d">• Mailvoorstel opstellen<br>• Clausule opstellen</div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step act">
+          <div class="af-step-n">4</div>
+          <div class="af-step-lbl">Mail-instellingen</div>
+          <div class="af-step-d"><strong>Variant</strong> (bij 2 var.): beide / A / B<br><strong>Schrijfstijl:</strong> formeel / informeel<br><strong>Namen</strong> (opt., zonder dossier)</div>
+        </div>
+        <div class="af-step-arr">→</div>
+        <div class="af-step ai">
+          <div class="af-step-n">5</div>
+          <div class="af-step-lbl">Concept-mail</div>
+          <div class="af-step-d">rawModus<br>Kopieer mailvoorstel<br>Evt. "Clausule voor optie ▸"</div>
+        </div>
+      </div>
+
+      <ul class="af-cl">
+        <li class="lbl">Testen</li>
+        <li><input type="checkbox"><span>Na opties-antwoord: optie-selectie-dialoog getoond</span></li>
+        <li><input type="checkbox"><span>Twee varianten: keuze variant in mail-instellingen</span></li>
+        <li><input type="checkbox"><span>Formeel: "Geachte…" · Informeel: "Beste…" + roepnamen</span></li>
+        <li><input type="checkbox"><span>"Kopieer mailvoorstel" werkt</span></li>
+        <li><input type="checkbox"><span>Na mail + opties: dropdown "Clausule voor gekozen optie ▸" zichtbaar</span></li>
+      </ul>
+
+      <!-- 13.5 Sessie beheer -->
+      <h3 class="section-sub" id="af-sessie">13.5 Sessie beheer</h3>
+
+      <table class="af-tbl">
+        <thead><tr><th>Actie</th><th>Knop</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Nieuw gesprek</strong></td><td>+ (plus)</td><td>Volledig reset; dialoog altijd getoond (ook bij open dossier)</td></tr>
+          <tr><td><strong>Gesprek verwijderen</strong></td><td>Prullenbak</td><td>Bevestiging → verwijdert uit localStorage; dossier-koppeling blijft</td></tr>
+          <tr><td><strong>Geschiedenis</strong></td><td>Klok</td><td>Lijst opgeslagen sessies; klik → herstel; prullenbak per sessie</td></tr>
+          <tr><td><strong>Ontkoppelen</strong></td><td>"Ontkoppel" in strip</td><td>Strip verborgen; conversatie gewist; dialoog opnieuw</td></tr>
+          <tr><td><strong>Mid-sessie conflict</strong></td><td>Automatisch</td><td>Per-veld vergelijking: ⚠️ afwijkingen + grijze onbevestigden. Knoppen: "Nieuw gesprek" of "Doorgaan"</td></tr>
+          <tr><td><strong>Dossier-wissel</strong></td><td>In hoofdapp (panel open)</td><td>Panel reset automatisch → dialoog voor nieuwe dossier</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:.72rem;color:var(--muted);margin:4px 0 8px;">Dossier-sessies: <code>assist_chat_dossier_[id]</code>. Algemene sessies: <code>assist_chat_algemeen_[ts]</code> (max 10). Conversatiegeschiedenis: max 20 berichten.</p>
+
+      <ul class="af-cl">
+        <li class="lbl">Testen</li>
+        <li><input type="checkbox"><span>"+" → dialoog toont, ook bij open dossier</span></li>
+        <li><input type="checkbox"><span>Prullenbak → bevestiging → sessie weg uit localStorage</span></li>
+        <li><input type="checkbox"><span>Klok → gespreklijst → klik herstelt sessie</span></li>
+        <li><input type="checkbox"><span>Mid-sessie koppeling → conflictmelding met veld-vergelijking</span></li>
+        <li><input type="checkbox"><span>"Nieuw gesprek" in conflict → volledig reset</span></li>
+        <li><input type="checkbox"><span>Dossier-wissel in hoofdapp → panel reset automatisch</span></li>
+      </ul>
+
     </section>
 
   </main>

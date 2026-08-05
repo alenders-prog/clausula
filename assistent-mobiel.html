@@ -284,16 +284,49 @@
     .mob-keuze-btn:hover { background: rgba(26,74,122,.08); }
     .mob-keuze-btn.geselecteerd { background: var(--c-accent, #1a4a7a); color: #fff; }
     .mob-vraag-blok.inactief { opacity: .45; pointer-events: none; }
+    .mob-na-advies-knoppen { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
+    .mob-actie-btn { padding: 6px 12px; border: 1.5px solid var(--c-accent,#1a4a7a);
+      border-radius: 6px; background: transparent; color: var(--c-accent,#1a4a7a);
+      font-size: .78rem; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all .13s; }
+    .mob-actie-btn:hover { background: var(--c-accent,#1a4a7a); color: #fff; }
 
     /* ── Input area ── */
     .mob-input-area {
       flex-shrink: 0;
       display: flex;
-      align-items: flex-end;
-      gap: 8px;
+      flex-direction: column;
+      gap: 0;
       padding: 10px 16px 14px;
       background: var(--paper);
       border-top: 1px solid var(--line);
+    }
+    .mob-modus-balk {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .mob-modus-btn {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 7px;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .mob-modus-btn.actief {
+      background: var(--c-accent, #1a4a7a);
+      color: #fff;
+      border-color: var(--c-accent, #1a4a7a);
+    }
+    .mob-invoer-rij {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
     }
     .mob-input {
       flex: 1;
@@ -386,11 +419,17 @@
 
   <!-- Input -->
   <div class="mob-input-area" id="mobInputArea" style="display:none">
+    <div class="mob-modus-balk">
+      <button class="mob-modus-btn actief" id="mobModusAdvies">💬 Korte vraag</button>
+      <button class="mob-modus-btn" id="mobModusClausule">📝 Clausule opstellen</button>
+    </div>
+    <div class="mob-invoer-rij">
     <textarea class="mob-input" id="mobInput" rows="1"
       placeholder="Stel een juridische vraag…"></textarea>
     <button class="mob-send" id="mobSend" title="Stuur">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
     </button>
+    </div>
   </div>
 </div>
 
@@ -431,6 +470,7 @@
   let thinkingEl = null;
   const MOB_PFX = 'assist_mob_';
   let sessieId = null;
+  let modus = 'advies';  // 'advies' | 'clausule'
 
   /* ── Sessie-opslag ───────────────────────────────── */
   function slaOpInStorage() {
@@ -602,18 +642,46 @@
     if (blok) {
       blok.querySelectorAll('.mob-keuze-btn').forEach(b => b.classList.remove('geselecteerd'));
       btn.classList.add('geselecteerd');
-      blok.dataset.vraag = vraagLabel;
-      blok.dataset.keuze = keuze;
     }
+
+    // "Nee / volstaat" → stil afsluiten, toon actie-knoppen
+    if (keuze.toLowerCase().includes('volstaat')) {
+      blok?.classList.add('inactief');
+      conversatie.push({ role: 'user', content: keuze });
+      slaOpInStorage();
+      msgsEl.querySelectorAll('.mob-na-advies-knoppen').forEach(el => el.remove());
+      const actieBalk = document.createElement('div');
+      actieBalk.className = 'mob-na-advies-knoppen';
+      const mkBtn = (label, fn) => {
+        const b = document.createElement('button');
+        b.className = 'mob-actie-btn';
+        b.textContent = label;
+        b.onclick = fn;
+        return b;
+      };
+      actieBalk.appendChild(mkBtn('📝 Clausule opstellen', () => {
+        actieBalk.remove();
+        setModus('clausule');
+        inputEl.focus();
+      }));
+      msgsEl.appendChild(actieBalk);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
+      return;
+    }
+
+    // Sla keuze op in blok
+    if (blok) { blok.dataset.vraag = vraagLabel; blok.dataset.keuze = keuze; }
+
     const wrap = btn.closest('.mob-bubble-wrap');
-    const geselecteerd = wrap
-      ? [...wrap.querySelectorAll('.mob-vraag-blok[data-keuze]')]
-          .map(b => `${b.dataset.vraag}: ${b.dataset.keuze}`)
-      : [`${vraagLabel}: ${keuze}`];
-    inputEl.value = geselecteerd.join('\n');
-    inputEl.style.height = 'auto';
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
-    inputEl.focus();
+    const actieveBlokken = wrap
+      ? [...wrap.querySelectorAll('.mob-vraag-blok:not(.inactief)')]
+      : [];
+    const beantwoord = actieveBlokken.filter(b => b.dataset.keuze);
+
+    if (beantwoord.length >= actieveBlokken.length && actieveBlokken.length > 0) {
+      const tekst = beantwoord.map(b => `${b.dataset.vraag}: ${b.dataset.keuze}`).join('\n');
+      setTimeout(() => stuurBericht(tekst), 150);
+    }
   }
 
   function voegAssistentBericht(tekst, bronnen, vragen = []) {
@@ -697,14 +765,16 @@
   }
 
   /* ── Versturen ───────────────────────────────────── */
-  async function stuurBericht() {
+  async function stuurBericht(forceTekst) {
     if (bezig) return;
-    const tekst = inputEl.value.trim();
+    const tekst = (forceTekst || inputEl.value).trim();
     if (!tekst) return;
 
-    inputEl.value = '';
-    inputEl.style.height = 'auto';
-    voegGebruikerBericht(tekst);
+    if (!forceTekst) {
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      voegGebruikerBericht(tekst);
+    }
     voegDenkenToe();
     bezig = true;
     sendEl.disabled = true;
@@ -719,6 +789,7 @@
         body: JSON.stringify({
           vraag:       tekst,
           conversatie: conversatie,
+          modus:       modus,
         }),
       });
 
@@ -744,6 +815,17 @@
   }
 
   /* ── Event listeners ─────────────────────────────── */
+  function setModus(nieuweModus) {
+    modus = nieuweModus;
+    document.getElementById('mobModusAdvies')?.classList.toggle('actief', nieuweModus === 'advies');
+    document.getElementById('mobModusClausule')?.classList.toggle('actief', nieuweModus === 'clausule');
+    inputEl.placeholder = nieuweModus === 'clausule'
+      ? 'Beschrijf welke clausule opgesteld moet worden…'
+      : 'Stel uw vraag — u krijgt direct een antwoord met eventuele varianten…';
+  }
+  document.getElementById('mobModusAdvies')?.addEventListener('click', () => setModus('advies'));
+  document.getElementById('mobModusClausule')?.addEventListener('click', () => setModus('clausule'));
+
   sendEl.addEventListener('click', stuurBericht);
 
   inputEl.addEventListener('keydown', e => {

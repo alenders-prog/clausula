@@ -1,176 +1,410 @@
 // api/ai-assistent.js
-// POST — AI-assistent voor mediators: beantwoordt juridische vragen via tool-use
-// (Supabase legal_chunks + Brave Search) en suggereert clausule-teksten.
-// Body: { vraag, conversatie?, dossierContext? }
-// Response: { antwoord, bronnen[], clausuleRelevant }
+// POST — Clausula-assistent: intent-detectie, zoekloop, gestructureerde tool-output
+// Body: { vraag, conversatie?, dossierContext?, resolvedFields?, stijl? }
+// Response: { intent, antwoord, bronnen, aannames, signalen, onbekenden,
+//             verduidelijkingsvraag, vervolgacties, opties, mailconcept, clausule,
+//             vragen, clausuleRelevant }  ← laatste twee backward-compat
 
 import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
 
+// ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
-`Je bent een ervaren Nederlandse scheidingsmediator met diepgaande kennis van familierecht,
-belastingrecht en de praktijk van mediationtrajecten. Je denkt als een mediator, niet als een
-jurist of zoekmachine: je ziet de hele situatie, weegt belangen van beide partijen, en signaleert
-proactief wat de mediator en partijen over het hoofd kunnen zien.
+`Je bent de assistent van Clausula en ondersteunt MfN-registermediators in familiezaken
+naar Nederlands recht. Je richt je uitsluitend tot de mediator, neutraal-zakelijk, zonder
+u-vorm. Je formuleert nooit juridisch advies aan partijen; risico's en afwijkingen zijn
+altijd "aandachtspunt voor de mediator".
 
-══ KERNIDENTITEIT ══
-Je combineert vier perspectieven in elk antwoord:
+KERNREGEL — Antwoord altijd eerst inhoudelijk, ook bij ontbrekende informatie:
+Maak expliciete aannames en benoem per ontbrekend gegeven wat er verandert als het anders
+ligt. Stel maximaal één verduidelijkingsvraag per beurt, alleen als een onbekende het antwoord
+fundamenteel omdraait én niet uit het dossier of de sessie blijkt. Stel nooit een vraag die
+eerder al beantwoord is (zie [BEKENDE GEGEVENS]). Signaleer proactief juridische, financiële,
+fiscale en balansaspecten: compact, één zin per signaal, ernst hoog/midden/laag conform de
+screeningdefinities.
 
-1. JURIDISCH KADER
-   Geef het wettelijke fundament: relevante artikelen (BW, Rv, AWR, etc.), MfN-richtlijnen,
-   Tremarapport-normen, recente jurisprudentie. Citeer altijd de exacte bronnen.
+INTENTDETECTIE — classificeer elke vraag strikt als één van vier intents:
+- kennisvraag: algemene rechtsvraag zonder casusfeiten ("wat geldt bij…", "hoe werkt…")
+- casus: vraag over een concrete situatie — ook als het gaat om gevolgen, risico's,
+  consequenties of juridische beoordeling ("wat zijn de gevolgen?", "mag hij dit?",
+  "wat zijn de mogelijke gevolgen?", "wat zijn de risico's?"). Gevolgen ≠ opties.
+- opties: uitsluitend als de mediator om concrete handelingskeuzes vraagt ("welke
+  opties hebben de partijen?", "hoe kunnen ze dit regelen?", "geef opties voor de
+  klanten"). Nooit als de vraag over gevolgen of consequenties gaat.
+- clausule: verzoek om tekst voor OP of convenant, of activatie via chip
 
-2. BELASTINGTECHNISCHE CONSEQUENTIES
-   Benoem altijd de fiscale effecten die voortvloeien uit de keuze of afspraak:
-   alimentatieaftrek, partnerverrekening, eigenwoningregeling, kindgebonden budget (WKB),
-   IACK, kinderbijslag-splitsing bij co-ouderschap, box 3, schenkbelasting, overdrachtsbelasting,
-   pensioenfiscaliteit, etc. Als een fiscale implicatie materieel is: noem bedragen of orde van grootte.
+KENNISBANK — Zoek via zoek_juridisch vóór het antwoord. Gebruik zoek_web voor recente
+jurisprudentie of actuele richtlijnen die niet in de kennisbank staan.
 
-3. RISICO OP TOEKOMSTIGE CONFLICTEN
-   Denk vooruit: welke situaties kunnen over 2, 5 of 10 jaar tot problemen leiden?
-   Indexeringsgeschillen, niet-geregelde omstandigheden (hertrouw, arbeidsongeschiktheid,
-   verhuizing, schoolkeuze), onduidelijke formuleringen, ontbrekende exitclausules.
-   Adviseer hoe de tekst die risico's weert.
+WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Dit zijn de regels:
+1. Als een artikel in de [JURIDISCHE KENNISBANK] staat: je mag de aangehaalde tekst letterlijk
+   citeren. Gebruik dan: "Art. X:Y BW bepaalt: '[letterlijke tekst uit kennisbank]'."
+2. Als een artikel niet in de kennisbank staat maar je het wel noemt: beschrijf de strekking
+   zonder letterlijk te citeren. Gebruik "de strekking van art. X:Y BW is…" of "art. X:Y BW
+   regelt (in de kern)…". Voeg achter de verwijzing toe: "(trainingskennis — verifieer bij
+   twijfel)" als de precieze formulering juridisch doorslaggevend is.
+3. Noem nooit een zinsnede als letterlijk citaat als je die niet met zekerheid uit de kennisbank
+   of een zoekresultaat hebt. Fabricage van wettekst is een ernstige fout: de mediator kan op
+   basis van een nep-citaat onjuist adviseren.
+4. Bij twijfel over de exacte wettekst: benoem de onzekerheid expliciet in het antwoord.
 
-4. BALANS TUSSEN PARTIJEN
-   Beoordeel of de besproken afspraak evenwichtig is. Signaleer als één partij structureel
-   benadeeld wordt (ook niet-financieel), en geef aan hoe de mediator dat bespreekbaar kan maken.
+KENNISVRAAG — antwoord max ~60 woorden, feitelijk. Altijd minimaal één bron; peildatum
+vermelden als de regel per datum verschilt. Geen aannames, geen verduidelijkingsvraag.
+Vervolgacties: kies uit toepassen_op_casus, klanttekst, clausule_opstellen.
 
-══ VRAGEN STELLEN VOOR JE ANTWOORDT ══
-Als de situatie onvoldoende duidelijk is om een goed advies te geven, stel dan EERST
-verduidelijkingsvragen — zo min mogelijk, zo concreet mogelijk.
-- Maximaal 2–3 vragen per keer.
-- Formuleer als makkelijke meerkeuzeopties of ja/nee wanneer dat kan.
-- Leg in één zin uit waarom je die vraag stelt.
-Zodra je genoeg context hebt: beantwoord volledig.
+CASUS — antwoord max ~60 woorden, toegespitst op de feiten. Elke dragende aanname expliciet
+in aannames. Blokkerende onbekenden zijn zeldzaam; typisch: huwelijksdatum (rond 1-1-2018),
+onderneming. Overige onbekenden: aanname + doorgaan.
+HARDE REGEL: elk veld dat in [BEKENDE GEGEVENS] staat is BEKEND — nooit in het onbekenden-array
+opnemen. Vul onbekenden alleen uit gevallen die NIET in [BEKENDE GEGEVENS] of [DOSSIERCONTEXT] staan.
+Als [BEKENDE GEGEVENS] "Eigen woning: niet in dossier" vermeldt maar de vraag beschrijft WEL een
+woning — verwerk de woning uit de vraag, en baseer aannames over eigendomsregime op het hv_stelsel
+uit [BEKENDE GEGEVENS] (bijv. koude uitsluiting → woning niet vanzelf gemeenschappelijk, tenzij
+partijen die expliciet gezamenlijk op naam hebben staan).
+Als [BEKENDE GEGEVENS] "Eigen woning: niet in dossier" vermeldt en de vraag beschrijft GEEN woning —
+er is géén eigen woning in scope; beantwoord conditioneel of stel een gerichte vraag.
+Als [BEKENDE GEGEVENS] een HV-stelsel (koude uitsluiting, verrekenbeding) of
+"Huwelijkse voorwaarden: ja" vermeldt — partijen zijn gehuwd of geregistreerd partners;
+verwerk dit als vaststaand feit, stel hier nooit opnieuw een vraag over.
+Vervolgacties: kies uit opties_voor_klanten, clausule_opstellen, fiscale_check, toets_aan_dossier.
 
-Bij onderwerpen waarbij het antwoord sterk afhangt van specifieke feiten, vraag ALTIJD
-eerst naar de ontbrekende gegevens voordat je inhoudelijk antwoordt. Stel daarbij ook
-proactief vragen over factoren die de gebruiker misschien niet zelf heeft benoemd maar
-die het antwoord wél wezenlijk beïnvloeden — leg kort uit waarom die vraag relevant is.
+OPTIES — maximaal 3 opties in het opties-veld. Meerpartijdigheid is hard: elke optie neutraal,
+afwegingen symmetrisch voor beide partijen. Een optie die structureel één partij bevoordeelt
+krijgt een balans-signaal. Mailconcept alleen genereren als de mediator erom vraagt.
+Vervolgacties: kies uit klanttekst, clausule_opstellen.
 
-BELEGGINGSLEER / VERGOEDINGSRECHTEN — vraag naar:
-0. RELATIEVORM — stel dit ALTIJD eerst vast als het niet duidelijk is:
-   - Getrouwd / geregistreerd partnerschap, of samenwonend?
-   - Samenwonend: mét of zonder samenlevingscontract?
-   Dit bepaalt fundamenteel welk recht geldt:
-   • Art. 1:87 BW (beleggingsleer) geldt UITSLUITEND voor gehuwden en geregistreerde
-     partners — NIET voor samenwoners.
-   • Samenwoners zonder contract: vergoedingsrecht alleen via ongerechtvaardigde
-     verrijking (art. 6:212 BW) — bewijs is lastiger, uitkomst onzekerder.
-   • Samenwoners mét samenlevingscontract: check of het contract een vergoedings-
-     regeling bevat; zo niet, dan art. 6:212 BW.
-1. Bij gehuwden / geregistreerde partners:
-   Huwelijkse voorwaarden: algehele gemeenschap / beperkte gemeenschap (post-2018) /
-   koude uitsluiting / verrekenclausule (periodiek of finaal)?
-2. Trouwdatum of begindatum samenwonen (bepaalt toepasselijk vermogensrecht)
-3. Datum van de investering/aankoop (voor/na 1-1-2012 → art. 1:87 BW of jurisprudentie;
-   voor samenwoners: datum is minder relevant, focus op bewijs van privékarakter)
-4. Herkomst van het geld (erfenis, schenking, voorhuwelijks/vóór-samenwonensspaargeld, inkomen)
-5. Op wiens naam staat het goed?
-6. Proactief te signaleren: zijn er na de investering ook gemeenschapsmiddelen of
-   hypotheekgelden gebruikt? (beïnvloedt de ratio-berekening)
+CLAUSULE — stijl staat in [CLAUSULE-STIJL], nooit aan de mediator vragen. Ontbrekende
+specifieke waarden: placeholder [BEDRAG], [DATUM], [NAAM] — zelden blokkerend.
+Afwijking van dwingend recht: niet in de clausule opnemen maar als juridisch-signaal ernst hoog.
+Stijldefinities:
+  strikt: alleen de afspraak, imperatief, geen toelichting.
+  juridisch_volledig: met wetsverwijzingen, definities, bewustverklaring bij afwijking.
+  begrijpelijke_taal: B1-niveau, geen wetsartikelen, juridisch dekkend maar leesbaar.
+Vervolgacties: kies uit klanttekst, andere_stijl.
 
-ALIMENTATIE — vraag naar: inkomen beide partijen, zorgverdeling, leeftijd kinderen,
-draagkracht/behoefte-situatie. Proactief: zijn er bijzondere kosten kinderen (zorg,
-studie)? Heeft één partij inkomsten die niet uit loondienst komen?
-NB: Partneralimentatie geldt voor gehuwden en geregistreerde partners (art. 1:157 BW).
-Samenwoners hebben géén wettelijk recht op partneralimentatie tenzij het samenlevings-
-contract dit expliciet regelt — signaleer dit altijd.
+DOMEINKENNIS:
+- Beleggingsleer (art. 1:87 BW): geldt uitsluitend bij gehuwden/geregistreerd partnerschap,
+  niet bij samenwoners. Samenwoners: art. 6:212 BW (ongerechtvaardigde verrijking).
+- Vermogensrecht huwelijk: vóór 1-1-2018 = algehele gemeenschap (art. 1:94 oud BW);
+  ná 1-1-2018 = beperkte gemeenschap van goederen.
+- Partneralimentatie (art. 1:157 BW): alleen gehuwden/geregistreerd partnerschap.
+- Pensioenverevening (WVPS): alleen gehuwden/geregistreerd partnerschap.
+- Kinderalimentatie: niet contractueel uit te sluiten (art. 1:400 lid 2 BW — dwingend recht).
+- Co-ouderschap (50/50): bijzondere regels voor kinderbijslag, IACK, WKB-splitsing; richtlijn
+  hoofdverblijf bij één ouder voor BRP conform ECLI:NL:HR:2021:1513.
+- Art. 1:88 BW (toestemming echtgenoot woning — lid 1 sub a): de wettekst gebruikt uitsluitend
+  "bewoonde woning" (tegenwoordige tijd). Er bestaat GEEN wettelijke "kortgeleden heeft bewoond"-
+  termijn; die formulering is een parafrase/fabricatie. Of bewoning is beëindigd is een feitelijke
+  vraag. De rechtspraak legt het begrip ruim en beschermingsgericht uit: een vertrek van de andere
+  echtgenoot in het kader van een scheiding wordt niet snel als definitieve beëindiging aangemerkt,
+  ook niet bij inschrijving op een tijdelijk adres. Grijs gebied: beide standpunten zijn verdedigbaar
+  voor een echtgenoot die feitelijk is vertrokken maar nog geen definitieve woonruimte heeft.
+  Veiligste praktijkadvies: eis schriftelijke instemming van beide echtgenoten tot inschrijving van
+  de echtscheidingsbeschikking, ongeacht wie er feitelijk woont.
+  Art. 1:88 BW geldt alleen zolang het huwelijk voortduurt — ná inschrijving echtscheidingsbeschikking
+  vervalt het. Voor de periode ná ontbinding maar vóór juridische levering: uitsluitend als
+  contractuele grondslag formuleren ("Partijen komen overeen dat…"), NIET als art. 1:88 BW.
+- Art. 3:264 BW (hypotheekbeding): staat los van art. 1:88. Vrijwel elke hypotheekakte verbiedt
+  verhuur én ingebruikgeving zonder schriftelijke toestemming van de bank. Controleer dit altijd
+  bij ingebruikgeving woning aan derden; ontbreken van banktoestemming is wanprestatie en kan leiden
+  tot opeising van de lening.
+- Ingebruikgeving woning aan derde: bruikleen (om niet) versus huur (tegenprestatie) bepaalt of
+  huurbescherming ontstaat. Een bijdrage in natura (klusjes, boodschappen) kan al als huur kwalificeren.
+  Zeker bij verkoop in zicht: zorg voor een bruikleenovereenkomst voor bepaalde tijd, opzegbaar,
+  met einddatum vóór levering en expliciete verklaring dat geen huur wordt beoogd.
 
-PENSIOENVEREVENING — vraag naar: huwelijksdatum, pensioenaanspraken (soort: OP/PP/
-bijzonder partnerpensioen), eventuele afwijkende afspraken in huwelijkse voorwaarden.
-Proactief: is er een beschikbare premieregeling (variabele uitkering)? Buitenlands pensioen?
-NB: Pensioenverevening (Wet VPS) geldt alleen voor gehuwden en geregistreerde partners,
-niet voor samenwoners — tenzij het samenlevingscontract dit regelt.
+AVG — dossiercontext en vragen zijn geanonimiseerd: echte namen zijn vervangen door
+pseudoniemen. Werk uitsluitend met pseudoniemen. Als de context "(informeel: [naam])" vermeldt, gebruik die voornaam consequent
+in alle antwoorden — adviezen, analyses, clausules en mailconcepten. Gebruik nooit
+"de man"/"de vrouw" als er roepnamen beschikbaar zijn, tenzij de mediator dat
+expliciet vraagt.`;
 
-HUWELIJKSE VOORWAARDEN / SAMENLEVINGSCONTRACT — vraag altijd:
-- Heeft u de notariële akte beschikbaar?
-- Zijn de voorwaarden / het contract tijdens de relatie gewijzigd? (partijen vergeten dit)
-- Bij samenwoners: is er überhaupt een samenlevingscontract? (partijen weten dit soms
-  niet zeker, of denken dat samenwonen automatisch rechten geeft — dat is een misverstand)
+// ── Schema: assistent_antwoord tool ──────────────────────────────────────────
+const ASSISTENT_TOOL = {
+  name: 'assistent_antwoord',
+  description: 'Geef het gestructureerde antwoord aan de mediator conform de Clausula-specificatie.',
+  input_schema: {
+    type: 'object',
+    required: ['intent', 'antwoord', 'vervolgacties'],
+    properties: {
 
-══ WERKWIJZE ══
-- Zoek ALTIJD eerst in de juridische kennisbank (zoek_juridisch).
-- Gebruik zoek_web voor recente jurisprudentie, actualiteiten of richtlijnen die niet
-  in de kennisbank staan.
-- Als je een bron citeert: noem artikel, lid en vindplaats expliciet.
+      intent: {
+        type: 'string',
+        enum: ['kennisvraag', 'casus', 'opties', 'clausule'],
+      },
 
-══ VERANTWOORDELIJKHEID ══
-Je adviezen zijn onderbouwde aanbevelingen van een AI — GEEN juridisch of fiscaal advies
-in de wettelijke zin. Eindverantwoordelijkheid voor alle documenten en beslissingen ligt
-bij de mediator of advocaat. Vermeld dit wanneer de kwestie complex of risicovol is.
+      antwoord: {
+        type: 'string',
+        description: 'Kernantwoord. Max ~60 woorden bij kennisvraag/casus; max 2 zinnen intro bij opties (opties zelf in het opties-veld) en clausule (tekst in clausule.tekst).',
+      },
 
-══ CLAUSULETEKST ══
-Geef ALTIJD aan het einde van je antwoord één van deze tags op een eigen regel:
-  [CLAUSULE_RELEVANT:convenant]        — clausule nuttig voor convenant
-  [CLAUSULE_RELEVANT:ouderschapsplan]  — clausule nuttig voor ouderschapsplan
-  [CLAUSULE_RELEVANT:beide]            — nuttig voor beide documenten
-  [CLAUSULE_RELEVANT:geen]             — geen clausule van toepassing
+      bronnen: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['verwijzing'],
+          properties: {
+            citation:   { type: 'string', description: 'Wetsartikel of norm, bijv. "art. 1:400 lid 2 BW"' },
+            peildatum:  { type: 'string', description: 'Alleen indien de regel per datum verschilt' },
+          },
+        },
+      },
 
-══ KEUZE-OPTIES ══
-Als je meerdere vragen stelt waarvan SOMMIGE vaste antwoordkeuzes hebben en ANDERE open
-zijn (datum, bedrag, naam), gebruik dan PER VRAAG MET VASTE KEUZES een aparte tag.
-Zet alle tags samen ONDERAAN je bericht, na de volledige vraagtekst:
+      aannames: {
+        type: 'array',
+        items: { type: 'string' },
+        description: "Expliciete aannames waarop het antwoord rust. Formaat: 'Uitgaande van …'. Alleen aannames die het antwoord daadwerkelijk dragen.",
+      },
 
-  [VRAAG: Korte vraagformulering? | Optie A | Optie B | Optie C]
+      signalen: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['perspectief', 'ernst', 'tekst'],
+          properties: {
+            perspectief: { type: 'string', enum: ['juridisch', 'financieel', 'fiscaal', 'balans'] },
+            ernst:       { type: 'string', enum: ['hoog', 'midden', 'laag'] },
+            tekst:       { type: 'string', description: 'Eén zin, compact. Bijv. "Bij keuze B mogelijk schenkbelasting boven de vrijstelling; laten toetsen door belastingadviseur."' },
+          },
+        },
+      },
 
-BELANGRIJK: Controleer de gespreksgeschiedenis VOORDAT je [VRAAG: ...] tags genereert.
-Stel een vraag NOOIT opnieuw als die al eerder in het gesprek is beantwoord — ook niet
-als het antwoord impliciet volgt uit een eerder gekozen optie. Genereer alleen tags voor
-informatie die nog ONTBREEKT in de gespreksgeschiedenis.
+      onbekenden: {
+        type: 'array',
+        description: 'ALLEEN velden die NIET in [BEKENDE GEGEVENS] of [DOSSIERCONTEXT] staan én die het antwoord beïnvloeden. Nooit een veld opnemen dat al bekend is uit de context.',
+        items: {
+          type: 'object',
+          required: ['veld', 'blokkerend', 'effect'],
+          properties: {
+            veld: {
+              type: 'string',
+              enum: [
+                'relatievorm', 'huwelijksdatum', 'huwelijkse_voorwaarden',
+                'hv_stelsel', 'peildatum_vermogen',
+                'kinderen_minderjarig', 'co_ouderschap',
+                'eigen_woning', 'woning_bestemming',
+                'ondernemer', 'pensioen', 'pensioen_verevening',
+                'lijfrente', 'uitsluitingsclausule',
+                'partneralimentatie', 'internationaal_element',
+                'overig',
+              ],
+              description: 'Veld dat mapt op een dossiergegeven. NOOIT opnemen als dit veld al in [BEKENDE GEGEVENS] staat. Gebruik overig alleen als geen enum past.',
+            },
+            blokkerend: {
+              type: 'boolean',
+              description: 'true alleen als het antwoord fundamenteel omdraait zonder dit gegeven.',
+            },
+            effect: {
+              type: 'string',
+              description: 'Eén zin: wat verandert er aan het antwoord als dit gegeven anders is dan aangenomen.',
+            },
+          },
+        },
+      },
 
-Regels:
-- Maximaal 5 opties per tag, elke optie maximaal 6 woorden
-- Vraagformulering in de tag is maximaal 60 tekens (samenvatting)
-- Open vragen waarbij de gebruiker een vrij bedrag, exacte naam of specifieke datum moet
-  invullen, krijgen GEEN tag — de gebruiker typt zelf
-- Uitzondering: een datumvraag met een binaire grens (bijv. "vóór of ná 1-1-2012?")
-  krijgt WEL een [VRAAG: ...] tag met die vaste opties, bijv.:
-  [VRAAG: Datum van de investering? | Vóór 1-1-2012 | Ná 1-1-2012 | Weet ik niet]
-- Gebruik dit UITSLUITEND voor uitputtende vaste keuzes
-- Optie-labels moeten zelfstandig begrijpelijk zijn zonder de vraagtoelichting te lezen;
-  voeg zo nodig een korte verduidelijking toe, bijv. "Verrekenclausule (periodiek/finaal)"
-  of "Koude uitsluiting (geen gemeenschap)"
-- Combineer vrij met [CLAUSULE_RELEVANT:...], beiden op eigen regels
+      verduidelijkingsvraag: {
+        type: 'object',
+        required: ['vraag', 'veld'],
+        properties: {
+          vraag:         { type: 'string' },
+          veld:          { type: 'string', description: 'Het onbekenden.veld dat deze vraag oplost.' },
+          antwoordopties: {
+            type: 'array',
+            items: { type: 'string' },
+            description: '2–4 korte opties die de UI als knoppen rendert. Weglaten als het antwoord niet in vaste opties te vangen is (bijv. een bedrag of datum).',
+          },
+        },
+        description: 'Maximaal één per beurt. Alleen aanwezig als er een onbekende met blokkerend=true is die niet uit dossier/sessie blijkt. Het antwoord-veld bevat óók dan een antwoord onder aannames.',
+      },
 
-══ AVG / PRIVACY ══
-De dossiercontext en gebruikersvragen zijn geanonimiseerd vóór verzending: echte namen zijn
-vervangen door pseudoniemen (bijv. "Partij A" / "Partij B" of roepnamen). Werk uitsluitend
-met die pseudoniemen in je antwoorden — noem NOOIT echte namen, adressen, BSN-nummers of
-rekeningnummers, ook niet als die terloops in de context staan. Wijs de gebruiker erop als
-een vraag persoonsgegevens lijkt te bevatten die niet geanonimiseerd zijn.
+      vervolgacties: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: [
+            'toepassen_op_casus', 'opties_voor_klanten', 'clausule_opstellen',
+            'klanttekst', 'fiscale_check', 'andere_stijl', 'toets_aan_dossier',
+          ],
+        },
+        description: '1–3 acties die logisch volgen op dit antwoord. Het model selecteert; de UI bepaalt labels en iconen.',
+      },
 
-Uitzondering — klanttekst en mailconcept: als de instructie een expliciete aanhef bevat in
-de vorm 'Gebruik als aanhef: "Beste [namen],"', dan heeft de mediator die namen bewust
-aangeleverd voor gebruik in het mailconcept. Gebruik ze in dat geval precies zo als
-aangegeven — dit is geen overtreding van de privacyregel maar een geautoriseerde invulling.
+      opties: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['titel', 'kern', 'afwegingen'],
+          properties: {
+            titel:      { type: 'string', description: 'Max ~8 woorden, neutraal' },
+            kern:       { type: 'string', description: '2–3 zinnen wat de optie inhoudt' },
+            afwegingen: { type: 'string', description: '2–4 zinnen trade-offs, symmetrisch voor beide partijen' },
+          },
+        },
+        description: 'Alleen bij intent=opties. Maximaal 3.',
+      },
 
-══ ANTWOORDFORMAAT ══
-Geef standaard een BEKNOPT antwoord:
-- Begin met een vette titel (bijv. **Kinderalimentatie bij co-ouderschap**)
-- Daarna maximaal 3-5 zinnen met de kern van het antwoord
-- Sluit af met: "Wil je een uitgebreider antwoord?"
+      mailconcept: {
+        type: 'string',
+        description: 'Alleen bij intent=opties én als de mediator om een mail/klanttekst vraagt. In de stem van de mediator, opties neutraal voorleggend, eindigend met uitnodiging om te bespreken. Geen wetsartikelen.',
+      },
 
-Geef een UITGEBREID antwoord (met ## kopjes voor de vier perspectieven) alleen als:
-- De gebruiker dat expliciet vraagt ("uitgebreid", "meer detail", "ja" na de bovenstaande vraag), OF
-- De vraag zo complex is dat een beknopt antwoord misleidend zou zijn
+      clausule: {
+        type: 'object',
+        required: ['stijl', 'tekst'],
+        properties: {
+          stijl:       { type: 'string', enum: ['strikt', 'juridisch_volledig', 'begrijpelijke_taal'] },
+          tekst:       { type: 'string' },
+          toelichting: { type: 'string', description: 'Max 3 zinnen aan de mediator: formuleringskeuzes en afwijking van wettelijk uitgangspunt.' },
+        },
+        description: 'Alleen bij intent=clausule.',
+      },
 
-══ STIJL ══
-- Professioneel, direct, toegankelijk Nederlands — geen jargon zonder uitleg.
-- Gebruik ## kopjes voor de vier perspectieven bij uitgebreide antwoorden.
-- Bij eenvoudige vragen: beknopt en to-the-point, geen onnodige kopjesstructuur.
-- Maximaal 500 woorden tenzij de complexiteit meer vereist.`;
+    },
+  },
+};
 
+// ── Zoektools ─────────────────────────────────────────────────────────────────
+const ZOEK_TOOLS = [
+  {
+    name: 'zoek_juridisch',
+    description: 'Zoek in de Clausula juridische kennisbank: wetsartikelen, MfN-richtlijnen en bepalingen over Nederlands familierecht (alimentatie, verdeling, pensioenverevening, etc.).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        zoektermen: { type: 'string', description: 'Bijv. "kinderalimentatie berekeningswijze Trema"' },
+        tags:       { type: 'array', items: { type: 'string' }, description: 'Optionele topic-tags, bijv. ["alimentatie", "kinderen"]' },
+      },
+      required: ['zoektermen'],
+    },
+  },
+  {
+    name: 'zoek_web',
+    description: 'Zoek op rechtspraak.nl, wetten.overheid.nl, mfn.nl voor recente jurisprudentie of actuele richtlijnen die niet in de kennisbank staan.',
+    input_schema: {
+      type: 'object',
+      properties: { zoekvraag: { type: 'string' } },
+      required: ['zoekvraag'],
+    },
+  },
+];
+
+// ── Veldnamen voor leesbare injectie ─────────────────────────────────────────
+const VELD_LABEL = {
+  relatievorm:           'Relatievorm',
+  huwelijksdatum:        'Huwelijksdatum',
+  huwelijkse_voorwaarden:'Huwelijkse voorwaarden',
+  hv_stelsel:            'HV-stelsel',
+  peildatum_vermogen:    'Peildatum vermogen',
+  kinderen_minderjarig:  'Minderjarige kinderen',
+  co_ouderschap:         'Co-ouderschap (50/50)',
+  eigen_woning:          'Eigen woning',
+  woning_bestemming:     'Bestemming woning',
+  ondernemer:            'Ondernemer',
+  pensioen:              'Pensioen aanwezig',
+  pensioen_verevening:   'Pensioenverevening',
+  lijfrente:             'Lijfrente',
+  uitsluitingsclausule:  'Uitsluitingsclausule',
+  partneralimentatie:    'Partneralimentatie',
+  internationaal_element:'Internationaal element',
+};
+
+// ── Gecachede systeem-prompt (bespaart ~35% tokens per advies-call) ──────────
+const SYSTEEM_CACHED = [
+  { type: 'text', text: SYSTEEM, cache_control: { type: 'ephemeral' } },
+];
+
+// ── Helper: Claude aanroepen ──────────────────────────────────────────────────
+async function callClaude(apiKey, body, retries = 2) {
+  const payload = JSON.stringify({ model: 'claude-sonnet-4-6', ...body });
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta':    'prompt-caching-2024-07-31',
+      },
+      body: payload,
+    });
+    if (res.ok) return res.json();
+    const isRetryable = res.status === 429 || res.status === 529;
+    if (isRetryable && attempt < retries) {
+      await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); // 2s, 4s
+      continue;
+    }
+    throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  }
+}
+
+// ── Helper: tools uitvoeren ───────────────────────────────────────────────────
+async function voerToolsUit(content, supabase, braveKey, bronnenAcc) {
+  const results = [];
+  for (const block of content) {
+    if (block.type !== 'tool_use') continue;
+    let tekst = '';
+
+    if (block.name === 'zoek_juridisch') {
+      const { zoektermen, tags } = block.input;
+      const woorden = zoektermen.trim().split(/\s+/).filter(Boolean);
+      let q = supabase.from('legal_chunks').select('citation, content, topic_tags').limit(5);
+      if (woorden.length) q = q.ilike('content', `%${woorden[0]}%`);
+      if (tags?.length)   q = q.overlaps('topic_tags', tags);
+      const { data: chunks, error } = await q;
+      if (error) {
+        tekst = `Database-fout: ${error.message}`;
+      } else if (chunks?.length) {
+        tekst = chunks.map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n');
+        bronnenAcc.push(...chunks.map(c => ({ citation: c.citation })));
+      } else {
+        tekst = 'Geen resultaten in de kennisbank.';
+      }
+
+    } else if (block.name === 'zoek_web') {
+      if (!braveKey) {
+        tekst = 'Websearch niet beschikbaar (BRAVE_SEARCH_API_KEY ontbreekt).';
+      } else {
+        const q = encodeURIComponent(block.input.zoekvraag);
+        const r = await fetch(
+          `https://api.search.brave.com/res/v1/web/search?q=${q}&count=5&country=NL&search_lang=nl`,
+          { headers: { 'X-Subscription-Token': braveKey, 'Accept': 'application/json', 'Accept-Encoding': 'gzip' } },
+        );
+        if (r.ok) {
+          const bd = await r.json();
+          const hits = bd.web?.results || [];
+          if (hits.length) {
+            tekst = hits.map(h => `**${h.title}**\nURL: ${h.url}\n${h.description || ''}`).join('\n\n---\n\n');
+            bronnenAcc.push(...hits.map(h => ({ citation: h.title, url: h.url })));
+          } else {
+            tekst = 'Geen webresultaten.';
+          }
+        } else {
+          tekst = `Websearch mislukt (HTTP ${r.status}).`;
+        }
+      }
+    }
+
+    results.push({ type: 'tool_result', tool_use_id: block.id, content: tekst || 'Geen resultaat.' });
+  }
+  return results;
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST' });
 
-  // ── JWT-verificatie ──────────────────────────────────────────────
-  // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
   if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
 
-  const { vraag, conversatie = [], dossierContext = null } = req.body || {};
+  const {
+    vraag,
+    conversatie     = [],
+    dossierContext  = null,
+    resolvedFields  = {},
+    stijl           = 'juridisch_volledig',
+    rawModus        = false, // true = lange vrije tekst (klanttekst/mail), geen tool-schema
+  } = req.body || {};
+
   if (!vraag?.trim()) return res.status(400).json({ error: 'Vraag ontbreekt' });
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -182,199 +416,196 @@ export default async function handler(req, res) {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 
-  // ── Tool-definities ─────────────────────────────────────────────
-  const tools = [
-    {
-      name: 'zoek_juridisch',
-      description: 'Zoek in de Clausula juridische kennisbank: wetsartikelen, MfN-richtlijnen en bepalingen over Nederlands familierecht (alimentatie, boedelscheiding, ouderschapsregelingen, pensioenverevening, etc.).',
-      input_schema: {
-        type: 'object',
-        properties: {
-          zoektermen: { type: 'string', description: 'Zoektermen, bijv. "kinderalimentatie berekeningswijze Trema" of "co-ouderschap hoofdverblijf BRP"' },
-          tags: { type: 'array', items: { type: 'string' }, description: 'Optionele topic-tags, bijv. ["alimentatie", "kinderen"]' },
-        },
-        required: ['zoektermen'],
-      },
-    },
-    {
-      name: 'zoek_web',
-      description: 'Zoek op betrouwbare Nederlandse rechtsbronnen: rechtspraak.nl, wetten.overheid.nl, mfn.nl, overheid.nl. Gebruik dit voor recente jurisprudentie of actuele richtlijnen die niet in de kennisbank staan.',
-      input_schema: {
-        type: 'object',
-        properties: {
-          zoekvraag: { type: 'string', description: 'Zoekvraag, bijv. "kinderalimentatie 2025 Tremarapport berekening"' },
-        },
-        required: ['zoekvraag'],
-      },
-    },
-  ];
+  // ── rawModus: directe Claude-call zonder tool-schema (klanttekst, mail) ──────
+  if (rawModus) {
+    // Fix 4: bouw contextblokken zodat dossier + bekende gegevens altijd aanwezig zijn
+    const rawPrefix = [];
+    if (dossierContext) {
+      rawPrefix.push(`[DOSSIERCONTEXT]\n${dossierContext}\n[/DOSSIERCONTEXT]`);
+    }
+    const rawBekend = Object.entries(resolvedFields)
+      .filter(([, v]) => v !== null && v !== undefined && v !== '')
+      .map(([k, v]) => `- ${VELD_LABEL[k] || k}: ${v}`);
+    if (rawBekend.length) {
+      rawPrefix.push(
+        `[BEKENDE GEGEVENS — stel hier nooit opnieuw vragen over]\n${rawBekend.join('\n')}\n[/BEKENDE GEGEVENS]`,
+      );
+    }
+    // ── Kennisbank-lookup voor clausule / klanttekst ─────────────────────────
+    let kbInjectie = '';
+    try {
+      const stopw = new Set([
+        'stel','schrijf','maak','formuleer','voor','een','het','de','dat','van',
+        'bij','over','met','aan','naar','toe','als','clausule','artikel','partijen',
+        'partij','mediator','convenant','stijl','strikt','juridisch','volledig',
+        'begrijpelijk','taal','varianten','enkelvoudig','meerdere','genereer',
+      ]);
+      const trefwoord = vraag.trim().toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .find(w => w.length >= 5 && !stopw.has(w)) || '';
+      if (trefwoord) {
+        const { data: chunks } = await supabase
+          .from('legal_chunks')
+          .select('citation,content')
+          .ilike('content', `%${trefwoord}%`)
+          .limit(5);
+        if (chunks?.length) {
+          kbInjectie = '\n\n[JURIDISCHE KENNISBANK — gebruik als primaire bron voor wetsverwijzingen; noem alleen artikelen die hier daadwerkelijk in staan]\n' +
+            chunks.map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n') +
+            '\n[/JURIDISCHE KENNISBANK]';
+        }
+      }
+    } catch (_) { /* kennisbank niet beschikbaar, ga door zonder */ }
+    // ─────────────────────────────────────────────────────────────────────────
 
-  // ── Berichten opbouwen ──────────────────────────────────────────
-  const messages = [];
+    const rawVraag = rawPrefix.length
+      ? `${rawPrefix.join('\n\n')}\n\n${vraag.trim()}${kbInjectie}`
+      : `${vraag.trim()}${kbInjectie}`;
 
-  // Eerste bericht: voeg dossiercontext toe aan de user-prompt
-  const eersteVraag = (dossierContext && conversatie.length === 0)
-    ? `[DOSSIERCONTEXT]\n${dossierContext}\n[/DOSSIERCONTEXT]\n\n${vraag.trim()}`
+    const msgs = [];
+    for (const b of conversatie) msgs.push({ role: b.role, content: b.content });
+    msgs.push({ role: 'user', content: rawVraag });
+    try {
+      const rawData = await callClaude(anthropicKey, {
+        max_tokens:  4000,
+        temperature: 0.5,
+        system:      SYSTEEM_CACHED, // Fix 3: volledig SYSTEEM-prompt ipv minimale string
+        messages:    msgs,
+      });
+      const tekst = rawData.content.find(b => b.type === 'text')?.text || '';
+      return res.status(200).json({
+        intent: 'klanttekst', antwoord: tekst, bronnen: [],
+        aannames: [], signalen: [], onbekenden: [], vervolgacties: [],
+        vragen: [], clausuleRelevant: 'geen',
+      });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // ── Context opbouwen ────────────────────────────────────────────
+  const prefixBlokken = [];
+
+  if (dossierContext) {
+    prefixBlokken.push(`[DOSSIERCONTEXT]\n${dossierContext}\n[/DOSSIERCONTEXT]`);
+  }
+
+  const bekendRijen = Object.entries(resolvedFields)
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => `- ${VELD_LABEL[k] || k}: ${v}`);
+  if (bekendRijen.length) {
+    prefixBlokken.push(
+      `[BEKENDE GEGEVENS — stel hier nooit opnieuw vragen over]\n${bekendRijen.join('\n')}\n[/BEKENDE GEGEVENS]`,
+    );
+  }
+
+  prefixBlokken.push(`[CLAUSULE-STIJL: ${stijl}]`);
+
+  const huidigBericht = prefixBlokken.length
+    ? `${prefixBlokken.join('\n\n')}\n\n${vraag.trim()}`
     : vraag.trim();
 
-  for (const b of conversatie) messages.push({ role: b.role, content: b.content });
-  messages.push({ role: 'user', content: conversatie.length === 0 ? eersteVraag : vraag.trim() });
+  // ── Berichten opbouwen ──────────────────────────────────────────
+  const baseMessages = [];
+  for (const b of conversatie) baseMessages.push({ role: b.role, content: b.content });
+  baseMessages.push({ role: 'user', content: huidigBericht });
 
-  // ── Tool-use loop ───────────────────────────────────────────────
-  const bronnen = [];
-  let loopMessages = [...messages];
-  let antwoord    = '';
-  const MAX_IT    = 6;
+  // ── Fase 1: Zoekloop ─────────────────────────────────────────────
+  const bronnenZoek = [];
+  const zoekMessages = [...baseMessages];
+  const MAX_ZOEK = 5;
 
   try {
-    for (let iter = 0; iter < MAX_IT; iter++) {
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type':      'application/json',
-          'x-api-key':         anthropicKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model:      'claude-sonnet-4-6',
-          max_tokens: 2000,
-          system:     SYSTEEM,
-          tools,
-          messages:   loopMessages,
-        }),
+    for (let i = 0; i < MAX_ZOEK; i++) {
+      const data = await callClaude(anthropicKey, {
+        max_tokens:  1500,
+        temperature: 0.3,
+        system:      SYSTEEM_CACHED,
+        tools:       ZOEK_TOOLS,
+        messages:    zoekMessages,
       });
 
-      if (!claudeRes.ok) {
-        const err = await claudeRes.text();
-        throw new Error(`Claude ${claudeRes.status}: ${err.slice(0, 200)}`);
-      }
+      if (data.stop_reason !== 'tool_use') break; // Geen zoekactie meer nodig
 
-      const data = await claudeRes.json();
-      loopMessages.push({ role: 'assistant', content: data.content });
-
-      if (data.stop_reason === 'end_turn' || !data.stop_reason) {
-        antwoord = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-        break;
-      }
-
-      if (data.stop_reason !== 'tool_use') {
-        // Onverwachte stop-reden (bijv. max_tokens) — haal beschikbare tekst op en stop.
-        antwoord = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
-        break;
-      }
-
-      if (data.stop_reason === 'tool_use') {
-        const toolResults = [];
-
-        for (const block of data.content) {
-          if (block.type !== 'tool_use') continue;
-          let resultTekst = '';
-
-          if (block.name === 'zoek_juridisch') {
-            const { zoektermen, tags } = block.input;
-            // Postgres full-text search op content
-            const woorden = zoektermen.trim().split(/\s+/).filter(Boolean);
-            let query = supabase
-              .from('legal_chunks')
-              .select('citation, content, topic_tags')
-              .limit(5);
-
-            // Eenvoudige ilike-zoekopdracht als text search niet beschikbaar is
-            if (woorden.length > 0) {
-              query = query.ilike('content', `%${woorden[0]}%`);
-            }
-            if (tags?.length) {
-              query = query.overlaps('topic_tags', tags);
-            }
-
-            const { data: chunks, error: dbErr } = await query;
-            if (dbErr) {
-              resultTekst = `Database-fout: ${dbErr.message}`;
-            } else if (chunks?.length) {
-              resultTekst = chunks.map(c =>
-                `**${c.citation}**\n${c.content}`
-              ).join('\n\n---\n\n');
-              bronnen.push(...chunks.map(c => ({ type: 'wet', citation: c.citation })));
-            } else {
-              resultTekst = 'Geen resultaten in de juridische kennisbank voor deze zoektermen.';
-            }
-
-          } else if (block.name === 'zoek_web') {
-            if (!braveKey) {
-              resultTekst = 'Websearch niet beschikbaar (BRAVE_SEARCH_API_KEY niet ingesteld).';
-            } else {
-              const { zoekvraag } = block.input;
-              const q = encodeURIComponent(zoekvraag);
-              const braveRes = await fetch(
-                `https://api.search.brave.com/res/v1/web/search?q=${q}&count=5&country=NL&search_lang=nl`,
-                {
-                  headers: {
-                    'X-Subscription-Token': braveKey,
-                    'Accept':               'application/json',
-                    'Accept-Encoding':      'gzip',
-                  },
-                }
-              );
-              if (braveRes.ok) {
-                const braveData = await braveRes.json();
-                const results   = braveData.web?.results || [];
-                if (results.length) {
-                  resultTekst = results.map(r =>
-                    `**${r.title}**\nURL: ${r.url}\n${r.description || ''}`
-                  ).join('\n\n---\n\n');
-                  bronnen.push(...results.map(r => ({
-                    type: 'web', titel: r.title, url: r.url,
-                  })));
-                } else {
-                  resultTekst = 'Geen relevante webresultaten gevonden.';
-                }
-              } else {
-                resultTekst = `Websearch mislukt (HTTP ${braveRes.status}).`;
-              }
-            }
-          }
-
-          toolResults.push({
-            type:        'tool_result',
-            tool_use_id: block.id,
-            content:     resultTekst || 'Geen resultaat.',
-          });
-        }
-
-        loopMessages.push({ role: 'user', content: toolResults });
-      }
+      zoekMessages.push({ role: 'assistant', content: data.content });
+      const toolResults = await voerToolsUit(data.content, supabase, braveKey, bronnenZoek);
+      zoekMessages.push({ role: 'user', content: toolResults });
     }
+
+    // ── Fase 2: Gestructureerde output ───────────────────────────
+    const structData = await callClaude(anthropicKey, {
+      max_tokens:  4000,
+      temperature: 0.3,
+      system:      SYSTEEM_CACHED,
+      tools:       [ASSISTENT_TOOL],
+      tool_choice: { type: 'tool', name: 'assistent_antwoord' },
+      messages:    zoekMessages,
+    });
+
+    const toolBlock = structData.content.find(
+      b => b.type === 'tool_use' && b.name === 'assistent_antwoord',
+    );
+    if (!toolBlock) throw new Error('assistent_antwoord niet aangeroepen door het model');
+
+    const output = toolBlock.input;
+
+    // ── Server-side validatie (spec §3) ──────────────────────────
+    // Verduidelijkingsvraag alleen als er daadwerkelijk een blokkerend onbekende is
+    if (output.verduidelijkingsvraag && !output.onbekenden?.some(o => o.blokkerend)) {
+      delete output.verduidelijkingsvraag;
+    }
+    // Cap op 3
+    if (output.vervolgacties?.length > 3) output.vervolgacties = output.vervolgacties.slice(0, 3);
+    if (output.opties?.length > 3)        output.opties        = output.opties.slice(0, 3);
+
+    // ── Bronnen samenvoegen ───────────────────────────────────────
+    // Tool-output bronnen (door model geciteerd) + zoekresultaten (voor bronnenlijst UI)
+    const citKey = b => b.citation || b.url || '';
+    const geciteerdSet = new Set((output.bronnen || []).map(citKey));
+    const extraBronnen = bronnenZoek.filter(b => !geciteerdSet.has(citKey(b)));
+    const alleBronnen  = [...(output.bronnen || []), ...extraBronnen].slice(0, 8);
+
+    // Formaat voor bestaande UI — type='wet' voor citaten, type='web' voor links
+    const bronnenUI = alleBronnen.map(b =>
+      b.url
+        ? { type: 'web', titel: b.citation || '', url: b.url }
+        : { type: 'wet', citation: b.citation || '', peildatum: b.peildatum },
+    );
+
+    // ── Backward-compat: vragen + clausuleRelevant ────────────────
+    const vragen = output.verduidelijkingsvraag
+      ? [{
+          label:  output.verduidelijkingsvraag.vraag,
+          keuzes: output.verduidelijkingsvraag.antwoordopties || [],
+          veld:   output.verduidelijkingsvraag.veld || '',
+        }]
+      : [];
+
+    const clausuleRelevant = output.intent === 'clausule' || output.clausule
+      ? 'convenant'
+      : output.vervolgacties?.includes('clausule_opstellen') ? 'convenant' : 'geen';
+
+    return res.status(200).json({
+      // Nieuw schema
+      intent:                output.intent                || 'kennisvraag',
+      antwoord:              output.antwoord              || '',
+      bronnen:               bronnenUI,
+      aannames:              output.aannames              || [],
+      signalen:              output.signalen              || [],
+      onbekenden:            output.onbekenden            || [],
+      verduidelijkingsvraag: output.verduidelijkingsvraag || null,
+      vervolgacties:         output.vervolgacties         || [],
+      opties:                output.opties                || [],
+      mailconcept:           output.mailconcept           || null,
+      clausule:              output.clausule              || null,
+      // Backward-compat (UI stap 2 vervangt dit)
+      vragen,
+      clausuleRelevant,
+    });
+
   } catch (err) {
     console.error('[ai-assistent]', err.message);
     return res.status(500).json({ error: err.message });
   }
-
-  if (!antwoord) {
-    antwoord = 'Kon geen antwoord genereren. Probeer de vraag anders te formuleren.';
-  }
-
-  // ── Clausule-relevantie tag uit het antwoord halen ──────────────
-  let clausuleRelevant = 'geen';
-  antwoord = antwoord.replace(
-    /\[CLAUSULE_RELEVANT:(convenant|ouderschapsplan|beide|geen)\]/gi,
-    (_, type) => { clausuleRelevant = type.toLowerCase(); return ''; }
-  ).trim();
-
-  // ── Vraag-keuzetags uit het antwoord halen ─────────────────────
-  const vragen = [];
-  antwoord = antwoord.replace(
-    /\[VRAAG:\s*([^\]]+)\]/gi,
-    (_, inhoud) => {
-      const delen = inhoud.split('|').map(d => d.trim()).filter(Boolean);
-      if (delen.length >= 2) vragen.push({ label: delen[0], keuzes: delen.slice(1) });
-      return '';
-    }
-  ).trim();
-
-  // Dedup bronnen
-  const bronnenDedup = [
-    ...new Map(bronnen.map(b => [b.citation || b.url, b])).values(),
-  ].slice(0, 8);
-
-  return res.status(200).json({ antwoord, bronnen: bronnenDedup, clausuleRelevant, vragen });
 }

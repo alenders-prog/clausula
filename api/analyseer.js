@@ -194,7 +194,10 @@ function maakStructuurTool(heeftMfn) {
       type: 'object',
       properties: {
         ...(heeftMfn ? { mfn_score: mfnScoreSchema } : {}),
-        samenvatting: { type: 'string' },
+        samenvatting: {
+          type: 'string',
+          description: 'Feitelijke samenvatting van de situatie van partijen op basis van het document. Vermeld expliciet voor elk van de volgende thema\'s of het aanwezig of afwezig is: gezamenlijke woning / eigen woning, kinderen (aantal, namen, leeftijden), onderneming of ZZP, huwelijksvermogensregime (gemeenschap of huwelijkse voorwaarden, jaar), alimentatie-afspraken (kinder- en/of partneralimentatie), en overige bijzondere vermogensbestanddelen. Schrijf dit ook als er geen issues over zijn — de samenvatting dient als feitenbasis voor vervolgvragen.'
+        },
         issues: { type: 'array', items: issueItem },
       },
       required: heeftMfn ? ['mfn_score', 'samenvatting', 'issues'] : ['samenvatting', 'issues'],
@@ -234,6 +237,7 @@ const crossDocTool = {
             aanbeveling:        { type: 'string' },
             artikel:            { type: 'string', description: 'Sectienummer of kopje waaronder dit issue valt (bijv. "3.2.1", "Artikel 5"). Laat leeg als het document geen duidelijke sectienummering heeft.' },
             passage:            { type: 'string', description: 'Verbatim citaat van DE ZIN die het specifieke afwijkende getal, de afwijkende datum of de tegenstrijdige afspraak ZELF bevat — NOOIT de zin die een persoon, kind of sectie-onderwerp introduceert. Bij een peildatum-conflict: citeer de zin mét de afwijkende datum (bijv. "15-03-2026"), niet de naamslijn van de betrokkene. Bij een bedrag-conflict: citeer de zin met het afwijkende bedrag. Als de hele sectie ontbreekt: laat leeg.' },
+            passage_document:   { type: 'string', enum: ['ouderschapsplan', 'convenant'], description: 'Het documenttype waaruit de passage geciteerd is. Altijd gelijk aan betreft_documenten[0] — het document dat aangepast moet worden.' },
             betreft_documenten: {
               type: 'array',
               items: { type: 'string' },
@@ -248,6 +252,22 @@ const crossDocTool = {
   },
 };
 
+// ── PII-auto-vervanging (veiligheidsnet) ──────────────────────────────────────
+// De browser pseudonimiseert namen vóór verzending. IBANs die de browser mist
+// worden hier server-side vervangen met genummerde placeholders vóór elke Claude-call.
+// Consistent: hetzelfde IBAN krijgt altijd hetzelfde nummer binnen één request.
+function maakPiiVervanger() {
+  const ibanMap = new Map();
+  return function vervangPii(tekst) {
+    if (!tekst) return tekst;
+    return tekst.replace(/\bNL\d{2}\s*[A-Z]{4}\s*\d{10}\b/g, (match) => {
+      const key = match.replace(/\s/g, '');
+      if (!ibanMap.has(key)) ibanMap.set(key, `[IBAN-${ibanMap.size + 1}]`);
+      return ibanMap.get(key);
+    });
+  };
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
@@ -258,6 +278,7 @@ export default async function handler(req, res) {
 
   // ── Body parsen ───────────────────────────────────────────────────────────
   const { classificatie, documenten, roepnamen } = req.body || {};
+  const vervangPii = maakPiiVervanger();
   if (!classificatie || !Array.isArray(documenten) || !documenten.length) {
     return res.status(400).json({ error: 'classificatie en documenten[] zijn verplicht' });
   }
@@ -299,7 +320,7 @@ export default async function handler(req, res) {
     const effectiefHoofd = hoofdDocs.length ? hoofdDocs : documenten;
 
     const contextTekst = contextDocs
-      .map(d => `=== ${d.type?.toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
+      .map(d => `=== ${d.type?.toUpperCase()}: ${d.bestandsnaam} ===\n${vervangPii(d.tekst)}`)
       .join('\n\n');
 
     const situatieKenmerken = classificatie.situatie_kenmerken ?? [];
@@ -423,7 +444,7 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
       // én voor heranalyse → maximale cache-efficiency (cache-hit binnen 5-minuten-window).
       // Anthropic-caching: max 4 breakpoints per request.
       //   sys(1) + contextBlok(2) + stabielGedeeld(3) + call-specifiek(4) = precies 4.
-      const documentBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${doc.tekst}`;
+      const documentBlok = `TE ANALYSEREN DOCUMENT:\n=== ${docType.toUpperCase()}: ${doc.bestandsnaam} ===\n${vervangPii(doc.tekst)}`;
 
       // Context: alleen bijlagen (HV etc.). Andere hoofddocumenten worden NIET meegegeven —
       // dat bleek de primaire bron van cross-document-besmetting (issues van OP in Convenant
@@ -454,6 +475,7 @@ Het document is vóór verzending automatisch pseudonimiseerd. Adressen, postcod
   [WOONPLAATS] → woonplaatsnaam (bijv. "Almelo")
   [POSTCODE]   → Nederlandse postcode
   [BSN] / [TEL] / [EMAIL] → overige persoonsgegevens
+  [IBAN-1], [IBAN-2], … → rekeningnummers (automatisch genummerd; hetzelfde nummer = zelfde placeholder)
 GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
 - Maak GEEN issue aan als een BSN, telefoonnummer of e-mailadres niet het verwachte formaat heeft.
 - Maak GEEN issue over een ontbrekende of generieke woonplaats of adres — het [ADRES]/[WOONPLAATS] staat WEL in het originele document.
@@ -497,6 +519,15 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
 `Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
 DOCUMENTTYPE: ${docTypLabel}${anderDocsNota}${roepnamenNota}
 ${mfnInstructie}
+
+**samenvatting** — Beschrijf de feitelijke situatie van partijen op basis van het document. Behandel altijd de volgende thema's, ook als er geen issues over zijn:
+- Gezamenlijke of eigen woning: aanwezig, te verdelen, of afwezig (partijen hebben geen gezamenlijke woning)?
+- Kinderen: aantal en voornamen met leeftijd in jaren, bijv. "één kind: Jochem (14)" — geen achternamen, geen geboortedatums, geen plaatsnamen.
+- Onderneming of ZZP: aanwezig bij welke partij, of afwezig?
+- Huwelijksvermogensregime: gemeenschap van goederen, huwelijkse voorwaarden (met jaar indien vermeld), of onbekend?
+- Alimentatie: kinderalimentatie (bedrag en ontvanger), partneralimentatie (bedrag en duur), of nihil/afwezig?
+- Overige bijzondere vermogensbestanddelen: pensioen, schulden, spaarrekeningen, beleggingen — alleen vermelden als ze in het document staan.
+Schrijf dit als lopende tekst van 3–8 zinnen. De samenvatting dient als feitenbasis voor de mediator — wees volledig en concreet.
 
 **issues (volledigheid)** — Rapporteer secties die ontbreken OF aanwezig zijn maar inhoudelijk onvolledig. Dimensies altijd ["volledigheid"].
 - ONTBREKEND: een verplichte of gebruikelijke sectie staat geheel niet in het document.
@@ -658,7 +689,7 @@ DIMENSIE-VERBOD: De dimensie "cross_doc" mag NOOIT worden gebruikt in deze call.
     let crossDocPromise = null;
     if (effectiefHoofd.length >= 2) {
       const docBlokken = effectiefHoofd
-        .map(d => `=== ${d.type.toUpperCase()}: ${d.bestandsnaam} ===\n${d.tekst}`)
+        .map(d => `=== ${d.type.toUpperCase()}: ${d.bestandsnaam} ===\n${vervangPii(d.tekst)}`)
         .join('\n\n---\n\n');
 
       const docTypenLabel = effectiefHoofd.map(d => d.type).join(' en ');
@@ -681,7 +712,7 @@ Gebruik NOOIT "conflicten" als dimensie: cross-document tegenstrijdigheden zijn 
 Gebruik NOOIT "grammatica" als dimensie: spellingsverschillen of notatiestijl-verschillen tussen documenten horen niet in de cross-doc analyse thuis.
 
 CLASSIFICATIEREGEL REKENINGNUMMERS/IBAN: Als een IBAN of rekeningnummer in A en B verschilt, of als naam/saldo bij dezelfde rekening afwijkt → gebruik ALTIJD "volledigheid". Een rekening heeft één feitelijk juiste IBAN — de afwijking betekent dat één document onjuist is ingevuld, geen juridisch eigendomsconflict. Dit is dus NOOIT "juridisch" en NOOIT "balans".
-Voor betreft_documenten bij IBAN-issues: de fix zit in het document dat de tenaamstelling of het rekeningnummer onjuist/onvolledig vermeldt (doorgaans het convenant). Gebruik als passage de zin uit het ANDERE document (bijv. het ouderschapsplan) die toont hoe de rekening daar correct wordt beschreven — dit geeft de gebruiker de context om te begrijpen wat er moet kloppen.
+Voor betreft_documenten bij IBAN-issues: de fix zit in het document dat de tenaamstelling of het rekeningnummer onjuist/onvolledig vermeldt (doorgaans het convenant). De passage komt uit DAT document — citeer de zin met het onjuiste/onvolledige IBAN. Zet de correcte referentie (uit het andere document) in 'bevinding', niet in 'passage'.
 
 Ernst-criteria:
 - hoog: evidente tegenstrijdigheid die tot onuitvoerbaarheid leidt of een wettelijke eis raakt
@@ -697,19 +728,13 @@ Bij twijfel: geen issue. Speculeer niet.
 ALLEEN echte cross-document problemen — geen positieve bevestigingen ("Geen issue", "Voldoet aan...").
 
 PASSAGE-INSTRUCTIE (verplicht):
-Vul 'passage' ALTIJD in met een verbatim citaat dat het issue illustreert.
+Vul 'passage' ALTIJD in met een verbatim citaat uit het document dat moet worden aangepast — dat is altijd betreft_documenten[0].
+Vul 'passage_document' in met datzelfde documenttype (identiek aan betreft_documenten[0]).
 
-Bij issues die slechts ÉÉN document betreffen (betreft_documenten bevat één type):
-1. Citeer de zin in dát document die het conflict of de afwijking ZELF bevat.
-2. Als die ontbreekt (sectie geheel afwezig): citeer de zin uit het ANDERE document die aantoont wat er mist.
+Reden: de passage wordt getoond in het tabblad van betreft_documenten[0]. De zin moet dus letterlijk in dát document staan.
+Citeer NOOIT bewijstekst uit het andere document als passage — die context hoort in 'bevinding'.
 
-Bij issues die BEIDE documenten betreffen (betreft_documenten: beide):
-- Citeer altijd de zin uit het EERSTE document van betreft_documenten[0].
-  Voorbeeld: betreft_documenten = ["ouderschapsplan","convenant"] → gebruik een zin uit het OUDERSCHAPSPLAN.
-- Dit is verplicht omdat de passage in het tabblad van betreft_documenten[0] getoond wordt en zichtbaar moet zijn in dat document.
-- Alleen als betreft_documenten[0] GEEN relevante zin heeft, gebruik dan een zin uit het tweede document.
-
-Laat 'passage' ALLEEN leeg als GEEN VAN BEIDE documenten een citeerbare zin bevat.
+Laat 'passage' leeg als betreft_documenten[0] geen citeerbare zin bevat (bijv. sectie volledig afwezig).
 
 VERBODEN als passage (dit zijn NOOIT goede passages):
 - Een zin die enkel een persoon introduceert: "Jan de Vries, geboren te Amsterdam op 12-03-1980" → FOUT
@@ -822,7 +847,7 @@ Geef ALTIJD minimaal één index terug.`;
           ...(crossIssuesPerDoc.get(doc.bestandsnaam) ?? []),
         ];
         // IBAN-validatie: verwijder issues met niet-bestaande IBANs en tegenstrijdige IBAN-conclusies
-        const allIssues = filterIssuesOpIban(rawIssues, doc.tekst ?? '');
+        const allIssues = filterIssuesOpIban(rawIssues, vervangPii(doc.tekst ?? ''));
         if (allIssues.length < rawIssues.length)
           console.log(`[iban] ${doc.bestandsnaam}: ${rawIssues.length - allIssues.length} issue(s) verwijderd door IBAN-validatie`);
         if (allIssues.length < 2) {
