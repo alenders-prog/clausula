@@ -12801,10 +12801,27 @@ function _assistHerlaadDossierContext(id) {
   _assist.dossierContext = _assistBouwDossierContext(id);
 }
 
-function _assistKoppelDossier(id, naam) {
+async function _assistKoppelDossier(id, naam) {
   _assist.linkDialogAf = true;
   _assist.dossierId    = id;
   _assist.dossierNaam  = naam;
+
+  // Laad screening uit Supabase als de data niet in geheugen staat (historisch dossier)
+  if (id && (app.screeningId !== id || !app.rapport)) {
+    try {
+      const { data: rows } = await db.from('screeningen')
+        .select('classificatie, rapport')
+        .eq('dossier_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const data = rows?.[0] ?? null;
+      if (data) {
+        app.screeningId   = id;
+        app.classificatie = data.classificatie;
+        app.rapport       = data.rapport;
+      }
+    } catch (_) { /* ga door zonder — context blijft placeholder */ }
+  }
 
   _assist.dossierContext = _assistBouwDossierContext(id);
 
@@ -13534,11 +13551,11 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
     // Gebruiker probeerde te versturen terwijl de koppel-dialog nog open stond.
     // Bevestig automatisch de meest logische keuze zodat de send niet stil blokkeert.
     if (app.dossierNaam) {
-      _assistKoppelDossier(app.screeningId || app.dossierId || '', app.dossierNaam);
+      await _assistKoppelDossier(app.screeningId || app.dossierId || '', app.dossierNaam);
     } else {
       _assistLinkNee();
     }
-    // linkDialogAf is nu synchroon true gezet; hervat de verstuur-flow
+    // linkDialogAf is nu true; data is geladen voor de request
   }
   // Nieuwe vraag annuleert een eventuele lopende clausule-keuze
   _assist.pendingClausule = null;

@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
+import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie } from './_feiten.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
@@ -60,6 +61,18 @@ Vervolgacties: kies uit toepassen_op_casus, klanttekst, clausule_opstellen.
 CASUS — antwoord max ~60 woorden, toegespitst op de feiten. Elke dragende aanname expliciet
 in aannames. Blokkerende onbekenden zijn zeldzaam; typisch: huwelijksdatum (rond 1-1-2018),
 onderneming. Overige onbekenden: aanname + doorgaan.
+PROACTIEVE CONVENANT-AFWEGING — verplicht bij elke casus, ongeacht het onderwerp:
+Beantwoord ALTIJD en BOVENAAN de impliciete vraag "hoort dit in het convenant of OP?",
+ook als de mediator die vraag niet stelt.
+Als [BELANG-ANALYSE] aanwezig is: volg de CONVENANT-CONCLUSIE daarin als eerste stap.
+Gebruik daarna dit beslisschema:
+1. Speelt de situatie zich UITSLUITEND af vóór de ontbinding van de relatie (fase 1)?
+   Dan: "Dit hoort niet in het convenant: de situatie eindigt bij de beschikking en de wet
+   biedt al bescherming in die periode." Voeg toe: hoe te handelen als de mediator toch
+   iets wil vastleggen.
+2. Strekt de situatie zich mede uit ná de ontbinding (fase 2)?
+   Dan: "Dit IS noodzakelijk in het convenant — niet vanwege fase 1, maar voor fase 2
+   (na beschikking tot [levering / definitieve regeling]): [grondslag en wat vastleggen]."
 HARDE REGEL: elk veld dat in [BEKENDE GEGEVENS] staat is BEKEND — nooit in het onbekenden-array
 opnemen. Vul onbekenden alleen uit gevallen die NIET in [BEKENDE GEGEVENS] of [DOSSIERCONTEXT] staan.
 HARDE REGEL onbekenden vs. signalen: onbekenden bevat uitsluitend ontbrekende feitelijke gegevens
@@ -72,9 +85,6 @@ uit [BEKENDE GEGEVENS] (bijv. koude uitsluiting → woning niet vanzelf gemeensc
 partijen die expliciet gezamenlijk op naam hebben staan).
 Als [BEKENDE GEGEVENS] "Eigen woning: niet in dossier" vermeldt en de vraag beschrijft GEEN woning —
 er is géén eigen woning in scope; beantwoord conditioneel of stel een gerichte vraag.
-Als [BEKENDE GEGEVENS] een HV-stelsel (koude uitsluiting, verrekenbeding) of
-"Huwelijkse voorwaarden: ja" vermeldt — partijen zijn gehuwd of geregistreerd partners;
-verwerk dit als vaststaand feit, stel hier nooit opnieuw een vraag over.
 Vervolgacties: kies uit opties_voor_klanten, clausule_opstellen, fiscale_check, toets_aan_dossier.
 
 OPTIES — maximaal 3 opties in het opties-veld. Meerpartijdigheid is hard: elke optie neutraal,
@@ -113,14 +123,23 @@ DOMEINKENNIS:
   Art. 1:88 BW geldt alleen zolang het huwelijk voortduurt — ná inschrijving echtscheidingsbeschikking
   vervalt het. Voor de periode ná ontbinding maar vóór juridische levering: uitsluitend als
   contractuele grondslag formuleren ("Partijen komen overeen dat…"), NIET als art. 1:88 BW.
-  SIGNAALPLICHT bij temporele beperking art. 1:88: Als art. 1:88 BW in het antwoord relevant
-  is, genereer dan ALTIJD als EERSTE signaal (vóór alle andere signalen) een juridisch-signaal
-  dat direct antwoord geeft op de vraag "hoort deze bepaling in het document?". Formuleer dit
-  signaal als één concrete zin in deze structuur: "[Bepaling X] is NIET nodig voor fase 1
-  (tekenen → beschikking; art. 1:88 biedt al bescherming én die periode is kort), maar WEL
-  noodzakelijk voor fase 2 (inschrijving beschikking → juridische levering; kan maanden duren,
-  art. 1:88 vervalt) — neem een contractueel boetebeding op dat ook na inschrijving doorloopt."
-  Ernst: hoog als de woning nog niet geleverd is; midden als levering al gepland is.
+  TEMPORELE PLAATSINGSREGEL (art. 1:88 BW en aanverwante bepalingen):
+  Gebruik [BELANG-ANALYSE] om te bepalen of beide partijen een belang hebben; ga daarna de
+  tijdshorizon beoordelen.
+  GEVAL A — situatie speelt zich UITSLUITEND af vóór de echtscheidingsbeschikking (fase 1):
+    Zet BOVENAAN het antwoord (niet in signalen): "Deze bepaling hoort niet in het [OP /
+    convenant]: de situatie doet zich uitsluitend voor vóór de beschikking, en art. 1:88 BW
+    biedt in die periode al de vereiste bescherming. Opname is overbodig."
+    Voeg dan als EERSTE signaal toe: "Indien de mediator de bepaling toch wil opnemen:
+    formuleer op contractuele grondslag met expliciete doorlooptijd en boetebeding dat
+    onafhankelijk van art. 1:88 werkt."
+  GEVAL B — situatie strekt zich mede uit tot ná de beschikking (fase 2: beschikking →
+  juridische levering, kan maanden duren, art. 1:88 vervalt):
+    Zet BOVENAAN het antwoord: "Deze bepaling IS noodzakelijk in het convenant — niet vanwege
+    fase 1 (kort, art. 1:88 geldt nog), maar voor fase 2 (beschikking → levering): art. 1:88
+    vervalt dan en uitsluitend een contractueel boetebeding biedt nog bescherming."
+    Genereer vervolgens als EERSTE signaal de concrete formuleerrichtlijn (boetebeding,
+    doorloopbepaling, einddatum gekoppeld aan juridische levering).
 - Art. 3:264 BW (hypotheekbeding): staat los van art. 1:88. Vrijwel elke hypotheekakte verbiedt
   verhuur én ingebruikgeving zonder schriftelijke toestemming van de bank. Controleer dit altijd
   bij ingebruikgeving woning aan derden; ontbreken van banktoestemming is wanprestatie en kan leiden
@@ -524,6 +543,10 @@ export default async function handler(req, res) {
     );
   }
 
+  const rijkeFields = verrijkResolvedFields(resolvedFields, dossierContext);
+  const feitenBlok  = bouwFeitenBlok(rijkeFields);
+  if (feitenBlok) prefixBlokken.push(feitenBlok);
+
   prefixBlokken.push(`[CLAUSULE-STIJL: ${stijl}]`);
 
   const huidigBericht = prefixBlokken.length
@@ -573,6 +596,9 @@ export default async function handler(req, res) {
     if (!toolBlock) throw new Error('assistent_antwoord niet aangeroepen door het model');
 
     const output = toolBlock.input;
+
+    // ── Laag 2: consistentievalidatie (code, niet prompt) ────────
+    valideerConsistentie(output, rijkeFields);
 
     // ── Server-side validatie (spec §3) ──────────────────────────
     // Verduidelijkingsvraag alleen als er daadwerkelijk een blokkerend onbekende is
