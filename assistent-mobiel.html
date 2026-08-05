@@ -185,6 +185,7 @@
       border: 1px solid var(--line);
       border-bottom-left-radius: 4px;
     }
+    .mob-bubble.assist.heeft-secties { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom-color: transparent; }
     .mob-bubble h2, .mob-bubble h3 {
       font-size: .8rem;
       font-weight: 700;
@@ -364,6 +365,108 @@
     .mob-send:hover { background: var(--coral-dk); }
     .mob-send:disabled { opacity: .45; cursor: not-allowed; }
 
+    /* ── Opties-kaartjes ── */
+    .mob-opties-wrap { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+    .mob-optie-kaart {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg);
+    }
+    .mob-optie-titel { font-weight: 700; font-size: .82rem; color: var(--ink); margin-bottom: 4px; }
+    .mob-optie-kern { font-size: .79rem; color: var(--ink-mid); line-height: 1.45; margin-bottom: 0; }
+    .mob-optie-afwegingen {
+      font-size: .75rem; color: var(--ink-soft); line-height: 1.4;
+      border-top: 1px solid var(--line); padding-top: 6px; margin-top: 6px;
+    }
+
+    /* ── Secties binnen de bubble (Signalen / Aannames / Onbekenden) ── */
+    .mob-sectie {
+      margin: 0 -14px 0;        /* doorlopen tot rand van bubble */
+      border-top: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      font-size: .76rem;
+      overflow: hidden;
+    }
+    .mob-sectie summary {
+      padding: 6px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--ink-mid);
+      user-select: none;
+    }
+    .mob-sectie summary::before {
+      content: '▶';
+      font-size: .55rem;
+      opacity: .5;
+      transition: transform .15s;
+      flex-shrink: 0;
+    }
+    .mob-sectie[open] > summary::before { transform: rotate(90deg); }
+    .mob-sectie summary::-webkit-details-marker { display: none; }
+    .mob-sectie[open] summary { background: rgba(0,0,0,.025); }
+    .mob-sectie-inhoud { padding: 6px 14px 8px; }
+    .mob-sectie-inhoud li { margin-bottom: 4px; line-height: 1.45; color: var(--ink-soft); list-style: none; }
+    .mob-sectie-sig > summary { color: var(--status-risico); }
+    .mob-sig-hoog { color: var(--status-risico); font-weight: 600; }
+    .mob-sig-midden { color: var(--status-aandacht); font-weight: 600; }
+    .mob-sig-laag { color: var(--status-ok); }
+
+    /* ── Vervolgactie-knoppen (onder de kaart, zoals desktop) ── */
+    .mob-vervolgacties { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .mob-vervolgactie-btn {
+      padding: 5px 12px; border-radius: 16px;
+      border: 1.5px solid var(--coral); background: transparent;
+      color: var(--coral); font-size: .72rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background .12s, color .12s;
+    }
+    .mob-vervolgactie-btn:hover { background: var(--coral); color: #fff; }
+
+    /* ── Dossier indicator balk ── */
+    .mob-dossier-balk {
+      flex-shrink: 0;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: #EEF4FF;
+      border-bottom: 1px solid #C8D8F8;
+      font-size: .72rem;
+      color: #1E3A7A;
+    }
+    .mob-dossier-balk-ico { flex-shrink: 0; }
+    .mob-dossier-balk-label { flex: 1; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-dossier-balk-x {
+      flex-shrink: 0; border: none; background: transparent; color: #1E3A7A;
+      cursor: pointer; font-size: .85rem; padding: 2px 5px; opacity: .55;
+    }
+    .mob-dossier-balk-x:hover { opacity: 1; }
+
+    /* ── Actie-balk (Opties / Samenvatting) ── */
+    .mob-actie-balk { display: flex; gap: 6px; margin-bottom: 8px; }
+    .mob-actie-snl-btn {
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 7px;
+      border: 1.5px solid var(--line);
+      background: var(--paper);
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      font-family: 'Inter', sans-serif;
+      white-space: nowrap;
+    }
+    .mob-actie-snl-btn:hover { border-color: var(--coral); color: var(--coral); background: var(--bg); }
+    .mob-actie-snl-btn:disabled { opacity: .38; cursor: not-allowed; }
+
     /* ── System message ── */
     .mob-sys {
       align-self: center;
@@ -392,6 +495,9 @@
     <button class="mob-new-btn" id="mobHistBtn" title="Eerdere gesprekken" style="display:none">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     </button>
+    <button class="mob-new-btn" id="mobDossierBtn" title="Koppel dossier" style="display:none" onclick="window.toonDossiers && window.toonDossiers()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </button>
     <a href="/" class="mob-back-btn">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Terug
@@ -401,10 +507,20 @@
   <!-- Sessie-overlay -->
   <div id="mobSessiesOverlay" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:12px 16px;gap:8px"></div>
 
+  <!-- Dossier-overlay -->
+  <div id="mobDossierOverlay" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:12px 16px;gap:8px"></div>
+
   <!-- Disclaimer -->
   <div class="mob-disclaimer">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
     <span>Antwoorden zijn <strong>aanbevelingen</strong>. Eindverantwoordelijkheid voor documenten en beslissingen ligt bij de mediator of advocaat.</span>
+  </div>
+
+  <!-- Dossier-indicator balk -->
+  <div class="mob-dossier-balk" id="mobDossierBalk">
+    <span class="mob-dossier-balk-ico">🗂</span>
+    <span class="mob-dossier-balk-label" id="mobDossierNaam"></span>
+    <button class="mob-dossier-balk-x" id="mobDossierOntkoppel" title="Dossier ontkoppelen">✕</button>
   </div>
 
   <!-- Auth overlay (shown when not logged in) -->
@@ -419,9 +535,9 @@
 
   <!-- Input -->
   <div class="mob-input-area" id="mobInputArea" style="display:none">
-    <div class="mob-modus-balk">
-      <button class="mob-modus-btn actief" id="mobModusAdvies">💬 Korte vraag</button>
-      <button class="mob-modus-btn" id="mobModusClausule">📝 Clausule opstellen</button>
+    <div class="mob-actie-balk">
+      <button class="mob-actie-snl-btn" id="mobOptiesBtn">💡 Opties<br>uitwerken</button>
+      <button class="mob-actie-snl-btn" id="mobSamenvattingBtn">📋 Samen­vatting<br>gesprek</button>
     </div>
     <div class="mob-invoer-rij">
     <textarea class="mob-input" id="mobInput" rows="1"
@@ -456,9 +572,10 @@
   }
 
   /* ── UI elements ─────────────────────────────────── */
-  document.getElementById('mobMsgs').style.display     = 'flex';
-  document.getElementById('mobInputArea').style.display = 'flex';
-  document.getElementById('mobNieuwBtn').style.display  = 'flex';
+  document.getElementById('mobMsgs').style.display      = 'flex';
+  document.getElementById('mobInputArea').style.display  = 'flex';
+  document.getElementById('mobNieuwBtn').style.display   = 'flex';
+  document.getElementById('mobDossierBtn').style.display = 'flex';
 
   const msgsEl  = document.getElementById('mobMsgs');
   const inputEl = document.getElementById('mobInput');
@@ -470,7 +587,12 @@
   let thinkingEl = null;
   const MOB_PFX = 'assist_mob_';
   let sessieId = null;
-  let modus = 'advies';  // 'advies' | 'clausule'
+  let modus = 'advies';
+
+  /* ── Dossier state ── */
+  let dossierId    = null;
+  let dossierLabel = '';
+  let dossierContext = null;
 
   /* ── Sessie-opslag ───────────────────────────────── */
   function slaOpInStorage() {
@@ -582,6 +704,135 @@
   window.herlaadSessie   = herlaadSessie;
   window.verwijderSessie = verwijderSessie;
 
+  /* ── Dossier koppeling ───────────────────────────── */
+  function bouwDossierContext(rapport, naam) {
+    const delen = [`=== DOSSIERKOPPELING: ${naam} ===`];
+    try {
+      const cl = rapport?.classificatie;
+      if (cl) delen.push(`Classificatie: ${cl.score ?? '?'}/10 — ${cl.label ?? ''}`);
+      const sam = rapport?.samenvatting;
+      if (typeof sam === 'string' && sam) {
+        delen.push(`Samenvatting: ${sam.slice(0, 400)}`);
+      } else if (sam?.tekst) {
+        delen.push(`Samenvatting: ${sam.tekst.slice(0, 400)}`);
+      } else if (Array.isArray(sam?.kernpunten) && sam.kernpunten.length) {
+        delen.push(`Kernpunten: ${sam.kernpunten.slice(0, 4).join(' | ')}`);
+      }
+      const issues = rapport?.issues;
+      if (Array.isArray(issues) && issues.length) {
+        delen.push('Gesignaleerde issues:');
+        issues.slice(0, 6).forEach(iss => {
+          const ernst = iss.ernst ? ` [${iss.ernst}]` : '';
+          delen.push(`- ${iss.omschrijving || iss.titel || ''}${ernst}`);
+        });
+      }
+    } catch (_) {}
+    delen.push('=== EINDE DOSSIERCONTEXT ===');
+    return delen.join('\n');
+  }
+
+  function toonDossierBalk() {
+    const balk = document.getElementById('mobDossierBalk');
+    document.getElementById('mobDossierNaam').textContent = dossierLabel;
+    balk.style.display = dossierLabel ? 'flex' : 'none';
+  }
+
+  function ontkoppelDossier() {
+    dossierId    = null;
+    dossierLabel = '';
+    dossierContext = null;
+    document.getElementById('mobDossierBalk').style.display = 'none';
+    voegSysteemMelding('Dossier ontkoppeld.');
+  }
+
+  async function toonDossiers() {
+    const overlay   = document.getElementById('mobDossierOverlay');
+    const chatEl    = document.getElementById('mobMsgs');
+    const inputArea = document.getElementById('mobInputArea');
+    const disc      = document.querySelector('.mob-disclaimer');
+    const dBalk     = document.getElementById('mobDossierBalk');
+
+    chatEl.style.display    = 'none';
+    inputArea.style.display = 'none';
+    if (disc) disc.style.display = 'none';
+    dBalk.style.display     = 'none';
+    overlay.style.display   = 'flex';
+    overlay.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;text-align:center">Laden…</div>';
+
+    try {
+      const { data, error } = await db
+        .from('screeningen')
+        .select('id, bestandsnaam, created_at')
+        .order('updated_at', { ascending: false })
+        .limit(12);
+
+      if (error) throw error;
+
+      if (!data || !data.length) {
+        overlay.innerHTML = `
+          <div style="color:var(--muted);font-size:.85rem;padding:20px 0;text-align:center">Geen opgeslagen dossiers gevonden.</div>
+          <button onclick="verbergDossiers()" style="align-self:center;padding:8px 18px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:.85rem">← Terug</button>`;
+        return;
+      }
+
+      overlay.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-weight:600;font-size:.9rem">Koppel een dossier</span>
+          <button onclick="verbergDossiers()" style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:.8rem">← Terug</button>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Dossiercontext wordt meegestuurd bij elk bericht.</div>` +
+        data.map(s => {
+          const datum = new Date(s.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+          const actief = s.id === dossierId ? ' style="border-color:var(--coral)"' : '';
+          return `<div${actief} style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer" onclick="selecteerDossier('${s.id}','${escH(s.bestandsnaam || 'Dossier')}')">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escH(s.bestandsnaam || 'Naamloos')}</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${datum}</div>
+            </div>
+            <span style="font-size:.7rem;color:var(--muted)">→</span>
+          </div>`;
+        }).join('');
+    } catch (err) {
+      overlay.innerHTML = `
+        <div style="color:var(--muted);font-size:.85rem;padding:16px 0;text-align:center">Fout bij laden: ${escH(err.message)}</div>
+        <button onclick="verbergDossiers()" style="align-self:center;padding:8px 18px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:.85rem">← Terug</button>`;
+    }
+  }
+
+  function verbergDossiers() {
+    const overlay   = document.getElementById('mobDossierOverlay');
+    const chatEl    = document.getElementById('mobMsgs');
+    const inputArea = document.getElementById('mobInputArea');
+    const disc      = document.querySelector('.mob-disclaimer');
+    overlay.style.display   = 'none';
+    chatEl.style.display    = 'flex';
+    inputArea.style.display = 'flex';
+    if (disc) disc.style.display = '';
+    toonDossierBalk();
+  }
+
+  async function selecteerDossier(id, naam) {
+    verbergDossiers();
+    try {
+      const { data, error } = await db
+        .from('screeningen')
+        .select('rapport, bestandsnaam')
+        .eq('id', id)
+        .single();
+      if (error) throw error;
+      dossierId    = id;
+      dossierLabel = data.bestandsnaam || naam;
+      dossierContext = bouwDossierContext(data.rapport, dossierLabel);
+      toonDossierBalk();
+    } catch (err) {
+      voegSysteemMelding(`Kon dossier niet laden: ${err.message}`);
+    }
+  }
+
+  window.toonDossiers     = toonDossiers;
+  window.verbergDossiers  = verbergDossiers;
+  window.selecteerDossier = selecteerDossier;
+
   /* ── Helpers ─────────────────────────────────────── */
   function escH(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -659,11 +910,8 @@
         b.onclick = fn;
         return b;
       };
-      actieBalk.appendChild(mkBtn('📝 Clausule opstellen', () => {
-        actieBalk.remove();
-        setModus('clausule');
-        inputEl.focus();
-      }));
+      actieBalk.appendChild(mkBtn('💡 Opties uitwerken', () => { actieBalk.remove(); stuurActie('opties'); }));
+      actieBalk.appendChild(mkBtn('📋 Samenvatting', () => { actieBalk.remove(); stuurActie('samenvatting'); }));
       msgsEl.appendChild(actieBalk);
       msgsEl.scrollTop = msgsEl.scrollHeight;
       return;
@@ -684,19 +932,117 @@
     }
   }
 
-  function voegAssistentBericht(tekst, bronnen, vragen = []) {
-    // Deactiveer vraag-blokken van eerdere berichten
+  const VERVOLGACTIE_LABELS = {
+    fiscale_check:       '🔎 Fiscale check',
+    opties_voor_klanten: '💡 Opties uitwerken',
+  };
+
+  const ONBEKENDEN_LABELS = {
+    relatievorm: 'relatievorm', huwelijksdatum: 'huwelijksdatum',
+    huwelijkse_voorwaarden: 'huwelijkse voorwaarden', hv_stelsel: 'hv-stelsel',
+    peildatum_vermogen: 'peildatum vermogen', kinderen_minderjarig: 'minderjarige kinderen',
+    co_ouderschap: 'co-ouderschap', eigen_woning: 'eigen woning',
+    woning_bestemming: 'bestemming woning', ondernemer: 'ondernemerschap',
+    pensioen: 'pensioen', pensioen_verevening: 'pensioenverevening',
+    lijfrente: 'lijfrente', uitsluitingsclausule: 'uitsluitingsclausule',
+    partneralimentatie: 'partneralimentatie', internationaal_element: 'internationaal element',
+    overig: 'overig',
+  };
+
+  function _mkDetails(cls, summaryHtml, lijstItems) {
+    const d = document.createElement('details');
+    d.className = 'mob-sectie';
+    if (cls) d.classList.add(cls);
+    const items = lijstItems.map(t => `<li>${t}</li>`).join('');
+    d.innerHTML = `<summary>${summaryHtml}</summary><ul class="mob-sectie-inhoud">${items}</ul>`;
+    return d;
+  }
+
+  function voegAssistentBericht(tekst, bronnen, vragen = [], data = {}, opts = {}) {
     msgsEl.querySelectorAll('.mob-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
     const wrap = document.createElement('div');
     wrap.className = 'mob-bubble-wrap assist';
 
-    // Bubble
+    // ── Bubble: hoofdtekst + secties binnen de kaart ──────────────
     const bubble = document.createElement('div');
     bubble.className = 'mob-bubble assist';
     bubble.innerHTML = renderMarkdown(tekst);
+
+    const aannames   = data.aannames   || [];
+    const signalen   = data.signalen   || [];
+    const onbekenden = data.onbekenden || [];
+
+    if (aannames.length || signalen.length || onbekenden.length) {
+      bubble.classList.add('heeft-secties');
+    }
+
+    // Signalen
+    if (signalen.length > 0) {
+      const hoog   = signalen.filter(s => s.ernst === 'hoog').length;
+      const midden = signalen.filter(s => s.ernst === 'midden').length;
+      const bH = hoog   ? `<span class="mob-sig-hoog">${hoog} hoog</span>` : '';
+      const bM = midden ? `<span class="mob-sig-midden">${midden} midden</span>` : '';
+      const items = signalen.map(s =>
+        `<span class="mob-sig-${s.ernst}">[${s.ernst}]</span> ${escH(s.tekst)}`);
+      bubble.appendChild(_mkDetails('mob-sectie-sig',
+        `⚠ Signalen — ${[bH, bM].filter(Boolean).join(' · ')}`, items));
+    }
+
+    // Aannames
+    if (aannames.length > 0) {
+      bubble.appendChild(_mkDetails('', `Aannames (${aannames.length})`,
+        aannames.map(a => escH(a))));
+    }
+
+    // Onbekenden ("? huwelijkse voorwaarden")
+    if (onbekenden.length > 0) {
+      const labels = onbekenden.map(o => ONBEKENDEN_LABELS[o.veld] || o.veld);
+      const items  = onbekenden.map(o =>
+        `<strong>${escH(ONBEKENDEN_LABELS[o.veld] || o.veld)}</strong> — ${escH(o.effect)}`);
+      bubble.appendChild(_mkDetails('', `? ${labels.join(', ')}`, items));
+    }
+
     wrap.appendChild(bubble);
 
-    // Kopieer-knop
+    // ── Opties-kaartjes (buiten kaart, zoals desktop) ──────────────
+    const opties = data.opties || [];
+    if (opties.length > 0) {
+      const optiesWrap = document.createElement('div');
+      optiesWrap.className = 'mob-opties-wrap';
+      opties.forEach(o => {
+        const kaart = document.createElement('div');
+        kaart.className = 'mob-optie-kaart';
+        kaart.innerHTML = `<div class="mob-optie-titel">${escH(o.titel || '')}</div>` +
+          (o.kern        ? `<div class="mob-optie-kern">${escH(o.kern)}</div>` : '') +
+          (o.afwegingen  ? `<div class="mob-optie-afwegingen">${escH(o.afwegingen)}</div>` : '');
+        optiesWrap.appendChild(kaart);
+      });
+      wrap.appendChild(optiesWrap);
+    }
+
+    // ── Vervolgacties ──────────────────────────────────────────────
+    const vervolgacties = (data.vervolgacties || []).filter(a => VERVOLGACTIE_LABELS[a]);
+    if (vervolgacties.length > 0) {
+      const balk = document.createElement('div');
+      balk.className = 'mob-vervolgacties';
+      vervolgacties.forEach(actie => {
+        const btn = document.createElement('button');
+        btn.className = 'mob-vervolgactie-btn';
+        btn.textContent = VERVOLGACTIE_LABELS[actie];
+        if (actie === 'opties_voor_klanten') {
+          btn.onclick = () => { balk.remove(); stuurActie('opties'); };
+        } else if (actie === 'fiscale_check') {
+          btn.onclick = () => {
+            balk.remove();
+            stuurBericht('Geef een beknopte fiscale analyse van de huidige situatie: eigen-woningregeling (box 1 vs. box 3) en eventuele schenkbelasting-risico\'s.');
+          };
+        }
+        balk.appendChild(btn);
+      });
+      wrap.appendChild(balk);
+    }
+
+    // ── Kopieer ────────────────────────────────────────────────────
     const copyBtn = document.createElement('button');
     copyBtn.className = 'mob-copy-btn';
     copyBtn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Kopieer`;
@@ -710,9 +1056,9 @@
         }, 2000);
       }).catch(() => {});
     };
-    wrap.appendChild(copyBtn);
+    if (!opts.skipKopieer) wrap.appendChild(copyBtn);
 
-    // Bronnen
+    // ── Bronnen ────────────────────────────────────────────────────
     if (bronnen && bronnen.length > 0) {
       const bronnenEl = document.createElement('div');
       bronnenEl.className = 'mob-bronnen';
@@ -729,7 +1075,7 @@
       wrap.appendChild(bronnenEl);
     }
 
-    // Vraag-blokken (één per vraag met vaste keuzes)
+    // ── Verduidelijkingsvragen ─────────────────────────────────────
     if (vragen && vragen.length > 0) {
       vragen.forEach(v => {
         const vraagEl = document.createElement('div');
@@ -787,9 +1133,10 @@
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          vraag:       tekst,
-          conversatie: conversatie,
-          modus:       modus,
+          vraag:          tekst,
+          conversatie:    conversatie,
+          modus:          modus,
+          dossierContext: dossierContext || undefined,
         }),
       });
 
@@ -797,7 +1144,7 @@
       if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
 
       verwijderDenken();
-      voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || []);
+      voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || [], data);
 
       conversatie.push({ role: 'user',      content: tekst });
       conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [] });
@@ -814,19 +1161,63 @@
     }
   }
 
+  /* ── Acties: Opties / Samenvatting ─────────────── */
+  async function stuurActie(soort) {
+    if (bezig) return;
+    const prompts = {
+      opties: 'Welke juridische opties zijn er voor partijen in deze situatie? Geef per optie de voor- en nadelen, zodat de mediator dit als gespreksgrondslag kan gebruiken.',
+      samenvatting: 'Maak een beknopte samenvatting van ons gesprek voor de mediator: de kernvraag, de besproken situatie, de juridische analyse en eventuele vervolgstappen.',
+    };
+    const prompt = prompts[soort];
+    if (!prompt) return;
+    voegGebruikerBericht(soort === 'opties' ? '💡 Opties uitwerken' : '📋 Samenvatting gesprek');
+    conversatie.push({ role: 'user', content: prompt });
+    voegDenkenToe();
+    bezig = true;
+    sendEl.disabled = true;
+    document.getElementById('mobOptiesBtn').disabled = true;
+    document.getElementById('mobSamenvattingBtn').disabled = true;
+    try {
+      const resp = await fetch('/api/ai-assistent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          vraag: prompt, conversatie: conversatie.slice(0, -1),
+          modus: 'advies', dossierContext: dossierContext || undefined,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      verwijderDenken();
+      voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || [], data);
+      conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [] });
+      if (conversatie.length > 20) conversatie.splice(0, 2);
+      slaOpInStorage();
+    } catch (err) {
+      verwijderDenken();
+      voegAssistentBericht(`Er is een fout opgetreden: ${err.message}. Probeer het opnieuw.`, []);
+      conversatie.pop();
+    } finally {
+      bezig = false;
+      sendEl.disabled = false;
+      document.getElementById('mobOptiesBtn').disabled = false;
+      document.getElementById('mobSamenvattingBtn').disabled = false;
+      inputEl.focus();
+    }
+  }
+
   /* ── Event listeners ─────────────────────────────── */
   function setModus(nieuweModus) {
     modus = nieuweModus;
-    document.getElementById('mobModusAdvies')?.classList.toggle('actief', nieuweModus === 'advies');
-    document.getElementById('mobModusClausule')?.classList.toggle('actief', nieuweModus === 'clausule');
-    inputEl.placeholder = nieuweModus === 'clausule'
-      ? 'Beschrijf welke clausule opgesteld moet worden…'
-      : 'Stel uw vraag — u krijgt direct een antwoord met eventuele varianten…';
+    inputEl.placeholder = 'Stel uw vraag — u krijgt direct een antwoord met eventuele varianten…';
   }
-  document.getElementById('mobModusAdvies')?.addEventListener('click', () => setModus('advies'));
-  document.getElementById('mobModusClausule')?.addEventListener('click', () => setModus('clausule'));
 
-  sendEl.addEventListener('click', stuurBericht);
+  document.getElementById('mobOptiesBtn').addEventListener('click', () => stuurActie('opties'));
+  document.getElementById('mobSamenvattingBtn').addEventListener('click', () => stuurActie('samenvatting'));
+  document.getElementById('mobDossierBtn').addEventListener('click', toonDossiers);
+  document.getElementById('mobDossierOntkoppel').addEventListener('click', ontkoppelDossier);
+
+  sendEl.addEventListener('click', () => stuurBericht());
 
   inputEl.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -854,10 +1245,16 @@
   document.getElementById('mobHistBtn').style.display = 'flex';
   document.getElementById('mobHistBtn').addEventListener('click', toonSessies);
 
+  /* ── Auto-koppel dossier via URL-parameter ?s=<screeningId> ─── */
+  const _urlParams = new URLSearchParams(window.location.search);
+  const _autoSid   = _urlParams.get('s');
+  if (_autoSid && db) selecteerDossier(_autoSid, '…');
+
   /* ── Welkomsbericht ──────────────────────────────── */
   voegAssistentBericht(
-    'Goedendag! Ik ben de Clausula assistent. U kunt mij juridische vragen stellen over scheidingsmediation, familierecht, alimentatie, boedelscheiding, ouderschapsregelingen en aanverwante onderwerpen.\n\nWaar kan ik u mee helpen?',
-    []
+    'Stel gerust een juridische vraag over scheidingsmediation, familierecht, alimentatie, boedelscheiding of ouderschapsregelingen.' +
+    (_autoSid ? '' : '\n\nKoppel een dossier via het 🗂 icoon rechtsboven voor contextgerichte antwoorden.'),
+    [], [], {}, { skipKopieer: true }
   );
   inputEl.focus();
 })();

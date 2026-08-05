@@ -1853,6 +1853,9 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   cursor:pointer;transition:background .13s,border-color .13s;}
 .assist-topbar-btn:hover{background:var(--bg);border-color:var(--ink-soft);}
 .assist-topbar-btn svg{flex-shrink:0;}
+#assistBtnIco{display:flex;align-items:center;}
+@keyframes assistBtnSpin{to{transform:rotate(360deg);}}
+.assist-ico-spin{animation:assistBtnSpin .8s linear infinite;display:block;}
 
 /* Overlay backdrop */
 .assist-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.18);
@@ -2044,10 +2047,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   background:var(--nav-bg);color:#fff;cursor:pointer;display:flex;
   align-items:center;justify-content:center;transition:opacity .13s;}
 /* Actie-balk (commandomodel) */
-.assist-actie-balk{display:flex;align-items:center;gap:5px;padding:7px 10px;border-top:1px solid var(--line);background:var(--paper);flex-shrink:0;flex-wrap:wrap;}
-.assist-actie-cmd{padding:4px 10px;border-radius:16px;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);font-size:.71rem;font-weight:500;font-family:inherit;cursor:pointer;transition:border-color .12s,color .12s,background .12s;white-space:nowrap;line-height:1.4;}
+.assist-actie-balk{display:flex;align-items:center;gap:5px;padding:7px 10px;border-top:1px solid var(--line);background:var(--paper);flex-shrink:0;}
+.assist-actie-cmd{padding:5px 10px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);font-size:.71rem;font-weight:600;font-family:inherit;cursor:pointer;transition:border-color .12s,color .12s,background .12s;line-height:1.25;text-align:center;}
 .assist-actie-cmd:hover:not(:disabled){border-color:var(--nav-bg);color:var(--nav-bg);background:rgba(30,58,95,.06);}
 .assist-actie-cmd:disabled{opacity:.35;cursor:default;}
+.assist-cmd-sub{display:block;font-size:.61rem;font-weight:400;opacity:.6;margin-top:1px;}
 .assist-actie-gear{padding:3px 8px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font-size:.82rem;cursor:pointer;margin-left:auto;transition:color .12s;}
 .assist-actie-gear:hover{color:var(--ink);}
 /* Instellingen panel */
@@ -2159,14 +2163,16 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
       </div>
     </div>
     <div class="topbar-center">
-      <a href="/assistent-mobiel.html" class="mob-assist-topbar-btn" target="_blank" rel="noopener">
+      <a class="mob-assist-topbar-btn" rel="noopener"
+         onclick="event.preventDefault();window.open(app.screeningId?'/assistent-mobiel.html?s='+app.screeningId:'/assistent-mobiel.html','_blank','noopener')"
+         href="/assistent-mobiel.html" target="_blank">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         Mobiele assistent
       </a>
     </div>
     <div class="topbar-right">
       <button class="assist-topbar-btn" id="assistBtn" onclick="toggleAssistPanel()" title="AI Assistent">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span id="assistBtnIco"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
         Juridisch assistent
       </button>
       <button class="topbar-avatar" id="topbarAvatar" onclick="toggleUserMenu(event)" title="Account">?</button>
@@ -5640,6 +5646,7 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
       issue.diepteResultaat = _raw;
       if (_voorstel) issue.diepteVoorstel = _voorstel;
       autoSlaOp();
+      if (typeof _activeerAnalysePanelFn === 'function') _activeerAnalysePanelFn(app.rapport);
     }
     body.innerHTML = _analyse
       ? _diepteMarkdown(_analyse) + _aanpasHtml
@@ -12417,6 +12424,28 @@ async function laadScreening(id, origin = 'main') {
 //  AI ASSISTENT
 // ══════════════════════════════════════════════════════════════
 const _ASSIST_PFX = 'assist_chat_';
+
+const _ASSIST_ICO_CHAT = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+const _ASSIST_ICO_SPIN = `<svg class="assist-ico-spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10"/><path d="M22 12a10 10 0 0 1-20 0" opacity=".25"/></svg>`;
+const _ASSIST_ICO_OK   = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2a9d8f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+let _assistBtnKlaarTimer = null;
+
+function _assistBtnLaden() {
+  const ico = document.getElementById('assistBtnIco');
+  if (ico) ico.innerHTML = _ASSIST_ICO_SPIN;
+}
+function _assistBtnKlaar() {
+  const ico = document.getElementById('assistBtnIco');
+  if (ico) ico.innerHTML = _ASSIST_ICO_OK;
+  clearTimeout(_assistBtnKlaarTimer);
+  _assistBtnKlaarTimer = null;
+}
+function _assistSetBezig(val) {
+  _assist.bezig = val;
+  if (val) _assistBtnLaden();
+  else _assistBtnKlaar();
+}
+
 const _assist = {
   open:                false,
   bezig:               false,
@@ -12516,6 +12545,11 @@ function toggleAssistPanel() {
   document.getElementById('assistBtn').style.background = _assist.open ? 'var(--bg)' : '';
 
   if (_assist.open) {
+    // Vinkje terugzetten naar chat-icoon zodra panel geopend wordt
+    const _ico = document.getElementById('assistBtnIco');
+    if (_ico) _ico.innerHTML = _ASSIST_ICO_CHAT;
+    clearTimeout(_assistBtnKlaarTimer);
+
     // Herstel stijlvoorkeur (globale instelling, niet per sessie)
     const _savedStijl = localStorage.getItem('assist_stijl') || 'juridisch_volledig';
     _assistSetStijl(_savedStijl);
@@ -12833,7 +12867,7 @@ function _assistStartChat(welkomstTekst) {
   msgs.innerHTML = '';
   _assist.conversatie    = [];
   _assist.gebruikteActies = new Set();
-  _assistVoegAssistBerichtToe(welkomstTekst, [], 'geen');
+  _assistVoegAssistBerichtToe(welkomstTekst, [], 'geen', null, null, [], { skipKopieer: true });
   document.getElementById('assistInput')?.focus();
 }
 
@@ -12876,7 +12910,7 @@ function _assistVerwijderThinking() {
 }
 
 function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausuleTekstRuw, type, vragen = [], extra = {}) {
-  const { aannames = [], signalen = [], onbekenden = [], vervolgacties = [], opties = [] } = extra;
+  const { aannames = [], signalen = [], onbekenden = [], vervolgacties = [], opties = [], skipKopieer = false } = extra;
   const msgs = document.getElementById('assistMsgs');
   // Deactiveer vraag-blokken van eerdere berichten
   msgs.querySelectorAll('.assist-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
@@ -12938,7 +12972,9 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
   let knoppenHtml;
   let inhoudsHtml = null; // null = standaard _assistMd(tekst); string = override
 
-  if (type === 'mail_only') {
+  if (skipKopieer) {
+    knoppenHtml = '';
+  } else if (type === 'mail_only') {
     // Standalone mailvoorstel (stap 2 van twee-staps flow)
     const bufMail = `cb_${ts}_mail`;
     _assistClausuleBuffer.set(bufMail, tekst);
@@ -13159,15 +13195,15 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
         }
       });
 
-      const _uitgebreidHtml = `<div class="assist-meta-item">
+      const _uitgebreidHtml = _minTekst ? `<div class="assist-meta-item">
         <button class="assist-meta-hdr" onclick="${TOGGLE_FN}" style="background:rgba(0,0,0,.04);color:var(--ink-soft)">
           <em class="meta-arrow">▸</em> Uitgebreide versie
         </button>
         <div class="assist-meta-body">${_assistMd(_clausuleDeel)}</div>
-      </div>`;
+      </div>` : '';
 
       toelichtingHtml = `<div class="assist-meta-blok" style="margin-top:0">${_minSectieHtml}${_overigeItems.join('')}${_uitgebreidHtml}</div>`;
-      inhoudsHtml = ''; // geen losse clausuletekst bovenaan
+      inhoudsHtml = _assistMd(_minTekst || _clausuleDeel);
 
       // Knoppen: kopieer + issue-keuze minimaal vs uitgebreid
       const _docRef   = clausuleRelevant && clausuleRelevant !== 'geen' ? clausuleRelevant : 'convenant';
@@ -13405,6 +13441,7 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
     .slice(0, 2000);
 
   const clausuleTekst = volledigeTekst.split('\n---TOELICHTING---')[0].trim();
+  const clausuleKaal  = clausuleTekst.replace(/^#{1,4}\s+.+\n?/m, '').replace(/\*\*(.+?)\*\*/g, '$1').trim();
 
   const nieuweIssue = {
     id: `assistent_${Date.now()}`,
@@ -13412,9 +13449,9 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
     dimensies: ['volledigheid'],
     ernst: 'hoog',
     signalering: 'Zelf toegevoegd via AI Assistent',
-    bevinding,
-    passage: clausuleTekst.replace(/^#{1,4}\s+.+\n?/m, '').replace(/\*\*(.+?)\*\*/g, '$1').trim().slice(0, 600),
-    aanbeveling: 'Handmatig toegevoegd. Controleer de clausuletekst en pas aan waar nodig.',
+    bevinding: clausuleKaal.slice(0, 3000),
+    passage: '',
+    aanbeveling: 'Nieuwe bepaling — voeg handmatig in op de juiste locatie in het document.',
     afgehandeld: false,
     negeer: false,
     opmerking: '',
@@ -13425,11 +13462,6 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
   const rp = app.rapport;
   if (!Array.isArray(rp.issues)) rp.issues = [];
   rp.issues.push(nieuweIssue);
-  // Bij multi-doc: ook toevoegen aan de juiste documenten[]-entry
-  if (Array.isArray(rp.documenten) && docType && docType !== 'beide') {
-    const doc = rp.documenten.find(d => d.doc_type === docType);
-    if (doc) { if (!Array.isArray(doc.issues)) doc.issues = []; doc.issues.push(nieuweIssue); }
-  }
   try {
     await db.from('screeningen').update({ rapport: rp }).eq('id', app.screeningId);
   } catch(e) { /* niet fataal */ }
@@ -13525,7 +13557,7 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
     inp.style.height = 'auto';
   }
   document.getElementById('assistSend').disabled = true;
-  _assist.bezig = true;
+  _assistSetBezig(true);
 
   // Chip-keuzes tonen geen aparte gebruikersbubble
   if (!forceTekst) _assistVoegGebruikerBerichtToe(tekst);
@@ -13587,7 +13619,7 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
       [], 'geen'
     );
   } finally {
-    _assist.bezig = false;
+    _assistSetBezig(false);
     document.getElementById('assistSend').disabled = false;
     document.getElementById('assistInput')?.focus();
   }
@@ -13647,9 +13679,55 @@ function _assistKeuzeKiezen(veld, waarde, el) {
   if (genBtn) genBtn.disabled = !(pc.varianten !== null && pc.referentie !== null);
 }
 
+function _assistVoegOptieKiezerToe() {
+  const opties = _assist.lastOpties || [];
+  if (!opties.length) { _assistGenClausuleUitvoeren(); return; }
+  const msgs = document.getElementById('assistMsgs');
+  const div = document.createElement('div');
+  div.className = 'assist-msg-assist';
+  div.id = 'assistOptieKiezerDiv';
+  const chipsHtml = opties.map((o, i) =>
+    `<button class="assist-keuze-chip" onclick="_assistOptieKiezerKiezen(${i}, this)">${i+1}. ${escH(o.titel)}</button>`
+  ).join('');
+  div.innerHTML = `<div class="assist-bubble assist-keuze-bubble">
+    <p style="margin:0 0 10px;font-size:.84rem;font-weight:600">Op welke optie wilt u de clausule baseren?</p>
+    <div class="assist-keuze-sectie"><div class="assist-keuze-chips">${chipsHtml}</div></div>
+    <button id="assistOptieKiezerBtn" class="assist-gen-trigger-btn" onclick="_assistOptieKiezerGenereer()" disabled>Genereer clausule →</button>
+  </div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function _assistOptieKiezerKiezen(index, el) {
+  el.closest('.assist-keuze-chips').querySelectorAll('.assist-keuze-chip').forEach(b => b.classList.remove('actief'));
+  el.classList.add('actief');
+  if (_assist.pendingClausule) _assist.pendingClausule.optieIndex = index;
+  const btn = document.getElementById('assistOptieKiezerBtn');
+  if (btn) btn.disabled = false;
+}
+
+function _assistOptieKiezerGenereer() {
+  const pc = _assist.pendingClausule;
+  if (!pc || pc.optieIndex === undefined) return;
+  const o = (_assist.lastOpties || [])[pc.optieIndex];
+  if (o) {
+    _assist.pendingOptieContext = { index: pc.optieIndex + 1, titel: o.titel, kern: o.kern, afwegingen: o.afwegingen };
+  }
+  document.getElementById('assistOptieKiezerDiv')?.remove();
+  _assistGenClausuleUitvoeren();
+}
+
 function _assistKeuzeGenereer() {
   const pc = _assist.pendingClausule;
   if (!pc || pc.varianten === null || pc.referentie === null) return;
+  // Bij enkelvoudig + beschikbare opties: optieIndex verplicht
+  const opties = _assist.lastOpties || [];
+  const optieVereist = pc.varianten === 'enkelvoudig' && opties.length > 0;
+  if (optieVereist && pc.optieIndex === undefined) return;
+  if (pc.optieIndex !== undefined) {
+    const o = opties[pc.optieIndex];
+    if (o) _assist.pendingOptieContext = { index: pc.optieIndex + 1, titel: o.titel, kern: o.kern, afwegingen: o.afwegingen };
+  }
   _assistGenClausuleUitvoeren();
 }
 
@@ -13660,7 +13738,7 @@ async function _assistGenClausuleUitvoeren() {
   _assist.lastVarianten       = pc.varianten || 'enkelvoudig';
   _assist.pendingClausule     = null;
   _assist.pendingOptieContext = null;
-  _assist.bezig = true;
+  _assistSetBezig(true);
 
   const { btn, docType } = pc;
   const labelMap = {
@@ -13696,6 +13774,17 @@ async function _assistGenClausuleUitvoeren() {
   }[_assist.stijl || 'juridisch_volledig'] || '';
 
   const instructie = `Genereer een concrete clausuletekst voor opname in een Nederlands ${labelMap[docType] || 'echtscheidingsdocument'}. Gebruik hiervoor de beschikbare context: de [DOSSIERCONTEXT] en [BEKENDE GEGEVENS] blokken die vóór dit verzoek staan (als aanwezig), en ons gesprek. Verwijst de dossiercontext naar geanonimiseerde partijen (Partij A/B), gebruik dan die namen consistent. ${documentStijlInstr}${optieInstr} ${stijlInstr} ${variantenInstr} ${referentieInstr}
+
+DOSSIER-FIT — Controleer vóór het genereren of de clausule past bij de eigendomssituatie en het vermogensstelsel in het dossier:
+- Als de woning privé-eigendom is van één partij (koude uitsluiting of aangebracht ten huwelijk) én het huwelijk nog voortduurt: begrens de clausule expliciet tot de huwelijksperiode ("geldig tot de datum van inschrijving van de echtscheidingsbeschikking in de registers van de burgerlijke stand"). Vermeld in de toelichting dat art. 1:88 BW na die datum vervalt en de clausule dan geen wettelijke grondslag meer heeft.
+- Als de situatie zich afspeelt ná ontbinding van het huwelijk maar vóór juridische levering: formuleer de clausule uitsluitend als contractuele verplichting ("Partijen komen overeen dat…"), NIET als uitoefening van het toestemmingsvereiste van art. 1:88 BW.
+- Als de clausule uitgaat van mede-eigendom of gemeenschap maar het dossier toont exclusief eigendom: vermeld dat uitdrukkelijk in de toelichting en leg uit welke grondslag dan wél van toepassing is.
+
+TIJDELIJKE CLAUSULES — Als een clausule uitsluitend geldig is tot de inschrijving van de echtscheidingsbeschikking, weeg dan altijd expliciet af of opname in het convenant zinvol is:
+- Het convenant wordt kort na ondertekening door de rechtbank bekrachtigd; de beschikking volgt daarna snel. De periode waarop de clausule van toepassing is, is dus doorgaans kort.
+- Opname IS gerechtvaardigd als het risico dat de clausule dekt gevolgen kan hebben die de scheiding overleven — zoals huurbescherming (die na ingebruikgeving blijft bestaan ook als het huwelijk al ontbonden is), aansprakelijkheid voor schade of fiscale nadelen voor de andere partij.
+- Opname is minder zinvol als het risico zich enkel voordoet tijdens de korte wachttermijn en geen blijvende gevolgen heeft.
+- Vermeld altijd in de toelichting: (1) hoe lang de clausule naar verwachting van kracht is, (2) waarom opname desondanks noodzakelijk of juist niet noodzakelijk is.
 
 Voeg na de clausuletekst exact het volgende scheidingsteken toe op een eigen regel: ---TOELICHTING---
 Geef daarna een korte toelichting voor de mediator, opgebouwd uit deze drie onderdelen met eigen kopjes:
@@ -13749,7 +13838,7 @@ Sluit de toelichting af met: "*Dit is een aanbeveling — eindverantwoordelijkhe
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
   } finally {
-    _assist.bezig = false;
+    _assistSetBezig(false);
     if (btn) { btn.disabled = false; }
   }
 }
@@ -13889,7 +13978,7 @@ function _assistOptiesSelectieGenereer() {
 async function _assistGenInhoudelsTekst() {
   const pk = _assist.pendingKlanttekst;
   if (!pk) return;
-  _assist.bezig = true;
+  _assistSetBezig(true);
 
   const _selIdx  = (pk.selectedOpties || []).slice().sort((a, b) => a - b);
   const _selOpts = _selIdx.map(i => _assist.lastOpties[i]).filter(Boolean);
@@ -13911,7 +14000,6 @@ async function _assistGenInhoudelsTekst() {
     instructie = `Schrijf een korte inhoudelijke tekst voor beide partijen op basis van de zojuist gegenereerde clausuletekst. Stel een begrijpelijke samenvatting op van de strekking van de bepaling. Gebruik heldere taal zonder juridisch jargon. Licht ook toe waarom het relevant is dit nu te regelen. Maximaal 150 woorden.`;
   }
 
-  _assistVoegGebruikerBerichtToe('Stel een samenvatting voor klant op.');
   _assistVoegThinkingToe('Samenvatting voor klant aan het opstellen…');
 
   try {
@@ -13935,7 +14023,7 @@ async function _assistGenInhoudelsTekst() {
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
   } finally {
-    _assist.bezig = false;
+    _assistSetBezig(false);
     if (pk.btn) pk.btn.disabled = false;
   }
 }
@@ -14008,7 +14096,7 @@ async function _assistGenConceptMail() {
   const pk = _assist.pendingKlanttekst;
   if (!pk || pk.schrijfstijl === null) return;
   document.getElementById('assistConceptMailDialog')?.remove();
-  _assist.bezig = true;
+  _assistSetBezig(true);
 
   if (pk.hasNamen) {
     pk.voornamen   = document.getElementById('assistMailVoornamen')?.value.trim()   || '';
@@ -14125,7 +14213,7 @@ ${schrijfstijlInstr}${namenInstr}`;
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
   } finally {
-    _assist.bezig = false;
+    _assistSetBezig(false);
     if (pk.mailBtn) pk.mailBtn.disabled = false;
   }
 }
@@ -14184,6 +14272,13 @@ function _assistOpenInstellingen() {
       chip.onclick = () => {
         groep.querySelectorAll('.assist-inst-chip').forEach(b => b.classList.remove('on'));
         chip.classList.add('on');
+        const d = {};
+        panel.querySelectorAll('[data-inst]').forEach(g => {
+          const active = g.querySelector('.assist-inst-chip.on');
+          if (active) d[g.dataset.inst] = active.dataset.val;
+        });
+        localStorage.setItem(_ASSIST_DEF_KEY, JSON.stringify(d));
+        if (groep.dataset.inst === 'documentstijl') _assistSetStijl(chip.dataset.val);
       };
     });
   });
@@ -14211,11 +14306,18 @@ function _assistCmdClausule() {
   const d = _assistGetDefaults();
   _assist.pendingClausule = {
     btn: null,
-    docType: _assist.dossierId ? 'beide' : 'convenant',
-    varianten: d.varianten || 'enkelvoudig',
+    docType:   _assist.dossierId ? 'beide' : 'convenant',
+    varianten: d.varianten  || 'enkelvoudig',
     referentie: d.referentie || 'roepnamen',
+    optieIndex: undefined,
   };
-  _assistGenClausuleUitvoeren();
+  // Als er opties zijn én voorkeur is enkelvoudig → laat kiezen welke optie
+  const opties = _assist.lastOpties || [];
+  if (opties.length > 0 && (_assist.pendingClausule.varianten === 'enkelvoudig')) {
+    _assistVoegOptieKiezerToe();
+  } else {
+    _assistGenClausuleUitvoeren();
+  }
 }
 function _assistCmdOpties() {
   if (_assist.bezig) return;
@@ -14261,7 +14363,7 @@ async function _assistGenKlanttekstEnMail_UNUSED() {
   const pk = _assist.pendingKlanttekst;
   if (!pk) return;
   _assist.pendingKlanttekst = null;
-  _assist.bezig = true;
+  _assistSetBezig(true);
 
   const schrijfstijlInstr = pk.schrijfstijl === 'informeel'
     ? 'Gebruik "je" en "jij" en informele maar respectvolle taal.'
@@ -14410,7 +14512,7 @@ ${schrijfstijlInstr}${namenInstr}`;
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
   } finally {
-    _assist.bezig = false;
+    _assistSetBezig(false);
     if (pk.btn) pk.btn.disabled = false;
   }
 }
@@ -14654,10 +14756,10 @@ window.bouwSubRapport    = bouwSubRapport;
 
   <!-- Actie-balk -->
   <div class="assist-actie-balk" id="assistActieBalk">
-    <button class="assist-actie-cmd" onclick="_assistCmdClausule()" title="Genereer clausule op basis van het gesprek">📝 Clausule</button>
-    <button class="assist-actie-cmd" onclick="_assistCmdOpties()" title="Laat Clausula drie opties uitwerken">💡 Opties</button>
-    <button class="assist-actie-cmd" onclick="_assistCmdMail()" title="Genereer een concept-mail voor partijen">✉️ Mail</button>
-    <button class="assist-actie-cmd" onclick="_assistCmdSamenvatting()" title="Genereer samenvatting voor klant">📋 Samenvatting</button>
+    <button class="assist-actie-cmd" onclick="_assistCmdClausule()" title="Genereer clausule op basis van het gesprek">📝 Clausule<span class="assist-cmd-sub">opstellen</span></button>
+    <button class="assist-actie-cmd" onclick="_assistCmdOpties()" title="Laat Clausula drie opties uitwerken">💡 Opties<span class="assist-cmd-sub">weergeven</span></button>
+    <button class="assist-actie-cmd" onclick="_assistCmdSamenvatting()" title="Genereer samenvatting voor klant">📋 Resumé<span class="assist-cmd-sub">voor klant</span></button>
+    <button class="assist-actie-cmd" onclick="_assistCmdMail()" title="Genereer een concept-mail voor partijen">✉️ Klantmail<span class="assist-cmd-sub">opstellen</span></button>
     <button class="assist-actie-gear" onclick="_assistOpenInstellingen()" title="Standaard instellingen">⚙</button>
   </div>
 
@@ -14698,7 +14800,6 @@ window.bouwSubRapport    = bouwSubRapport;
         <button class="assist-inst-chip" data-val="informeel">Informeel (je)</button>
       </div>
     </div>
-    <button class="assist-inst-opsl" onclick="_assistSlaInstellingenOp()">Opslaan</button>
   </div>
 
   <!-- Input -->

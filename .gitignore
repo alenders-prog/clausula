@@ -13,3 +13,5 @@ Clausula_voorstel_redesign.html
 # Playwright test-output
 test-results/
 playwright-report/
+
+.env*.local

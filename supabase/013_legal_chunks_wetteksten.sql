@@ -45,8 +45,19 @@ LID 6: Indien de andere echtgenoot door afwezigheid of een andere oorzaak in de 
 
 LID 7: Dit artikel is van toepassing ongeacht het recht dat van toepassing is op het huwelijksvermogensstelsel van de echtgenoten, indien de andere echtgenoot zijn gewone verblijfplaats heeft in Nederland ten tijde van het verrichten van een rechtshandeling, bedoeld in het eerste lid.
 
-VALKUIL: Het criterium voor sub a is "bewoonde woning" (tegenwoordige tijd). Er bestaat GEEN wettelijke "kortgeleden heeft bewoond"-uitzondering. Lid 1 sub d gebruikt "goederenkrediet" (niet "koop op afbetaling").',
-  ARRAY['eigen_woning', 'toestemming', 'ingebruikgeving', 'woning', 'borgtocht', 'gift', 'goederenkrediet']
+VALKUIL: Het criterium voor sub a is "bewoonde woning" (tegenwoordige tijd). Er bestaat GEEN wettelijke "kortgeleden heeft bewoond"-uitzondering. Lid 1 sub d gebruikt "goederenkrediet" (niet "koop op afbetaling").
+
+TEMPORELE BEPERKING — KRITIEK VOOR SCHEIDINGSPRAKTIJK: Art. 1:88 BW geldt uitsluitend zolang het huwelijk voortduurt. Na inschrijving van de echtscheidingsbeschikking in de registers van de burgerlijke stand vervalt de toestemmingsplicht volledig.
+
+Twee fasen bij een te verkopen woning:
+- FASE 1 (ondertekening convenant tot inschrijving beschikking): art. 1:88 geldt — rechtshandelingen zonder toestemming zijn vernietigbaar. Duur varieert per rechtbank en omstandigheden.
+- FASE 2 (inschrijving beschikking tot juridische levering): art. 1:88 vervalt — uitsluitend contractuele grondslag (boetebeding, leveringsplicht in het convenant) biedt nog bescherming.
+
+Praktijkadvies: bij tijdelijke regelingen in het convenant (bijv. verbod op inwoning derden tijdens verkoopperiode) altijd vermelden dat de regeling ook ná inschrijving beschikking doorloopt op contractuele grondslag, en een boetebeding opnemen dat onafhankelijk van art. 1:88 werkt. Zonder dit valt de bescherming weg op het moment dat de beschikking wordt ingeschreven.
+
+AFWEGING: HOORT DEZE BEPALING IN HET DOCUMENT?
+Fase 1 (tekenen → beschikking) is doorgaans kort; art. 1:88 biedt hier al bescherming — een extra bepaling voegt in deze fase weinig toe. De bepaling is echter WEL noodzakelijk vanwege fase 2 (beschikking → levering woning), die maanden kan duren en waarbij art. 1:88 is vervallen. Conclusie: de bepaling hoort in het document, maar de motivering moet gericht zijn op fase 2, niet fase 1. Vermeld expliciet dat de bepaling doorloopt na inschrijving van de beschikking en leg de grondslag contractueel vast met een boetebeding.',
+  ARRAY['eigen_woning', 'toestemming', 'ingebruikgeving', 'woning', 'borgtocht', 'gift', 'goederenkrediet', 'echtscheiding', 'tijdelijk']
 );
 
 -- ================================================================
