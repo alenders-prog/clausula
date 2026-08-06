@@ -623,6 +623,10 @@ export default async function handler(req, res) {
     valideerConsistentie(output, rijkeFields);
 
     // ── Server-side validatie (spec §3) ──────────────────────────
+    // Verwijder onbekenden die al in effectiveResolvedFields staan (HARDE REGEL)
+    if (output.onbekenden?.length) {
+      output.onbekenden = output.onbekenden.filter(o => !(o.veld in effectiveResolvedFields));
+    }
     // Verduidelijkingsvraag alleen als er daadwerkelijk een blokkerend onbekende is
     if (output.verduidelijkingsvraag && !output.onbekenden?.some(o => o.blokkerend)) {
       delete output.verduidelijkingsvraag;
