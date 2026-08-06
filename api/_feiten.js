@@ -183,6 +183,45 @@ export function bouwFeitenBlok(rijkeFields = {}) {
   return delen.join('\n\n');
 }
 
+// ── Kenmerk-mapping (spiegelt _kenmerkNaarResolvedFields in index.html) ──────
+// Zet situatie_kenmerken-array (bijv. ['koude_uitsluiting', 'gehuwd']) om naar
+// een resolvedFields-object. Wordt server-side gebruikt in ai-assistent.js.
+
+export function kenmerkNaarFields(kenmerken = []) {
+  const rf = {};
+  for (const k of kenmerken) {
+    if      (k.includes('gehuwd') && !k.includes('huwelijkse')) rf.relatievorm = 'gehuwd';
+    else if (k.includes('geregistreerd'))                        rf.relatievorm = 'geregistreerd partnerschap';
+    else if (k.includes('samenwon') || k === 'samenwoners')      rf.relatievorm = 'samenwoners';
+    else if (k.includes('ongehuwd') || k.includes('geen_contract')) rf.relatievorm = 'ongehuwd zonder contract';
+
+    if      (k === 'geen_kinderen')                              rf.kinderen_minderjarig = 'nee';
+    else if (k.includes('kinderen') && k !== 'geen_kinderen')   rf.kinderen_minderjarig = 'ja';
+    if      (k === 'kinderen_co_ouderschap')                     rf.co_ouderschap = 'ja';
+
+    if      (k === 'eigen_woning' || k === 'woning_eigen')       rf.eigen_woning = 'ja';
+    else if (k.includes('geen_eigen') || k === 'huurwoning')     rf.eigen_woning = 'nee';
+    if      (k.startsWith('woning_bestemming_'))                 rf.woning_bestemming = k.replace('woning_bestemming_', '').replace(/_/g, ' ');
+
+    if      (k === 'koude_uitsluiting')  { rf.huwelijkse_voorwaarden = 'ja'; rf.hv_stelsel = 'koude uitsluiting'; }
+    else if (k === 'verrekenbeding')     { rf.huwelijkse_voorwaarden = 'ja'; rf.hv_stelsel = 'verrekenbeding'; }
+    else if (k === 'huwelijkse_voorwaarden' && !rf.huwelijkse_voorwaarden) rf.huwelijkse_voorwaarden = 'ja';
+    if      (k === 'uitsluitingsclausule' && !rf.uitsluitingsclausule) rf.uitsluitingsclausule = 'ja';
+    if      (k.includes('gemeenschap') && !k.includes('huwelijkse')) rf.huwelijkse_voorwaarden = 'nee';
+
+    if      (k.startsWith('bedrijf') || k.includes('ondernemer')) rf.ondernemer = 'ja';
+    if      (k.includes('pensioen_verevening')) rf.pensioen_verevening = 'ja';
+    else if (k.includes('pensioen'))            rf.pensioen = 'ja';
+    if      (k === 'partneralimentatie_ja' || k === 'partneralimentatie') rf.partneralimentatie = 'ja';
+    else if (k === 'partneralimentatie_nee')    rf.partneralimentatie = 'nee';
+    if      (k.includes('internationaal'))      rf.internationaal_element = 'ja';
+  }
+  if (!rf.relatievorm && rf.huwelijkse_voorwaarden === 'ja') {
+    rf.relatievorm = 'gehuwd of geregistreerd partnerschap';
+  }
+  return rf;
+}
+
 // ── Laag 2: post-processing consistentievalidatie ─────────────────────────────
 // Verwijdert aantoonbaar onjuiste signalen op basis van vastgestelde feiten.
 

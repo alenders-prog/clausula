@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
-import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie } from './_feiten.js';
+import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields } from './_feiten.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
@@ -444,6 +444,7 @@ export default async function handler(req, res) {
     conversatie     = [],
     dossierContext  = null,
     resolvedFields  = {},
+    dossierId       = null,
     stijl           = 'juridisch_volledig',
     rawModus        = false, // true = lange vrije tekst (klanttekst/mail), geen tool-schema
   } = req.body || {};
@@ -458,6 +459,27 @@ export default async function handler(req, res) {
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
+
+  // ── Server-side resolvedFields: ophalen uit Supabase (niet afhankelijk van client) ──
+  // Client-waarden (userAnswers) winnen over server-defaults bij merge.
+  let effectiveResolvedFields = resolvedFields;
+  if (dossierId) {
+    try {
+      const { data: rows } = await supabase
+        .from('screeningen')
+        .select('classificatie, rapport')
+        .eq('dossier_id', dossierId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const screening = rows?.[0];
+      if (screening?.classificatie) {
+        const kenmerken = screening.classificatie.situatie_kenmerken || [];
+        const serverFields = kenmerkNaarFields(kenmerken);
+        // Server-feiten als basis; client-waarden (user-answers) als override
+        effectiveResolvedFields = { ...serverFields, ...resolvedFields };
+      }
+    } catch (_) { /* ga door met client-resolvedFields als fallback */ }
+  }
 
   // ── rawModus: directe Claude-call zonder tool-schema (klanttekst, mail) ──────
   if (rawModus) {
@@ -534,7 +556,7 @@ export default async function handler(req, res) {
     prefixBlokken.push(`[DOSSIERCONTEXT]\n${dossierContext}\n[/DOSSIERCONTEXT]`);
   }
 
-  const bekendRijen = Object.entries(resolvedFields)
+  const bekendRijen = Object.entries(effectiveResolvedFields)
     .filter(([, v]) => v !== null && v !== undefined && v !== '')
     .map(([k, v]) => `- ${VELD_LABEL[k] || k}: ${v}`);
   if (bekendRijen.length) {
@@ -543,7 +565,7 @@ export default async function handler(req, res) {
     );
   }
 
-  const rijkeFields = verrijkResolvedFields(resolvedFields, dossierContext);
+  const rijkeFields = verrijkResolvedFields(effectiveResolvedFields, dossierContext);
   const feitenBlok  = bouwFeitenBlok(rijkeFields);
   if (feitenBlok) prefixBlokken.push(feitenBlok);
 

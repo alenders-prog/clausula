@@ -12492,6 +12492,7 @@ function _assistMaakRequestBody(vraag, rawModus = false) {
     conversatie:    _assist.conversatie,
     dossierContext: _assist.dossierContext || null,
     resolvedFields: _assistGetResolvedFields(),
+    dossierId:      _assist.dossierId || null,
     stijl:          _assist.stijl || 'juridisch_volledig',
     rawModus:       rawModus || undefined,
   };
