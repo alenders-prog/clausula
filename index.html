@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="UTF-8">
@@ -517,7 +517,8 @@ button.secundair:hover{background:#FFF1EA;}
 .da-aanpas-ta{padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:.82rem;resize:vertical;min-height:72px;font-family:inherit;background:var(--paper);color:var(--ink);}
 .da-aanpas-sel:focus,.da-aanpas-ta:focus{outline:none;border-color:var(--accent);}
 .da-voorstel-badge{font-size:.68rem;font-weight:600;color:var(--accent);letter-spacing:.01em;}
-.da-toepassen-footer{position:sticky;bottom:0;background:var(--paper);padding:12px 0 2px;margin-top:14px;border-top:1px solid var(--line);z-index:2;}
+.diepte-modal-footer{flex-shrink:0;padding:12px 24px 14px;border-top:1px solid var(--line);background:var(--paper);display:none;}
+.diepte-modal-footer.actief{display:block;}
 .da-toepassen-btn{padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;}
 .da-toepassen-btn:hover{opacity:.88;}
 .da-toepassen-ok{font-size:.8rem;color:var(--status-ok);font-weight:600;display:none;margin-top:8px;}
@@ -1228,6 +1229,9 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 /* Issue body v2 */
 .ib-quote{font-family:inherit;font-style:italic;font-size:.82rem;line-height:1.65;color:var(--ink-mid);background:#F8F6F3;border-left:3px solid var(--border);padding:7px 11px;border-radius:0 5px 5px 0;margin:8px 0;}
 .ib-explain{font-size:.82rem;line-height:1.62;color:var(--ink-mid);margin-bottom:9px;}
+.ib-anker-wrap{margin-bottom:9px;}
+.ib-anker-lbl{display:block;font-size:.75rem;color:var(--ink-mid);margin-bottom:4px;}
+.ib-anker{width:100%;box-sizing:border-box;font-size:.8rem;}
 .ib-aanb-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:9px;}
 .ib-aanbeveling{flex:1;background:#EBF3FC;border-left:3px solid #2466B8;border-radius:0 6px 6px 0;padding:8px 11px;}
 .ib-aanbeveling-hdr{font-size:.61rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2466B8;margin-bottom:3px;}
@@ -1967,6 +1971,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 
 /* Meta-blok: uitvouwbare aannames / signalen / onbekenden */
 .assist-meta-blok{margin:8px 0 4px;display:flex;flex-direction:column;gap:3px;}
+.assist-clausule-titel{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--nav-bg);margin-bottom:6px;}
 .assist-meta-item{border-radius:6px;overflow:hidden;}
 .assist-meta-hdr{width:100%;display:flex;align-items:center;gap:5px;
   padding:3px 8px;border:none;border-radius:6px;
@@ -2673,6 +2678,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
     </div>
     <div class="diepte-modal-titel" id="diepteModalTitel"></div>
     <div id="diepteModalBody" class="diepte-modal-body"></div>
+    <div id="diepteModalFooter" class="diepte-modal-footer"></div>
   </div>
 </div>
 
@@ -5349,8 +5355,14 @@ function issueKaart(idx, nr) {
       <button class="ir-caret" onclick="toggleCardBody(this);event.stopPropagation()">▾</button>
     </div>
     <div class="card-body-wrap">
-      ${issue.passage   ? `<div class="ib-quote">"${escH(issue.passage)}"</div>` : ''}
-      ${issue.bevinding ? `<div class="ib-explain">${escH(issue.bevinding)}</div>` : ''}
+      ${issue.passage && issue.bron !== 'assistent' ? `<div class="ib-quote">"${escH(issue.passage)}"</div>` : ''}
+      ${issue.bron === 'assistent' ? `<div class="ib-anker-wrap">
+        <label class="ib-anker-lbl">📍 Invoegpositie — plak hier de laatste zin waarna de clausule ingevoegd wordt:</label>
+        <textarea class="ib-textarea ib-anker" rows="2"
+          placeholder="Bijv.: 'Partijen komen overeen dat...'"
+          oninput="app.rapport.issues[${idx}].passage=this.value;autoSlaOp()">${escH(issue.passage||'')}</textarea>
+      </div>` : ''}
+      ${issue.bevinding && (issue.bron !== 'assistent' || issue.bevinding !== 'Clausuletoevoeging voorgesteld door de AI-assistent.') ? `<div class="ib-explain">${escH(issue.bevinding)}</div>` : ''}
       ${issue.aanbeveling
         ? `<div class="ib-aanb-row">
             <div class="ib-aanbeveling">
@@ -5467,12 +5479,16 @@ async function diepteAnalyse(idx) {
   const issue = app.rapport.issues[idx];
   if (!issue) return;
 
-  const modal = document.getElementById('diepteModal');
-  const body  = document.getElementById('diepteModalBody');
-  const titel = document.getElementById('diepteModalTitel');
+  const modal  = document.getElementById('diepteModal');
+  const body   = document.getElementById('diepteModalBody');
+  const titel  = document.getElementById('diepteModalTitel');
+  const footer = document.getElementById('diepteModalFooter');
   if (titel) titel.textContent = issue.onderwerp || '';
+  // Reset footer bij elke nieuwe analyse
+  if (footer) { footer.innerHTML = ''; footer.classList.remove('actief'); }
   modal.classList.add('active');
 
+  const _isAssistentIssue = issue.bron === 'assistent';
   const _aanpasHtml = `
       <div class="da-aanpas">
         <div class="da-aanpas-kop">Issue aanpassen op basis van deze analyse<span class="da-voorstel-badge" id="daVoorstelBadge" style="display:none"> — voorgesteld door verificatie</span></div>
@@ -5489,16 +5505,17 @@ async function diepteAnalyse(idx) {
             <label class="da-aanpas-lbl">Motivatie (bevinding)</label>
             <textarea class="da-aanpas-ta" id="daBevinding">${(issue.bevinding||'').replace(/</g,'&lt;')}</textarea>
           </div>
-          <div class="da-aanpas-veld">
+          ${!_isAssistentIssue ? `<div class="da-aanpas-veld">
             <label class="da-aanpas-lbl">Aanbeveling</label>
             <textarea class="da-aanpas-ta" id="daAanbeveling">${(issue.aanbeveling||'').replace(/</g,'&lt;')}</textarea>
-          </div>
+          </div>` : ''}
         </div>
-        <div class="da-toepassen-footer">
+        <div style="position:sticky;bottom:0;background:var(--paper);padding:10px 0 2px;margin-top:10px;">
           <button class="da-toepassen-btn" onclick="_pasIssueAan(${idx})">Wijzigingen toepassen →</button>
           <div class="da-toepassen-ok" id="daToepassenOk">✓ Issue bijgewerkt</div>
         </div>
       </div>`;
+  const _aanpasFooterHtml = '';
 
   // Eerder opgeslagen resultaat — toon direct zonder nieuwe API-aanroep
   if (issue.diepteResultaat) {
@@ -5506,6 +5523,8 @@ async function diepteAnalyse(idx) {
     body.innerHTML =
       `<div class="da-cached-bar"><span>Opgeslagen analyse</span><button class="da-heranalyse-btn" onclick="app.rapport.issues[${idx}].diepteResultaat='';delete app.rapport.issues[${idx}].diepteVoorstel;diepteAnalyse(${idx})">↺ Opnieuw analyseren</button></div>` +
       _diepteMarkdown(_cachedAnalyse) + _aanpasHtml;
+    const _ftC = document.getElementById('diepteModalFooter');
+    if (_ftC) { _ftC.innerHTML = _aanpasFooterHtml; _ftC.classList.add('actief'); }
     _pasVoorstelToe(issue.diepteVoorstel || null);
     return;
   }
@@ -5513,25 +5532,56 @@ async function diepteAnalyse(idx) {
   body.innerHTML = '<div class="krl-wrap"><div class="krl-lbl">Analyse wordt geladen…</div><div class="krl-track"><div class="krl-glow"></div></div></div>';
 
   // ── Kennisbank-lookup ────────────────────────────────────────────────────
+  // Strategie (in volgorde):
+  // 1. Extraheer artikelnummers uit alle issue-tekstvelden → zoek exact in citation
+  // 2. Val terug op keyword-zoek in content op basis van onderwerp + aanbeveling
   let kennisbankContext = '';
   try {
-    const eersteWoord = (issue.onderwerp || '').trim().split(/\s+/)[0] || '';
-    const dimTags     = (issue.dimensies || []).flatMap(d => ({
-      juridisch:    ['familierechtjurist','scheiding','alimentatie','gezag'],
-      balans:       ['balans','verdeling','draagkracht'],
-      volledigheid: ['volledigheid','ontbreekt','checklist'],
-      conflicten:   ['conflicten','escalatie','communicatie'],
-      grammatica:   ['grammatica','formulering'],
-    }[d] || []));
+    const _issueTekst = [
+      issue.onderwerp, issue.bevinding, issue.aanbeveling, issue.signalering,
+    ].filter(Boolean).join(' ');
 
-    let q = db.from('legal_chunks').select('citation,content').limit(5);
-    if (eersteWoord) q = q.ilike('content', `%${eersteWoord}%`);
-    if (dimTags.length) q = q.overlaps('topic_tags', dimTags);
-    const { data: chunks } = await q;
+    // Stap 1: artikelnummers (bijv. "1:88", "3:170", "art. 157") uit alle tekstvelden
+    const _artNrs = [...new Set(
+      [..._issueTekst.matchAll(/\b(\d+:\d+[a-z]?)\b/gi)].map(m => m[1])
+    )].slice(0, 6);
 
-    if (chunks?.length) {
+    let chunks = [];
+
+    if (_artNrs.length) {
+      // Zoek per artikelnummer in citation (OR via meerdere queries, neem unieke resultaten)
+      const _results = await Promise.all(
+        _artNrs.map(nr => db.from('legal_chunks').select('citation,content')
+          .ilike('citation', `%${nr}%`).limit(2))
+      );
+      const _seen = new Set();
+      for (const { data } of _results) {
+        for (const c of (data || [])) {
+          if (!_seen.has(c.citation)) { _seen.add(c.citation); chunks.push(c); }
+        }
+      }
+    }
+
+    // Stap 2: aanvullend keyword-zoek als er minder dan 3 chunks zijn
+    if (chunks.length < 3) {
+      // Extraheer zinvol zoekwoord: eerste zelfstandig naamwoord van onderwerp of aanbeveling
+      const _zoekZin = (issue.onderwerp || issue.aanbeveling || '').replace(/vanuit AI Assistent/i, '').trim();
+      const _zoekWoord = _zoekZin.split(/\s+/).find(w => w.length > 5) || '';
+      if (_zoekWoord) {
+        const { data: extra } = await db.from('legal_chunks')
+          .select('citation,content')
+          .ilike('content', `%${_zoekWoord}%`)
+          .limit(3);
+        const _seen2 = new Set(chunks.map(c => c.citation));
+        for (const c of (extra || [])) {
+          if (!_seen2.has(c.citation)) chunks.push(c);
+        }
+      }
+    }
+
+    if (chunks.length) {
       kennisbankContext = '\n\n## Relevante juridische kennisbank\n' +
-        chunks.map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n');
+        chunks.slice(0, 6).map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n');
     }
   } catch (_) { /* kennisbank niet beschikbaar, ga door zonder */ }
   // ────────────────────────────────────────────────────────────────────────
@@ -5565,7 +5615,7 @@ async function diepteAnalyse(idx) {
     `Onderwerp: ${issue.onderwerp || ''}`,
     `Ernst: ${issue.ernst || ''}`,
     issue.dimensies?.length ? `Dimensie(s): ${issue.dimensies.join(', ')}` : null,
-    issue.passage     ? `Passage: "${issue.passage}"` : null,
+    (issue.passage && issue.bron !== 'assistent') ? `Passage: "${issue.passage}"` : null,
     issue.bevinding   ? `Bevinding: ${issue.bevinding}` : null,
     issue.aanbeveling ? `Aanbeveling: ${issue.aanbeveling}` : null,
   ].filter(Boolean).join('\n');
@@ -5651,6 +5701,8 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
     body.innerHTML = _analyse
       ? _diepteMarkdown(_analyse) + _aanpasHtml
       : '<p class="da-p" style="color:var(--ink-soft)">Geen analyse ontvangen.</p>' + _aanpasHtml;
+    const _ftL = document.getElementById('diepteModalFooter');
+    if (_ftL) { _ftL.innerHTML = _aanpasFooterHtml; _ftL.classList.add('actief'); }
     _pasVoorstelToe(_voorstel);
 
   } catch (e) {
@@ -5661,9 +5713,12 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
 function _pasIssueAan(idx) {
   const issue = app.rapport?.issues?.[idx];
   if (!issue) return;
-  issue.ernst      = document.getElementById('daErnst')?.value      || issue.ernst;
-  issue.bevinding  = document.getElementById('daBevinding')?.value  ?? issue.bevinding;
-  issue.aanbeveling= document.getElementById('daAanbeveling')?.value ?? issue.aanbeveling;
+  issue.ernst     = document.getElementById('daErnst')?.value     || issue.ernst;
+  issue.bevinding = document.getElementById('daBevinding')?.value ?? issue.bevinding;
+  // Assistent-issues: aanbeveling = clausuletekst — nooit overschrijven vanuit verificatie
+  if (issue.bron !== 'assistent') {
+    issue.aanbeveling = document.getElementById('daAanbeveling')?.value ?? issue.aanbeveling;
+  }
   // Kaart in de hoofdlijst direct bijwerken
   const kaart = document.querySelector(`.card[data-issue-idx="${idx}"]`);
   if (kaart) {
@@ -5689,11 +5744,11 @@ function _pasVoorstelToe(v) {
   if (!v) return;
   const sel  = document.getElementById('daErnst');
   const bev  = document.getElementById('daBevinding');
-  const aanb = document.getElementById('daAanbeveling');
+  const aanb = document.getElementById('daAanbeveling'); // null voor assistent-issues
   const badg = document.getElementById('daVoorstelBadge');
-  if (sel  && v.ernst)       sel.value  = v.ernst;
-  if (bev  && v.bevinding)   bev.value  = v.bevinding;
-  if (aanb && v.aanbeveling) aanb.value = v.aanbeveling;
+  if (sel  && v.ernst)              sel.value  = v.ernst;
+  if (bev  && v.bevinding)          bev.value  = v.bevinding;
+  if (aanb && v.aanbeveling)        aanb.value = v.aanbeveling; // veld bestaat niet voor assistent-issues
   if (badg) badg.style.display = 'inline';
 }
 
@@ -8019,347 +8074,13 @@ let _conceptGenId          = null;
 let _toegepasteWijzigingIdx = null; // Set van indices die daadwerkelijk in DOCX zijn aangebracht
 let _alVerwerktWijzigingIdx = null; // Set van indices waarvan de tekst al via een ander issue verwijderd was
 
-// ── Pseudonimisering (AVG) ────────────────────────────
-// Bouwt drie maps:
-//   naarAnon        : lowercase-naam → nep-naam         (voor case-insensitieve vervanging)
-//   naarEcht        : nep-naam/legacy-ph → roepnaam     (korte naam voor issue-titels/tekst)
-//   naarEchtVolledig: nep-naam/legacy-ph → formele naam (volledige naam voor passage-herstel)
-function bouwAnonMap(classificatie) {
-  const naarAnon         = new Map(); // key = lowercase echte naam,  value = nep-naam
-  const naarEcht         = new Map(); // key = nep-naam / legacy-ph,  value = roepnaam (kort)
-  const naarEchtVolledig = new Map(); // key = nep-naam / legacy-ph,  value = formele naam (volledig)
-  _gedetecteerdRoepnamen = []; // reset bij elke aanroep
-  const waarschuwingen   = []; // roepnamen die sterk afwijken van de formele naam
-
-  // Helpt bepalen of een roepnaam sterk afwijkt van de formele naam.
-  // Geeft true als er voldoende gelijkenis is (substring, prefix, identiek).
-  const _roepnaamLijkt = (roepnaamLc, formeleNaamStr) => {
-    if (!formeleNaamStr) return true; // bij twijfel geen waarschuwing
-    return formeleNaamStr.toLowerCase().split(/\s+/).some(vn =>
-      vn === roepnaamLc || vn.includes(roepnaamLc) || roepnaamLc.includes(vn) ||
-      (vn.length >= 3 && roepnaamLc.length >= 3 && vn.startsWith(roepnaamLc.slice(0, 3)))
-    );
-  };
-
-  // Nep-namenpool als {fn, an}-objecten: voornaam en achternaam van een verkorte naam
-  // ("Martijn Jasperse") krijgen elk hun EIGEN component:
-  //   "martijn"  → "Thomas"   (nep.fn, alleen voornaam)
-  //   "jasperse" → "Bergman"  (nep.an, alleen achternaam)
-  // Resultaat: "Martijn Jasperse" → "Thomas Bergman" (één keer, niet dubbel).
-  // Vroeger (string "Thomas Bergman"): beide deelvervangingen → "Thomas Bergman Thomas Bergman"
-  // → Claude meldde vals alarm "dubbele naam". Fix: component-mapping per naamsdeel.
-  const NEP_PERSONEN = [
-    { fn: 'Thomas',   an: 'Bergman'  },
-    { fn: 'Lisette',  an: 'Hartwijk' },
-    { fn: 'Florian',  an: 'Oud'      },
-    { fn: 'Nathalie', an: 'Wester'   },
-    { fn: 'Bastiaan', an: 'Kroon'    },
-    { fn: 'Eveline',  an: 'Dragt'    },
-    { fn: 'Rutger',   an: 'Bakkenes' },
-    { fn: 'Simone',   an: 'Veldhuis' },
-    { fn: 'Jeroen',   an: 'Hoekstra' },
-    { fn: 'Yvonne',   an: 'Stavast'  },
-  ];
-  // Kindernamen: alleen voornamen (generiek, niet herkenbaar)
-  const NEP_KINDEREN = ['Finn', 'Lotte', 'Stef', 'Mila', 'Bram', 'Sofie', 'Tim', 'Emma'];
-  let _persIdx = 0;
-  let _kindIdx = 0;
-
-  // Registreer een echte naam → nep-naam koppeling.
-  // nep: {fn, an}-object voor personen, of string voor kinderen/fallback-placeholders.
-  // legacyPh: optionele [PERSOON_A]-stijl placeholder voor backward-compat
-  // met bestaande Supabase-data die nog de oude placeholders bevat.
-  function registreer(echt, nep, legacyPh = null) {
-    if (!echt || echt.trim().length < 2) return;
-    const e = echt.trim();
-    const eLc = e.toLowerCase();
-    const isObj = nep && typeof nep === 'object';
-    const nepVolledig = isObj ? `${nep.fn} ${nep.an}` : nep;
-
-    // naarEcht: voor herstel nep-naam → roepnaam (korte naam voor issue-titels/tekst)
-    if (!naarEcht.has(nepVolledig)) naarEcht.set(nepVolledig, e);
-    if (isObj) {
-      // nep.fn én nepVolledig → roepnaam (eerste woord) zodat kaarten korte naam tonen
-      // ipv de volledige juridische naam. nepVolledig wordt eerst op 'e' gezet (hierboven)
-      // zodat de legacy guard werkt, daarna overschreven met roepnaam.
-      const roepnaam = e.split(/\s+/)[0];
-      naarEcht.set(nepVolledig, roepnaam);
-      if (!naarEcht.has(nep.fn)) naarEcht.set(nep.fn, roepnaam);
-      // Bezitsvorm nep-voornaam ("Thomas's") → roepnaam bezitsvorm ("Luuks")
-      if (!naarEcht.has(nep.fn + 's')) naarEcht.set(nep.fn + 's', roepnaam + 's');
-      // nep.an (achternaam-component) → alleen het laatste naamsdeel van de echte naam.
-      // "Thomas Bergman" wordt al correct hersteld (langste match gaat voor).
-      // "Sander Bergman" geeft anders "Sander Alexander Johannes Franciscus Schreven" —
-      // met deze fix geeft het "Sander Schreven" (de verkorte bankrekening-vorm).
-      const echteAchternaam = e.split(/\s+/).pop();
-      if (!naarEcht.has(nep.an)) naarEcht.set(nep.an, echteAchternaam);
-    }
-    if (legacyPh && !naarEcht.has(legacyPh)) naarEcht.set(legacyPh, e);
-
-    // naarEchtVolledig: nep-naam → documentvorm (voor passage/bevinding-herstel)
-    // Volwassenen (isObj=true): volledige formele naam → Block B overschrijft later naar roepnaam+achternaam.
-    // Kinderen (isObj=false, string nep): eerste voornaam — documenten gebruiken zelden de volledige kindernaam.
-    naarEchtVolledig.set(nepVolledig, isObj ? e : e.split(/\s+/)[0]);
-    if (isObj) {
-      const roepnaamVol = e.split(/\s+/)[0];
-      if (!naarEchtVolledig.has(nep.fn)) naarEchtVolledig.set(nep.fn, roepnaamVol);
-      if (!naarEchtVolledig.has(nep.fn + 's')) naarEchtVolledig.set(nep.fn + 's', roepnaamVol + 's');
-      const echteAcht = e.split(/\s+/).pop();
-      if (!naarEchtVolledig.has(nep.an)) naarEchtVolledig.set(nep.an, echteAcht);
-    }
-    if (legacyPh && !naarEchtVolledig.has(legacyPh)) naarEchtVolledig.set(legacyPh, e);
-
-    // naarAnon: volledige echte naam → volledige nep-naam
-    if (!naarAnon.has(eLc)) naarAnon.set(eLc, nepVolledig);
-
-    const delen = e.split(/\s+/);
-
-    // Voornaam → ALLEEN voornaam-component (nep.fn), niet de volledige nep-naam.
-    // Voorkomt: "Martijn" → "Thomas Bergman" wat samen met "Jasperse" → "Thomas Bergman"
-    // een dubbeling geeft.
-    const voornaam = delen[0];
-    const nepVoornaam = isObj ? nep.fn : nepVolledig;
-    if (voornaam.length > 3 && !naarAnon.has(voornaam.toLowerCase())) {
-      naarAnon.set(voornaam.toLowerCase(), nepVoornaam);
-    }
-    // Bezitsvorm ("Peters" als verwijzing naar "Peter") — vervangt ook door nep-voornaam
-    // zodat Claude de partij herkent en geen valse "onbekende naam"-melding geeft.
-    if (voornaam.length > 3 && !naarAnon.has((voornaam + 's').toLowerCase())) {
-      naarAnon.set((voornaam + 's').toLowerCase(), nepVoornaam);
-    }
-
-    if (delen.length >= 2) {
-      // Achternaam → ALLEEN achternaam-component (nep.an), niet de volledige nep-naam
-      const nepAchternaam = isObj ? nep.an : nepVolledig;
-      const achterNaamVolledig = delen.slice(1).join(' ');
-      if (achterNaamVolledig.length > 3 && !naarAnon.has(achterNaamVolledig.toLowerCase())) {
-        naarAnon.set(achterNaamVolledig.toLowerCase(), nepAchternaam);
-      }
-      // Alleen het allerlaatste woord (bijv. "Leeuwen" uit "van Leeuwen")
-      const achterst = delen[delen.length - 1];
-      if (achterst.length > 4 && !naarAnon.has(achterst.toLowerCase())) {
-        naarAnon.set(achterst.toLowerCase(), nepAchternaam);
-      }
-    }
-  }
-
-  const naamA = classificatie?.partij_a_naam;
-  const naamB = classificatie?.partij_b_naam;
-
-  // Verwijder achternaam-registratie als beide partijen dezelfde achternaam hebben
-  // (anders wordt "De Vries" ten onrechte altijd aan partij A gekoppeld)
-  const achtA = naamA ? naamA.trim().split(/\s+/).slice(1).join(' ').toLowerCase() : '';
-  const achtB = naamB ? naamB.trim().split(/\s+/).slice(1).join(' ').toLowerCase() : '';
-  const gedeeldeAcht = achtA && achtA === achtB;
-
-  registreer(naamA, NEP_PERSONEN[_persIdx++], '[PERSOON_A]');
-  registreer(naamB, NEP_PERSONEN[_persIdx++], '[PERSOON_B]');
-
-  // Roepnamen uit classificatie (door Haiku expliciet geëxtraheerd).
-  // Registreer als alias voor hetzelfde nep-naam paar zodat bijv. "Manon ten Brink"
-  // correct gepseudonymiseerd wordt ook al staat de formele naam "Herma Eugenie ten Brink"
-  // in partij_b_naam. Werkt ook als de roepnaam-detectie via bestandsnamen mislukt.
-  for (const [rnVeld, nepIdx, formeleNaam] of [
-    ['partij_a_roepnaam', 0, naamA],
-    ['partij_b_roepnaam', 1, naamB],
-  ]) {
-    const _rn = (classificatie?.[rnVeld] || '').trim().split(/\s+/)[0]; // alleen voornaam
-    if (!_rn || _rn.length < 2) continue;
-    const _nep = NEP_PERSONEN[nepIdx];
-    if (!_nep || typeof _nep !== 'object') continue;
-    const _rnLc = _rn.toLowerCase();
-    // Voornaam-alias (bijv. "manon" → "Lisette")
-    if (!naarAnon.has(_rnLc)) naarAnon.set(_rnLc, _nep.fn);
-    if (!naarAnon.has(_rnLc + 's')) naarAnon.set(_rnLc + 's', _nep.fn);
-    // Roepnaam + achternaam (bijv. "manon ten brink" → "Lisette Hartwijk")
-    if (formeleNaam) {
-      const _achterdelenFormeel = formeleNaam.trim().split(/\s+/).slice(1);
-      if (_achterdelenFormeel.length) {
-        const _metAcht = _rnLc + ' ' + _achterdelenFormeel.join(' ').toLowerCase();
-        if (!naarAnon.has(_metAcht)) naarAnon.set(_metAcht, `${_nep.fn} ${_nep.an}`);
-        // Kortere variant: alleen tussenvoegsels + achternaam (slaat middelnamen over)
-        const _tuss = new Set(['van','de','den','der','het','ten','ter','al','el','bin','ul','bte']);
-        let _ks = _achterdelenFormeel.length - 1;
-        while (_ks > 0 && _tuss.has(_achterdelenFormeel[_ks - 1].toLowerCase())) _ks--;
-        if (_ks > 0 && _ks < _achterdelenFormeel.length) {
-          const _kortAcht = _rnLc + ' ' + _achterdelenFormeel.slice(_ks).join(' ').toLowerCase();
-          if (!naarAnon.has(_kortAcht)) naarAnon.set(_kortAcht, `${_nep.fn} ${_nep.an}`);
-        }
-      }
-    }
-    // naarEcht: overschrijf formele voornaam met roepnaam voor zichtbare namen in de UI
-    const _cap = _rn.charAt(0).toUpperCase() + _rn.slice(1);
-    naarEcht.set(_nep.fn, _cap);
-    naarEcht.set(_nep.fn + 's', _cap + 's');
-    naarEcht.set(`${_nep.fn} ${_nep.an}`, _cap);
-    // Zet ook naarEchtVolledig voor fn-sleutels op de roepnaam zodat de merge bij opslaan
-    // (naarEcht + naarEchtVolledig, volledig wint) de roepnaam niet overschrijft met de formele voornaam.
-    // De fn+an-combinatie ("Lisette Hartwijk") blijft formeel in naarEchtVolledig voor passage-herstel.
-    naarEchtVolledig.set(_nep.fn, _cap);
-    naarEchtVolledig.set(_nep.fn + 's', _cap + 's');
-
-    // Waarschuwing als roepnaam sterk afwijkt van formele naam (bijv. "Manon" vs "Herma Eugenie")
-    if (!_roepnaamLijkt(_rnLc, formeleNaam)) {
-      waarschuwingen.push({ roepnaam: _cap, formeelVolledig: formeleNaam });
-    }
-  }
-
-  // Bij gedeelde achternaam: verwijder die uit de map (voorkómt foutieve toewijzing)
-  if (gedeeldeAcht && achtA) {
-    naarAnon.delete(achtA);
-    const achtstA = achtA.split(/\s+/).pop();
-    if (achtstA) naarAnon.delete(achtstA);
-  }
-
-  // Kinderen — elk kind krijgt eigen nep-voornaam (+ legacy [KIND_N] voor backward-compat)
-  const kinderen = Array.isArray(classificatie?.kinderen_namen) ? classificatie.kinderen_namen : [];
-  kinderen.forEach((naam, i) => {
-    const nepKind = NEP_KINDEREN[_kindIdx++] || `Kind${_kindIdx}`;
-    registreer(naam, nepKind, `[KIND_${i + 1}]`);
-    // registreer() gebruikt isObj=false voor kinderen → naarEcht slaat volledige naam op.
-    // Overschrijf met roepnaam zodat kaarten de korte naam tonen (ook na laden vanuit Supabase).
-    const roepnaamKind = naam.trim().split(/\s+/)[0];
-    if (roepnaamKind) {
-      naarEcht.set(nepKind, roepnaamKind);
-      naarEcht.set(nepKind + 's', roepnaamKind + 's');
-      naarEcht.set(`[KIND_${i + 1}]`, roepnaamKind);
-    }
-  });
-
-  // Overige betrokkenen
-  if (classificatie?.mediator_naam) registreer(classificatie.mediator_naam, NEP_PERSONEN[_persIdx++] || '[MEDIATOR]', '[MEDIATOR]');
-  if (classificatie?.notaris_naam)  registreer(classificatie.notaris_naam,  NEP_PERSONEN[_persIdx++] || '[NOTARIS]',  '[NOTARIS]');
-
-  // Roepnaam-detectie via bestandsnamen / dossiernaam
-  // Als "Alexander Lenders" geregistreerd is maar de bestandsnaam bevat "Sander Lenders"
-  // of alleen "Sander", dan is "Sander" de gebruikte roepnaam en moet die als alias worden
-  // herkend zodat Claude de persoon correct identificeert.
-  const _bronNamen = [
-    classificatie?.dossier_naam || '',
-    classificatie?.dossier_partij_a || '',
-    classificatie?.dossier_partij_b || '',
-    ...(typeof app.bestanden !== 'undefined' ? app.bestanden.map(f => f.name) : []),
-  ].filter(Boolean);
-
-  if (_bronNamen.length) {
-    const _tussenvoegels = new Set(['van','de','den','der','het','ten','ter','al','el','bin','ul','bte']);
-    const _partijen = [
-      naamA ? { naam: naamA, nep: NEP_PERSONEN[0] } : null,
-      naamB ? { naam: naamB, nep: NEP_PERSONEN[1] } : null,
-    ].filter(Boolean);
-
-    for (const { naam, nep } of _partijen) {
-      const isObj = nep && typeof nep === 'object';
-      if (!isObj) continue;
-
-      const delen        = naam.trim().split(/\s+/);
-      const formeleVn    = delen[0].toLowerCase();
-      const achternamen  = delen.slice(1)
-        .map(d => d.toLowerCase())
-        .filter(d => d.length > 3 && !_tussenvoegels.has(d));
-      if (!achternamen.length) continue;
-
-      for (const bron of _bronNamen) {
-        const bronLc  = bron.toLowerCase();
-        // Achternaam aanwezig in deze bron?
-        if (!achternamen.some(a => bronLc.includes(a))) continue;
-
-        // Beperk de scan tot het segment dat de achternaam van DEZE partij bevat.
-        // Voorkomt dat "Manon" uit "Peter Dikkeschei - Manon ten Brink" als roepnaam
-        // van Peter wordt geregistreerd (verkeerde partij pikt het eerder op).
-        const _segm = bronLc.split(/\s*[-–]\s+/);
-        const scanTekst = _segm.length > 1
-          ? (_segm.find(s => achternamen.some(a => s.includes(a))) || bronLc)
-          : bronLc;
-
-        // Kandidaat-roepnamen: woorden langer dan 3 tekens, niet formele voornaam,
-        // niet al geregistreerd, geen achternaam-deel, geen tussenvoegsels
-        const bronWoorden = scanTekst.split(/[\s\-_.,;:()[\]{}'"!?/\\]+/)
-          .filter(w => w.length > 3 && !_tussenvoegels.has(w));
-
-        for (const woord of bronWoorden) {
-          if (woord === formeleVn) continue;
-          if (naarAnon.has(woord)) continue;
-          if (achternamen.includes(woord)) continue;
-
-          // Roepnaam gevonden — registreer als alias voor dezelfde nep-voornaam
-          naarAnon.set(woord, nep.fn);
-          naarAnon.set(woord + 's', nep.fn); // bezitsvorm
-
-          // Ook de combinaties "roepnaam + achternaamsuffix" registreren zodat bijv.
-          // "Manon ten Brink" op bankrekeningen niet als onbekende derde wordt geflagd.
-          const _deelLc = naam.trim().toLowerCase().split(/\s+/);
-          const _naFormeleVn = _deelLc.slice(1); // alles na de formele voornaam
-          if (_naFormeleVn.length > 0) {
-            const _nepVol = `${nep.fn} ${nep.an}`;
-            const _volCombo = woord + ' ' + _naFormeleVn.join(' ');
-            if (!naarAnon.has(_volCombo)) naarAnon.set(_volCombo, _nepVol);
-            // Kortere variant: sla middelnamen over, houd alleen tussenvoegsels + achternaam.
-            let _ks = _naFormeleVn.length - 1;
-            while (_ks > 0 && _tussenvoegels.has(_naFormeleVn[_ks - 1])) _ks--;
-            if (_ks > 0) {
-              const _kortCombo = woord + ' ' + _naFormeleVn.slice(_ks).join(' ');
-              if (!naarAnon.has(_kortCombo)) naarAnon.set(_kortCombo, _nepVol);
-            }
-          }
-
-          // naarEcht: losse nep-voornaam (nep.fn) → roepnaam, altijd.
-          // nepVolledig ("Lisette Hartwijk") → roepnaam ALLEEN als de roepnaam lijkt op
-          // de formele voornaam (bijv. "Peter" ≈ "Peter Adriaan"). Bij sterk afwijkende
-          // roepnamen (bijv. "Manon" ≠ "Herma") blijft nepVolledig → "Herma" (formele voornaam,
-          // gezet door registreer()), zodat bevindingen correct zeggen "geïntroduceerd als Herma"
-          // in plaats van de misleidende "geïntroduceerd als Manon".
-          const roepnaamDisplay = woord.charAt(0).toUpperCase() + woord.slice(1);
-          naarEcht.set(nep.fn, roepnaamDisplay);
-          naarEcht.set(nep.fn + 's', roepnaamDisplay + 's');
-          if (_roepnaamLijkt(woord, naam)) {
-            // Vergelijkbare roepnaam: ook nepVolledig → roepnaam (bijv. "Thomas Bergman" → "Peter")
-            naarEcht.set(`${nep.fn} ${nep.an}`, roepnaamDisplay);
-            // naarEchtVolledig: roepnaam + kortste achternaamsuffix (zonder middelnamen)
-            // zodat passage "Peter Dikkeschei" toont ipv "Peter Adriaan Dikkeschei".
-            const _naamDelen = naam.trim().split(/\s+/);
-            const _naDelen   = _naamDelen.slice(1);
-            const _naDeLc    = _naDelen.map(d => d.toLowerCase());
-            let _ksV = _naDelen.length - 1;
-            while (_ksV > 0 && _tussenvoegels.has(_naDeLc[_ksV - 1])) _ksV--;
-            const _suffix = _naDelen.slice(_ksV).join(' ');         // "ten Brink" of "Dikkeschei"
-            // naarEchtVolledig[nepVolledig] NIET overschrijven: registreer() heeft de formele naam
-            // al gezet ("Herma Eugenie ten Brink"). Passages uit de introductiezin moeten die
-            // formele documentvorm tonen, niet de roepnaam+achternaam.
-          } else {
-            // Sterk afwijkende roepnaam (bijv. "Dieneke" vs "Grada Berendina Roseboom"):
-            // nep.fn alleen → roepnaam zodat body-tekst "Thomas betaalt" → "Dieneke betaalt".
-            // nepVolledig ("Thomas Bergman") wordt NIET overschreven — registreer() heeft al
-            // de formele naam ("Grada Berendina Roseboom") gezet voor intro-passages.
-            naarEchtVolledig.set(nep.fn, roepnaamDisplay);
-            // (geen set voor nepVolledig: formele naam uit registreer() blijft bewaard)
-          }
-
-          // Bewaar voor prompt-injectie: pseudo-namen zodat Claude het kan controleren
-          // zonder dat echte namen worden blootgesteld.
-          _gedetecteerdRoepnamen.push({ nepVoornaam: nep.fn, nepVolledig: `${nep.fn} ${nep.an}` });
-
-          // Waarschuwing als roepnaam sterk afwijkt van formele naam
-          if (!_roepnaamLijkt(woord, naam)) {
-            const dispWoord = woord.charAt(0).toUpperCase() + woord.slice(1);
-            // Alleen toevoegen als niet al gedetecteerd via Haiku-blok
-            if (!waarschuwingen.some(w => w.roepnaam.toLowerCase() === woord)) {
-              waarschuwingen.push({ roepnaam: dispWoord, formeelVolledig: naam });
-            }
-          }
-
-          break; // Eerste kandidaat per partij per bron is genoeg
-        }
-        break; // Eerste bron met achternaam is genoeg
-      }
-    }
-  }
-
-  return { naarAnon, naarEcht, naarEchtVolledig, roepnamen: _gedetecteerdRoepnamen, waarschuwingen };
-}
-
-// Module-level register voor cross-sessie gebruik (gevuld door bouwAnonMap, gelezen door analyseer-aanroep)
-let _gedetecteerdRoepnamen = [];
+// ── Pseudonimisering (AVG) ─────────────────────────────────
+// bouwAnonMap / anonimiseerTekst zijn verplaatst naar src/naam-anonimiseer.js.
+// De window.*-wrappers in de ESM-bridge zijn de gezaghebbende versie.
+// var-declaraties zodat de namen beschikbaar zijn in dit script-bereik;
+// de ESM-bridge overschrijft ze v\u00f3\u00f3r de eerste gebruikersactie.
+var bouwAnonMap;      // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
+var anonimiseerTekst; // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
 let _roepnaamSyntheticIssues = []; // issue-kaarten voor sterk afwijkende roepnamen (geen alert)
 
 // Maakt een gedeelde PII-tracker aan die genummerde, terugzetbare placeholders beheert.
@@ -8382,69 +8103,6 @@ function _maakPiiTracker() {
   return { getPh, phToVal };
 }
 
-// Vervang namen en gevoelige PII in platte tekst door placeholders.
-// piiPh: optionele getPh(type, value)-functie van _maakPiiTracker() voor
-//        genummerde en terugzetbare adres-/postcode-placeholders.
-//        Zonder piiPh worden adressen/postcodes/woonplaatsen NIET geanonimiseerd.
-function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
-  if (!tekst || !naarAnon?.size) return tekst;
-  let t = tekst;
-
-  // Namen: langste eerst (voorkomt dat voornaam ná volledige naam matcht).
-  // Vervang case-insensitief via regex; naarAnon-keys zijn al lowercase.
-  // Gebruik (?<![a-zA-ZÀ-ÿ]) / (?![a-zA-ZÀ-ÿ]) als woordgrens zodat accenten
-  // en samengestelde namen correct worden behandeld.
-  const gesorteerd = [...naarAnon.entries()].sort((a, b) => b[0].length - a[0].length);
-  for (const [echtLc, ph] of gesorteerd) {
-    try {
-      // Escape regex-speciale tekens in de naam
-      const rx = new RegExp(
-        '(?<![A-Za-zÀ-ÿ])' + echtLc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-zÀ-ÿ])',
-        'gi'
-      );
-      t = t.replace(rx, ph);
-    } catch { /* ongeldige naam — overslaan */ }
-  }
-
-  // PII-patronen:
-  // - IBANs vervangen door genummerde placeholders [IBAN_0], [IBAN_1], ... (AVG).
-  //   De server herkent ze via de uitgebreide IBAN_RE die ook [IBAN_n] matcht.
-  //   Alleen als piiPh aanwezig (= server-gebonden aanroepen); passage-normalisatie-aanroepen
-  //   gebruiken naarAnon dat na de eerste aanroep de IBAN-mapping al bevat.
-  if (piiPh) t = t.replace(/\bNL\d{2}[A-Z]{4}\d{10}\b/g, iban => piiPh('IBAN', iban));
-  // - BSN maskeren: uniek persoonskenmerk, nooit nodig voor analyse.
-  // - Lookbehind (?<![A-Z]{4} ): voorkomt false positive op IBAN-accountcijfers
-  //   (bankcode is altijd 4 hoofdletters, bijv. ABNA). "BSN 123456789" wordt WEL
-  //   vervangen — "BSN" heeft maar 3 letters.
-  t = t.replace(/(?<![A-Z]{4} )\b\d{9}\b/g, '[BSN]');
-
-  if (piiPh) {
-    // Straatnamen + huisnummer VOOR postcode (postcode-regex mag geen straatdelen opslokken).
-    // Vangt samengestelde namen eindigend op gangbare straat-suffixen.
-    t = t.replace(/\b(?:\w+\s+)?\w+(?:straat|laan|weg|plein|park|singel|gracht|kade|dijk|hof|dreef|steeg|boulevard|allee)\s+\d+[a-zA-Z]?\b/gi,
-      adres => piiPh('ADRES', adres.trim()));
-    // Nederlandse postcodes: 1234AB of 1234 AB
-    t = t.replace(/\b(\d{4})\s?([A-Z]{2})\b/g,
-      (_, d, l) => piiPh('POSTCODE', `${d} ${l}`));
-    // Woonplaats direct na postcode-placeholder: "[POSTCODE_0] Almelo"
-    t = t.replace(/(\[POSTCODE_\d+\])\s+([A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,})?)/g,
-      (_, ph, stad) => `${ph} ${piiPh('WOONPLAATS', stad.trim())}`);
-    // Woonplaats na "wonende te / woonachtig te / gevestigd te"
-    t = t.replace(/\b(woonachtig|wonende?|gevestigd|gedomicilieerd)\s+te\s+(?!\[)([A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,})?)/gi,
-      (_, prefix, stad) => `${prefix} te ${piiPh('WOONPLAATS', stad.trim())}`);
-  }
-
-  // Telefoonnummers: 06-xxxxxxxx, 0xx-xxxxxxx, +31-formaten, met spaties/streepjes
-  // (?<![A-Z\d]) voorkomt dat IBAN-accountcijfers als telefoon worden gemaskeerd
-  t = t.replace(/(?<![A-Z\d])(?:0[1-9]\d{1,2}[-.\s]?\d{6,8}|\+31[-.\s]?[1-9]\d{8}|06[-.\s]?\d{8})(?!\d)/g, '[TEL]');
-  // E-mailadressen
-  t = t.replace(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
-
-  return t;
-}
-
-// PII-anonimisering voor de AI-assistent (identiek aan src/pii-anonimiseer.js).
-// piiAnonimiseer — zie src/pii-anonimiseer.js (geladen via module bridge)
 
 // Herstel nep-namen en legacy-placeholders recursief in elk object/array/string.
 // naarEcht-map bevat twee soorten keys:
@@ -9654,19 +9312,33 @@ Als je een nieuw artikel of lid toevoegt dat nog niet in het document bestaat:
       };
 
       const itemsTekst = snapAangevinkt.map((item, i) => {
-        const nr  = i + 1;
-        const cat = item.categorie || '?';
-        const loc = item.locatie || item.sectie || item.onderwerp || item.signalering || '';
-        const bev = item.bevinding || item.toelichting || item.probleem || item.signalering || '';
-        const sug = item.suggestie || '';
-        const opm = item.opmerking || '';
-        const pas = item.passage   || item.citaat || '';
+        const nr     = i + 1;
+        const cat    = item.categorie || '?';
+        const loc    = item.locatie || item.sectie || item.onderwerp || item.signalering || '';
+        const bev    = item.bevinding || item.toelichting || item.probleem || item.signalering || '';
+        const sug    = item.suggestie || '';
+        const opm    = item.opmerking || '';
+        const pas    = item.passage   || item.citaat || '';
+        const isAssistent = item.bron === 'assistent';
         let t = `[${nr}] (${cat})`;
         if (loc) t += `\n   Locatie: ${loc}`;
-        if (bev) t += `\n   Bevinding: ${bev}`;
+        if (!isAssistent && bev) t += `\n   Bevinding: ${bev}`;
         if (sug) t += `\n   Suggestie: ${sug}`;
         if (opm) t += `\n   Opmerking mediator: ${opm}`;
-        if (pas) t += `\n   Passage in document: "${pas}"`;
+        if (isAssistent) {
+          // Assistent-clausule: voeg het clausuletekst toe en geef INSERT-instructie
+          const clausuleTekst = item.aanbeveling || '';
+          t += `\n   Actie: INVOEGEN — voeg onderstaande nieuwe clausule in het document in.`;
+          if (pas) {
+            t += `\n   Invoegpositie (anker — staat al letterlijk in het document, gebruik als zoek_tekst): "${pas}"`;
+            t += `\n   vervang_door = anker + "\\n\\n" + clausuletekst`;
+          } else {
+            t += `\n   Invoegpositie: kies de meest passende locatie in het document.`;
+          }
+          if (clausuleTekst) t += `\n   Te in te voegen clausuletekst:\n${clausuleTekst}`;
+        } else {
+          if (pas) t += `\n   Passage in document: "${pas}"`;
+        }
         // Pseudonimiseer issue-tekst — issues zijn al de-gepseudonimiseerd en bevatten echte namen
         return anonimiseerTekst(t, snapNaarAnon);
       }).join('\n\n');
@@ -13149,14 +12821,13 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
     opties_voor_klanten: 'Keuzes uitwerken',
     clausule_opstellen:  '📝 Clausule opstellen',
     klanttekst:          '✉️ Samenvatting voor klant',
-    fiscale_check:       'Fiscale check',
     andere_stijl:        'Andere stijl',
     toets_aan_dossier:   'Toets aan dossier',
   };
   // Acties die nu in de vaste actie-balk zitten: niet als chip herhalen
   const _ACTIE_BALK_ACTIES = new Set(['opties_voor_klanten', 'clausule_opstellen', 'klanttekst']);
-  // Eenmalige acties (bijv. fiscale_check) niet opnieuw tonen als al gebruikt in dit gesprek
-  const _EENMALIGE_ACTIES = new Set(['fiscale_check', 'toets_aan_dossier', 'toepassen_op_casus']);
+  // Eenmalige acties niet opnieuw tonen als al gebruikt in dit gesprek
+  const _EENMALIGE_ACTIES = new Set(['toets_aan_dossier', 'toepassen_op_casus']);
   const zichtbareActies = vervolgacties.filter(a =>
     !_ACTIE_BALK_ACTIES.has(a) && (!_EENMALIGE_ACTIES.has(a) || !_assist.gebruikteActies.has(a))
   );
@@ -13181,6 +12852,7 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
       const _secties = _toelichtingDeel.split(/\n(?=\*\*)/);
       let _minSectieHtml   = '';
       let _minTekst        = '';  // extracteerbare minimale clausuletekst
+      let _meerwaardeTekst = '';  // waarom uitgebreide versie meerwaarde heeft
       const _overigeItems  = [];
 
       _secties.filter(s => s.trim()).forEach(sectie => {
@@ -13189,20 +12861,25 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
         const _body = (_hm ? sectie.slice(_hm[0].length) : sectie).trim();
 
         if (_hdr.toLowerCase().includes('minimale')) {
-          // Extraheer minimale clausuletekst na ---MINIMALE TEKST--- marker
+          // Splits body: vóór marker = juridische onderbouwing, na marker = minimale tekst + meerwaarde-uitleg
           const _mIdx = _body.indexOf('---MINIMALE TEKST---');
           if (_mIdx !== -1) {
+            const _juridischBody = _body.slice(0, _mIdx).trim();
             const _rest = _body.slice(_mIdx + '---MINIMALE TEKST---'.length).trim();
-            _minTekst = _rest.split(/\n\n/)[0].trim(); // tot eerste lege regel
+            const _minEnd = _rest.indexOf('\n\n');
+            _minTekst = _minEnd !== -1 ? _rest.slice(0, _minEnd).trim() : _rest.trim();
+            _meerwaardeTekst = _minEnd !== -1 ? _rest.slice(_minEnd).trim() : '';
+            if (_juridischBody) {
+              _minSectieHtml = `<div class="assist-meta-item">
+                <button class="assist-meta-hdr" onclick="${TOGGLE_FN}" style="background:rgba(30,58,95,.08);color:var(--nav-bg)">
+                  <em class="meta-arrow" style="transform:rotate(90deg)">▸</em> Juridische onderbouwing
+                </button>
+                <div class="assist-meta-body open">${_assistMd(_juridischBody)}</div>
+              </div>`;
+            }
           } else {
             _minTekst = _body;
           }
-          _minSectieHtml = `<div class="assist-meta-item">
-            <button class="assist-meta-hdr" onclick="${TOGGLE_FN}" style="background:rgba(30,58,95,.08);color:var(--nav-bg)">
-              <em class="meta-arrow" style="transform:rotate(90deg)">▸</em> ${escH(_hdr)}
-            </button>
-            <div class="assist-meta-body open">${_assistMd(_body)}</div>
-          </div>`;
         } else {
           _overigeItems.push(`<div class="assist-meta-item">
             <button class="assist-meta-hdr" onclick="${TOGGLE_FN}">
@@ -13213,15 +12890,28 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
         }
       });
 
+      // Titel uit de uitgebreide clausule: eerste ## heading of eerste **vette regel**
+      const _titleMatch = _clausuleDeel.match(/^#{1,3}\s+(.+)/m)
+        || _clausuleDeel.match(/^\*\*(.+?)\*\*\s*$/m);
+      const _clausuleTitel = _titleMatch ? _titleMatch[1].replace(/\*+/g, '').trim() : '';
+      const _titlHtml = _clausuleTitel
+        ? `<div class="assist-clausule-titel">${escH(_clausuleTitel)}</div>`
+        : '';
+      // Update de header-balk boven de bubble met de specifieke clausulenaam
+      if (_clausuleTitel && _assist.lastClausuleHdrId) {
+        const _hdrEl = document.getElementById(_assist.lastClausuleHdrId);
+        if (_hdrEl) _hdrEl.textContent = _clausuleTitel;
+      }
+
       const _uitgebreidHtml = _minTekst ? `<div class="assist-meta-item">
         <button class="assist-meta-hdr" onclick="${TOGGLE_FN}" style="background:rgba(0,0,0,.04);color:var(--ink-soft)">
           <em class="meta-arrow">▸</em> Uitgebreide versie
         </button>
-        <div class="assist-meta-body">${_assistMd(_clausuleDeel)}</div>
+        <div class="assist-meta-body">${_meerwaardeTekst ? _assistMd(_meerwaardeTekst) + '<div style="height:1px;background:var(--line);margin:10px 0"></div>' : ''}${_assistMd(_clausuleDeel)}</div>
       </div>` : '';
 
       toelichtingHtml = `<div class="assist-meta-blok" style="margin-top:0">${_minSectieHtml}${_overigeItems.join('')}${_uitgebreidHtml}</div>`;
-      inhoudsHtml = _assistMd(_minTekst || _clausuleDeel);
+      inhoudsHtml = _titlHtml + _assistMd(_minTekst || _clausuleDeel);
 
       // Knoppen: kopieer + issue-keuze minimaal vs uitgebreid
       const _docRef   = clausuleRelevant && clausuleRelevant !== 'geen' ? clausuleRelevant : 'convenant';
@@ -13262,14 +12952,12 @@ function _assistVervolgActie(actie, btn) {
   const BERICHTEN = {
     toepassen_op_casus:  'Pas het bovenstaande toe op de specifieke casus.',
     opties_voor_klanten: 'Geef maximaal 3 opties voor klanten, elk met de kerngedachte en afwegingen.',
-    fiscale_check:       'Controleer dit vanuit fiscaal perspectief: zijn er fiscale aandachtspunten?',
     toets_aan_dossier:   'Toets het bovenstaande aan het gekoppelde dossier.',
   };
 
   const THINKING_LABELS = {
     toepassen_op_casus:  'Toepassen op casus…',
     opties_voor_klanten: 'Keuzes aan het uitwerken…',
-    fiscale_check:       'Fiscale check uitvoeren…',
     toets_aan_dossier:   'Toetsen aan dossier…',
   };
 
@@ -13467,9 +13155,9 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
     dimensies: ['volledigheid'],
     ernst: 'hoog',
     signalering: 'Zelf toegevoegd via AI Assistent',
-    bevinding: clausuleKaal.slice(0, 3000),
+    bevinding: 'Clausuletoevoeging voorgesteld door de AI-assistent.',
     passage: '',
-    aanbeveling: 'Nieuwe bepaling — voeg handmatig in op de juiste locatie in het document.',
+    aanbeveling: clausuleKaal.slice(0, 3000),
     afgehandeld: false,
     negeer: false,
     opmerking: '',
@@ -13820,9 +13508,6 @@ Sluit de toelichting af met: "*Dit is een aanbeveling — eindverantwoordelijkhe
 
   const variantLabel = pc.varianten === 'meerdere' ? ' — meerdere varianten' : '';
   const optieLabel = poc ? ` — ${poc.titel}` : '';
-  if (!poc) {
-    _assistVoegGebruikerBerichtToe(`Clausule opstellen voor het ${labelMap[docType] || 'document'}${optieLabel}${variantLabel}.`);
-  }
   _assistVoegThinkingToe('Clausule aan het opstellen…');
 
   try {
@@ -13865,10 +13550,12 @@ function _assistVoegClausuleHeader(docType) {
   const _docLabelMap   = { convenant: 'Convenant', ouderschapsplan: 'Ouderschapsplan', beide: 'Convenant / Ouderschapsplan' };
   const _stijlLabelMap = { strikt: 'Strikt', juridisch_volledig: 'Juridisch volledig', begrijpelijke_taal: 'Begrijpelijke taal' };
   const _stijlLabel    = _stijlLabelMap[_assist.stijl || 'juridisch_volledig'] || 'Juridisch volledig';
+  const _hdrId = `clausule-hdr-${Date.now()}`;
+  _assist.lastClausuleHdrId = _hdrId;
   const d = document.createElement('div');
   d.className = 'assist-msg-assist';
   d.style.paddingBottom = '0';
-  d.innerHTML = `<div style="font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);padding:0 2px 2px;">Voorgestelde clausule — ${escH(_docLabelMap[docType] || docType)}</div>
+  d.innerHTML = `<div id="${_hdrId}" style="font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);padding:0 2px 2px;">Voorgestelde clausule — ${escH(_docLabelMap[docType] || docType)}</div>
     <div style="font-size:.72rem;color:var(--ink-soft);padding:0 2px 4px;">${escH(_stijlLabel)}</div>`;
   document.getElementById('assistMsgs').appendChild(d);
 }
@@ -14700,6 +14387,7 @@ function _assistNieuwGesprek() {
 <!-- Fase 3: src/-modules via native ESM -->
 <script type="module">
 import { piiAnonimiseer }                                   from './src/pii-anonimiseer.js';
+import { bouwAnonMap, anonimiseerTekst }                    from './src/naam-anonimiseer.js';
 import { raadDocType, contextVoorHoofd,
          vindEigenBestanden, bouwPrimaireBest }             from './src/viewer/primaire-best.js';
 import { maakGrad, telHml, filterActief, kopKlasse, hmlSegs } from './src/chips/hml-counts.js';
@@ -14707,6 +14395,11 @@ import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/
 import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
+// bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
+window.bouwAnonMap       = (cls) => bouwAnonMap(cls,
+  Array.isArray(window.app?.bestanden) ? window.app.bestanden.map(f => f.name) : []
+);
+window.anonimiseerTekst  = anonimiseerTekst;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

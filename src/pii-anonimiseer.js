@@ -14,8 +14,7 @@
  *   [TEL]                    — telefoonnummer
  *   [EMAIL]                  — e-mailadres
  *
- * IDENTIEKE inline kopie staat in index.html (zoek op "function piiAnonimiseer").
- * Bij aanpassing: beide versies bijwerken.
+ * Geladen via ESM-bridge in index.html en assistent-mobiel.html (window.piiAnonimiseer).
  */
 export function piiAnonimiseer(tekst) {
   if (!tekst) return tekst;
