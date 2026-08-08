@@ -6751,16 +6751,13 @@ function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam
   const KENMERK_CATS = ['status_verbinding', 'kinderen', 'woning', 'bedrijf'];
 
   const docs = Array.isArray(rp.documenten) && rp.documenten.length > 1 ? rp.documenten : null;
-  const alleDoc = docs ? [...rp.documenten] : [{
+  // Canonieke tabvolgorde via src/rapport/sorteer-docs.js — nooit lokaal herhalen.
+  const alleDoc = docs ? sorteerOpDocType(rp.documenten) : [{
     doc_type: rp.doc_type || cls.doc_type, bestandsnaam: naam,
     samenvatting: rp.samenvatting, mfn_score: rp.mfn_score,
     issues: Array.isArray(rp.issues) ? rp.issues : null,
     _oud: !Array.isArray(rp.issues) ? rp : null,
   }];
-  if (docs) {
-    const volgorde = { ouderschapsplan:0, zorgverdeling:1, convenant:10, waarde_verdeling:11 };
-    alleDoc.sort((a,b) => (volgorde[a.doc_type]??99) - (volgorde[b.doc_type]??99));
-  }
 
   const partijA = cls.partij_a_naam || '';
   const partijB = cls.partij_b_naam || '';
@@ -10657,8 +10654,11 @@ const maakDocCircels = (drp) => {
   return { html: c, grootSegs };
 };
 function maakDocKolommenHtml(rp) {
-  const DOC_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
-  const DOC_TYPEN    = ['ouderschapsplan', 'convenant'];
+  // Kolompositie binnen deze twee-koloms vergelijking — NIET de canonieke
+  // tabvolgorde (die staat in src/rapport/sorteer-docs.js). De waarden zijn
+  // indexen in DOC_TYPEN, gebruikt om de ontbrekende kolom te bepalen.
+  const KOLOM_POSITIE = { ouderschapsplan: 0, convenant: 1 };
+  const DOC_TYPEN     = ['ouderschapsplan', 'convenant'];
 
   function getDocs(r) {
     if (!r) return [];
@@ -10779,7 +10779,7 @@ function maakDocKolommenHtml(rp) {
   // Phantom: als slechts één standaard-type bestaat, vul de andere positie met placeholder
   let inhoud = kolomHtml;
   if (typesToShow.length === 1 && DOC_TYPEN.includes(typesToShow[0])) {
-    const pos        = DOC_VOLGORDE[typesToShow[0]];
+    const pos        = KOLOM_POSITIE[typesToShow[0]];
     const missType   = DOC_TYPEN[1 - pos];
     const missLbl    = DOC_TYPE_LABELS[missType] || missType;
     const phantom    = `<div class="v2-doc-kolom"><div class="v2-doc-titel">${escH(missLbl)}</div><div class="v2-doc-placeholder">${DOC_ICO}Nog niet geanalyseerd</div></div>`;
@@ -11995,10 +11995,8 @@ async function laadScreening(id, origin = 'main') {
     const rDocs = Array.isArray(data.rapport.documenten) && data.rapport.documenten.length > 1
       ? data.rapport.documenten : null;
     // Sorteer in DEZELFDE volgorde als de tabs in toonRapport: OP → Zorgverdeling → Convenant → Waardeoverzicht → rest.
-    const _TAB_VOLGORDE = { ouderschapsplan: 0, zorgverdeling: 1, convenant: 10, waarde_verdeling: 11 };
-    const rDocsSorted = rDocs
-      ? [...rDocs].sort((a, b) => (_TAB_VOLGORDE[a.doc_type] ?? 99) - (_TAB_VOLGORDE[b.doc_type] ?? 99))
-      : null;
+    // Beide gebruiken sorteerOpDocType uit src/rapport/sorteer-docs.js.
+    const rDocsSorted = rDocs ? sorteerOpDocType(rDocs) : null;
     if (rDocsSorted) {
       console.log('[laadScreening] bestanden in lijst:', app.bestanden.map(f => f.name));
       console.log('[laadScreening] docs gesorteerd:', rDocsSorted.map(d => d.doc_type + ':' + d.bestandsnaam));

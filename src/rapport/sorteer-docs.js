@@ -9,22 +9,22 @@ export const DOC_VOLGORDE = { ouderschapsplan: 0, zorgverdeling: 1, convenant: 1
 
 /**
  * Sorteert een array van objecten met een `doc_type`-veld op canonieke volgorde.
- * Onbekende types komen achteraan (rang 9).
+ * Onbekende types komen achteraan (rang 99 — hoger dan elk bekend type).
  * Geeft altijd een nieuwe array terug (muteert niet).
  */
 export function sorteerOpDocType(items) {
   return [...items].sort(
-    (a, b) => (DOC_VOLGORDE[a.doc_type] ?? 9) - (DOC_VOLGORDE[b.doc_type] ?? 9)
+    (a, b) => (DOC_VOLGORDE[a.doc_type] ?? 99) - (DOC_VOLGORDE[b.doc_type] ?? 99)
   );
 }
 
 /**
  * Sorteert een array van objecten met een `type`-veld (tray-items, effectieveHoofdItems).
- * Onbekende types komen achteraan (rang 9).
+ * Onbekende types komen achteraan (rang 99 — hoger dan elk bekend type).
  * Geeft altijd een nieuwe array terug (muteert niet).
  */
 export function sorteerOpType(items) {
   return [...items].sort(
-    (a, b) => (DOC_VOLGORDE[a.type] ?? 9) - (DOC_VOLGORDE[b.type] ?? 9)
+    (a, b) => (DOC_VOLGORDE[a.type] ?? 99) - (DOC_VOLGORDE[b.type] ?? 99)
   );
 }

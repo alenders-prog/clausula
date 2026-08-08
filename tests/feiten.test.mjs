@@ -1,24 +1,10 @@
 // tests/feiten.test.mjs
 // Unit-tests voor api/_feiten.js
-// Gebruik: node tests/feiten.test.mjs
+// Gebruik: npx vitest run tests/feiten.test.mjs
 
+import { test } from 'vitest';
 import { strict as assert } from 'node:assert';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie } from '../api/_feiten.js';
-
-let passed = 0;
-let failed = 0;
-
-function test(naam, fn) {
-  try {
-    fn();
-    console.log(`  ✓  ${naam}`);
-    passed++;
-  } catch (err) {
-    console.error(`  ✗  ${naam}`);
-    console.error(`     ${err.message}`);
-    failed++;
-  }
-}
 
 // ── Testdata uit de praktijk ──────────────────────────────────────────────────
 
@@ -43,7 +29,6 @@ Woning gezamenlijk aangekocht tijdens huwelijk.
 `;
 
 // ── 1. verrijkResolvedFields ──────────────────────────────────────────────────
-console.log('\n── 1. verrijkResolvedFields ─────────────────────────────────────');
 
 test('Lebbink: hv_stelsel = koude_uitsluiting uit vrije tekst', () => {
   const r = verrijkResolvedFields({}, DOSSIER_LEBBINK);
@@ -78,7 +63,6 @@ test('Leeg dossier → ongewijzigde resolvedFields', () => {
 });
 
 // ── 2. bouwFeitenBlok ─────────────────────────────────────────────────────────
-console.log('\n── 2. bouwFeitenBlok ────────────────────────────────────────────');
 
 test('Lebbink: JURIDISCHE FEITEN bevat koude uitsluiting', () => {
   const rf = verrijkResolvedFields({}, DOSSIER_LEBBINK);
@@ -122,7 +106,6 @@ test('Pensioen uitgesloten → uitsluiting vermeld in belang', () => {
 });
 
 // ── 3. valideerConsistentie ───────────────────────────────────────────────────
-console.log('\n── 3. valideerConsistentie ──────────────────────────────────────');
 
 test('Lebbink: balans-signaal over verkoopopbrengst wordt verwijderd', () => {
   const rf = verrijkResolvedFields({}, DOSSIER_LEBBINK);
@@ -210,8 +193,3 @@ test('Geen feiten → output ongewijzigd', () => {
   valideerConsistentie(output, {});
   assert.equal(output.signalen.length, 1, 'zonder feiten niets verwijderen');
 });
-
-// ── Resultaat ─────────────────────────────────────────────────────────────────
-console.log(`\n${'─'.repeat(52)}`);
-console.log(`  ${passed} geslaagd  |  ${failed} mislukt`);
-if (failed > 0) process.exit(1);

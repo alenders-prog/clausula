@@ -26,10 +26,22 @@ behandeld als HOOFD_TYPE (analyse gaat gewoon door).
 
 ### Tabvolgorde (huidigeDocumenten[])
 ```
-ouderschapsplan → index 0
-convenant       → index 1
-overige         → index 9 (tiebreaker)
+ouderschapsplan  → 0
+zorgverdeling    → 1
+convenant        → 10
+waarde_verdeling → 11
+overige          → 99 (tiebreaker, altijd achteraan)
 ```
+De gaten tussen 1 en 10 zijn opzet: ze laten ruimte om later types tussen te
+voegen zonder de bestaande rangen te herschikken. De fallback moet daarom
+**hoger dan elk bekend type** zijn (99) — met een waarde als 9 belanden
+onbekende documenten tussen zorgverdeling en convenant in plaats van achteraan.
+
+Canonieke bron: `src/rapport/sorteer-docs.js` (`DOC_VOLGORDE`, `sorteerOpDocType`,
+`sorteerOpType`). Let op: `index.html` heeft nog twee inline kopieën van deze map
+(in `toonRapport` en `laadScreening`/`_TAB_VOLGORDE`) — houd die gelijk. De
+losse `DOC_VOLGORDE` in `maakDocKolommenHtml` is iets anders: die bepaalt
+kolompositie voor alleen OP/convenant.
 
 ### Actief documenttype opzoeken — altijd zo:
 ```js
