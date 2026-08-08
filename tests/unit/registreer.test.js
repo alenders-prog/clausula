@@ -4,7 +4,13 @@
  * Supabase RPC wordt gemockt zodat er geen echte DB-aanroepen plaatsvinden.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Alle bestaande tests gaan uit van een correct ingevulde registratiecode; de poort
+// zelf wordt apart getest in "Registratiecode" onderaan.
+const GELDIGE_CODE = 'test-registratiecode';
+beforeEach(() => { process.env.REGISTRATIE_CODE = GELDIGE_CODE; });
+afterEach(()  => { delete process.env.REGISTRATIE_CODE; });
 
 // Top-level mock — wordt door Vitest gehoist vóór alle imports
 vi.mock('@supabase/supabase-js', () => ({
@@ -18,7 +24,10 @@ function maakReq(body, methode = 'POST', ip = '1.2.3.4') {
   return {
     method:  methode,
     headers: { 'x-forwarded-for': ip },
-    body:    body,
+    // Standaard de geldige code meesturen, tenzij de test er zelf een meegeeft.
+    body:    body && !('registratieCode' in body)
+      ? { ...body, registratieCode: GELDIGE_CODE }
+      : body,
   };
 }
 
@@ -133,5 +142,78 @@ describe('Rate limiting', () => {
     const resB = maakRes();
     await handler(maakReq({ kantoorNaam: 'KantoorB' }, 'POST', '10.0.0.2'), resB);
     expect(resB._status).toBe(200);
+  });
+});
+
+describe('Registratiecode', () => {
+  // Deze poort is de enige die verhindert dat iedereen die de URL kent een kantoor
+  // aanmaakt en analyses draait op onze Anthropic-rekening. Streng testen dus.
+
+  it('weigert een aanvraag zonder code met 403', async () => {
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: '' }), res);
+    expect(res._status).toBe(403);
+  });
+
+  it('weigert een ontbrekend codeveld met 403', async () => {
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: undefined }), res);
+    expect(res._status).toBe(403);
+  });
+
+  it('weigert een onjuiste code met 403', async () => {
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: 'fout' }), res);
+    expect(res._status).toBe(403);
+  });
+
+  it('is hoofdlettergevoelig', async () => {
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: GELDIGE_CODE.toUpperCase() }), res);
+    expect(res._status).toBe(403);
+  });
+
+  it('weigert een code met dezelfde lengte maar andere inhoud', async () => {
+    const handler = await laadHandler();
+    const res = maakRes();
+    const zelfdeLengte = 'x'.repeat(GELDIGE_CODE.length);
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: zelfdeLengte }), res);
+    expect(res._status).toBe(403);
+  });
+
+  it('accepteert de juiste code', async () => {
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: GELDIGE_CODE }), res);
+    expect(res._status).toBe(200);
+  });
+
+  it('weigert ALLES met 503 als REGISTRATIE_CODE niet is ingesteld', async () => {
+    // Fail closed: een ontbrekende env-variabele mag nooit een open deur worden.
+    delete process.env.REGISTRATIE_CODE;
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: '' }), res);
+    expect(res._status).toBe(503);
+  });
+
+  it('weigert ook mét een code als REGISTRATIE_CODE leeg is', async () => {
+    process.env.REGISTRATIE_CODE = '';
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: 'Testkantoor', registratieCode: '' }), res);
+    expect(res._status).toBe(503);
+  });
+
+  it('controleert de code vóór de naamvalidatie', async () => {
+    // Anders verklapt de foutmelding of een naam geldig is aan wie geen code heeft.
+    const handler = await laadHandler();
+    const res = maakRes();
+    await handler(maakReq({ kantoorNaam: '', registratieCode: 'fout' }), res);
+    expect(res._status).toBe(403);
   });
 });

@@ -5,11 +5,14 @@
  * 1. Verifieert JWT (caller moet admin zijn)
  * 2. Controleert dat het uitgenodigde e-maildomein overeenkomt met het org-domein
  * 3. Genereert uitnodigingstoken via maak_uitnodiging()
- * 4. Verstuurt uitnodigingsmail via Resend
+ * 4. Verstuurt uitnodigingsmail via SMTP (eigen mailserver op clausula.nl)
+ *
+ * Vereist: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM.
+ * Poort 465 gebruikt impliciet TLS, 587 begint plat en doet STARTTLS.
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { verifieerJWT } from './_auth.js';
 
 const sbService = createClient(
@@ -79,14 +82,39 @@ export default async function handler(req, res) {
       day: 'numeric', month: 'long', year: 'numeric',
     });
 
-    // ── E-mail versturen via Resend ───────────────────────
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    // ── E-mail versturen via SMTP ─────────────────────────
+    const smtpPoort = Number(process.env.SMTP_PORT) || 587;
+    // Noodklep: zet SMTP_TLS_ONVEILIG=1 als de mailserver nog een zelfondertekend of
+    // verlopen certificaat aanbiedt. Dat versleutelt nog steeds, maar controleert de
+    // identiteit van de server niet meer — bedoeld als tijdelijke overbrugging tot er
+    // een geldig certificaat op staat, niet als eindsituatie.
+    const tlsOnveilig = process.env.SMTP_TLS_ONVEILIG === '1';
+    if (tlsOnveilig) console.warn('[uitnodigen] SMTP-certificaat wordt NIET geverifieerd');
+    const transport = nodemailer.createTransport({
+      host:   process.env.SMTP_HOST,
+      port:   smtpPoort,
+      secure: smtpPoort === 465,          // 465 = TLS vanaf de eerste byte
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      ...(tlsOnveilig ? { tls: { rejectUnauthorized: false } } : {}),
+    });
     const rolLabel = rol === 'admin' ? 'Beheerder' : 'Mediator';
 
-    const { error: mailErr } = await resend.emails.send({
-      from: `${org.org_naam} <onboarding@resend.dev>`,
-      to: [email],
+    // Het From-adres moet op het eigen domein blijven, anders faalt SPF/DKIM en
+    // belandt de uitnodiging in de spambox. De kantoornaam mag wel variëren.
+    await transport.sendMail({
+      from: `"${org.org_naam}" <${process.env.SMTP_FROM}>`,
+      to: email,
       subject: `Uitnodiging — ${org.org_naam} Clausula`,
+      // Platte-tekstvariant naast de HTML: spamfilters rekenen HTML-only zwaar aan,
+      // en sommige mailclients tonen niets anders.
+      text: [
+        `Je bent uitgenodigd om als ${rolLabel} deel te nemen aan het Clausula-platform van ${org.org_naam}.`,
+        '',
+        `Account aanmaken: ${link}`,
+        '',
+        `Deze uitnodiging verloopt op ${verloopt}.`,
+        'Als je deze e-mail niet verwachtte, kun je hem negeren.',
+      ].join('\n'),
       html: `
 <!DOCTYPE html>
 <html lang="nl">
@@ -135,8 +163,6 @@ export default async function handler(req, res) {
 </body>
 </html>`,
     });
-
-    if (mailErr) throw new Error(mailErr.message || 'E-mail versturen mislukt');
 
     return res.status(200).json({ ok: true });
 

@@ -79,6 +79,12 @@
       <div class="sectie-label">Kantoor</div>
       <label for="kantoorNaam">Naam van het kantoor</label>
       <input type="text" id="kantoorNaam" placeholder="bijv. Dalstein Mediation" autocomplete="organization">
+      <label for="registratieCode">Registratiecode</label>
+      <input type="text" id="registratieCode" placeholder="Ontvangen van Clausula" autocomplete="off">
+      <div style="font-size:.8rem;color:var(--muted);margin:-4px 0 4px">
+        Een nieuw kantoor aanmelden kan alleen met een code. Heb je die niet, vraag dan een
+        uitnodiging aan de beheerder van je kantoor.
+      </div>
     </div>
 
     <div class="sectie-label">Jouw gegevens</div>
@@ -150,7 +156,8 @@ let   _inviteRol   = 'gebruiker';
 })();
 
 async function registreer() {
-  const kantoorNaam = document.getElementById('kantoorNaam').value.trim();
+  const kantoorNaam     = document.getElementById('kantoorNaam').value.trim();
+  const registratieCode = document.getElementById('registratieCode').value.trim();
   const naam        = document.getElementById('naam').value.trim();
   const email       = document.getElementById('email').value.trim();
   const wachtwoord  = document.getElementById('wachtwoord').value;
@@ -166,6 +173,10 @@ async function registreer() {
     foutEl.textContent = 'Kies een naam voor je kantoor.';
     foutEl.style.display = 'block'; return;
   }
+  if (!_inviteOrgId && !registratieCode) {
+    foutEl.textContent = 'Een registratiecode is vereist om een nieuw kantoor aan te melden.';
+    foutEl.style.display = 'block'; return;
+  }
   if (!naam || !email || !wachtwoord) {
     foutEl.textContent = 'Vul alle velden in.';
     foutEl.style.display = 'block'; return;
@@ -179,33 +190,32 @@ async function registreer() {
   btn.textContent = 'Bezig…';
 
   try {
-    let orgId = _inviteOrgId;
-    const rol = _inviteOrgId ? _inviteRol : 'admin';
+    // Eén pad voor beide gevallen: er gaat uitsluitend een eenmalig token mee.
+    // Organisatie en rol worden server-side uit dat token afgeleid — zou de browser
+    // ze meesturen, dan kon iedereen zich als admin bij een willekeurig kantoor melden.
+    let token = _inviteToken;
 
-    if (!orgId) {
-      // Nieuw kantoor aanmaken (server-side, omzeilt RLS)
+    if (!token) {
+      // Nieuw kantoor: de server maakt de organisatie én een admin-token.
       const orgRes  = await fetch('/api/registreer', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ kantoorNaam }),
+        body:    JSON.stringify({ kantoorNaam, registratieCode }),
       });
       const orgData = await orgRes.json();
       if (!orgRes.ok) throw new Error(orgData.error || 'Kantoor aanmaken mislukt.');
-      orgId = orgData.organisatie_id;
+      token = orgData.uitnodiging_token;
+      if (!token) throw new Error('Kantoor aanmaken mislukt: geen token ontvangen.');
     }
 
-    // Gebruiker aanmaken (browser-side — trigger koppelt profiel aan org)
+    // Gebruiker aanmaken (browser-side — de trigger wisselt het token in voor
+    // organisatie en rol, en markeert het in dezelfde transactie als gebruikt).
     const { error: authErr } = await db.auth.signUp({
       email,
       password: wachtwoord,
-      options: { data: { naam, organisatie_id: orgId, rol } },
+      options: { data: { naam, uitnodiging_token: token } },
     });
     if (authErr) throw authErr;
-
-    // Uitnodiging markeren als gebruikt
-    if (_inviteToken) {
-      await db.rpc('gebruik_uitnodiging', { p_token: _inviteToken });
-    }
 
     okEl.textContent   = _inviteOrgId
       ? 'Account aangemaakt! Je wordt doorgestuurd naar de inlogpagina…'
