@@ -67,8 +67,11 @@ export default async function handler(req, res) {
     if (!inv?.token) throw new Error('Uitnodiging aanmaken mislukt');
 
     // ── Uitnodigingslink samenstellen ─────────────────────
-    const origin = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
+    // VERCEL_PROJECT_PRODUCTION_URL is het vaste productiedomein (app.clausula.nl).
+    // Gebruik NIET VERCEL_URL: dat is de deployment-specifieke URL, waardoor een
+    // uitnodiging naar één losse deploy zou linken in plaats van naar de app.
+    const origin = process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : (req.headers.origin || 'http://localhost:3000');
     const link = `${origin}/registreer.html?invite=${inv.token}`;
 
