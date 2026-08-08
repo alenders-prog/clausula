@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Clausula — Documentscreening</title>
+<title>Clausula</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@500&display=swap" rel="stylesheet">
 <style>
@@ -4485,7 +4485,7 @@ function rtfSectie(titel,items,fn) {
   for (const it of items) r+=fn(it); return r;
 }
 function buildRtf(naam,cls,rp) {
-  let b=rtfPar('Documentscreening',{bold:true,size:40})+rtfPar(naam||'(onbekend)',{italic:true})
+  let b=rtfPar('Clausula',{bold:true,size:40})+rtfPar(naam||'(onbekend)',{italic:true})
     +rtfPar(`Type: ${cls.doc_type}`,{size:22})+rtfPar(cls.samenvatting||'',{size:22});
   // MfN-score sectie
   if (rp.mfn_score?.elementen?.length) {
@@ -7985,7 +7985,7 @@ async function documentTekstNaarDocx(tekst) {
   }
 
   const doc = new Document({
-    creator:     'Documentscreening',
+    creator:     'Clausula',
     description: 'Verbeterd concept',
     sections: [{
       properties: {

@@ -86,7 +86,7 @@ export default async function handler(req, res) {
     const { error: mailErr } = await resend.emails.send({
       from: `${org.org_naam} <onboarding@resend.dev>`,
       to: [email],
-      subject: `Uitnodiging — ${org.org_naam} Documentscreening`,
+      subject: `Uitnodiging — ${org.org_naam} Clausula`,
       html: `
 <!DOCTYPE html>
 <html lang="nl">
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
       <tr>
         <td style="background:#E8714A;padding:28px 40px">
           <p style="margin:0;font-size:22px;font-weight:700;color:#fff">${org.org_naam}</p>
-          <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.85)">Documentscreening</p>
+          <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.85)">Clausula</p>
         </td>
       </tr>
       <tr>
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
           <h2 style="margin:0 0 16px;font-size:20px;color:#2B2825">Je bent uitgenodigd!</h2>
           <p style="margin:0 0 20px;color:#6B6358;line-height:1.6">
             Je hebt een uitnodiging ontvangen om als <strong>${rolLabel}</strong> deel te nemen aan
-            het Documentscreening-platform van <strong>${org.org_naam}</strong>.
+            het Clausula-platform van <strong>${org.org_naam}</strong>.
           </p>
           <table cellpadding="0" cellspacing="0">
             <tr>
