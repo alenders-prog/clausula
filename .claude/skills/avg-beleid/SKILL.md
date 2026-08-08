@@ -43,6 +43,44 @@ Supabase record (nep-namen)
        └─ rapport met echte namen (alleen in browser-geheugen)
 ```
 
+## Datums en nationaliteit — generaliseren, niet pseudonimiseren
+
+Vastgelegd 8 augustus 2026. Geldt voor `huwelijksdatum`, `partij_*_geboortedatum`,
+`kinderen_geboortedatums`/`-jaren` en `nationaliteit_*`.
+
+**Waarom niet pseudonimiseren.** Een naam vervangen door `[PERSOON_A]` kost niets —
+de redenering heeft de naam niet nodig. Bij deze velden is de waarde juist de
+juridische betekenis: de huwelijksdatum bepaalt de 1-1-2018-grens, de geboortedatum
+de leeftijd (AOW, alimentatieduur), de kinderleeftijd het hoorrecht. `[DATUM]` maakt
+de assistent dom op precies de punten waar hij scherp moet zijn.
+
+**Wat wel: generaliseren op de grens naar Anthropic.**
+
+| Veld | Wat er meegaat |
+|---|---|
+| `huwelijksdatum` | **maand-jaar** (`06-2019`) — fijn genoeg voor huwelijks- en alimentatieduur |
+| `partij_*_geboortedatum` | alleen de **leeftijd** |
+| `kinderen_geboortedatums` | alleen de **leeftijd** per kind |
+| `nationaliteit_a` / `_b` | **exact** — zie uitzondering |
+
+**Uitzondering nationaliteit.** Gaat onverkort mee. `niet-NL` volstaat niet: de
+concrete nationaliteit bepaalt het toepasselijk recht (Rome III, Brussel IIb) en
+daarmee welke regels de assistent moet noemen.
+
+**Drie plekken, allemaal aangepast:**
+- `assistent-core.js` → `bouwDossierContext` (helper `_maandJaarUitDatum`)
+- `api/_feiten.js` → `bouwFeitenBlok` (helpers `maandJaarUitDatum`, `leeftijdUitDatum`)
+- `api/ai-assistent.js` → `serverFields` voor `[BEKENDE GEGEVENS]`; sleutelnamen
+  blijven bewust `…datum` omdat de onbekenden-filter daarop matcht, alleen de
+  waarde en het `VELD_LABEL` zijn gegeneraliseerd
+
+**Bij opslag blijven de ruwe waarden staan** — bewuste uitzondering op regel 4
+hieronder, gedocumenteerd boven `bouwClassificatiePseudo` in `index.html`.
+Reden: eigen database, RLS per organisatie, en de bron-PDF met dezelfde gegevens
+staat er toch al in. De kop van de dossiercontext heet daarom
+`Dossier (namen gepseudonimiseerd)` en niet meer `(geanonimiseerd)` — dat laatste
+klopte niet zodra er datums in stonden.
+
 ## PDF-opslag (Supabase Storage)
 
 **Bucket**: `documenten` (privaat — geen publieke toegang).

@@ -233,13 +233,7 @@
       40% { transform: translateY(-5px); }
     }
 
-    /* Bronnen */
-    .mob-bronnen {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      margin-top: 9px;
-    }
+    /* Bronnen chips (gedeeld door mob-bronnen-chips en eventuele directe weergave) */
     .mob-bron {
       display: inline-flex;
       align-items: center;
@@ -374,45 +368,39 @@
     }
 
     /* ── Secties binnen de bubble (Signalen / Aannames / Onbekenden) ── */
-    .mob-sectie {
-      margin: 6px 0 0;
-      border-radius: 6px;
-      overflow: hidden;
+    .mob-meta-hdr {
+      display: flex; align-items: center; gap: 5px;
+      width: 100%; border: none; padding: 4px 8px; border-radius: 6px;
+      background: rgba(27,48,80,.08); color: var(--ink-mid);
+      font-size: .71rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; text-align: left; margin-top: 6px;
+      line-height: 1.4; transition: filter .12s; user-select: none;
     }
-    .mob-sectie summary {
-      padding: 3px 8px;
-      font-size: .71rem;
-      font-weight: 700;
-      cursor: pointer;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      border-radius: 6px;
-      background: rgba(27,48,80,.08);
-      color: var(--ink-mid);
-      user-select: none;
-      line-height: 1.4;
-      transition: filter .12s;
-    }
-    .mob-sectie summary:hover { filter: brightness(.93); }
-    .mob-sectie summary::before {
-      content: '▸';
-      font-size: .65rem;
-      font-style: normal;
-      transition: transform .15s;
-      flex-shrink: 0;
-    }
-    .mob-sectie[open] > summary::before { transform: rotate(90deg); }
-    .mob-sectie summary::-webkit-details-marker { display: none; }
-    .mob-sectie-inhoud { padding: 6px 10px 7px 22px; font-size: .78rem; line-height: 1.5; color: var(--ink-mid); }
-    .mob-sectie-inhoud li { margin-bottom: 2px; list-style: none; }
-    /* Severity tints — gelijk aan desktop */
-    .mob-sectie-sig > summary { background: #FEE2E2; color: var(--status-risico); }
-    .mob-sectie-midden > summary { background: #FEF9C3; color: var(--status-aandacht); }
+    .mob-meta-hdr:hover { filter: brightness(.93); }
+    .mob-meta-hdr .meta-arrow { font-style: normal; font-size: .65rem; transition: transform .15s; flex-shrink: 0; }
+    .mob-meta-hdr.sig-hoog { background: #FEE2E2; color: var(--status-risico); }
+    .mob-meta-hdr.sig-midden { background: #FEF9C3; color: var(--status-aandacht); }
+    .mob-meta-body { display: none; padding: 5px 10px 6px 22px; font-size: .78rem; line-height: 1.5; color: var(--ink-mid); }
+    .mob-meta-body.open { display: block; }
+    .mob-meta-body ul { list-style: none; padding: 0; margin: 0; }
+    .mob-meta-body li { margin-bottom: 2px; }
     .mob-sig-hoog { color: var(--status-risico); font-weight: 600; }
     .mob-sig-midden { color: var(--status-aandacht); font-weight: 600; }
     .mob-sig-laag { color: var(--status-ok); }
+
+    /* Bronnen toggle (zoals desktop assist-bronnen-toggle) */
+    .mob-bronnen-toggle {
+      display: flex; align-items: center; gap: 5px;
+      border: none; background: none; padding: 9px 0 0;
+      font-size: .67rem; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--ink-soft);
+      cursor: pointer; font-family: inherit;
+      border-top: 1px solid var(--line); width: 100%; text-align: left;
+      margin-top: 9px;
+    }
+    .mob-bronnen-toggle .meta-arrow { font-style: normal; transition: transform .15s; }
+    .mob-bronnen-chips { display: none; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .mob-bronnen-chips.open { display: flex; }
 
     /* ── Vervolgactie-knoppen (onder de kaart, zoals desktop) ── */
     .mob-vervolgacties {
@@ -551,12 +539,6 @@
 
   <!-- Input -->
   <div class="mob-input-area" id="mobInputArea" style="display:none">
-    <div class="mob-actie-balk">
-      <button class="mob-actie-cmd" id="mobClausuleBtn" title="Genereer clausule op basis van het gesprek">📝 Clausule<span class="mob-cmd-sub">opstellen</span></button>
-      <button class="mob-actie-cmd" id="mobOptiesBtn" title="Laat Clausula opties uitwerken">💡 Opties<span class="mob-cmd-sub">weergeven</span></button>
-      <button class="mob-actie-cmd" id="mobSamenvattingBtn" title="Genereer samenvatting voor klant">📋 Resumé<span class="mob-cmd-sub">voor klant</span></button>
-      <button class="mob-actie-cmd" id="mobMailBtn" title="Genereer een concept-mail voor partijen">✉️ Klantmail<span class="mob-cmd-sub">opstellen</span></button>
-    </div>
     <div class="mob-invoer-rij">
     <textarea class="mob-input" id="mobInput" rows="1"
       placeholder="Stel een juridische vraag…"></textarea>
@@ -706,7 +688,8 @@
 
   function toonDossierBalk() {
     const balk = document.getElementById('mobDossierBalk');
-    document.getElementById('mobDossierNaam').textContent = dossierLabel;
+    document.getElementById('mobDossierNaam').innerHTML = dossierLabel
+      ? `Dossier: <strong>${escH(dossierLabel)}</strong>` : '';
     balk.style.display = dossierLabel ? 'flex' : 'none';
   }
 
@@ -734,10 +717,9 @@
 
     try {
       const { data, error } = await db
-        .from('screeningen')
-        .select('id, dossier_id, bestandsnaam, created_at')
-        .order('updated_at', { ascending: false })
-        .limit(12);
+        .from('dossiers')
+        .select('id, naam, updated_at')
+        .order('naam');
 
       if (error) throw error;
 
@@ -754,14 +736,15 @@
           <button onclick="verbergDossiers()" style="padding:5px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer;font-size:.8rem">← Terug</button>
         </div>
         <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Dossiercontext wordt meegestuurd bij elk bericht.</div>` +
-        data.map(s => {
-          const datum = new Date(s.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-          const _did   = s.dossier_id || s.id;
-          const actief = _did === dossierId ? ' style="border-color:var(--coral)"' : '';
-          return `<div${actief} style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer" onclick="selecteerDossier('${_did}','${escH(s.bestandsnaam || 'Dossier')}')">
+        data.map(d => {
+          const datum = d.updated_at
+            ? new Date(d.updated_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
+            : '';
+          const actief = d.id === dossierId ? ' style="border-color:var(--coral)"' : '';
+          return `<div${actief} style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer" onclick="selecteerDossier('${escH(d.id)}','${escH(d.naam || 'Dossier')}')">
             <div style="flex:1;min-width:0">
-              <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escH(s.bestandsnaam || 'Naamloos')}</div>
-              <div style="font-size:.75rem;color:var(--muted);margin-top:2px">${datum}</div>
+              <div style="font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escH(d.naam || 'Naamloos')}</div>
+              ${datum ? `<div style="font-size:.75rem;color:var(--muted);margin-top:2px">${datum}</div>` : ''}
             </div>
             <span style="font-size:.7rem;color:var(--muted)">→</span>
           </div>`;
@@ -785,7 +768,7 @@
     toonDossierBalk();
   }
 
-  async function selecteerDossier(id, naam) {
+  async function selecteerDossier(id, naam, autoStart = false) {
     verbergDossiers();
     try {
       // Probeer eerst via dossier_id; bij oudere records (dossier_id = null) is id de PK
@@ -799,8 +782,8 @@
         data = row || null;
       }
       if (!data) throw new Error('Dossier niet gevonden');
-      dossierId      = id;
-      dossierLabel   = data.bestandsnaam || naam;
+      dossierId    = id;
+      dossierLabel = _kortDossierLabel(data.classificatie, data.bestandsnaam || naam);
       // Bouw pseudonimiseringsmap (AVG) voor deze dossiercontext
       huidigeNaarAnon = window.bouwAnonMap
         ? window.bouwAnonMap(data.classificatie, [data.bestandsnaam].filter(Boolean)).naarAnon
@@ -814,7 +797,11 @@
         _anonPipeline ? { anonPipeline: _anonPipeline } : {},
       );
       toonDossierBalk();
-      _updateLinkDialog();  // Dialoog bijwerken als die nog open is
+      if (autoStart) {
+        _assistStartChat(`Dossier **${dossierLabel}** is gekoppeld. Welke vraag kan ik voor u beantwoorden?`);
+      } else {
+        _updateLinkDialog();
+      }
     } catch (err) {
       voegSysteemMelding(`Kon dossier niet laden: ${err.message}`);
     }
@@ -828,6 +815,30 @@
   // Gedeelde implementaties via assistent-core.js (superset van de vorige locale versies)
   const escH          = AssistCore.escH;
   const renderMarkdown = AssistCore.renderMarkdown;
+
+  function _achternaam(volNaam) {
+    const TUSSENV = ['van', 'de', 'der', 'den', 'ten', 'ter', 'te', 'op'];
+    const delen = (volNaam || '').trim().split(/\s+/);
+    for (let i = 1; i < delen.length; i++) {
+      if (TUSSENV.includes(delen[i].toLowerCase())) return delen.slice(i).join(' ');
+    }
+    return delen[delen.length - 1] || '';
+  }
+
+  // De classificatie uit Supabase is gepseudonimiseerd zodra er een namen_map is
+  // (bouwClassificatiePseudo maakt er [PERSOON_A] van), en mobiel ontsleutelt die
+  // map niet. Zonder deze check toont de dossierbalk "[PERSOON_A] – [PERSOON_B]".
+  const _isPseudoNaam = (s) => /^\[[A-Z_]+\d*\]$/.test((s || '').trim());
+
+  function _kortDossierLabel(classificatie, bestandsnaam) {
+    const ruwA = classificatie?.partij_a_naam;
+    const ruwB = classificatie?.partij_b_naam;
+    const a = _isPseudoNaam(ruwA) ? '' : _achternaam(ruwA);
+    const b = _isPseudoNaam(ruwB) ? '' : _achternaam(ruwB);
+    if (a && b) return `${a} – ${b}`;
+    if (a) return a;
+    return (bestandsnaam || '').replace(/\.[^.]+$/, '').slice(0, 35);
+  }
 
   function scrollNaar() {
     msgsEl.scrollTop = msgsEl.scrollHeight;
@@ -903,13 +914,16 @@
   const VERVOLGACTIE_LABELS = AssistCore.VERVOLGACTIE_LABELS;
   const ONBEKENDEN_LABELS   = AssistCore.ONBEKENDEN_LABELS;
 
+  const _TOGGLE_FN = `var b=this.querySelector('.meta-arrow'),d=this.nextElementSibling;if(d){d.classList.toggle('open');if(b)b.style.transform=d.classList.contains('open')?'rotate(90deg)':''}`;
+
   function _mkDetails(cls, summaryHtml, lijstItems) {
-    const d = document.createElement('details');
-    d.className = 'mob-sectie';
-    if (cls) d.classList.add(cls);
+    const wrap = document.createElement('div');
     const items = lijstItems.map(t => `<li>${t}</li>`).join('');
-    d.innerHTML = `<summary>${summaryHtml}</summary><ul class="mob-sectie-inhoud">${items}</ul>`;
-    return d;
+    wrap.innerHTML = `<button class="mob-meta-hdr${cls ? ' ' + cls : ''}" onclick="${_TOGGLE_FN}">
+      <em class="meta-arrow">▸</em>${summaryHtml}
+    </button>
+    <div class="mob-meta-body"><ul>${items}</ul></div>`;
+    return wrap;
   }
 
   function voegAssistentBericht(tekst, bronnen, vragen = [], data = {}, opts = {}) {
@@ -938,7 +952,7 @@
       const bM = midden ? `<span class="mob-sig-midden">${midden} midden</span>` : '';
       const items = signalen.map(s =>
         `<span class="mob-sig-${s.ernst}">[${s.ernst}]</span> ${escH(s.tekst)}`);
-      const sigCls = hoog ? 'mob-sectie-sig' : midden ? 'mob-sectie-midden' : '';
+      const sigCls = hoog ? 'sig-hoog' : midden ? 'sig-midden' : '';
       bubble.appendChild(_mkDetails(sigCls,
         `⚠ Signalen — ${[bH, bM].filter(Boolean).join(' · ')}`, items));
     }
@@ -976,7 +990,11 @@
     }
 
     // ── Vervolgacties ──────────────────────────────────────────────
-    const vervolgacties = (data.vervolgacties || []).filter(a => VERVOLGACTIE_LABELS[a]);
+    const vervolgacties = (data.vervolgacties || []).filter(a => {
+      if (!VERVOLGACTIE_LABELS[a] || _MOB_VERBORGEN_ACTIES.has(a)) return false;
+      if (a === 'toepassen_op_casus' && !dossierId) return false;
+      return true;
+    });
     if (vervolgacties.length > 0) {
       const balk = document.createElement('div');
       balk.className = 'mob-vervolgacties';
@@ -1008,8 +1026,14 @@
 
     // ── Bronnen ────────────────────────────────────────────────────
     if (bronnen && bronnen.length > 0) {
-      const bronnenEl = document.createElement('div');
-      bronnenEl.className = 'mob-bronnen';
+      const bronnenSectie = document.createElement('div');
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'mob-bronnen-toggle';
+      const BTOGGLE = `var c=this.nextElementSibling;c.classList.toggle('open');this.querySelector('.meta-arrow').textContent=c.classList.contains('open')?'▾':'▸'`;
+      toggleBtn.setAttribute('onclick', BTOGGLE);
+      toggleBtn.innerHTML = `<em class="meta-arrow">▸</em> Bronnen (${bronnen.length})`;
+      const chipsEl = document.createElement('div');
+      chipsEl.className = 'mob-bronnen-chips';
       bronnen.forEach(b => {
         const chip = document.createElement('span');
         chip.className = 'mob-bron';
@@ -1018,9 +1042,11 @@
         } else {
           chip.textContent = b.citation || b.titel || '';
         }
-        bronnenEl.appendChild(chip);
+        chipsEl.appendChild(chip);
       });
-      wrap.appendChild(bronnenEl);
+      bronnenSectie.appendChild(toggleBtn);
+      bronnenSectie.appendChild(chipsEl);
+      wrap.appendChild(bronnenSectie);
     }
 
     // ── Verduidelijkingsvragen ─────────────────────────────────────
@@ -1119,15 +1145,11 @@
     }
   }
 
-  /* ── Acties: alle vervolgacties + actie-balk ────── */
-  const _ACTIE_CMD_IDS = ['mobClausuleBtn', 'mobOptiesBtn', 'mobSamenvattingBtn', 'mobMailBtn'];
+  /* ── Acties ──────────────────────────────────────── */
+  // Vervolgacties die mobiel NIET als chip toont (te complex / niet relevant op mobiel)
+  const _MOB_VERBORGEN_ACTIES = new Set(['clausule_opstellen', 'klanttekst', 'andere_stijl']);
 
-  function _setActieCmdDisabled(state) {
-    _ACTIE_CMD_IDS.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.disabled = state;
-    });
-  }
+  function _setActieCmdDisabled(_state) { /* actie-balk verwijderd */ }
 
   async function stuurActie(soort) {
     if (bezig) return;
@@ -1210,9 +1232,9 @@
     } else {
       dlg.innerHTML = `
         <div class="mob-link-title">Even instellen</div>
-        <div class="mob-link-sub">Heeft deze vraag betrekking op een dossier?</div>
+        <div class="mob-link-sub">Wil je een analyse koppelen zodat de assistent de dossiergegevens kent?</div>
         <div class="mob-link-btns">
-          <button class="mob-link-btn mob-link-btn-ja" onclick="_mobLinkKoppel()">Ja, koppel dossier</button>
+          <button class="mob-link-btn mob-link-btn-ja" onclick="_mobLinkKoppel()">🗂 Koppel analyse</button>
           <button class="mob-link-btn mob-link-btn-nee" onclick="_mobLinkNee()">Nee, algemene vraag</button>
         </div>`;
     }
@@ -1231,7 +1253,7 @@
     dossierLabel  = '';
     dossierContext = null;
     toonDossierBalk();
-    _assistStartChat('Geen dossier gekoppeld. Stel gerust een algemene juridische vraag over echtscheidingsdocumenten.');
+    _assistStartChat('Geen dossier gekoppeld. Stel gerust een juridische vraag.\n\nWil je later een dossier koppelen? Tik op het 🗂 pictogram bovenaan.');
   }
 
   function _mobLinkKoppel() {
@@ -1250,10 +1272,6 @@
   window._mobLinkKoppel  = _mobLinkKoppel;
 
   /* ── Event listeners ─────────────────────────────── */
-  document.getElementById('mobClausuleBtn').addEventListener('click', () => stuurActie('clausule_opstellen'));
-  document.getElementById('mobOptiesBtn').addEventListener('click', () => stuurActie('opties'));
-  document.getElementById('mobSamenvattingBtn').addEventListener('click', () => stuurActie('klanttekst'));
-  document.getElementById('mobMailBtn').addEventListener('click', () => stuurActie('klantmail'));
   document.getElementById('mobDossierBtn').addEventListener('click', toonDossiers);
   document.getElementById('mobDossierOntkoppel').addEventListener('click', ontkoppelDossier);
 
@@ -1283,13 +1301,16 @@
   document.getElementById('mobHistBtn').style.display = 'flex';
   document.getElementById('mobHistBtn').addEventListener('click', toonSessies);
 
-  /* ── Auto-koppel dossier via URL-parameter ?s=<screeningId> ─── */
+  /* ── Opstartscherm ───────────────────────────────── */
   const _urlParams = new URLSearchParams(window.location.search);
   const _autoSid   = _urlParams.get('s');
-  if (_autoSid && db) selecteerDossier(_autoSid, '…');
-
-  /* ── "Even instellen" — altijd eerst tonen ─────── */
-  toonLinkDialog();
+  if (_autoSid && db) {
+    // Dossier rechtstreeks gekoppeld via URL — skip "Even instellen", start direct
+    msgsEl.innerHTML = `<div class="mob-sys">Dossier laden…</div>`;
+    selecteerDossier(_autoSid, '…', true);
+  } else {
+    toonLinkDialog();
+  }
 })();
 </script>
 </body>

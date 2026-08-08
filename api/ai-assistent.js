@@ -7,7 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
-import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields } from './_feiten.js';
+import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
+         maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
@@ -54,8 +55,18 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Dit zij
 TITEL — begin elk antwoord (bij alle intents) met een vetgedrukte korte titel van max 6 woorden
 die het onderwerp scherp samenvat. Formaat: "**Titel**\n[antwoord]". Geen leesteken na de titel.
 
+FEITENCHECK BIJ GEKOPPELD DOSSIER — Als [DOSSIERCONTEXT] aanwezig is én de vraag vermeldt
+specifieke feiten (leeftijden, namen, datums, bedragen) die NIET overeenkomen met het dossier:
+1. Beantwoord de vraag als kennisvraag (de juridische regel in het algemeen).
+2. Stel een verduidelijkingsvraag met veld "vraag_context":
+   vraag: "De vraag noemt [X], maar het dossier vermeldt [Y]. Gaat het om een losstaande
+   juridische vraag of wilt u de analyse toepassen op het werkelijke dossier?"
+   antwoordopties: ["Losstaande vraag", "Toepassen op dossier"]
+Sla de feitencheck OVER als de vraag expliciet hypothetisch is ("stel dat…", "wat als…").
+
 KENNISVRAAG — antwoord max ~60 woorden, feitelijk. Altijd minimaal één bron; peildatum
-vermelden als de regel per datum verschilt. Geen aannames, geen verduidelijkingsvraag.
+vermelden als de regel per datum verschilt. Geen aannames, geen verduidelijkingsvraag
+(uitzondering: verduidelijkingsvraag wél toegestaan bij FEITENCHECK-mismatch, zie boven).
 Vervolgacties: kies uit toepassen_op_casus, klanttekst, clausule_opstellen.
 
 CASUS — antwoord max ~60 woorden, toegespitst op de feiten. Elke dragende aanname expliciet
@@ -85,7 +96,7 @@ uit [BEKENDE GEGEVENS] (bijv. koude uitsluiting → woning niet vanzelf gemeensc
 partijen die expliciet gezamenlijk op naam hebben staan).
 Als [BEKENDE GEGEVENS] "Eigen woning: niet in dossier" vermeldt en de vraag beschrijft GEEN woning —
 er is géén eigen woning in scope; beantwoord conditioneel of stel een gerichte vraag.
-Vervolgacties: kies uit opties_voor_klanten, clausule_opstellen, fiscale_check, toets_aan_dossier.
+Vervolgacties: kies uit opties_voor_klanten, clausule_opstellen, toets_aan_dossier.
 
 OPTIES — maximaal 3 opties in het opties-veld. Meerpartijdigheid is hard: elke optie neutraal,
 afwegingen symmetrisch voor beide partijen. Een optie die structureel één partij bevoordeelt
@@ -266,7 +277,7 @@ const ASSISTENT_TOOL = {
           type: 'string',
           enum: [
             'toepassen_op_casus', 'opties_voor_klanten', 'clausule_opstellen',
-            'klanttekst', 'fiscale_check', 'andere_stijl', 'toets_aan_dossier',
+            'klanttekst', 'andere_stijl', 'toets_aan_dossier',
           ],
         },
         description: '1–3 acties die logisch volgen op dit antwoord. Het model selecteert; de UI bepaalt labels en iconen.',
@@ -333,13 +344,18 @@ const ZOEK_TOOLS = [
 
 // ── Veldnamen voor leesbare injectie ─────────────────────────────────────────
 const VELD_LABEL = {
-  relatievorm:           'Relatievorm',
-  huwelijksdatum:        'Huwelijksdatum',
-  huwelijkse_voorwaarden:'Huwelijkse voorwaarden',
-  hv_stelsel:            'HV-stelsel',
-  peildatum_vermogen:    'Peildatum vermogen',
-  kinderen_minderjarig:  'Minderjarige kinderen',
-  co_ouderschap:         'Co-ouderschap (50/50)',
+  relatievorm:            'Relatievorm',
+  // Labels weerspiegelen de gegeneraliseerde waarde, niet de sleutelnaam (AVG).
+  huwelijksdatum:         'Verbintenis (maand-jaar)',
+  nationaliteit_a:        'Nationaliteit partij A',
+  nationaliteit_b:        'Nationaliteit partij B',
+  partij_a_geboortedatum: 'Leeftijd partij A',
+  partij_b_geboortedatum: 'Leeftijd partij B',
+  huwelijkse_voorwaarden: 'Huwelijkse voorwaarden',
+  hv_stelsel:             'HV-stelsel',
+  peildatum_vermogen:     'Peildatum vermogen',
+  kinderen_minderjarig:   'Minderjarige kinderen',
+  co_ouderschap:          'Co-ouderschap (50/50)',
   eigen_woning:          'Eigen woning',
   woning_bestemming:     'Bestemming woning',
   ondernemer:            'Ondernemer',
@@ -473,8 +489,22 @@ export default async function handler(req, res) {
         .limit(1);
       const screening = rows?.[0];
       if (screening?.classificatie) {
-        const kenmerken = screening.classificatie.situatie_kenmerken || [];
+        const cl = screening.classificatie;
+        const kenmerken = cl.situatie_kenmerken || [];
         const serverFields = kenmerkNaarFields(kenmerken);
+        // Directe classificatievelden — niet afleidbaar uit situatie_kenmerken.
+        // AVG: datums gaan gegeneraliseerd mee (jaar / leeftijd), zie skill avg-beleid.
+        // De sleutelnamen blijven bewust "…datum": daarop filtert de onbekenden-check
+        // verderop, zodat Claude niet alsnog naar een al bekende datum vraagt.
+        const hwMndJaar = maandJaarUitDatum(cl.huwelijksdatum);
+        const lftA      = leeftijdUitDatum(cl.partij_a_geboortedatum);
+        const lftB      = leeftijdUitDatum(cl.partij_b_geboortedatum);
+        if (hwMndJaar)       serverFields.huwelijksdatum         = hwMndJaar;
+        if (lftA !== null)   serverFields.partij_a_geboortedatum = `${lftA} jaar`;
+        if (lftB !== null)   serverFields.partij_b_geboortedatum = `${lftB} jaar`;
+        // Uitzondering: nationaliteit exact — bepaalt het toepasselijk recht.
+        if (cl.nationaliteit_a)        serverFields.nationaliteit_a       = cl.nationaliteit_a;
+        if (cl.nationaliteit_b)        serverFields.nationaliteit_b       = cl.nationaliteit_b;
         // Server-feiten als basis; client-waarden (user-answers) als override
         effectiveResolvedFields = { ...serverFields, ...resolvedFields };
       }
@@ -627,8 +657,11 @@ export default async function handler(req, res) {
     if (output.onbekenden?.length) {
       output.onbekenden = output.onbekenden.filter(o => !(o.veld in effectiveResolvedFields));
     }
-    // Verduidelijkingsvraag alleen als er daadwerkelijk een blokkerend onbekende is
-    if (output.verduidelijkingsvraag && !output.onbekenden?.some(o => o.blokkerend)) {
+    // Verduidelijkingsvraag alleen als er daadwerkelijk een blokkerend onbekende is,
+    // of als het een feitencheck-mismatch betreft (veld: 'vraag_context').
+    if (output.verduidelijkingsvraag &&
+        !output.onbekenden?.some(o => o.blokkerend) &&
+        output.verduidelijkingsvraag.veld !== 'vraag_context') {
       delete output.verduidelijkingsvraag;
     }
     // Cap op 3

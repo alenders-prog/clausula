@@ -86,6 +86,13 @@ if (_assist.dossierContext) {
 
 > **Valkuil**: zonder deze context beoordeelt de verificatie het issue geïsoleerd — zonder kennis van hv-stelsel, eigendomssituatie, etc. — en kan daardoor onjuiste conclusies trekken.
 
+> **AVG-valkuil bij nieuwe velden**: alles wat je aan `serverFields` (in `api/ai-assistent.js`)
+> of aan `bouwDossierContext` toevoegt gaat rechtstreeks naar Anthropic. Datums worden
+> daarom gegeneraliseerd meegestuurd — jaar in plaats van datum, leeftijd in plaats van
+> geboortedatum — met nationaliteit als bewuste uitzondering. Zie de skill `avg-beleid`
+> vóór je een veld toevoegt; de sleutelnamen blijven `…datum` omdat de onbekenden-filter
+> daarop matcht, alleen waarde en `VELD_LABEL` zijn gegeneraliseerd.
+
 ### Extra verificatie — kennisbank-injectie (client-side)
 
 `diepteAnalyse()` in `index.html` doet een eigen lookup vóór de `/api/claude-edge`-aanroep:

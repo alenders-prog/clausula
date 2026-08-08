@@ -4,7 +4,8 @@
 
 import { test } from 'vitest';
 import { strict as assert } from 'node:assert';
-import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie } from '../api/_feiten.js';
+import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie,
+         jaarUitDatum, maandJaarUitDatum, leeftijdUitDatum } from '../api/_feiten.js';
 
 // ── Testdata uit de praktijk ──────────────────────────────────────────────────
 
@@ -192,4 +193,76 @@ test('Geen feiten → output ongewijzigd', () => {
   };
   valideerConsistentie(output, {});
   assert.equal(output.signalen.length, 1, 'zonder feiten niets verwijderen');
+});
+
+// ── 4. AVG-generalisatie ──────────────────────────────────────────────────────
+// Deze tests bewaken een privacy-garantie: volledige geboorte- en huwelijksdatums
+// mogen het feitenblok (en daarmee de Anthropic-prompt) niet bereiken.
+
+test('jaarUitDatum: dd-mm-jjjj → jaartal', () => {
+  assert.equal(jaarUitDatum('12-03-1978'), 1978);
+  assert.equal(jaarUitDatum('01-01-2018'), 2018);
+});
+
+test('jaarUitDatum: kaal jaartal blijft geldig', () => {
+  assert.equal(jaarUitDatum('1985'), 1985);
+});
+
+test('jaarUitDatum: onzin en randgevallen geven null', () => {
+  assert.equal(jaarUitDatum(''), null);
+  assert.equal(jaarUitDatum(null), null);
+  assert.equal(jaarUitDatum('onbekend'), null);
+  assert.equal(jaarUitDatum('12-03-1850'), null, 'vóór 1900 is geen plausibel jaartal');
+});
+
+test('leeftijdUitDatum: rekent met een expliciet peiljaar', () => {
+  assert.equal(leeftijdUitDatum('12-03-1978', 2026), 48);
+  assert.equal(leeftijdUitDatum('onbekend', 2026), null);
+});
+
+test('leeftijdUitDatum: toekomstige geboortedatum geeft null', () => {
+  assert.equal(leeftijdUitDatum('01-01-2030', 2026), null);
+});
+
+test('AVG: volledige geboortedatum komt NIET in het feitenblok', () => {
+  const blok = bouwFeitenBlok({
+    partij_a_geboortedatum: '12-03-1978',
+    partij_b_geboortedatum: '05-11-1981',
+  });
+  assert.ok(!blok.includes('12-03-1978'), 'geboortedatum A lekt in het feitenblok');
+  assert.ok(!blok.includes('05-11-1981'), 'geboortedatum B lekt in het feitenblok');
+  assert.ok(/Leeftijd partij A: \d+ jaar/.test(blok), 'leeftijd A ontbreekt: ' + blok);
+  assert.ok(/Leeftijd partij B: \d+ jaar/.test(blok), 'leeftijd B ontbreekt: ' + blok);
+});
+
+test('maandJaarUitDatum: dd-mm-jjjj → mm-jjjj', () => {
+  assert.equal(maandJaarUitDatum('15-06-2019'), '06-2019');
+  assert.equal(maandJaarUitDatum('1-1-2018'), '01-2018', 'maand moet met voorloopnul');
+});
+
+test('maandJaarUitDatum: zonder maand terugvallen op het jaartal', () => {
+  assert.equal(maandJaarUitDatum('2019'), '2019');
+  assert.equal(maandJaarUitDatum('onbekend'), null);
+});
+
+test('maandJaarUitDatum: onmogelijke maand terugvallen op het jaartal', () => {
+  assert.equal(maandJaarUitDatum('15-13-2019'), '2019');
+});
+
+test('AVG: volledige huwelijksdatum komt NIET in het feitenblok', () => {
+  const blok = bouwFeitenBlok({ huwelijksdatum: '15-06-2019' });
+  assert.ok(!blok.includes('15-06-2019'), 'huwelijksdatum lekt in het feitenblok');
+  assert.ok(!/\b15[-/]06/.test(blok), 'de dag mag nergens opduiken: ' + blok);
+  assert.ok(blok.includes('Verbintenis (maand-jaar): 06-2019'), 'maand-jaar ontbreekt: ' + blok);
+});
+
+test('AVG-uitzondering: nationaliteit gaat wél exact mee', () => {
+  const blok = bouwFeitenBlok({ nationaliteit_a: 'Marokkaanse', nationaliteit_b: 'Nederlandse' });
+  assert.ok(blok.includes('Marokkaanse'), 'nationaliteit moet exact meegaan: ' + blok);
+  assert.ok(blok.includes('Brussel IIb'), 'internationaal element niet gesignaleerd: ' + blok);
+});
+
+test('AVG: onherkenbare datum levert geen half geparste waarde op', () => {
+  const blok = bouwFeitenBlok({ huwelijksdatum: 'ergens in de jaren 90' });
+  assert.ok(!/Verbintenis/.test(blok), 'onherkenbare datum mag niets opleveren: ' + blok);
 });

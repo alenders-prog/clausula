@@ -3036,6 +3036,9 @@ const classificatieTool = {
       kinderen_namen:           { type: 'array', items: { type: 'string' }, description: 'Volledige namen van alle minderjarige kinderen die in het document worden vermeld.' },
       kinderen_geboortedatums:  { type: 'array', items: { type: 'string' }, description: 'Geboortedatum per kind in dd-mm-jjjj formaat, in dezelfde volgorde als kinderen_namen.' },
       kinderen_geboortejaren:   { type: 'array', items: { type: 'integer' }, description: 'Geboortejaar per kind (4-cijferig), fallback als alleen jaar bekend.' },
+      huwelijksdatum:           { type: 'string', description: 'Datum van het huwelijk, geregistreerd partnerschap of begin samenwoning in dd-mm-jjjj formaat, indien vermeld.' },
+      nationaliteit_a:          { type: 'string', description: 'Nationaliteit van partij A, indien vermeld (bijv. "Nederlandse", "Belgische", "dubbele nationaliteit").' },
+      nationaliteit_b:          { type: 'string', description: 'Nationaliteit van partij B, indien vermeld.' },
       mediator_naam:          { type: 'string', description: 'Naam van de mediator of advocaat, indien vermeld in het document.' },
       notaris_naam:           { type: 'string', description: 'Naam van de notaris, indien vermeld in het document.' },
       samenvatting:       { type: 'string' },
@@ -8175,6 +8178,15 @@ function anonimiseerObj(obj, naarAnon) {
 
 // Bouw een pseudonieme versie van de classificatie voor opslag in Supabase.
 // Namen worden vervangen door hun vaste placeholders; overige velden ongewijzigd.
+// AVG-beleid regel 4 — bewust NIET gepseudonimiseerd bij opslag:
+// huwelijksdatum, partij_*_geboortedatum, kinderen_geboortedatums/-jaren en
+// nationaliteit_*. Afweging: dit is de eigen database, RLS-beschermd per
+// organisatie, en de bron-PDF met dezelfde gegevens staat er toch al in
+// (Storage, privaat). Pseudonimiseren zou hier weinig beschermen en data
+// weggooien die het rapport nodig heeft. De minimalisatie zit op de grens die
+// er wél toe doet: richting Anthropic gaan alleen jaar en leeftijd mee
+// (assistent-core.js en api/_feiten.js). Nationaliteit is daar de uitzondering,
+// omdat de waarde zelf het toepasselijk recht bepaalt.
 function bouwClassificatiePseudo(cls) {
   if (!cls) return cls;
   return {

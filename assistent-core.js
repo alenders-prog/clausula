@@ -100,6 +100,22 @@
   // ── Session-prefix ────────────────────────────────────────────────────────────
   const SESSION_PFX = 'assist_chat_';
 
+  // Maand-jaar (mm-jjjj) uit een datum in dd-mm-jjjj. Fijn genoeg voor huwelijks-
+  // en alimentatieduur, zonder de exacte dag prijs te geven. Valt terug op het kale
+  // jaartal, en geeft null bij onherkenbare invoer zodat er nooit een half geparste
+  // datum doorlekt. Spiegelt maandJaarUitDatum() in api/_feiten.js.
+  function _maandJaarUitDatum(datum) {
+    const s = String(datum || '').trim();
+    if (!s) return null;
+    const j = s.match(/(?:^|[-/ ])(\d{4})$/) || s.match(/^(\d{4})$/);
+    const jaar = j ? parseInt(j[1], 10) : null;
+    if (!jaar || jaar <= 1900 || jaar >= 2100) return null;
+    const m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/]\d{4}$/);
+    const maand = m ? parseInt(m[2], 10) : null;
+    if (!maand || maand < 1 || maand > 12) return String(jaar);
+    return `${String(maand).padStart(2, '0')}-${jaar}`;
+  }
+
   // ── bouwDossierContext ────────────────────────────────────────────────────────
   // Bouwt de dossiercontext-string uit classificatie + rapport.
   // opts.anonPipeline(tekst) → optioneel: past AVG-pseudonimisering toe (alleen desktop).
@@ -116,10 +132,47 @@
     const pseudoRnA = rnA ? anon(rnA) || pseudoA.split(' ')[0] : pseudoA.split(' ')[0];
     const pseudoRnB = rnB ? anon(rnB) || pseudoB.split(' ')[0] : pseudoB.split(' ')[0];
 
-    let ctx = `Dossier (geanonimiseerd): Partij A = ${pseudoA} (informeel: ${pseudoRnA}), Partij B = ${pseudoB} (informeel: ${pseudoRnB})`;
+    // AVG-dataminimalisatie richting Anthropic: stuur de juridisch relevante korrel,
+    // niet de identificerende precisie. Leeftijd is wat de redenering nodig heeft
+    // (AOW, alimentatieduur); de volledige geboortedatum voegt daar niets aan toe.
+    const gbdA = classificatie?.partij_a_geboortedatum || '';
+    const gbdB = classificatie?.partij_b_geboortedatum || '';
+    const gbjA = gbdA ? parseInt(gbdA.split('-')[2], 10) : (classificatie?.partij_a_geboortejaar || null);
+    const gbjB = gbdB ? parseInt(gbdB.split('-')[2], 10) : (classificatie?.partij_b_geboortejaar || null);
+    const huidigJr = new Date().getFullYear();
+    const lftA = gbjA && gbjA > 1900 ? huidigJr - gbjA : null;
+    const lftB = gbjB && gbjB > 1900 ? huidigJr - gbjB : null;
+    const partijAStr = `${pseudoA} (informeel: ${pseudoRnA}${lftA !== null ? `, ${lftA} jr` : ''})`;
+    const partijBStr = `${pseudoB} (informeel: ${pseudoRnB}${lftB !== null ? `, ${lftB} jr` : ''})`;
+
+    let ctx = `Dossier (namen gepseudonimiseerd): Partij A = ${partijAStr}, Partij B = ${partijBStr}`;
 
     const kenmerken = Array.isArray(classificatie?.situatie_kenmerken) ? classificatie.situatie_kenmerken : [];
     if (kenmerken.length) ctx += ` | Kenmerken: ${kenmerken.join(', ')}`;
+
+    // Maand-jaar: dekt de 1-1-2018-grens (beperkte gemeenschap) én de huwelijks- en
+    // alimentatieduur, zonder de exacte dag prijs te geven.
+    const hwMndJaar = _maandJaarUitDatum(classificatie?.huwelijksdatum);
+    if (hwMndJaar) ctx += ` | Verbintenis (maand-jaar): ${hwMndJaar}`;
+
+    // Uitzondering op de minimalisatie: nationaliteit gaat exact mee. De waarde zelf
+    // bepaalt het toepasselijk recht (Rome III, Brussel IIb) — "niet-NL" volstaat niet.
+    const natA = classificatie?.nationaliteit_a || '';
+    const natB = classificatie?.nationaliteit_b || '';
+    if (natA || natB) ctx += ` | Nationaliteiten: A=${natA || 'onbekend'}, B=${natB || 'onbekend'}`;
+
+    const kNamen  = Array.isArray(classificatie?.kinderen_namen)        ? classificatie.kinderen_namen        : [];
+    const kDatums = Array.isArray(classificatie?.kinderen_geboortedatums) ? classificatie.kinderen_geboortedatums : [];
+    if (kNamen.length) {
+      const huidigJaar = new Date().getFullYear();
+      const kInfoParts = kNamen.map((naam, i) => {
+        const gbd  = kDatums[i] || '';
+        const jaar = gbd ? parseInt(gbd.split('-')[2], 10) : null;
+        const lft  = jaar && jaar > 1900 ? huidigJaar - jaar : null;
+        return `${anon(naam)}${lft !== null ? ` (${lft} jr)` : ''}`;
+      });
+      ctx += ` | Kinderen: ${kInfoParts.join(', ')}`;
+    }
 
     const samRaw = rapport?.samenvatting || classificatie?.samenvatting || '';
     if (samRaw) {

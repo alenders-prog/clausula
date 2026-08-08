@@ -52,9 +52,18 @@ export default async function handler(req, res) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      if (!res.writable) break; // client verbroken
       res.write(Buffer.from(value));
     }
+  } catch (err) {
+    // Een client die wegklikt is verwacht en mag stil blijven. Elke andere fout
+    // (bijv. de Anthropic-stream die afbreekt) levert de gebruiker een half
+    // antwoord zonder melding — die moet dus wél in de logs zichtbaar zijn.
+    const clientWeg = ['ECONNRESET', 'EPIPE', 'ERR_STREAM_PREMATURE_CLOSE', 'ABORT_ERR'];
+    if (!res.destroyed && !clientWeg.includes(err?.code) && err?.name !== 'AbortError') {
+      console.error('[claude-edge] stream afgebroken:', err);
+    }
   } finally {
-    res.end();
+    if (!res.destroyed) res.end();
   }
 }

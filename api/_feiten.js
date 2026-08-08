@@ -3,6 +3,39 @@
 // Geen Claude-aanroepen, geen externe dependencies — puur op basis van dossierdata.
 // Geëxporteerd zodat unit-tests elk onderdeel afzonderlijk kunnen raken.
 
+// ── Datum-generalisatie (AVG) ─────────────────────────────────────────────────
+// Zetten identificerende datums om naar de korrel die de juridische redenering
+// nodig heeft. Geven null bij onherkenbare invoer, zodat er nooit een half
+// geparste datum in het feitenblok belandt.
+
+export function jaarUitDatum(datum) {
+  const s = String(datum || '').trim();
+  if (!s) return null;
+  const m = s.match(/(?:^|[-/ ])(\d{4})$/) || s.match(/^(\d{4})$/);
+  const jaar = m ? parseInt(m[1], 10) : null;
+  return jaar && jaar > 1900 && jaar < 2100 ? jaar : null;
+}
+
+// Maand-jaar (mm-jjjj) voor de verbintenisdatum: fijn genoeg voor alimentatieduur
+// en huwelijksduur, zonder de exacte dag prijs te geven. Valt terug op het kale
+// jaartal als de maand ontbreekt.
+export function maandJaarUitDatum(datum) {
+  const jaar = jaarUitDatum(datum);
+  if (!jaar) return null;
+  const m = String(datum || '').trim().match(/^(\d{1,2})[-/](\d{1,2})[-/]\d{4}$/);
+  if (!m) return String(jaar);
+  const maand = parseInt(m[2], 10);
+  if (!(maand >= 1 && maand <= 12)) return String(jaar);
+  return `${String(maand).padStart(2, '0')}-${jaar}`;
+}
+
+export function leeftijdUitDatum(datum, peiljaar = new Date().getFullYear()) {
+  const jaar = jaarUitDatum(datum);
+  if (!jaar) return null;
+  const leeftijd = peiljaar - jaar;
+  return leeftijd >= 0 && leeftijd < 130 ? leeftijd : null;
+}
+
 // ── Patronen ──────────────────────────────────────────────────────────────────
 
 const HV_PATRONEN = [
@@ -154,6 +187,30 @@ export function bouwFeitenBlok(rijkeFields = {}) {
   if (pensioenVer.includes('uitgeslo') || pensioenVer === 'nee' || pensioenVer === 'geen') {
     feiten.push('Pensioenverevening: NIET van toepassing.');
     belang.push('Genereer geen signalen over pensioenrechten of verevening van de andere partij.');
+  }
+
+  // ── Persoonsgegevens & verbintenis ────────────────────────────────────────────
+  // AVG-dataminimalisatie: alleen de juridisch relevante korrel naar Anthropic.
+  // Maand-jaar i.p.v. datum (1-1-2018-grens, alimentatie- en huwelijksduur),
+  // leeftijd i.p.v. geboortedatum (AOW, alimentatieduur). Zie de skill avg-beleid.
+  const hwMndJaar = maandJaarUitDatum(rijkeFields.huwelijksdatum);
+  if (hwMndJaar) feiten.push(`Verbintenis (maand-jaar): ${hwMndJaar}.`);
+
+  const lftA = leeftijdUitDatum(rijkeFields.partij_a_geboortedatum);
+  const lftB = leeftijdUitDatum(rijkeFields.partij_b_geboortedatum);
+  if (lftA !== null) feiten.push(`Leeftijd partij A: ${lftA} jaar.`);
+  if (lftB !== null) feiten.push(`Leeftijd partij B: ${lftB} jaar.`);
+
+  // Uitzondering op de minimalisatie: nationaliteit gaat exact mee, omdat de waarde
+  // zelf het toepasselijk recht bepaalt (Rome III, Brussel IIb).
+  const natA = rijkeFields.nationaliteit_a || '';
+  const natB = rijkeFields.nationaliteit_b || '';
+  if (natA || natB) {
+    feiten.push(`Nationaliteiten: A = ${natA || 'onbekend'}, B = ${natB || 'onbekend'}.`);
+    const heeftBuitenland = [natA, natB].some(n => n && !/^neder/i.test(n));
+    if (heeftBuitenland) {
+      belang.push('Internationaal element aanwezig: controleer toepasselijk recht (Brussel IIb, Rome III) en bevoegdheid Nederlandse rechter.');
+    }
   }
 
   // ── Co-ouderschap ─────────────────────────────────────────────────────────────
