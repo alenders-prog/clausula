@@ -14,7 +14,14 @@ description: AVG/GDPR-architectuur en design-beslissingen in Clausula. Gebruik b
 | Naam-koppeling (nep → echt) | Supabase DB `screeningen.namen_map` | **AES-256-GCM versleuteld** met `NAAM_ENCRYPTION_KEY` |
 | Ruwe geëxtraheerde tekst (`_teksten_per_pad`) | **Nooit opgeslagen** | Wordt gestript vóór opslaan (regel in `opslaan()`) |
 | PDF-bestanden | Supabase Storage bucket `documenten` | Ruw (niet geanonimiseerd) — zie §PDF-opslag |
-| Persoonsdata in geheugen (echte namen) | Browser-sessie | Verdwijnt bij afsluiten tab |
+| Persoonsdata in geheugen (echte namen) | Browser-sessie — **desktop én mobiel** | Verdwijnt bij afsluiten tab |
+
+> **Sinds 10 augustus 2026 ontsleutelt ook `assistent-mobiel.html` de `namen_map`**
+> (`_ontsleutelNamen`), zodat de assistent echte namen toont in plaats van
+> "Thomas Bergman". Gevolg: er staan nu ook op een telefoon echte cliëntnamen in
+> het browsergeheugen. Bewuste keuze van de gebruiker; wil je die weer weghalen,
+> dan is het verwijderen van die ene aanroep genoeg — de rest valt automatisch
+> terug op pseudoniemen.
 
 ## Pseudonimisering-pipeline (opslaan)
 

@@ -86,6 +86,20 @@ if (_assist.dossierContext) {
 
 > **Valkuil**: zonder deze context beoordeelt de verificatie het issue geïsoleerd — zonder kennis van hv-stelsel, eigendomssituatie, etc. — en kan daardoor onjuiste conclusies trekken.
 
+### Namen herstellen bij weergave — élk renderpad
+
+Claude krijgt pseudoniemen en geeft ze terug. De client vertaalt ze bij weergave
+terug: `_assistHerstelNamen()` in `index.html`, `_mobHerstelNamen()` in
+`assistent-mobiel.html` (die laatste vult `mobNaarEcht` via `_ontsleutelNamen`,
+dezelfde `/api/naam-decrypt`-stap als `laadScreening`).
+
+> **Valkuil**: dit moet op **ieder** veld dat tekst van Claude toont — antwoord,
+> aannames, signalen, onbekenden, optiekaartjes én de optie-keuzechips. Sla er één
+> over en je krijgt één antwoord waarin de bovenste helft de echte namen toont en
+> de kaartjes eronder "Thomas en Lisette". Precies dat gebeurde tot 10 augustus 2026
+> met `opties`. Voeg je een nieuw veld toe aan het antwoordschema, voeg dan meteen
+> de herstelaanroep toe.
+
 > **AVG-valkuil bij nieuwe velden**: alles wat je aan `serverFields` (in `api/ai-assistent.js`)
 > of aan `bouwDossierContext` toevoegt gaat rechtstreeks naar Anthropic. Datums worden
 > daarom gegeneraliseerd meegestuurd — jaar in plaats van datum, leeftijd in plaats van

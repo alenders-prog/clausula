@@ -208,7 +208,9 @@
     if (!db || !dossierId) return null;
     const { data: rows, error } = await db
       .from('screeningen')
-      .select('classificatie, rapport, bestandsnaam')
+      // namen_map meenemen: zonder die blob kan de client de pseudoniemen niet
+      // terugvertalen en toont hij "Thomas Bergman" in plaats van de echte naam.
+      .select('classificatie, rapport, bestandsnaam, namen_map')
       .eq('dossier_id', dossierId)
       .order('created_at', { ascending: false })
       .limit(1);

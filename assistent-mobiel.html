@@ -776,12 +776,19 @@
       if (!data) {
         const { data: row } = await db
           .from('screeningen')
-          .select('classificatie, rapport, bestandsnaam')
+          .select('classificatie, rapport, bestandsnaam, namen_map')
           .eq('id', id)
           .maybeSingle();
         data = row || null;
       }
       if (!data) throw new Error('Dossier niet gevonden');
+
+      // Pseudoniemen terugvertalen — zelfde stap als laadScreening() op de desktop.
+      // Moet vóór bouwAnonMap gebeuren: die map wordt uit de HERSTELDE classificatie
+      // gebouwd, zodat de context die naar Claude gaat weer gepseudonimiseerd is.
+      // Zonder deze stap toont de assistent overal "Thomas Bergman".
+      await _ontsleutelNamen(data);
+
       dossierId    = id;
       dossierLabel = _kortDossierLabel(data.classificatie, data.bestandsnaam || naam);
       // Bouw pseudonimiseringsmap (AVG) voor deze dossiercontext
@@ -815,6 +822,57 @@
   // Gedeelde implementaties via assistent-core.js (superset van de vorige locale versies)
   const escH          = AssistCore.escH;
   const renderMarkdown = AssistCore.renderMarkdown;
+
+  // ── Pseudoniemen terugvertalen ──────────────────────────────────────────────
+  // Claude krijgt en geeft nep-namen; de echte namen zitten versleuteld in
+  // screeningen.namen_map. Zelfde opzet als _assistHerstelNamen op de desktop.
+  let mobNaarEcht = new Map();   // nep-naam → echte naam
+
+  function _mobHerstelNamen(tekst) {
+    if (!mobNaarEcht.size || typeof tekst !== 'string' || !tekst) return tekst;
+    let t = tekst;
+    // Langste sleutels eerst: anders vervangt "Thomas" de voornaam binnen
+    // "Thomas Bergman" en blijft de achternaam als pseudoniem staan.
+    for (const [nep, echt] of [...mobNaarEcht.entries()].sort((a, b) => b[0].length - a[0].length)) {
+      if (!nep || nep.length < 2) continue;
+      const esc = nep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      t = t.replace(new RegExp(`\\b${esc}\\b`, 'g'), echt);
+    }
+    return t;
+  }
+
+  function _mobHerstelObj(obj) {
+    if (typeof obj === 'string') return _mobHerstelNamen(obj);
+    if (Array.isArray(obj)) return obj.map(_mobHerstelObj);
+    if (obj && typeof obj === 'object') {
+      return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, _mobHerstelObj(v)]));
+    }
+    return obj;
+  }
+
+  async function _ontsleutelNamen(data) {
+    mobNaarEcht = new Map();
+    if (!data?.namen_map) return;   // oudere screening zonder map: blijft pseudoniem
+    try {
+      const { data: { session } } = await db.auth.getSession();
+      const resp = await fetch('/api/naam-decrypt', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
+        body: JSON.stringify({ blob: data.namen_map }),
+      });
+      if (!resp.ok) { console.warn('[assistent] naam-decrypt HTTP', resp.status); return; }
+      const { entries } = await resp.json();
+      mobNaarEcht = new Map(entries);
+      data.rapport       = _mobHerstelObj(data.rapport);
+      data.classificatie = _mobHerstelObj(data.classificatie);
+    } catch (e) {
+      // Niet fataal: zonder ontsleuteling toont de assistent pseudoniemen.
+      console.warn('[assistent] naam-decrypt mislukt (niet-fataal):', e.message);
+    }
+  }
 
   function _achternaam(volNaam) {
     const TUSSENV = ['van', 'de', 'der', 'den', 'ten', 'ter', 'te', 'op'];
@@ -934,7 +992,9 @@
     // ── Bubble: hoofdtekst + secties binnen de kaart ──────────────
     const bubble = document.createElement('div');
     bubble.className = 'mob-bubble assist';
-    bubble.innerHTML = renderMarkdown(tekst);
+    // Pseudoniemen → echte namen. Ook op de metablokken hieronder, anders staat
+    // de ene helft van hetzelfde antwoord op nep-namen (zie desktop-bug in opties).
+    bubble.innerHTML = renderMarkdown(_mobHerstelNamen(tekst));
 
     const aannames   = data.aannames   || [];
     const signalen   = data.signalen   || [];
@@ -951,7 +1011,7 @@
       const bH = hoog   ? `<span class="mob-sig-hoog">${hoog} hoog</span>` : '';
       const bM = midden ? `<span class="mob-sig-midden">${midden} midden</span>` : '';
       const items = signalen.map(s =>
-        `<span class="mob-sig-${s.ernst}">[${s.ernst}]</span> ${escH(s.tekst)}`);
+        `<span class="mob-sig-${s.ernst}">[${s.ernst}]</span> ${escH(_mobHerstelNamen(s.tekst))}`);
       const sigCls = hoog ? 'sig-hoog' : midden ? 'sig-midden' : '';
       bubble.appendChild(_mkDetails(sigCls,
         `⚠ Signalen — ${[bH, bM].filter(Boolean).join(' · ')}`, items));
@@ -960,14 +1020,14 @@
     // Aannames
     if (aannames.length > 0) {
       bubble.appendChild(_mkDetails('', `Aannames (${aannames.length})`,
-        aannames.map(a => escH(a))));
+        aannames.map(a => escH(_mobHerstelNamen(a)))));
     }
 
     // Onbekenden ("? huwelijkse voorwaarden")
     if (onbekenden.length > 0) {
       const labels = onbekenden.map(o => ONBEKENDEN_LABELS[o.veld] || o.veld);
       const items  = onbekenden.map(o =>
-        `<strong>${escH(ONBEKENDEN_LABELS[o.veld] || o.veld)}</strong> — ${escH(o.effect)}`);
+        `<strong>${escH(ONBEKENDEN_LABELS[o.veld] || o.veld)}</strong> — ${escH(_mobHerstelNamen(o.effect))}`);
       bubble.appendChild(_mkDetails('', `? ${labels.join(', ')}`, items));
     }
 

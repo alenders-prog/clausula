@@ -12799,12 +12799,15 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
   }
 
   // Opties-kaartjes (intent = opties)
+  // Namen herstellen zoals bij antwoord/aannames/signalen/onbekenden: Claude krijgt
+  // pseudoniemen en geeft die ook terug. Zonder deze stap staat er "Thomas en Lisette"
+  // in de kaartjes terwijl de rest van hetzelfde antwoord de echte namen toont.
   let optiesHtml = '';
   if (opties.length) {
     optiesHtml = opties.map(o => `<div class="assist-optie">
-      <div class="assist-optie-titel">${escH(o.titel || '')}</div>
-      <div class="assist-optie-tekst">${escH(o.kern || '')}</div>
-      ${o.afwegingen ? `<div class="assist-optie-afweging">${escH(o.afwegingen)}</div>` : ''}
+      <div class="assist-optie-titel">${escH(_assistHerstelNamen(o.titel || ''))}</div>
+      <div class="assist-optie-tekst">${escH(_assistHerstelNamen(o.kern || ''))}</div>
+      ${o.afwegingen ? `<div class="assist-optie-afweging">${escH(_assistHerstelNamen(o.afwegingen))}</div>` : ''}
     </div>`).join('');
   }
 
@@ -13441,7 +13444,7 @@ function _assistVoegOptieKiezerToe() {
   div.className = 'assist-msg-assist';
   div.id = 'assistOptieKiezerDiv';
   const chipsHtml = opties.map((o, i) =>
-    `<button class="assist-keuze-chip" onclick="_assistOptieKiezerKiezen(${i}, this)">${i+1}. ${escH(o.titel)}</button>`
+    `<button class="assist-keuze-chip" onclick="_assistOptieKiezerKiezen(${i}, this)">${i+1}. ${escH(_assistHerstelNamen(o.titel || ''))}</button>`
   ).join('');
   div.innerHTML = `<div class="assist-bubble assist-keuze-bubble">
     <p style="margin:0 0 10px;font-size:.84rem;font-weight:600">Op welke optie wilt u de clausule baseren?</p>
@@ -13696,7 +13699,7 @@ function _assistGenKlanttekst(btn) {
 function _assistVoegOptiesSelectieToe() {
   const pk = _assist.pendingKlanttekst;
   const optChips = _assist.lastOpties.map((o, i) =>
-    `<button class="assist-keuze-chip actief" onclick="_assistOptieSelectToggle(${i},this)">${escH(o.titel || `Optie ${i+1}`)}</button>`
+    `<button class="assist-keuze-chip actief" onclick="_assistOptieSelectToggle(${i},this)">${escH(_assistHerstelNamen(o.titel || `Optie ${i+1}`))}</button>`
   ).join('');
   const msgs = document.getElementById('assistMsgs');
   const div = document.createElement('div');
