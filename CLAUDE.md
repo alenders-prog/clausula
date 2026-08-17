@@ -69,6 +69,27 @@ Claude wordt aangeroepen via `askClaude()` in `api/analyseer.js` (tool-use, gest
 
 Nooit automatisch pushen. Alleen pushen als de gebruiker dat expliciet vraagt.
 
+## Kennisbank (`legal_chunks`) wijzigen
+
+**Na elke wijziging of toevoeging van chunks — ook via het Supabase-dashboard —
+`node scripts/kennisbank-check.mjs` draaien.**
+
+De selectie in `api/analyseer.js` matcht `topic_tags` tegen `situatie_kenmerken.key`,
+en die keys gebruiken **underscores**. Een chunk die je tagt met `koude-uitsluiting`
+in plaats van `koude_uitsluiting` matcht daardoor nooit: hij staat in de database,
+wordt nooit opgehaald, en er verschijnt nergens een foutmelding. In augustus 2026
+stonden er zo zes tags in twee schrijfwijzen, waaronder tien chunks onder
+`huwelijkse-voorwaarden` die buiten elke analyse vielen.
+
+Let op: niet élk streepje is fout — `art-1:94-bw`, `pre-2012` en `hr-2006` horen zo.
+Het gaat om tags die een tegenhanger met underscore hebben. De controle signaleert
+precies dat onderscheid.
+
+Een PostToolUse-hook draait deze controle automatisch bij het bewerken van bestanden
+met `legal_chunk`, `wettekst` of `kennisbank` in de naam. Wijzigingen die je
+rechtstreeks in het dashboard doet laten geen bestand achter, dus die vangt de hook
+niet — daarvoor geldt de regel hierboven.
+
 ## Skills bijhouden
 
 Skills in `.claude/skills/` leggen non-obvieuze kennis vast die niet direct uit de code
