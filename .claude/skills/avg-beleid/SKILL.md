@@ -85,8 +85,19 @@ klopte niet zodra er datums in stonden.
 
 **Bucket**: `documenten` (privaat — geen publieke toegang).
 
-**Pad-formaat**: `{screeningId}/{volgnummer}.pdf`
-→ Geen persoonsdata in het pad (AVG-eis).
+**Twee pad-formaten in gebruik** — geen van beide bevat persoonsdata (AVG-eis), maar
+ze worden verschillend opgeruimd:
+
+| Waar | Pad | Opruimen bij verwijderen |
+|---|---|---|
+| `index.html` multi-doc upload (~regel 6353) | `{organisatie_id}/{tijdstempel}-{random}.{ext}` | **gebeurt niet** |
+| `index.html` eerste `opslaan()` (~regel 6484) | `{screeningId}/{volgnummer}.pdf` | ja |
+
+> **Openstaande bug**: de cleanup bij het verwijderen van een screening (`index.html`
+> ~10989 en ~11185) doet `storage.list(versieId)` en ruimt dus alleen het tweede
+> formaat op. Bestanden onder het organisatie-id blijven achter als verweesde PDF's
+> met persoonsgegevens. Vastgesteld 10 augustus 2026 bij het leegmaken van de bucket:
+> 336 bestanden tegenover 111 screenings.
 
 **Metadata** (`rapport._document_bestanden`): `[{ pad, naam }]`
 - `pad` = storage-pad (geen persoonsdata)

@@ -335,8 +335,11 @@ export default async function handler(req, res) {
 
     const [{ data: wetteksten }, { data: standaardClausules },
           { data: tmplConvenant }, { data: tmplOuderschapsplan }] = await Promise.all([
-      supabase.from('legal_chunks').select('citation, content')
-        .overlaps('topic_tags', wetsQueryTags).limit(25),
+      // Zonder limiet ophalen: het zijn er hooguit honderd en de selectie gebeurt
+      // hieronder op relevantie. Een .limit() hier gaf een willekeurige greep,
+      // omdat er geen sortering op staat.
+      supabase.from('legal_chunks').select('citation, content, topic_tags')
+        .overlaps('topic_tags', wetsQueryTags),
       supabase.from('legal_chunks').select('citation, content')
         .eq('source_id', '10000000-0000-0000-0000-000000000001')
         .eq('chunk_index', 28).limit(1),
@@ -348,12 +351,50 @@ export default async function handler(req, res) {
         .eq('doc_type', 'ouderschapsplan').order('section_order'),
     ]);
 
-    const _wttAll = [...(wetteksten ?? [])];
+    // Rangschikken op relevantie: hoe meer tags van dit dossier een chunk raakt,
+    // hoe eerder hij meegaat. De citation is tiebreak — niet cosmetisch, maar nodig
+    // voor een deterministische volgorde: het wettekstblok gaat als gecached blok
+    // naar Claude, en prompt-caching werkt op een byte-voor-byte prefixmatch. Een
+    // wisselende volgorde betekent elke keer opnieuw de volle prijs betalen.
+    const _tagScore = (chunk) =>
+      (chunk.topic_tags ?? []).filter(t => wetsQueryTags.includes(t)).length;
+
+    const _gevonden = [...(wetteksten ?? [])].sort((a, b) =>
+      _tagScore(b) - _tagScore(a) || a.citation.localeCompare(b.citation, 'nl'));
+
+    // Ruim bemeten: in de praktijk gaat alles mee wat op tags matcht (bij een
+    // doorsnee dossier zo'n 67 chunks, ~20k tokens in één gecached blok — enkele
+    // centen per analyse). De limiet is een vangnet tegen een uitdijende
+    // kennisbank, geen selectiemiddel.
+    //
+    // Bewust NIET filteren op ogenschijnlijk tegenstrijdige tags (voor-2018 vs
+    // vanaf-2018, pensioenverevening vs _uitgesloten): dat zijn onderwerpslabels,
+    // geen toepasselijkheidsvlaggen. 'WVPS art. 5 — afwijking pensioenverevening'
+    // draagt beide pensioen-tags, en de overzichtschunk over stelsels en tijdvakken
+    // is getagd op één periode terwijl hij ze allemaal beschrijft. Zo'n filter
+    // verwijdert juist de chunks die het onderscheid uitleggen. Welk regime geldt,
+    // staat in het feitenblok; valideerConsistentie ruimt tegenstrijdige signalen op.
+    const MAX_WETTEKSTEN = 80;
+    const _wttAll = _gevonden.slice(0, MAX_WETTEKSTEN);
+    const _gemist = _gevonden.length - _wttAll.length;
+
     const _stdCit = 'Gangbare correcte standaardclausules in Nederlandse echtscheidingsdocumenten';
     if (standaardClausules?.length && !_wttAll.some(w => w.citation === _stdCit)) {
       _wttAll.push(...standaardClausules);
     }
     const wetTekst = _wttAll.map(w => `[${w.citation}] ${w.content}`).join('\n\n');
+
+    // Diagnostisch: zonder deze regel is van buitenaf niet te zien of de kennisbank
+    // daadwerkelijk is meegestuurd. Nul wetteksten ziet er in de uitvoer hetzelfde uit
+    // als veertig — Claude citeert dan gewoon uit eigen kennis, en juist die citaten
+    // zijn niet te vertrouwen.
+    console.log(`[analyseer] kennisbank: tags [${wetsQueryTags.join(', ')}] → ${_gevonden.length} match(es), ${_wttAll.length} meegestuurd`);
+    if (_gemist > 0) {
+      console.warn(`[analyseer] ${_gemist} wettekst(en) niet meegestuurd (limiet ${MAX_WETTEKSTEN}) — laagst scorend: ${_gevonden.slice(MAX_WETTEKSTEN).map(w => w.citation).join(' | ')}`);
+    }
+    if (!_wttAll.length) {
+      console.warn('[analyseer] LET OP: geen enkele wettekst gevonden — analyse draait ongefundeerd');
+    }
 
     const templatesPer = { convenant: tmplConvenant ?? [], ouderschapsplan: tmplOuderschapsplan ?? [] };
 

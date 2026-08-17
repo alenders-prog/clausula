@@ -6458,6 +6458,13 @@ async function opslaan() {
         classificatie: _opsl_classificatie,
         rapport:       _opsl_rapport,
         dossier_id:    app.dossierId || null,
+        // Eigenaar en organisatie expliciet meegeven: beide kolommen hebben geen
+        // database-default, dus zonder dit blijven ze leeg. organisatie_id is nodig
+        // voor de RLS-policy "screening: eigen org" — een screening zonder dossier
+        // én zonder organisatie is voor niemand meer zichtbaar. gebruiker_id is de
+        // basis voor de eigen-dossiers-afscherming.
+        organisatie_id: _orgId,
+        gebruiker_id:   _userId,
       };
       if (namen_map) insertPayload.namen_map = namen_map;
       ({ data, error } = await db.from('screeningen')
@@ -8178,6 +8185,39 @@ function anonimiseerObj(obj, naarAnon) {
 
 // Bouw een pseudonieme versie van de classificatie voor opslag in Supabase.
 // Namen worden vervangen door hun vaste placeholders; overige velden ongewijzigd.
+// Verzamelt alle Storage-paden van een screening. Nodig omdat er twee
+// uploadindelingen in gebruik zijn: {organisatie_id}/{tijdstempel}-{random}.ext bij
+// multi-doc uploads en {screeningId}/{volgnummer}.pdf bij de eerste opslaan().
+// Alleen de map van het screening-id opruimen laat de eerste soort staan — dan
+// blijven PDF's met persoonsgegevens achter waar niets meer naar verwijst.
+// rapport._document_bestanden bevat de werkelijke paden, ongeacht indeling.
+// Moet vóór het verwijderen van de rij worden aangeroepen: daarna is het rapport weg.
+async function storagePadenVanScreening(id) {
+  const paden = new Set();
+  try {
+    const { data } = await db.from('screeningen').select('rapport').eq('id', id).maybeSingle();
+    (data?.rapport?._document_bestanden ?? []).forEach(b => { if (b?.pad) paden.add(b.pad); });
+  } catch (e) { console.warn('[storage] rapport niet leesbaar voor', id, e.message); }
+  try {
+    const { data: sf } = await db.storage.from('documenten').list(id);
+    (sf ?? []).forEach(f => paden.add(`${id}/${f.name}`));
+  } catch { /* map bestaat niet — geen probleem */ }
+  return [...paden];
+}
+
+// Fire-and-forget: een mislukte opruiming mag het verwijderen niet blokkeren,
+// maar moet wél zichtbaar zijn — stil falen levert precies de verweesde
+// bestanden op die we hier proberen te voorkomen.
+function verwijderStoragePaden(paden, id) {
+  if (!paden?.length) return;
+  db.storage.from('documenten').remove(paden)
+    .then(({ error }) => {
+      if (error) console.warn(`[storage] opruimen mislukt voor ${id}:`, error.message);
+      else console.log(`[storage] ${paden.length} bestand(en) opgeruimd voor ${id}`);
+    })
+    .catch(e => console.warn(`[storage] opruimen mislukt voor ${id}:`, e.message));
+}
+
 // AVG-beleid regel 4 — bewust NIET gepseudonimiseerd bij opslag:
 // huwelijksdatum, partij_*_geboortedatum, kinderen_geboortedatums/-jaren en
 // nationaliteit_*. Afweging: dit is de eigen database, RLS-beschermd per
@@ -10974,14 +11014,13 @@ async function laadDossiers() {
         if (!confirm('Deze versie verwijderen?')) return;
         btn.textContent = '…'; btn.disabled = true;
         try {
+          // Paden ophalen vóór het verwijderen: daarna is het rapport er niet meer.
+          const _paden = await storagePadenVanScreening(btn.dataset.versieId);
           const { error } = await db.from('screeningen').delete().eq('id', btn.dataset.versieId);
           if (error) throw error;
           if (app.screeningId === btn.dataset.versieId) closeSplitView();
           btn.closest('.dos-oud-kaart').remove();
-          // Storage cleanup (fire-and-forget)
-          db.storage.from('documenten').list(btn.dataset.versieId)
-            .then(({ data: sf }) => { if (sf?.length) db.storage.from('documenten').remove(sf.map(f => `${btn.dataset.versieId}/${f.name}`)); })
-            .catch(() => {});
+          verwijderStoragePaden(_paden, btn.dataset.versieId);
         } catch (err) {
           alert('Verwijderen mislukt: ' + err.message);
           btn.textContent = '🗑'; btn.disabled = false;
@@ -11169,15 +11208,14 @@ async function toonDossierDetail(id) {
         btn.textContent = '…';
         btn.disabled = true;
         try {
+          // Paden ophalen vóór het verwijderen: daarna is het rapport er niet meer.
+          const _paden = await storagePadenVanScreening(versieId);
           const { error } = await db.from('screeningen').delete().eq('id', versieId);
           if (error) throw error;
           card.remove();
           // Als het de actief geladen versie was, sluit de split-overlay
           if (app.screeningId === versieId) closeSplitView();
-          // Storage cleanup (fire-and-forget)
-          db.storage.from('documenten').list(versieId)
-            .then(({ data: sf }) => { if (sf?.length) db.storage.from('documenten').remove(sf.map(f => `${versieId}/${f.name}`)); })
-            .catch(() => {});
+          verwijderStoragePaden(_paden, versieId);
         } catch (err) {
           alert('Verwijderen mislukt: ' + err.message);
           btn.textContent = '🗑';
