@@ -88,16 +88,20 @@ klopte niet zodra er datums in stonden.
 **Twee pad-formaten in gebruik** — geen van beide bevat persoonsdata (AVG-eis), maar
 ze worden verschillend opgeruimd:
 
-| Waar | Pad | Opruimen bij verwijderen |
-|---|---|---|
-| `index.html` multi-doc upload (~regel 6353) | `{organisatie_id}/{tijdstempel}-{random}.{ext}` | **gebeurt niet** |
-| `index.html` eerste `opslaan()` (~regel 6484) | `{screeningId}/{volgnummer}.pdf` | ja |
+| Waar | Pad |
+|---|---|
+| `index.html` multi-doc upload (~regel 6353) | `{organisatie_id}/{tijdstempel}-{random}.{ext}` |
+| `index.html` eerste `opslaan()` (~regel 6484) | `{screeningId}/{volgnummer}.pdf` |
 
-> **Openstaande bug**: de cleanup bij het verwijderen van een screening (`index.html`
-> ~10989 en ~11185) doet `storage.list(versieId)` en ruimt dus alleen het tweede
-> formaat op. Bestanden onder het organisatie-id blijven achter als verweesde PDF's
-> met persoonsgegevens. Vastgesteld 10 augustus 2026 bij het leegmaken van de bucket:
-> 336 bestanden tegenover 111 screenings.
+**Opruimen bij verwijderen** gaat via `storagePadenVanScreening(id)` in `index.html`.
+Die leest de werkelijke paden uit `rapport._document_bestanden` — dat dekt beide
+indelingen — en neemt de map `{screeningId}/` als fallback voor oudere records.
+
+> **Roep hem aan vóór het verwijderen van de rij**: daarna is het rapport weg en
+> daarmee de enige plek waar de paden van de eerste indeling staan. Dat was de
+> oorzaak van de oude bug (10 augustus 2026): de cleanup deed alleen
+> `storage.list(versieId)` en liet dus alles onder het organisatie-id staan —
+> 336 verweesde PDF's met persoonsgegevens tegenover 111 screenings.
 
 **Metadata** (`rapport._document_bestanden`): `[{ pad, naam }]`
 - `pad` = storage-pad (geen persoonsdata)
