@@ -2405,6 +2405,15 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             <option value="admin">Beheerder</option>
           </select>
         </div>
+        <!-- Beheerders zien altijd alles; deze keuze geldt alleen voor mediators. -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px" id="uitnodigingToegangRij">
+          <label for="uitnodigingToegang" style="font-size:.82rem;color:var(--ink-soft)">Ziet dossiers:</label>
+          <select id="uitnodigingToegang" style="flex:1;padding:9px 10px;border:1.5px solid var(--line);
+            border-radius:8px;font-size:.82rem;background:var(--bg);color:var(--ink);outline:none">
+            <option value="eigen">Alleen eigen dossiers</option>
+            <option value="alle">Alle dossiers van het kantoor</option>
+          </select>
+        </div>
         <button class="secundair" id="maakUitnodigingBtn" style="width:100%">
           Uitnodiging versturen
         </button>
@@ -6704,11 +6713,19 @@ async function verwijderGebruiker(userId, naam) {
 }
 
 // ── Uitnodiging versturen ─────────────────────────────
+// Beheerders zien altijd alle dossiers — de keuze is dan zinloos en verwarrend.
+document.getElementById('uitnodigingRol').addEventListener('change', function () {
+  document.getElementById('uitnodigingToegangRij').style.display =
+    this.value === 'admin' ? 'none' : 'flex';
+});
+
 document.getElementById('maakUitnodigingBtn').addEventListener('click', async () => {
   const btn      = document.getElementById('maakUitnodigingBtn');
   const res_div  = document.getElementById('uitnodigingResultaat');
   const emailVal = document.getElementById('uitnodigingEmail').value.trim();
   const rol      = document.getElementById('uitnodigingRol').value;
+  // Beheerders zien per definitie alles; de keuze telt alleen voor mediators.
+  const zietAlle = rol === 'admin' || document.getElementById('uitnodigingToegang').value === 'alle';
 
   res_div.style.display = 'none';
 
@@ -6729,7 +6746,7 @@ document.getElementById('maakUitnodigingBtn').addEventListener('click', async ()
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${session?.access_token || ''}`,
       },
-      body: JSON.stringify({ email: emailVal, rol }),
+      body: JSON.stringify({ email: emailVal, rol, zietAlle }),
     });
     const json = await resp.json();
     if (!resp.ok) throw new Error(json.error || 'Versturen mislukt');

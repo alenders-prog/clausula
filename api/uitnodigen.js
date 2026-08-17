@@ -69,6 +69,20 @@ export default async function handler(req, res) {
     const inv = Array.isArray(uitnodiging) ? uitnodiging[0] : uitnodiging;
     if (!inv?.token) throw new Error('Uitnodiging aanmaken mislukt');
 
+    // Dossiertoegang op de uitnodiging zetten; de trigger op auth.users neemt
+    // hem straks over in het profiel. Bewust een aparte update in plaats van een
+    // extra parameter op maak_uitnodiging: die functie hoeft er niet voor open.
+    // Service role, want RLS laat een gebruiker zijn eigen uitnodigingen niet bijwerken.
+    if (req.body?.zietAlle === true) {
+      const { error: tgErr } = await sbService
+        .from('uitnodigingen')
+        .update({ ziet_alle_dossiers: true })
+        .eq('token', inv.token);
+      // Niet fataal: de uitnodiging werkt, de collega start dan met alleen eigen
+      // dossiers en een beheerder kan het achteraf omzetten in de gebruikerslijst.
+      if (tgErr) console.warn('[uitnodigen] dossiertoegang niet gezet:', tgErr.message);
+    }
+
     // ── Uitnodigingslink samenstellen ─────────────────────
     // VERCEL_PROJECT_PRODUCTION_URL is het vaste productiedomein (app.clausula.nl).
     // Gebruik NIET VERCEL_URL: dat is de deployment-specifieke URL, waardoor een
