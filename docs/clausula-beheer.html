@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clausula · Beheer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16233F;          /* diep dossierblauw */
+  --ink-soft:#3D4B6B;
+  --paper:#F6F7FA;
+  --card:#FFFFFF;
+  --line:#E3E7EF;
+  --brand:#2E5EAA;
+  --brand-soft:#EAF0FA;
+  --kritiek:#C0392B;
+  --kritiek-bg:#FBEEEC;
+  --waarschuwing:#B9770E;
+  --waarschuwing-bg:#FBF3E4;
+  --ok:#1E7A55;
+  --ok-bg:#E8F4EE;
+  --muted:#7C879E;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:14px;line-height:1.5}
+a{color:var(--brand)}
+.layout{display:flex;min-height:100vh}
+
+/* ── Sidebar ─────────────────────────── */
+.sidebar{width:220px;background:var(--ink);color:#C6CEE0;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo b{color:#fff;font-size:16px;letter-spacing:.3px}
+.logo span{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:#7E8BAA;margin-top:2px}
+.nav{padding:14px 10px;flex:1}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:#C6CEE0;font:inherit;font-size:13.5px;padding:9px 12px;border-radius:7px;cursor:pointer;margin-bottom:2px}
+.nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav button.active{background:var(--brand);color:#fff;font-weight:600}
+.nav button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.nav .badge{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--kritiek);color:#fff;border-radius:9px;padding:1px 7px}
+.nav-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#67739A;padding:14px 12px 6px}
+.sidebar-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:#7E8BAA}
+.sidebar-foot b{color:#C6CEE0;display:block}
+
+/* ── Header + statusstrook ───────────── */
+.main{flex:1;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--card)}
+.topbar h1{font-size:19px;font-weight:700}
+.topbar .periode{display:flex;gap:2px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:2px}
+.periode button{border:0;background:none;font:inherit;font-size:12.5px;padding:5px 12px;border-radius:6px;cursor:pointer;color:var(--muted)}
+.periode button.active{background:var(--ink);color:#fff;font-weight:600}
+.statusstrook{display:flex;gap:0;background:var(--ink);color:#fff;padding:0 28px;font-family:var(--mono);font-size:12px;overflow-x:auto}
+.statusstrook .cel{display:flex;align-items:center;gap:8px;padding:9px 18px 9px 0;margin-right:18px;border-right:1px solid rgba(255,255,255,.12);white-space:nowrap}
+.statusstrook .cel:last-child{border-right:0}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#3FBF87}.dot.warn{background:#F0A93B}.dot.err{background:#E5604F}
+.statusstrook .lbl{color:#8B97B5}
+
+/* ── Content ─────────────────────────── */
+.content{padding:24px 28px 48px;max-width:1240px}
+.sectie{display:none}
+.sectie.active{display:block}
+.sectie h2{font-size:16px;font-weight:700;margin:26px 0 12px}
+.sectie h2:first-child{margin-top:0}
+.subtekst{color:var(--muted);font-size:13px;margin-bottom:14px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .lbl{font-size:12px;color:var(--muted);margin-bottom:4px}
+.kpi .val{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-.5px}
+.kpi .delta{font-family:var(--mono);font-size:11.5px;margin-top:3px}
+.delta.up{color:var(--ok)}.delta.down{color:var(--kritiek)}.delta.flat{color:var(--muted)}
+
+.paneel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.paneel-kop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.paneel-kop h3{font-size:14px;font-weight:600}
+.paneel-kop .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.klikbaar{cursor:pointer}
+tr.klikbaar:hover td{background:var(--brand-soft)}
+td.num,th.num{text-align:right;font-family:var(--mono)}
+.mono{font-family:var(--mono);font-size:12px}
+
+.tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.tag.kritiek{background:var(--kritiek-bg);color:var(--kritiek)}
+.tag.waarschuwing{background:var(--waarschuwing-bg);color:var(--waarschuwing)}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.info{background:var(--brand-soft);color:var(--brand)}
+.tag.neutraal{background:var(--paper);color:var(--ink-soft);border:1px solid var(--line)}
+
+.alert{display:flex;gap:12px;align-items:flex-start;border-radius:10px;padding:12px 14px;margin-bottom:8px;border:1px solid}
+.alert.kritiek{background:var(--kritiek-bg);border-color:#EFC9C4}
+.alert.waarschuwing{background:var(--waarschuwing-bg);border-color:#EEDCB4}
+.alert.info{background:var(--brand-soft);border-color:#CCDBF2}
+.alert .icoon{font-size:15px;line-height:1.4}
+.alert b{display:block;font-size:13.5px}
+.alert p{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.alert .actie{margin-left:auto;flex-shrink:0;font-size:12px;font-weight:600;color:var(--brand);background:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer;background:var(--card)}
+
+.twee-kolom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:980px){.twee-kolom{grid-template-columns:1fr}.sidebar{display:none}}
+
+.staafgrafiek{display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:8px}
+.staaf{flex:1;background:var(--brand);border-radius:3px 3px 0 0;position:relative;min-width:10px}
+.staaf.licht{background:#B8CBE8}
+.staaf span{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--muted)}
+.x-as{display:flex;gap:6px;margin-top:6px}
+.x-as div{flex:1;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+.spark{vertical-align:middle}
+.balkje{height:7px;border-radius:4px;background:var(--paper);border:1px solid var(--line);overflow:hidden;min-width:90px}
+.balkje i{display:block;height:100%;background:var(--brand)}
+.balkje.ok i{background:var(--ok)}
+.balkje.warn i{background:var(--waarschuwing)}
+.balkje.err i{background:var(--kritiek)}
+.stapel{display:flex;height:14px;border-radius:4px;overflow:hidden;min-width:220px}
+.stapel i{display:block;height:100%}
+.stapel .s-k{background:var(--kritiek)}.stapel .s-w{background:#E8B54B}.stapel .s-i{background:#B8CBE8}
+.legenda{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:10px}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
+.legenda i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.kpi svg{display:block;width:100%;height:26px;margin-top:8px}
+.kpi polyline{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.grafiek svg{display:block;width:100%;height:auto}
+.grafiek text{font-family:var(--mono);font-size:11px;fill:var(--muted)}
+.grafiek .aslijn{stroke:var(--line);stroke-width:1}
+.grafiek .doellijn{stroke:var(--kritiek);stroke-width:1;stroke-dasharray:5 4;opacity:.7}
+.grafiek polyline{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.donut-rij{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.donut-rij svg{flex-shrink:0}
+.donut-rij table{flex:1;min-width:260px}
+.donut-tekst{font-family:var(--mono);font-weight:600;font-size:22px;fill:var(--ink)}
+.donut-sub{font-family:var(--mono);font-size:9px;fill:var(--muted);letter-spacing:.08em}
+
+.filterbalk{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filterbalk select,.filterbalk input{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--card);color:var(--ink)}
+.filterbalk input{flex:1;min-width:180px}
+
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.cat-kaart{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.cat-kaart h4{font-size:13.5px;display:flex;justify-content:space-between;align-items:center}
+.cat-kaart .stats{display:flex;gap:16px;margin:10px 0;font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.cat-kaart .stats b{display:block;font-size:16px;color:var(--ink)}
+.cat-kaart ul{list-style:none;margin-top:8px}
+.cat-kaart li{font-size:12.5px;padding:6px 0;border-top:1px dashed var(--line);color:var(--ink-soft)}
+.cat-kaart li b{color:var(--ink)}
+
+.detail{background:var(--paper);border-radius:8px;padding:10px 12px;font-size:12.5px;margin-top:8px;border:1px solid var(--line)}
+.detail .mono{color:var(--ink-soft)}
+footer{padding:0 28px 30px;font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.sectie.active{animation:fadein .18s ease}}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="logo"><b>Clausula</b><span>Beheer · admin</span></div>
+  <nav class="nav">
+    <button class="active" data-sectie="overzicht">◈ Overzicht</button>
+    <div class="nav-label">Monitoring</div>
+    <button data-sectie="gebruik">▤ Gebruik &amp; klanten</button>
+    <button data-sectie="performance">▁▃▅ Performance</button>
+    <button data-sectie="fouten">⚠ Fouten &amp; signalering <span class="badge">3</span></button>
+    <div class="nav-label">Verbeteren</div>
+    <button data-sectie="support">✉ Support &amp; escalaties</button>
+    <button data-sectie="assistent">? Assistent-vragen</button>
+    <button data-sectie="kwaliteit">✓ Screeningkwaliteit</button>
+  </nav>
+  <div class="sidebar-foot"><b>Alexander</b>Beheerder · uitloggen</div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <h1 id="sectie-titel">Overzicht</h1>
+    <div class="periode">
+      <button>7 dagen</button><button class="active">30 dagen</button><button>90 dagen</button><button>Alles</button>
+    </div>
+  </div>
+
+  <div class="statusstrook">
+    <div class="cel"><span class="dot ok"></span><span class="lbl">API</span> operationeel</div>
+    <div class="cel"><span class="dot ok"></span><span class="lbl">Supabase</span> operationeel</div>
+    <div class="cel"><span class="dot warn"></span><span class="lbl">Screening p95</span> 94 s ↑</div>
+    <div class="cel"><span class="dot ok"></span><span class="lbl">Foutratio 24 u</span> 0,8%</div>
+    <div class="cel"><span class="dot err"></span><span class="lbl">Open kritiek</span> 1 escalatie</div>
+    <div class="cel"><span class="lbl">Laatste screening</span> 4 min geleden</div>
+  </div>
+
+  <div class="content">
+<!-- ═══════════ OVERZICHT ═══════════ -->
+<section class="sectie active" id="overzicht">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Screenings (30 d)</div><div class="val">412</div><div class="delta up">▲ 18% t.o.v. vorige periode</div>
+      <svg viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,21 11,19 22,20 33,16 44,17 55,13 66,14 77,10 88,7 100,4" stroke="#2E5EAA"/></svg></div>
+    <div class="kpi"><div class="lbl">Actieve organisaties</div><div class="val">23</div><div class="delta up">▲ 2 nieuw</div>
+      <svg viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,20 11,20 22,18 33,18 44,16 55,16 66,14 77,12 88,10 100,8" stroke="#2E5EAA"/></svg></div>
+    <div class="kpi"><div class="lbl">Actieve gebruikers</div><div class="val">61</div><div class="delta flat">— gelijk</div>
+      <svg viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,14 11,13 22,14 33,12 44,13 55,13 66,12 77,13 88,13 100,13" stroke="#7C879E"/></svg></div>
+    <div class="kpi"><div class="lbl">Foutratio</div><div class="val">1,2%</div><div class="delta down">▲ 0,4 pt — boven doel (1%)</div>
+      <svg viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,17 11,18 22,16 33,17 44,15 55,14 66,12 77,10 88,7 100,4" stroke="#C0392B"/></svg></div>
+    <div class="kpi"><div class="lbl">Screeningsduur p95</div><div class="val">94 s</div><div class="delta down">▲ 12 s trager</div>
+      <svg viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,18 11,17 22,19 33,16 44,17 55,14 66,13 77,10 88,7 100,5" stroke="#B9770E"/></svg></div>
+    <div class="kpi"><div class="lbl">API-kosten / screening</div><div class="val">€ 0,41</div><div class="delta up">▼ € 0,03 (caching)</div>
+      <svg viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,6 11,7 22,6 33,9 44,10 55,12 66,13 77,15 88,16 100,17" stroke="#1E7A55"/></svg></div>
+  </div>
+
+  <h2>Actieve signaleringen</h2>
+  <p class="subtekst">Automatisch gedetecteerde patronen die aandacht vragen — gegroepeerd, niet per losse fout.</p>
+  <div class="alert kritiek">
+    <div class="icoon">⛔</div>
+    <div><b>Time-outs bij documenten &gt; 45 pagina's — 9× deze week (was 2×)</b>
+    <p>Alle 9 bij organisaties met Formule-licentie. Correlatie: totale tokeninput &gt; 180 k. Overweeg chunking of streaming per categorie.</p></div>
+    <button class="actie" data-ga="fouten">Bekijk fouten →</button>
+  </div>
+  <div class="alert waarschuwing">
+    <div class="icoon">⚠️</div>
+    <div><b>14 assistent-vragen over RTF-export in Word — stijgend</b>
+    <p>Zelfde onderwerp als 3 open supporttickets. Kandidaat voor FAQ-item of een instructie in de exportdialoog.</p></div>
+    <button class="actie" data-ga="assistent">Bekijk vragen →</button>
+  </div>
+  <div class="alert info">
+    <div class="icoon">ℹ️</div>
+    <div><b>Feedback "onterecht" op categorie Balans gestegen naar 11%</b>
+    <p>Vooral bevindingen over asymmetrische boeteclausules. Mogelijk severity-logica te streng; zie Screeningkwaliteit.</p></div>
+    <button class="actie" data-ga="kwaliteit">Bekijk categorie →</button>
+  </div>
+
+  <h2>Screenings per week</h2>
+  <div class="paneel">
+    <div class="paneel-kop"><h3>Volume &amp; trend</h3><span class="meta">laatste 10 weken · donker = ouderschapsplan, licht = convenant</span></div>
+    <div class="staafgrafiek">
+      <div class="staaf licht" style="height:38%"><span>61</span></div>
+      <div class="staaf" style="height:45%"><span>72</span></div>
+      <div class="staaf licht" style="height:42%"><span>67</span></div>
+      <div class="staaf" style="height:55%"><span>88</span></div>
+      <div class="staaf licht" style="height:50%"><span>80</span></div>
+      <div class="staaf" style="height:63%"><span>101</span></div>
+      <div class="staaf licht" style="height:58%"><span>93</span></div>
+      <div class="staaf" style="height:72%"><span>115</span></div>
+      <div class="staaf licht" style="height:80%"><span>128</span></div>
+      <div class="staaf" style="height:88%"><span>141</span></div>
+    </div>
+    <div class="x-as"><div>w23</div><div>w24</div><div>w25</div><div>w26</div><div>w27</div><div>w28</div><div>w29</div><div>w30</div><div>w31</div><div>w32</div></div>
+  </div>
+</section>
+
+<!-- ═══════════ GEBRUIK ═══════════ -->
+<section class="sectie" id="gebruik">
+  <div class="filterbalk">
+    <input type="search" placeholder="Zoek organisatie of gebruiker…">
+    <select><option>Alle licenties</option><option>Basis</option><option>Plus</option><option>Pro</option><option>Formule</option></select>
+    <select><option>Alle statussen</option><option>Gezond</option><option>Dalend</option><option>Slapend</option></select>
+  </div>
+  <div class="paneel">
+    <div class="paneel-kop"><h3>Per organisatie</h3><span class="meta">klik voor detail per gebruiker</span></div>
+    <table>
+      <thead><tr><th>Organisatie</th><th>Licentie</th><th class="num">Gebruikers</th><th class="num">Screenings 30 d</th><th>Trend</th><th>Laatste activiteit</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr class="klikbaar"><td><b>Zorgzaam Scheiden — regio Oost</b></td><td><span class="tag neutraal">Formule</span></td><td class="num">14</td><td class="num">96</td><td><div class="balkje ok"><i style="width:82%"></i></div></td><td>vandaag</td><td><span class="tag ok">Gezond</span></td></tr>
+        <tr class="klikbaar"><td><b>Mediation Twente</b></td><td><span class="tag neutraal">Pro</span></td><td class="num">4</td><td class="num">41</td><td><div class="balkje ok"><i style="width:65%"></i></div></td><td>gisteren</td><td><span class="tag ok">Gezond</span></td></tr>
+        <tr class="klikbaar"><td><b>De Verbinding Mediators</b></td><td><span class="tag neutraal">Plus</span></td><td class="num">3</td><td class="num">12</td><td><div class="balkje warn"><i style="width:30%"></i></div></td><td>6 dagen geleden</td><td><span class="tag waarschuwing">Dalend</span></td></tr>
+        <tr class="klikbaar"><td><b>Praktijk Van Dalen</b></td><td><span class="tag neutraal">Basis</span></td><td class="num">1</td><td class="num">0</td><td><div class="balkje err"><i style="width:4%"></i></div></td><td>34 dagen geleden</td><td><span class="tag kritiek">Slapend</span></td></tr>
+        <tr class="klikbaar"><td><b>Mediationhuis Vlaanderen</b> <span class="tag info">nieuw</span></td><td><span class="tag neutraal">Pro</span></td><td class="num">2</td><td class="num">8</td><td><div class="balkje"><i style="width:22%"></i></div></td><td>vandaag</td><td><span class="tag ok">Onboarding</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="twee-kolom">
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Per screeningtype</h3><span class="meta">30 dagen · duur en output verschillen per type</span></div>
+      <div class="donut-rij">
+      <svg width="130" height="130" viewBox="0 0 140 140" role="img" aria-label="Verdeling screeningtypen">
+        <g transform="rotate(-90 70 70)">
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#2E5EAA" stroke-width="24" stroke-dasharray="135.1 314.2" stroke-dashoffset="0"/>
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#7EA1D6" stroke-width="24" stroke-dasharray="119.4 314.2" stroke-dashoffset="-135.1"/>
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#E8B54B" stroke-width="24" stroke-dasharray="47.1 314.2" stroke-dashoffset="-254.5"/>
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#D4DCEA" stroke-width="24" stroke-dasharray="12.6 314.2" stroke-dashoffset="-301.6"/>
+        </g>
+        <text x="70" y="67" text-anchor="middle" class="donut-tekst">412</text>
+        <text x="70" y="82" text-anchor="middle" class="donut-sub">SCREENINGS</text>
+      </svg>
+      <table>
+        <thead><tr><th>Type</th><th class="num">Aantal</th><th>Aandeel</th><th class="num">Gem. bevindingen</th><th class="num">p95 duur</th></tr></thead>
+        <tbody>
+          <tr><td><span style="color:#2E5EAA">●</span> Ouderschapsplan</td><td class="num">176</td><td><div class="balkje"><i style="width:43%"></i></div></td><td class="num">7,9</td><td class="num">71 s</td></tr>
+          <tr><td><span style="color:#7EA1D6">●</span> Convenant</td><td class="num">158</td><td><div class="balkje"><i style="width:38%"></i></div></td><td class="num">9,4</td><td class="num">96 s</td></tr>
+          <tr><td><span style="color:#E8B54B">●</span> Combi-dossier (OP + convenant)</td><td class="num">61</td><td><div class="balkje"><i style="width:15%"></i></div></td><td class="num">14,2</td><td class="num">128 s</td></tr>
+          <tr><td><span style="color:#D4DCEA">●</span> Mediationovereenkomst</td><td class="num">17</td><td><div class="balkje"><i style="width:4%"></i></div></td><td class="num">3,1</td><td class="num">29 s</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="detail">Combi-dossiers zijn 15% van het volume maar vrijwel alle time-outs — zie Performance.</div>
+    </div>
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Aangeleverd bestandsformaat</h3><span class="meta">extractiekwaliteit bepaalt screeningkwaliteit</span></div>
+      <div class="donut-rij">
+      <svg width="130" height="130" viewBox="0 0 140 140" role="img" aria-label="Verdeling bestandsformaten">
+        <g transform="rotate(-90 70 70)">
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#2E5EAA" stroke-width="24" stroke-dasharray="188.5 314.2" stroke-dashoffset="0"/>
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#7EA1D6" stroke-width="24" stroke-dasharray="100.5 314.2" stroke-dashoffset="-188.5"/>
+          <circle cx="70" cy="70" r="50" fill="none" stroke="#C0392B" stroke-width="24" stroke-dasharray="25.2 314.2" stroke-dashoffset="-289"/>
+        </g>
+        <text x="70" y="67" text-anchor="middle" class="donut-tekst">60%</text>
+        <text x="70" y="82" text-anchor="middle" class="donut-sub">.DOCX</text>
+      </svg>
+      <table>
+        <thead><tr><th>Formaat</th><th class="num">Aantal</th><th class="num">Extractie mislukt</th></tr></thead>
+        <tbody>
+          <tr><td><span style="color:#2E5EAA">●</span> Word (.docx)</td><td class="num">248</td><td class="num">0,0%</td></tr>
+          <tr><td><span style="color:#7EA1D6">●</span> PDF met tekstlaag</td><td class="num">131</td><td class="num">0,8%</td></tr>
+          <tr><td><span style="color:#C0392B">●</span> PDF gescand (OCR)</td><td class="num">33</td><td class="num" style="color:var(--kritiek)"><b>9,1%</b></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="detail">Gescande PDF's veroorzaken relatief veel extractieproblemen én slechtere citaten in bevindingen. Overweeg een kwaliteitswaarschuwing vóór de screening start.</div>
+    </div>
+  </div>
+  <div class="twee-kolom">
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Gebruik naar functie</h3><span class="meta">30 dagen</span></div>
+      <table>
+        <tbody>
+          <tr><td>Volledige screening (6 categorieën)</td><td class="num">311</td><td><div class="balkje"><i style="width:76%"></i></div></td></tr>
+          <tr><td>Selectieve screening</td><td class="num">101</td><td><div class="balkje"><i style="width:24%"></i></div></td></tr>
+          <tr><td>RTF-export</td><td class="num">268</td><td><div class="balkje"><i style="width:65%"></i></div></td></tr>
+          <tr><td>Bankafschrift-OCR</td><td class="num">57</td><td><div class="balkje"><i style="width:14%"></i></div></td></tr>
+          <tr><td>Assistent geraadpleegd</td><td class="num">122</td><td><div class="balkje"><i style="width:30%"></i></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Adoptiesignalen</h3><span class="meta">omzetrisico &amp; kansen</span></div>
+      <table>
+        <tbody>
+          <tr><td><span class="tag kritiek">Churn-risico</span></td><td>Praktijk Van Dalen: 0 screenings in 30 d, licentie verloopt over 3 weken.</td></tr>
+          <tr><td><span class="tag waarschuwing">Dalend</span></td><td>De Verbinding: −60% t.o.v. vorige maand. Laatste screening had 2 fouten.</td></tr>
+          <tr><td><span class="tag ok">Upsell</span></td><td>Mediation Twente zit 3 maanden op rij tegen de Pro-limiet aan.</td></tr>
+          <tr><td><span class="tag info">Expansie</span></td><td>Mediationhuis Vlaanderen: eerste Belgische klant actief — monitor normtoets-feedback.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PERFORMANCE ═══════════ -->
+<section class="sectie" id="performance">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Screeningsduur p50</div><div class="val">38 s</div><div class="delta flat">— stabiel</div></div>
+    <div class="kpi"><div class="lbl">Screeningsduur p95</div><div class="val">94 s</div><div class="delta down">▲ 12 s</div></div>
+    <div class="kpi"><div class="lbl">Time-outs (30 d)</div><div class="val">11</div><div class="delta down">▲ was 3</div></div>
+    <div class="kpi"><div class="lbl">Geslaagde screenings</div><div class="val">98,8%</div><div class="delta flat">doel ≥ 99%</div></div>
+    <div class="kpi"><div class="lbl">Tokens / screening (gem.)</div><div class="val">71 k</div><div class="delta up">▼ 9% door caching</div></div>
+    <div class="kpi"><div class="lbl">Cache-hitrate prompt</div><div class="val">84%</div><div class="delta up">▲ 6 pt</div></div>
+  </div>
+  <div class="paneel grafiek" style="margin-top:14px">
+    <div class="paneel-kop"><h3>Screeningsduur per week</h3><span class="meta">p50 en p95 in seconden · laatste 10 weken</span></div>
+    <svg viewBox="0 0 620 210" role="img" aria-label="Lijngrafiek screeningsduur">
+      <line x1="30" y1="190" x2="590" y2="190" class="aslijn"/>
+      <line x1="30" y1="125" x2="590" y2="125" class="aslijn"/>
+      <line x1="30" y1="60" x2="590" y2="60" class="aslijn"/>
+      <text x="8" y="194">0</text><text x="8" y="129">50</text><text x="4" y="64">100</text>
+      <line x1="30" y1="34" x2="590" y2="34" class="doellijn"/>
+      <text x="440" y="28" fill="#C0392B">signaleringsdrempel p95 = 120 s</text>
+      <polyline points="30,99 90,96 150,102 210,94 270,95 330,89 390,86 450,80 510,73 570,68" stroke="#B9770E"/>
+      <polyline points="30,146 90,145 150,147 210,143 270,145 330,142 390,143 450,141 510,141 570,141" stroke="#2E5EAA"/>
+      <text x="30" y="207">w23</text><text x="150" y="207">w25</text><text x="270" y="207">w27</text><text x="390" y="207">w29</text><text x="510" y="207">w31</text>
+    </svg>
+    <div class="legenda">
+      <span><i style="background:#2E5EAA"></i> p50 — stabiel rond 38 s</span>
+      <span><i style="background:#B9770E"></i> p95 — kruipt sinds w28 richting de drempel</span>
+    </div>
+  </div>
+  <div class="twee-kolom" style="margin-top:14px">
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Duur per pijplijnstap (p95)</h3><span class="meta">waar zit de vertraging?</span></div>
+      <table>
+        <tbody>
+          <tr><td>Upload &amp; tekstextractie</td><td class="num">4 s</td><td><div class="balkje ok"><i style="width:5%"></i></div></td></tr>
+          <tr><td>Embedding &amp; RAG-retrieval (Voyage + pgvector)</td><td class="num">7 s</td><td><div class="balkje ok"><i style="width:8%"></i></div></td></tr>
+          <tr><td>Screening-call (claude-sonnet-4-6, tool-use)</td><td class="num">78 s</td><td><div class="balkje warn"><i style="width:83%"></i></div></td></tr>
+          <tr><td>Verwerking &amp; opslag bevindingen</td><td class="num">3 s</td><td><div class="balkje ok"><i style="width:4%"></i></div></td></tr>
+        </tbody>
+      </table>
+      <div class="detail">De screening-call domineert de p95. De stijging valt samen met grotere documenten (zie signalering). Opties: per categorie parallel screenen, of streaming met tussentijdse voortgang in de UI.</div>
+    </div>
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Duur vs. documentomvang</h3><span class="meta">30 dagen</span></div>
+      <table>
+        <thead><tr><th>Pagina's</th><th class="num">Aantal</th><th class="num">p50</th><th class="num">p95</th><th class="num">Time-outs</th></tr></thead>
+        <tbody>
+          <tr><td>&lt; 15</td><td class="num">148</td><td class="num">24 s</td><td class="num">41 s</td><td class="num">0</td></tr>
+          <tr><td>15–30</td><td class="num">177</td><td class="num">39 s</td><td class="num">68 s</td><td class="num">1</td></tr>
+          <tr><td>30–45</td><td class="num">64</td><td class="num">58 s</td><td class="num">89 s</td><td class="num">1</td></tr>
+          <tr><td><b>&gt; 45</b></td><td class="num">23</td><td class="num">81 s</td><td class="num"><b>124 s</b></td><td class="num"><b>9</b></td></tr>
+        </tbody>
+      </table>
+      <div class="detail">Vercel-functielimiet nadert bij &gt; 45 pagina's — verklaring voor de time-out-cluster.</div>
+    </div>
+  </div>
+  <div class="paneel">
+    <div class="paneel-kop"><h3>Kosten</h3><span class="meta">API-verbruik afgezet tegen omzet</span></div>
+    <table>
+      <thead><tr><th>Post</th><th class="num">Deze maand</th><th class="num">Vorige maand</th><th class="num">Per screening</th></tr></thead>
+      <tbody>
+        <tr><td>Anthropic API (screening + assistent)</td><td class="num">€ 152</td><td class="num">€ 138</td><td class="num">€ 0,37</td></tr>
+        <tr><td>Voyage embeddings</td><td class="num">€ 9</td><td class="num">€ 8</td><td class="num">€ 0,02</td></tr>
+        <tr><td>Supabase + Vercel</td><td class="num">€ 44</td><td class="num">€ 44</td><td class="num">€ 0,11</td></tr>
+        <tr><td><b>Totaal variabel per screening</b></td><td></td><td></td><td class="num"><b>€ 0,41</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ FOUTEN & SIGNALERING ═══════════ -->
+<section class="sectie" id="fouten">
+  <div class="filterbalk">
+    <input type="search" placeholder="Zoek op correlatie-ID, organisatie of foutmelding…">
+    <select><option>Alle typen</option><option>Time-out</option><option>API-fout</option><option>Malformed response</option><option>Databasefout</option><option>Exportfout</option></select>
+    <select><option>Alle statussen</option><option>Open</option><option>In onderzoek</option><option>Opgelost</option></select>
+  </div>
+  <div class="paneel grafiek">
+    <div class="paneel-kop"><h3>Fouten per week, naar type</h3><span class="meta">de time-out-cluster is hier direct zichtbaar</span></div>
+    <svg viewBox="0 0 620 190" role="img" aria-label="Gestapelde staafgrafiek fouten per week">
+      <line x1="20" y1="160" x2="600" y2="160" class="aslijn"/>
+      <!-- w27 -->
+      <rect x="45" y="140" width="52" height="20" fill="#C0392B" rx="2"/><rect x="45" y="100" width="52" height="38" fill="#E8B54B" rx="2"/><rect x="45" y="78" width="52" height="20" fill="#B8CBE8" rx="2"/>
+      <!-- w28 -->
+      <rect x="137" y="140" width="52" height="20" fill="#E8B54B" rx="2"/><rect x="137" y="100" width="52" height="38" fill="#B8CBE8" rx="2"/>
+      <!-- w29 -->
+      <rect x="229" y="140" width="52" height="20" fill="#C0392B" rx="2"/><rect x="229" y="118" width="52" height="20" fill="#E8B54B" rx="2"/><rect x="229" y="96" width="52" height="20" fill="#B8CBE8" rx="2"/>
+      <!-- w30 -->
+      <rect x="321" y="120" width="52" height="40" fill="#C0392B" rx="2"/><rect x="321" y="98" width="52" height="20" fill="#E8B54B" rx="2"/><rect x="321" y="56" width="52" height="40" fill="#B8CBE8" rx="2"/>
+      <!-- w31 -->
+      <rect x="413" y="100" width="52" height="60" fill="#C0392B" rx="2"/><rect x="413" y="58" width="52" height="40" fill="#E8B54B" rx="2"/><rect x="413" y="36" width="52" height="20" fill="#B8CBE8" rx="2"/>
+      <!-- w32 -->
+      <rect x="505" y="80" width="52" height="80" fill="#C0392B" rx="2"/><rect x="505" y="58" width="52" height="20" fill="#E8B54B" rx="2"/><rect x="505" y="16" width="52" height="40" fill="#B8CBE8" rx="2"/>
+      <text x="58" y="178">w27</text><text x="150" y="178">w28</text><text x="242" y="178">w29</text><text x="334" y="178">w30</text><text x="426" y="178">w31</text><text x="518" y="178">w32</text>
+    </svg>
+    <div class="legenda">
+      <span><i style="background:#C0392B"></i> time-out</span>
+      <span><i style="background:#E8B54B"></i> API-fout (429/529)</span>
+      <span><i style="background:#B8CBE8"></i> overig (malformed, export, database)</span>
+    </div>
+  </div>
+  <div class="paneel">
+    <div class="paneel-kop"><h3>Foutenlog</h3><span class="meta">elke fout heeft een correlatie-ID dat ook in supporttickets en logs terugkomt</span></div>
+    <table>
+      <thead><tr><th>Tijdstip</th><th>Type</th><th>Organisatie</th><th>Omschrijving</th><th>Correlatie-ID</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr class="klikbaar"><td class="mono">05-08 09:41</td><td><span class="tag kritiek">Time-out</span></td><td>Zorgzaam Scheiden Oost</td><td>Screening afgebroken na 300 s — convenant 52 p., 194 k tokens</td><td class="mono">scr_9f2ka</td><td><span class="tag waarschuwing">In onderzoek</span></td></tr>
+        <tr class="klikbaar"><td class="mono">04-08 16:12</td><td><span class="tag kritiek">API-fout</span></td><td>Mediation Twente</td><td>529 overloaded van Messages API — 2× retry, daarna geslaagd</td><td class="mono">scr_8x1pq</td><td><span class="tag ok">Opgelost</span></td></tr>
+        <tr class="klikbaar"><td class="mono">04-08 11:03</td><td><span class="tag waarschuwing">Malformed</span></td><td>De Verbinding</td><td>Bevinding zonder verplicht veld `citaat` — tool-schema afgedwongen? </td><td class="mono">scr_7rr2m</td><td><span class="tag kritiek">Open</span></td></tr>
+        <tr class="klikbaar"><td class="mono">03-08 14:55</td><td><span class="tag waarschuwing">Exportfout</span></td><td>Zorgzaam Scheiden Oost</td><td>RTF-export mislukt bij bevinding met tabel in citaat</td><td class="mono">exp_3nd8w</td><td><span class="tag kritiek">Open</span></td></tr>
+        <tr class="klikbaar"><td class="mono">02-08 10:22</td><td><span class="tag info">Database</span></td><td>—</td><td>pgvector-query traag (2,1 s) na ingest wetteksten — index herbouwd</td><td class="mono">rag_1kd0s</td><td><span class="tag ok">Opgelost</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="twee-kolom">
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Fouten per type</h3><span class="meta">30 dagen · trend t.o.v. vorige periode</span></div>
+      <table>
+        <tbody>
+          <tr><td>Time-out</td><td class="num">11</td><td><div class="balkje err"><i style="width:70%"></i></div></td><td class="num" style="color:var(--kritiek)">▲ 267%</td></tr>
+          <tr><td>API-fout (429/529)</td><td class="num">6</td><td><div class="balkje warn"><i style="width:38%"></i></div></td><td class="num" style="color:var(--muted)">—</td></tr>
+          <tr><td>Malformed response</td><td class="num">2</td><td><div class="balkje ok"><i style="width:13%"></i></div></td><td class="num" style="color:var(--ok)">▼ 71%</td></tr>
+          <tr><td>Exportfout</td><td class="num">3</td><td><div class="balkje ok"><i style="width:19%"></i></div></td><td class="num" style="color:var(--muted)">—</td></tr>
+          <tr><td>Databasefout</td><td class="num">1</td><td><div class="balkje ok"><i style="width:6%"></i></div></td><td class="num" style="color:var(--ok)">▼</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="paneel">
+      <div class="paneel-kop"><h3>Detectieregels</h3><span class="meta">wanneer wordt een signalering aangemaakt?</span></div>
+      <table>
+        <tbody>
+          <tr><td>Zelfde fouttype ≥ 5× in 7 dagen</td><td><span class="tag ok">Actief</span></td></tr>
+          <tr><td>Foutratio 24 u &gt; 2%</td><td><span class="tag ok">Actief</span></td></tr>
+          <tr><td>p95 screening &gt; 120 s (voortschrijdend)</td><td><span class="tag ok">Actief</span></td></tr>
+          <tr><td>Zelfde assistent-onderwerp ≥ 10× in 14 dagen</td><td><span class="tag ok">Actief</span></td></tr>
+          <tr><td>"Onterecht"-feedback per categorie &gt; 10%</td><td><span class="tag ok">Actief</span></td></tr>
+          <tr><td>Organisatie 21 dagen inactief</td><td><span class="tag ok">Actief</span></td></tr>
+        </tbody>
+      </table>
+      <div class="detail">Signaleringen verschijnen op het Overzicht en (later) per e-mail. Drempels zijn instelbaar.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SUPPORT & ESCALATIES ═══════════ -->
+<section class="sectie" id="support">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Open tickets</div><div class="val">5</div><div class="delta flat">waarvan 1 escalatie</div></div>
+    <div class="kpi"><div class="lbl">Gem. eerste reactie</div><div class="val">3,1 u</div><div class="delta up">▼ doel &lt; 4 u</div></div>
+    <div class="kpi"><div class="lbl">Gem. doorlooptijd</div><div class="val">1,4 d</div><div class="delta up">▼ 0,3 d</div></div>
+    <div class="kpi"><div class="lbl">Opgelost (30 d)</div><div class="val">17</div><div class="delta flat">—</div></div>
+  </div>
+  <div class="paneel" style="margin-top:14px">
+    <div class="paneel-kop"><h3>Tickets</h3><span class="meta">gekoppeld aan foutenlog via correlatie-ID</span></div>
+    <table>
+      <thead><tr><th>#</th><th>Organisatie</th><th>Onderwerp</th><th>Categorie</th><th>Correlatie-ID</th><th>Prioriteit</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr class="klikbaar"><td class="mono">T-118</td><td>Zorgzaam Scheiden Oost</td><td>Screening blijft hangen bij groot convenant</td><td><span class="tag neutraal">Techniek</span></td><td class="mono">scr_9f2ka</td><td><span class="tag kritiek">Escalatie</span></td><td><span class="tag waarschuwing">In behandeling</span></td></tr>
+        <tr class="klikbaar"><td class="mono">T-117</td><td>De Verbinding</td><td>RTF opent verkeerd in Word 2016</td><td><span class="tag neutraal">Export</span></td><td class="mono">exp_3nd8w</td><td><span class="tag waarschuwing">Hoog</span></td><td><span class="tag waarschuwing">In behandeling</span></td></tr>
+        <tr class="klikbaar"><td class="mono">T-116</td><td>Mediation Twente</td><td>Vraag over Balans-bevinding "boeteclausule"</td><td><span class="tag neutraal">Inhoudelijk</span></td><td class="mono">—</td><td><span class="tag info">Normaal</span></td><td><span class="tag info">Wacht op klant</span></td></tr>
+        <tr class="klikbaar"><td class="mono">T-115</td><td>Mediationhuis Vlaanderen</td><td>MfN-normtoets relevant voor Belgische dossiers?</td><td><span class="tag neutraal">Inhoudelijk</span></td><td class="mono">—</td><td><span class="tag info">Normaal</span></td><td><span class="tag waarschuwing">Open</span></td></tr>
+        <tr class="klikbaar"><td class="mono">T-114</td><td>Praktijk Van Dalen</td><td>Factuurvraag jaarlicentie</td><td><span class="tag neutraal">Facturatie</span></td><td class="mono">—</td><td><span class="tag info">Normaal</span></td><td><span class="tag ok">Opgelost</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="paneel">
+    <div class="paneel-kop"><h3>Escalatiedossier T-118</h3><span class="meta">voorbeeld van de terugvindbare keten</span></div>
+    <div class="detail">
+      <b>Keten:</b> <span class="mono">T-118 (ticket) → scr_9f2ka (fout) → screening #4 812 → org Zorgzaam Scheiden Oost → gebruiker M. Lenders</span><br><br>
+      04-08 16:40 · Klant meldt vastlopende screening (52 p.)<br>
+      04-08 16:55 · Gekoppeld aan foutenlog <span class="mono">scr_9f2ka</span>: time-out na 300 s<br>
+      05-08 09:12 · Patroon herkend: 9e time-out &gt; 45 p. deze week → signalering aangemaakt<br>
+      05-08 09:41 · Reproductie gelukt; oorzaak: één screening-call met volledige documentcontext<br>
+      <b>Volgende stap:</b> chunking per categorie testen — verwacht in release van vrijdag
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ ASSISTENT-VRAGEN ═══════════ -->
+<section class="sectie" id="assistent">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Vragen (30 d)</div><div class="val">122</div><div class="delta up">▲ 22%</div></div>
+    <div class="kpi"><div class="lbl">Beantwoord zonder support</div><div class="val">87%</div><div class="delta up">▲ 4 pt</div></div>
+    <div class="kpi"><div class="lbl">Doorverwezen naar support</div><div class="val">16</div><div class="delta flat">—</div></div>
+    <div class="kpi"><div class="lbl">Negatieve feedback op antwoord</div><div class="val">7</div><div class="delta down">▲ 3</div></div>
+  </div>
+  <div class="paneel" style="margin-top:14px">
+    <div class="paneel-kop"><h3>Onderwerpen (automatisch geclusterd)</h3><span class="meta">wat begrijpen gebruikers niet uit zichzelf?</span></div>
+    <table>
+      <thead><tr><th>Onderwerp</th><th class="num">Aantal</th><th>Trend</th><th>Actiekandidaat</th></tr></thead>
+      <tbody>
+        <tr class="klikbaar"><td>RTF-export opent verkeerd / opmaak in Word</td><td class="num">14</td><td><span class="tag kritiek">▲ stijgend</span></td><td><span class="tag waarschuwing">FAQ + fix export</span></td></tr>
+        <tr class="klikbaar"><td>Verschil severity "kritiek" vs. "waarschuwing"</td><td class="num">11</td><td><span class="tag neutraal">stabiel</span></td><td><span class="tag info">Uitleg in UI-tooltip</span></td></tr>
+        <tr class="klikbaar"><td>Kan ik één categorie opnieuw screenen?</td><td class="num">9</td><td><span class="tag kritiek">▲ stijgend</span></td><td><span class="tag waarschuwing">Featureverzoek</span></td></tr>
+        <tr class="klikbaar"><td>Hoe werkt de MfN-normtoets bij Belgische dossiers?</td><td class="num">7</td><td><span class="tag kritiek">▲ nieuw</span></td><td><span class="tag info">Doc + Vlaanderen-variant</span></td></tr>
+        <tr class="klikbaar"><td>Worden documenten opgeslagen? (AVG)</td><td class="num">6</td><td><span class="tag neutraal">stabiel</span></td><td><span class="tag ok">FAQ bestaat — linken</span></td></tr>
+      </tbody>
+    </table>
+    <div class="detail">Klik op een onderwerp voor de letterlijke (geanonimiseerde) vragen en gegeven antwoorden — nuttig om te toetsen of de assistent correct antwoordt.</div>
+  </div>
+</section>
+
+<!-- ═══════════ SCREENINGKWALITEIT ═══════════ -->
+<section class="sectie" id="kwaliteit">
+  <p class="subtekst">Feedback van mediators per bevinding ("nuttig" / "onterecht") vertaald naar verbeterpunten per screeningcategorie. Doel: onterecht-ratio &lt; 5% per categorie.</p>
+  <div class="cat-grid">
+    <div class="cat-kaart">
+      <h4>Juridisch <span class="tag ok">3,1% onterecht</span></h4>
+      <div class="stats"><div><b>612</b>bevindingen</div><div><b>41%</b>met feedback</div><div><b>▼</b>trend</div></div>
+      <ul>
+        <li><b>Sterk:</b> nihilbeding-detectie wordt vrijwel altijd als nuttig beoordeeld.</li>
+        <li><b>Verbeterpunt:</b> 4 meldingen over verouderde verwijzing na Wet VPS-wijziging — wettekst-ingest actualiseren.</li>
+      </ul>
+    </div>
+    <div class="cat-kaart">
+      <h4>Conflicten <span class="tag ok">4,2% onterecht</span></h4>
+      <div class="stats"><div><b>488</b>bevindingen</div><div><b>36%</b>met feedback</div><div><b>—</b>trend</div></div>
+      <ul>
+        <li><b>Verbeterpunt:</b> bewust open intentie-afspraken in ouderschapsplannen worden soms toch gemeld — uitzonderingsregel aanscherpen.</li>
+      </ul>
+    </div>
+    <div class="cat-kaart">
+      <h4>Volledigheid <span class="tag waarschuwing">7,8% onterecht</span></h4>
+      <div class="stats"><div><b>701</b>bevindingen</div><div><b>44%</b>met feedback</div><div><b>▲</b>trend</div></div>
+      <ul>
+        <li><b>Verbeterpunt:</b> pensioenparagraaf gemeld terwijl niet van toepassing (geen dienstverband) — situatiedetectie verbeteren.</li>
+        <li><b>Verbeterpunt:</b> indexeringsclausule dubbel gemeld bij convenant + ouderschapsplan in één dossier.</li>
+      </ul>
+    </div>
+    <div class="cat-kaart">
+      <h4>Balans <span class="tag kritiek">11,0% onterecht</span></h4>
+      <div class="stats"><div><b>236</b>bevindingen</div><div><b>52%</b>met feedback</div><div><b>▲▲</b>trend</div></div>
+      <ul>
+        <li><b>Verbeterpunt:</b> asymmetrische boeteclausules te vaak als waarschuwing i.p.v. info — severity-criteria herzien.</li>
+        <li><b>Verbeterpunt:</b> gemotiveerde afwijkingen ("partijen zijn zich bewust…") worden niet altijd herkend als motivering.</li>
+      </ul>
+    </div>
+    <div class="cat-kaart">
+      <h4>Grammatica <span class="tag ok">2,4% onterecht</span></h4>
+      <div class="stats"><div><b>1 043</b>bevindingen</div><div><b>18%</b>met feedback</div><div><b>—</b>trend</div></div>
+      <ul>
+        <li><b>Verbeterpunt:</b> losse typfouten niet altijd gebundeld in één bevinding — bundelregel controleren.</li>
+      </ul>
+    </div>
+    <div class="cat-kaart">
+      <h4>MfN-normtoets <span class="tag ok">3,9% onterecht</span></h4>
+      <div class="stats"><div><b>187</b>bevindingen</div><div><b>47%</b>met feedback</div><div><b>—</b>trend</div></div>
+      <ul>
+        <li><b>Aandacht:</b> Belgische dossiers geven geen zinvolle normtoets — beslispunt voor Vlaanderen-expansie.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="paneel grafiek" style="margin-top:14px">
+    <div class="paneel-kop"><h3>Trend "onterecht"-feedback per categorie</h3><span class="meta">percentage van bevindingen met feedback dat als onterecht is beoordeeld · doel &lt; 5%</span></div>
+    <svg viewBox="0 0 620 190" role="img" aria-label="Lijngrafiek onterecht-ratio per maand">
+      <line x1="40" y1="160" x2="590" y2="160" class="aslijn"/>
+      <line x1="40" y1="100" x2="590" y2="100" class="aslijn"/>
+      <line x1="40" y1="40" x2="590" y2="40" class="aslijn"/>
+      <text x="14" y="164">0%</text><text x="14" y="104">5%</text><text x="8" y="44">10%</text>
+      <line x1="40" y1="100" x2="590" y2="100" class="doellijn"/>
+      <polyline points="70,100 230,88 390,52 550,28" stroke="#C0392B"/>
+      <polyline points="70,88 230,82 390,76 550,66" stroke="#B9770E"/>
+      <polyline points="70,118 230,119 390,120 550,119" stroke="#2E5EAA"/>
+      <circle cx="550" cy="28" r="4" fill="#C0392B"/>
+      <text x="70" y="180">mei</text><text x="230" y="180">juni</text><text x="390" y="180">juli</text><text x="550" y="180">aug</text>
+    </svg>
+    <div class="legenda">
+      <span><i style="background:#C0392B"></i> Balans — 5% → 11%, breekt door het doel sinds juli</span>
+      <span><i style="background:#B9770E"></i> Volledigheid — langzaam stijgend</span>
+      <span><i style="background:#2E5EAA"></i> overige vier categorieën (gemiddeld) — stabiel</span>
+    </div>
+  </div>
+  <div class="paneel" style="margin-top:14px">
+    <div class="paneel-kop"><h3>Bevindingen naar ernst per categorie</h3><span class="meta">30 dagen · verhoudingen horen bij het karakter van de categorie</span></div>
+    <table>
+      <thead><tr><th>Categorie</th><th class="num">Totaal</th><th>Verdeling</th><th class="num">Kritiek</th><th class="num">Waarschuwing</th><th class="num">Info</th></tr></thead>
+      <tbody>
+        <tr><td>Juridisch</td><td class="num">118</td><td><div class="stapel"><i class="s-k" style="width:26%"></i><i class="s-w" style="width:54%"></i><i class="s-i" style="width:20%"></i></div></td><td class="num">31</td><td class="num">64</td><td class="num">23</td></tr>
+        <tr><td>Conflicten</td><td class="num">96</td><td><div class="stapel"><i class="s-k" style="width:9%"></i><i class="s-w" style="width:64%"></i><i class="s-i" style="width:27%"></i></div></td><td class="num">9</td><td class="num">61</td><td class="num">26</td></tr>
+        <tr><td>Volledigheid</td><td class="num">141</td><td><div class="stapel"><i class="s-k" style="width:16%"></i><i class="s-w" style="width:59%"></i><i class="s-i" style="width:25%"></i></div></td><td class="num">22</td><td class="num">83</td><td class="num">36</td></tr>
+        <tr><td>Balans</td><td class="num">74</td><td><div class="stapel"><i class="s-k" style="width:5%"></i><i class="s-w" style="width:70%"></i><i class="s-i" style="width:25%"></i></div></td><td class="num">4</td><td class="num" style="color:var(--kritiek)"><b>52</b></td><td class="num">18</td></tr>
+        <tr><td>Grammatica</td><td class="num">197</td><td><div class="stapel"><i class="s-k" style="width:1%"></i><i class="s-w" style="width:21%"></i><i class="s-i" style="width:78%"></i></div></td><td class="num">2</td><td class="num">41</td><td class="num">154</td></tr>
+        <tr><td>MfN-normtoets</td><td class="num">38</td><td><div class="stapel"><i class="s-k" style="width:29%"></i><i class="s-w" style="width:50%"></i><i class="s-i" style="width:21%"></i></div></td><td class="num">11</td><td class="num">19</td><td class="num">8</td></tr>
+      </tbody>
+    </table>
+    <div class="legenda">
+      <span><i style="background:var(--kritiek)"></i> kritiek — mediator móet handelen</span>
+      <span><i style="background:#E8B54B"></i> waarschuwing — mediator behoort te beoordelen</span>
+      <span><i style="background:#B8CBE8"></i> info — mediator kan negeren</span>
+    </div>
+    <div class="detail">Elke categorie heeft een verwacht ernstprofiel: Grammatica hoort info-zwaar te zijn, Juridisch kritiek-zwaarder. Afwijkingen van dat profiel zijn een signaal — Balans zit nu op 70% waarschuwing terwijl balansbevindingen per definitie signalerend zijn; dat past bij de te strenge severity-logica hierboven.</div>
+  </div>
+  <div class="paneel" style="margin-top:14px">
+    <div class="paneel-kop"><h3>Bevindingen per screening (gemiddeld)</h3><span class="meta">stabiliteit van de screening-output over tijd — plotselinge sprongen duiden op prompt- of modelwijziging</span></div>
+    <table>
+      <thead><tr><th>Categorie</th><th class="num">mei</th><th class="num">juni</th><th class="num">juli</th><th class="num">aug (t/m nu)</th></tr></thead>
+      <tbody>
+        <tr><td>Juridisch</td><td class="num">1,6</td><td class="num">1,5</td><td class="num">1,5</td><td class="num">1,6</td></tr>
+        <tr><td>Conflicten</td><td class="num">1,2</td><td class="num">1,3</td><td class="num">1,2</td><td class="num">1,2</td></tr>
+        <tr><td>Volledigheid</td><td class="num">1,7</td><td class="num">1,8</td><td class="num">1,7</td><td class="num">1,9</td></tr>
+        <tr><td>Balans</td><td class="num">0,5</td><td class="num">0,6</td><td class="num"><b style="color:var(--kritiek)">0,9</b></td><td class="num"><b style="color:var(--kritiek)">1,0</b></td></tr>
+        <tr><td>Grammatica</td><td class="num">2,6</td><td class="num">2,5</td><td class="num">2,6</td><td class="num">2,5</td></tr>
+        <tr><td>MfN-normtoets</td><td class="num">0,4</td><td class="num">0,5</td><td class="num">0,4</td><td class="num">0,5</td></tr>
+      </tbody>
+    </table>
+    <div class="detail">Balans springt vanaf juli van 0,5–0,6 naar 0,9–1,0 bevinding per screening. Dat valt samen met de gestegen onterecht-feedback: waarschijnlijk is de categorie sinds een promptwijziging te streng. Dit is het soort verband dat deze pagina zichtbaar moet maken.</div>
+  </div>
+</section>
+
+  </div><!-- /content -->
+  <footer>Mockup met voorbeelddata · Clausula Beheer v0.1 · alleen zichtbaar voor rol <span class="mono">admin</span> (Supabase RLS)</footer>
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+const knoppen=document.querySelectorAll('[data-sectie]');
+const titels={overzicht:'Overzicht',gebruik:'Gebruik & klanten',performance:'Performance',fouten:'Fouten & signalering',support:'Support & escalaties',assistent:'Assistent-vragen',kwaliteit:'Screeningkwaliteit'};
+function ga(naam){
+  document.querySelectorAll('.sectie').forEach(s=>s.classList.toggle('active',s.id===naam));
+  knoppen.forEach(k=>k.classList.toggle('active',k.dataset.sectie===naam));
+  document.getElementById('sectie-titel').textContent=titels[naam];
+  window.scrollTo({top:0});
+}
+knoppen.forEach(k=>k.addEventListener('click',()=>ga(k.dataset.sectie)));
+document.querySelectorAll('[data-ga]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();ga(b.dataset.ga)}));
+document.querySelectorAll('.periode button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.periode button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+}));
+</script>
+</body>
+</html>
