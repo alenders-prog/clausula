@@ -2,17 +2,65 @@
   "_meta": {
     "doc_type": "convenant",
     "beschrijving": "Convenant met ontbrekende kinderalimentatie en incompleet pensioenbeding",
-    "bekende_fouten": ["kinderalimentatie ontbreekt volledig", "pensioenverevening niet conform WVPS"]
+    "bekende_fouten": [
+      "kinderalimentatie ontbreekt volledig",
+      "pensioenverevening niet conform WVPS"
+    ],
+    "situatie_kenmerken": [
+      "huwelijk",
+      "huwelijk_voor_2018",
+      "gemeenschap_van_goederen",
+      "kinderen_minderjarig",
+      "eigen_woning",
+      "partneralimentatie"
+    ]
   },
   "tekst": "ECHTSCHEIDINGSCONVENANT\n\nPartijen:\nMan: Alexander Johannes Schreven, geboren 12-03-1978\nVrouw: Ingeborg van Zand, geboren 04-07-1981\nGehuwd op: 15-06-2005 te Amsterdam\nMinderjarige kinderen: Maartje Schreven (geb. 2010), Pascal Schreven (geb. 2013)\n\nARTIKEL 1 — ECHTELIJKE WONING\nDe echtelijke woning aan de Bergstraat 12 te Utrecht wordt verkocht. De overwaarde wordt bij helfte gedeeld na aftrek van de hypotheek en verkoopkosten.\n\nARTIKEL 2 — PARTNERALIMENTATIE\nDe man betaalt aan de vrouw een bedrag van € 1.250,- per maand als partneralimentatie, te indexeren conform het CBS-indexcijfer per 1 januari van elk jaar.\n\nARTIKEL 3 — PENSIOEN\nPartijen verklaren het pensioen te verdelen. De man draagt de helft van zijn tijdens het huwelijk opgebouwde pensioen over aan de vrouw. Uitvoering geschiedt via de pensioenuitvoerder.\n\nARTIKEL 4 — BANKREKENINGEN\nElke partij behoudt de eigen bankrekeningen. De gezamenlijke rekening wordt opgeheven na verrekening van openstaande posten.\n\nARTIKEL 5 — BELASTINGEN\nPartijen zijn fiscaal partner tot de datum van inschrijving van de echtscheiding in de registers van de burgerlijke stand.\n\nPartijen verklaren geen verdere aanspraken op elkaar te hebben.",
   "verwachte_issues": {
     "moeten_gevonden_worden": [
-      { "categorie": "volledigheid", "sleutelwoord": "kinderalimentatie" },
-      { "categorie": "juridisch",    "sleutelwoord": "pensioen" }
+      {
+        "categorie": [
+          "volledigheid",
+          "juridisch"
+        ],
+        "sleutelwoorden": [
+          "kinderalimentatie",
+          "kinderbijdrage",
+          "bijdrage in de kosten van de kinderen",
+          "onderhoudsbijdrage"
+        ],
+        "toelichting": "kinderalimentatie ontbreekt volledig"
+      },
+      {
+        "categorie": "juridisch",
+        "sleutelwoorden": [
+          "wvps",
+          "pensioenverevening",
+          "verevening",
+          "pensioen"
+        ],
+        "toelichting": "pensioenregeling niet conform WVPS"
+      }
     ],
     "mogen_NIET_gevonden_worden": [
-      { "categorie": "volledigheid", "sleutelwoord": "partneralimentatie" },
-      { "categorie": "volledigheid", "sleutelwoord": "echtelijke woning" }
+      {
+        "categorie": "volledigheid",
+        "sleutelwoorden": [
+          "partneralimentatie ontbreekt",
+          "geen partneralimentatie overeengekomen",
+          "partneralimentatie is niet geregeld"
+        ],
+        "toelichting": "partneralimentatie staat in artikel 2"
+      },
+      {
+        "categorie": "volledigheid",
+        "sleutelwoorden": [
+          "woning ontbreekt",
+          "geen regeling voor de echtelijke woning",
+          "echtelijke woning is niet geregeld"
+        ],
+        "toelichting": "de woning staat in artikel 1"
+      }
     ]
   }
 }

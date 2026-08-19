@@ -1,0 +1,188 @@
+{
+  "_herkomst": "echte screening via app.clausula.nl, 19-08-2026, fixture ouderschapsplan-onvolledig",
+  "issues": [
+    {
+      "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
+      "ernst": "hoog",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het document bevat geen enkele regeling voor feestdagen (Kerst, Oud & Nieuw, Pasen, Pinksteren, Hemelvaartsdag, Sinterklaas, Koningsdag) of bijzondere dagen (Moederdag, Vaderdag). Dit is een verplicht MfN-element en essentieel voor de uitvoerbaarheid van het plan.",
+      "aanbeveling": "Voeg een artikel toe met een concrete verdeling van alle feestdagen, bij voorkeur met een alternerend schema voor oneven/even jaren voor Kerst en Oud & Nieuw.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Informatie- en consultatieverplichting ontbreekt",
+      "ernst": "hoog",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen bepaling over de verplichting van ouders om elkaar te informeren en te consulteren over belangrijke aangelegenheden betreffende de kinderen (art. 1:377b BW). Dit is een verplicht MfN-element.",
+      "aanbeveling": "Voeg een artikel toe over de informatie- en consultatieverplichting, inclusief de wijze van communicatie (bijv. via e-mail of een gezamenlijk ouderportaal) en de onderwerpen waarover overleg plaatsvindt.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
+      "ernst": "hoog",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Artikel 5 regelt slechts dat partijen 'in overleg treden' bij ingrijpende wijziging van omstandigheden, maar bevat geen geschillenregeling of mediationclausule als bedoeld in art. 1:253a BW. Er is geen procedure voor het geval overleg mislukt.",
+      "aanbeveling": "Voeg een artikel toe met een expliciete geschillenregeling, inclusief een mediationclausule die bepaalt dat partijen bij onenigheid eerst mediation inschakelen alvorens de rechter te benaderen.",
+      "passage": "Bij ingrijpende wijziging van omstandigheden treden partijen in overleg over aanpassing van dit plan."
+    },
+    {
+      "onderwerp": "School- en opleidingsbeslissingen niet geregeld",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen bepaling over hoe beslissingen omtrent school en opleiding van de kinderen worden genomen en wie daarin het voortouw heeft. Dit is een verplicht MfN-element.",
+      "aanbeveling": "Voeg een artikel toe over school- en opleidingsbeslissingen, met afspraken over wie welke beslissingen neemt, hoe overleg plaatsvindt en hoe een impasse wordt doorbroken.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen bepaling over medische beslissingen, reguliere zorgbeslissingen of spoedeisende situaties. Dit is een verplicht MfN-element.",
+      "aanbeveling": "Voeg een artikel toe over medische en zorgbeslissingen, inclusief wie toestemming geeft voor medische behandelingen, hoe spoedeisende beslissingen worden genomen en hoe ouders elkaar informeren.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Omgangsregeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen bepaling over wat er gebeurt als een kind of ouder ziek is tijdens een omgangsmoment, en of er een inhaalregeling geldt. Dit is een verplicht MfN-element.",
+      "aanbeveling": "Voeg een artikel toe dat regelt hoe wordt omgegaan met ziekte van een kind of ouder, en of gemiste omgangsmomenten worden ingehaald en zo ja, op welke wijze.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Artikel 2 regelt uitsluitend de zomervakantie (eerste helft bij vader in oneven jaren). Overige schoolvakanties (herfstvakantie, kerstvakantie, voorjaarsvakantie, meivakantie) en de bijbehorende wisseltijden ontbreken volledig.",
+      "aanbeveling": "Breid de vakantieregeling uit met een concrete verdeling van alle schoolvakanties, inclusief wisseltijden en de verdeling in oneven/even jaren.",
+      "passage": "De helft van de zomervakantie: vader heeft de eerste helft in oneven jaren."
+    },
+    {
+      "onderwerp": "Draagkrachtberekening kinderalimentatie ontbreekt",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Artikel 3 vermeldt een alimentatiebedrag van € 385,- per kind per maand, maar bevat geen draagkrachtberekening conform de Tremanormen. Het netto gezinsinkomen, de behoefte van de kinderen en de verdeling naar rato van inkomen zijn niet inzichtelijk gemaakt.",
+      "aanbeveling": "Voeg een draagkrachtberekening toe conform het rapport Alimentatienormen, met vermelding van het netto inkomen van beide ouders, de vastgestelde behoefte van de kinderen, de zorgkorting en de verdeling van de bijdrage naar rato.",
+      "passage": "Vader betaalt € 385,- per kind per maand als kinderalimentatie, totaal € 770,- per maand, te indexeren per 1 januari conform het NVI."
+    },
+    {
+      "onderwerp": "Ingangsdatum kinderalimentatie niet vermeld",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Artikel 3 vermeldt het alimentatiebedrag en de indexering, maar noemt geen ingangsdatum. Zonder ingangsdatum is onduidelijk vanaf wanneer de betalingsverplichting geldt.",
+      "aanbeveling": "Voeg de ingangsdatum van de kinderalimentatie toe aan artikel 3.",
+      "passage": "Vader betaalt € 385,- per kind per maand als kinderalimentatie, totaal € 770,- per maand, te indexeren per 1 januari conform het NVI."
+    },
+    {
+      "onderwerp": "Wisselmomenten zorgregeling onvolledig: geen ophaal-/brengafspraak",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Artikel 2 specificeert de tijden van de weekendregeling (vrijdag 15:00 – zondag 19:00), maar vermeldt niet wie de kinderen haalt en/of brengt op de wisselmomenten.",
+      "aanbeveling": "Voeg aan de zorgregeling toe wie verantwoordelijk is voor het halen en brengen van de kinderen op de wisselmomenten.",
+      "passage": "Elke week van vrijdagmiddag 15:00 uur tot zondagavond 19:00 uur."
+    },
+    {
+      "onderwerp": "Verjaardagsregelingen (kinderen, ouders, familie) ontbreken",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen afspraken over hoe de verjaardagen van de kinderen, de ouders en overige familie worden gevierd en bij welke ouder de kinderen op die dag verblijven.",
+      "aanbeveling": "Voeg een artikel toe over verjaardagsregelingen voor de kinderen, de ouders en de overige familie.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Evaluatiemoment ouderschapsplan ontbreekt",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen afspraak over wanneer en hoe het ouderschapsplan wordt geëvalueerd. Artikel 5 regelt slechts aanpassing bij ingrijpende wijziging, maar geen periodieke evaluatie.",
+      "aanbeveling": "Voeg een artikel toe met een evaluatiemoment (bijv. jaarlijks in een vaste maand) waarop ouders het plan gezamenlijk bespreken.",
+      "passage": "Bij ingrijpende wijziging van omstandigheden treden partijen in overleg over aanpassing van dit plan."
+    },
+    {
+      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het document bevat geen ondertekeningsblok met plaats, datum en handtekeningvelden voor beide ouders. Zonder ondertekening heeft het plan geen rechtskracht als overeenkomst.",
+      "aanbeveling": "Voeg een ondertekeningsblok toe met vermelding van de plaats, datum en ruimte voor de handtekeningen van beide ouders.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Rechten van de kinderen, betrokkenheid kinderen en intenties voor het ouderschap ontbreken",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen secties over de rechten van de kinderen (bijv. vanaf welke leeftijd ouders het gesprek met het kind voeren), de mate van betrokkenheid van de kinderen bij de totstandkoming van het plan, of de intenties van ouders voor het ouderschap.",
+      "aanbeveling": "Voeg secties toe over de rechten van de kinderen, hun betrokkenheid bij het plan en de gezamenlijke intenties van ouders voor het ouderschap.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Praktische onderwerpen (social media, spaartegoed, nieuwe partner, preventie ouderverstoting) ontbreken",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het plan bevat geen afspraken over social media en foto's van de kinderen, een eventueel spaartegoed voor de kinderen, de introductie van een nieuwe partner, of preventie van ouderverstoting. Dit zijn gebruikelijke en aanbevolen onderdelen van een volledig ouderschapsplan.",
+      "aanbeveling": "Overweeg aanvullende secties op te nemen over social media, spaartegoed, nieuwe partners en preventie van ouderverstoting.",
+      "passage": ""
+    },
+    {
+      "onderwerp": "Kinderalimentatie: indexering verwijst naar NVI in plaats van wettelijk CBS-indexcijfer",
+      "ernst": "midden",
+      "dimensies": [
+        "juridisch"
+      ],
+      "artikel": "Artikel 3",
+      "passage": "Vader betaalt € 385,- per kind per maand als kinderalimentatie, totaal € 770,- per maand, te indexeren per 1 januari conform het NVI.",
+      "bevinding": "Art. 1:408 BW schrijft indexering voor conform het CBS-indexcijfer CAO-lonen particuliere bedrijven. Het document verwijst naar 'het NVI' (Nationaal Welvaartsniveau Index of vergelijkbaar), wat niet het wettelijk voorgeschreven indexcijfer is. Dit kan bij toekomstige discussies over de indexeringspercentages tot problemen leiden.",
+      "aanbeveling": "Vervang 'conform het NVI' door 'conform artikel 1:408 BW (CBS-indexcijfer CAO-lonen particuliere bedrijven)', zodat de wettelijke maatstaf van toepassing is."
+    },
+    {
+      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
+      "ernst": "midden",
+      "dimensies": [
+        "juridisch"
+      ],
+      "artikel": "Artikel 3",
+      "passage": "Vader betaalt € 385,- per kind per maand als kinderalimentatie, totaal € 770,- per maand, te indexeren per 1 januari conform het NVI.",
+      "bevinding": "Art. 1:395a BW verplicht ouders tot bijdrage in levensonderhoud en studie van jongmeerderjarigen (18–21 jaar). Het ouderschapsplan regelt de kinderalimentatie niet verder dan impliciet tot de meerderjarigheid. Er ontbreekt een bepaling over de voortgang, aanpassing of beëindiging van de bijdrage na het 18e jaar van elk kind.",
+      "aanbeveling": "Voeg aan artikel 3 toe: 'Na het bereiken van de 18-jarige leeftijd loopt de onderhoudsverplichting van rechtswege voort conform art. 1:395a BW tot het kind de leeftijd van 21 jaar heeft bereikt, tenzij partijen in onderling overleg anders overeenkomen. De hoogte van de bijdrage wordt op dat moment opnieuw vastgesteld in overleg, rekening houdend met de studiekosten en de draagkracht van beide ouders.'"
+    },
+    {
+      "onderwerp": "Zorgregeling: tweede helft zomervakantie in oneven jaren en verdeling even jaren niet geregeld",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "artikel": "Artikel 2",
+      "passage": "- De helft van de zomervakantie: vader heeft de eerste helft in oneven jaren.",
+      "bevinding": "De regeling vermeldt dat vader in oneven jaren de eerste helft van de zomervakantie heeft, maar regelt niet: (1) wie de tweede helft in oneven jaren heeft (logischerwijs moeder, maar dit staat er niet), (2) hoe de zomervakantie in even jaren wordt verdeeld, en (3) wat de exacte duur van 'de helft' is (aantal weken). Dit leidt tot onduidelijkheid en potentiële conflicten.",
+      "aanbeveling": "Vervang de huidige zin door: 'De zomervakantie wordt bij helfte verdeeld. In oneven jaren heeft vader de eerste helft (week 1 t/m [X]) en moeder de tweede helft (week [X+1] t/m einde vakantie). In even jaren is de verdeling omgekeerd. Partijen stemmen jaarlijks vóór 1 april de exacte data af.'"
+    }
+  ]
+}

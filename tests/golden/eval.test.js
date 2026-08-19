@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { readFileSync, readdirSync } from 'fs';
+import { readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -36,8 +36,16 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
         },
         // Vorm van de payload volgt api/analyseer.js: de server leest d.type en
         // d.bestandsnaam, niet d.doc_type. Stond hier tot 19-08-2026 anders.
+        // situatie_kenmerken uit de fixture meesturen. Zonder die kenmerken blijft
+        // wetsQueryTags beperkt tot het documenttype, waardoor de analyse vrijwel
+        // zonder kennisbank draait en geen echte screening reproduceert. Deze test
+        // toetst dus de ANALYSE bij een bekende classificatie — de classificatiestap
+        // zelf verdient een eigen test.
         body: JSON.stringify({
-          classificatie: { doc_type: fixture.data._meta.doc_type, situatie_kenmerken: [] },
+          classificatie: {
+            doc_type: fixture.data._meta.doc_type,
+            situatie_kenmerken: fixture.data._meta.situatie_kenmerken ?? [],
+          },
           documenten:    [{
             bestandsnaam: fixture.naam,
             type:         fixture.data._meta.doc_type,
@@ -78,25 +86,53 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
         }
       }
 
+      // Volledige uitkomst wegschrijven vóór de assertions. Zonder dit is een falende
+      // run alleen te onderzoeken door hem opnieuw te draaien — drie echte analyses,
+      // enkele minuten en ongeveer een dollar per keer.
+      try {
+        writeFileSync(
+          join(__dir, `laatste-run-${fixture.naam}`),
+          JSON.stringify({ fixture: fixture.naam, aantal: issues.length, issues }, null, 2),
+        );
+      } catch { /* schrijven mag de test niet laten vallen */ }
+
       const { moeten_gevonden_worden, mogen_NIET_gevonden_worden } = fixture.data.verwachte_issues;
+
+      // Een verwachting draagt meerdere sleutelwoorden waarvan er ÉÉN moet voorkomen.
+      // Eén letterlijk woord eisen meet woordtoeval in plaats van vondst: een rapport
+      // schrijft net zo goed "informatieplicht" waar de fixture "informatieregeling" zegt.
+      // Ook de dimensie mag een lijst zijn. Dezelfde bevinding kan verdedigbaar onder
+      // twee categorieën vallen — een volledig ontbrekende kinderalimentatie is zowel
+      // een volledigheidsgebrek als een kwestie van art. 1:404 BW. De dimensie hard
+      // vastpinnen laat de test falen op de indeling in plaats van op de vondst.
+      const raakt = (issue, verwacht) => {
+        const woorden = verwacht.sleutelwoorden ?? [verwacht.sleutelwoord];
+        const cats = Array.isArray(verwacht.categorie) ? verwacht.categorie : [verwacht.categorie];
+        const tekst = `${issue.onderwerp || ''} ${issue.bevinding || ''}`.toLowerCase();
+        return cats.some(c => (issue.dimensies || []).includes(c))
+            && woorden.some(w => tekst.includes(String(w).toLowerCase()));
+      };
+      const toon = v => (v.sleutelwoorden ?? [v.sleutelwoord]).join(' / ');
 
       // Recall: elk verwacht issue moet aanwezig zijn
       for (const verwacht of moeten_gevonden_worden) {
-        const gevonden = issues.some(i =>
-          (i.dimensies || []).includes(verwacht.categorie) &&
-          `${i.onderwerp || ''} ${i.bevinding || ''}`.toLowerCase().includes(verwacht.sleutelwoord.toLowerCase())
-        );
-        expect(gevonden, `"${verwacht.sleutelwoord}" (${verwacht.categorie}) niet gevonden in ${fixture.naam}`).toBe(true);
+        expect(
+          issues.some(i => raakt(i, verwacht)),
+          `${fixture.naam}: niets gevonden voor [${toon(verwacht)}] (${verwacht.categorie})`
+          + (verwacht.toelichting ? ` — ${verwacht.toelichting}` : ''),
+        ).toBe(true);
       }
 
-      // Precision: bekende false positives mogen NIET voorkomen
+      // Precision: bekende fout-positieven mogen NIET voorkomen
       for (const fp of mogen_NIET_gevonden_worden) {
-        const gevonden = issues.some(i =>
-          (i.dimensies || []).includes(fp.categorie) &&
-          `${i.onderwerp || ''} ${i.bevinding || ''}`.toLowerCase().includes(fp.sleutelwoord.toLowerCase())
-        );
-        expect(gevonden, `False positive "${fp.sleutelwoord}" gevonden in ${fixture.naam}`).toBe(false);
+        const treffer = issues.find(i => raakt(i, fp));
+        expect(
+          treffer,
+          `${fixture.naam}: fout-positief [${toon(fp)}] (${fp.categorie})`
+          + (fp.toelichting ? ` — ${fp.toelichting}` : '')
+          + (treffer ? `\n    gevonden issue: "${treffer.onderwerp}"` : ''),
+        ).toBeUndefined();
       }
-    }, 120_000); // 2 min timeout per fixture
+    }, 180_000); // 3 min per fixture — met kennisbank duurt een analyse langer
   }
 });
