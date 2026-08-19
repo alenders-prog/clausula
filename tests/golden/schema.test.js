@@ -26,8 +26,14 @@ const GELDIGE_DIMS  = ['juridisch', 'volledigheid', 'balans', 'grammatica', 'con
 
 function valideertIssue(issue, idx) {
   const prefix = `issues[${idx}]`;
-  expect(typeof issue.beschrijving, `${prefix}.beschrijving moet string zijn`).toBe('string');
-  expect(issue.beschrijving.length, `${prefix}.beschrijving mag niet leeg zijn`).toBeGreaterThan(0);
+  // Velden heten 'onderwerp' (kop) en 'bevinding' (onderbouwing) — zie issueItem in
+  // api/analyseer.js. Deze test controleerde tot 19-08-2026 op 'beschrijving', een
+  // veldnaam die niet meer bestaat; omdat er nooit een sample-output-fixture was,
+  // sloeg de test altijd over en viel dat niet op.
+  expect(typeof issue.onderwerp, `${prefix}.onderwerp moet string zijn`).toBe('string');
+  expect(issue.onderwerp.length, `${prefix}.onderwerp mag niet leeg zijn`).toBeGreaterThan(0);
+  expect(typeof issue.bevinding, `${prefix}.bevinding moet string zijn`).toBe('string');
+  expect(issue.bevinding.length, `${prefix}.bevinding mag niet leeg zijn`).toBeGreaterThan(0);
 
   expect(GELDIGE_ERNST, `${prefix}.ernst "${issue.ernst}" is ongeldig`).toContain(issue.ernst);
 

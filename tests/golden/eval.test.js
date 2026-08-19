@@ -34,14 +34,23 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
           'Content-Type':  'application/json',
           'Authorization': `Bearer ${process.env.TEST_JWT_TOKEN || ''}`,
         },
+        // Vorm van de payload volgt api/analyseer.js: de server leest d.type en
+        // d.bestandsnaam, niet d.doc_type. Stond hier tot 19-08-2026 anders.
         body: JSON.stringify({
-          classificatie: { doc_type: fixture.data._meta.doc_type },
-          documenten:    [{ doc_type: fixture.data._meta.doc_type, tekst: fixture.data.tekst }],
+          classificatie: { doc_type: fixture.data._meta.doc_type, situatie_kenmerken: [] },
+          documenten:    [{
+            bestandsnaam: fixture.naam,
+            type:         fixture.data._meta.doc_type,
+            tekst:        fixture.data.tekst,
+          }],
         }),
       });
 
+      expect(res.ok, `analyseer gaf ${res.status} — staat TEST_JWT_TOKEN in .env?`).toBe(true);
+
       // Analyseer SSE-stream en verzamel issues
       const issues = [];
+      let gebruiktConsolidatie = false;
       const reader = res.body.getReader();
       const dec    = new TextDecoder();
       let buf = '';
@@ -55,8 +64,15 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
           if (!lijn.startsWith('data:')) continue;
           try {
             const evt = JSON.parse(lijn.slice(5));
-            if (evt.type === 'juridisch' || evt.type === 'structuur') {
-              issues.push(...(evt.issues || []));
+            // De server verpakt de issues in `result`, niet direct op het event.
+            // 'consolidatie' is de definitieve lijst (na deduplicatie, IBAN-filter en
+            // consistentiecontrole); komt die niet, dan vallen we terug op de losse calls.
+            if (evt.type === 'consolidatie') {
+              issues.length = 0;
+              issues.push(...(evt.result?.issues || []));
+              gebruiktConsolidatie = true;
+            } else if (!gebruiktConsolidatie && ['structuur', 'juridisch', 'balans'].includes(evt.type)) {
+              issues.push(...(evt.result?.issues || []));
             }
           } catch { /* skip malformed */ }
         }
@@ -68,7 +84,7 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
       for (const verwacht of moeten_gevonden_worden) {
         const gevonden = issues.some(i =>
           (i.dimensies || []).includes(verwacht.categorie) &&
-          (i.beschrijving || '').toLowerCase().includes(verwacht.sleutelwoord.toLowerCase())
+          `${i.onderwerp || ''} ${i.bevinding || ''}`.toLowerCase().includes(verwacht.sleutelwoord.toLowerCase())
         );
         expect(gevonden, `"${verwacht.sleutelwoord}" (${verwacht.categorie}) niet gevonden in ${fixture.naam}`).toBe(true);
       }
@@ -77,7 +93,7 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
       for (const fp of mogen_NIET_gevonden_worden) {
         const gevonden = issues.some(i =>
           (i.dimensies || []).includes(fp.categorie) &&
-          (i.beschrijving || '').toLowerCase().includes(fp.sleutelwoord.toLowerCase())
+          `${i.onderwerp || ''} ${i.bevinding || ''}`.toLowerCase().includes(fp.sleutelwoord.toLowerCase())
         );
         expect(gevonden, `False positive "${fp.sleutelwoord}" gevonden in ${fixture.naam}`).toBe(false);
       }
