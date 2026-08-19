@@ -5845,7 +5845,11 @@ async function diepteAnalyse(idx) {
       kennisbankContext = '\n\n## Relevante juridische kennisbank\n' +
         chunks.slice(0, 6).map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n');
     }
-  } catch (_) { /* kennisbank niet beschikbaar, ga door zonder */ }
+  } catch (e) {
+    // Niet fataal, maar wel ingrijpend: de verificatie draait dan zonder
+    // wetsartikelen. Zonder deze melding is dat van buiten niet te zien.
+    console.warn("[stil/kennisbank] niet geladen, verificatie draait zonder wetteksten:", e.message);
+  }
   // ────────────────────────────────────────────────────────────────────────
 
   // ── Dossiercontext injecteren (zelfde formaat als api/ai-assistent.js) ───────
@@ -5952,7 +5956,8 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
     const _voorstelIdx = _raw.indexOf('\n---VOORSTEL---\n');
     if (_voorstelIdx !== -1) {
       _analyse = _raw.slice(0, _voorstelIdx).trim();
-      try { _voorstel = JSON.parse(_raw.slice(_voorstelIdx + 16).trim()); } catch {}
+      try { _voorstel = JSON.parse(_raw.slice(_voorstelIdx + 16).trim()); }
+          catch (e) { console.warn("[stil/verificatie] voorstel-JSON onleesbaar:", e.message); }
     }
     if (_raw) {
       issue.diepteResultaat = _raw;
@@ -8437,7 +8442,10 @@ function herstelAnonObj(obj, naarEcht, naarEchtVolledig = null) {
         const kernEsc = kern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const rxStr   = '\\[\\s*' + kernEsc.replace(/[_\s]+/g, '[_\\s]+') + '\\s*\\]';
         t = t.replace(new RegExp(rxStr, 'gi'), echt);
-      } catch { /* ongeldige placeholder — overslaan */ }
+      } catch (e) {
+            // Gevolg: deze naam blijft als pseudoniem op het scherm staan.
+            console.warn("[stil/namen] placeholder niet herstelbaar:", e.message);
+          }
     }
     return t;
   }
@@ -8489,7 +8497,11 @@ async function storagePadenVanScreening(id) {
   try {
     const { data: sf } = await db.storage.from('documenten').list(id);
     (sf ?? []).forEach(f => paden.add(`${id}/${f.name}`));
-  } catch { /* map bestaat niet — geen probleem */ }
+  } catch (e) {
+        // Meestal bestaat de map simpelweg niet. Maar een netwerk- of rechtenfout
+        // ziet er hetzelfde uit, en dan blijven er bestanden staan bij het opruimen.
+        console.warn(`[stil/storage] map ${id} niet opvraagbaar:`, e.message);
+      }
   return [...paden];
 }
 
@@ -8622,7 +8634,8 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
       if (gefilterd.length !== woorden.length && gefilterd.length >= 4) {
         const n2 = gefilterd.join(' ').replace(/\s{2,}/g, ' ').trim();
         const e2 = n2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, `\\s+${BULLET_PAT}\\s*`);
-        try { match = new RegExp(e2, 'i').exec(tekst); } catch { /* negeer */ }
+        try { match = new RegExp(e2, 'i').exec(tekst); }
+            catch (e) { console.warn("[stil/passage] zoekpatroon ongeldig:", e.message); }
       }
     }
     if (!match) {
@@ -8944,7 +8957,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
               treffers.push({ start: m.index, end: m.index + m[0].length, oud: m[0], nieuw });
               break;
             }
-          } catch (_) {}
+          } catch (e) { console.warn('[stil/wijziging] vervanging overgeslagen:', e.message); }
         }
       }
 
@@ -9857,7 +9870,7 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
             const escaped2    = zoekBasis2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const patroon2    = escaped2.replace(/ /g, '\\s+[●•◦▪\\-\\*>]*\\s*');
             try { match = new RegExp(patroon2, 'i').exec(documentTekst); }
-            catch { /* negeer */ }
+            catch (e) { console.warn('[stil/passage] zoekpatroon ongeldig:', e.message); }
           }
         }
 
@@ -10092,7 +10105,8 @@ async function cleanupDocxArtefacten(docxBlob) {
   }
 
   for (const p of teVerwijderen) {
-    try { body.removeChild(p); } catch (_) { /* al verwijderd of ander parent */ }
+    // Geen foutpad maar besturingsstroom: de node kan al losgekoppeld zijn.
+        try { body.removeChild(p); } catch { /* al verwijderd */ }
   }
 
   // ── Herstel doorlopende zinnen na artefact-verwijdering ──────────────────────
@@ -10137,7 +10151,7 @@ async function cleanupDocxArtefacten(docxBlob) {
         if (child.localName !== 'pPr') curr.appendChild(child.cloneNode(true));
       });
       // Verwijder next; parentNode-check zorgt dat volgende iteratie dit overslaat
-      try { body.removeChild(next); } catch (_) {}
+      try { body.removeChild(next); } catch { /* al verwijderd — zie hierboven */ }
       console.log(`[cleanup] zinvervolg samengevoegd: "${currTekst.slice(-30)}…"`);
     }
   }
@@ -12630,7 +12644,10 @@ async function _assistLaadDossiers() {
       sel.innerHTML = '<option value="">— kies dossier —</option>' +
         data.map(d => `<option value="${escH(d.id)}">${escH(d.naam)}</option>`).join('');
     }
-  } catch { /* stil falen */ }
+  } catch (e) {
+        // Gevolg: de dossierkeuze blijft leeg zonder dat de gebruiker weet waarom.
+        console.warn("[stil/dossierlijst] laden mislukt:", e.message);
+      }
 }
 
 function _assistLinkJa() {
@@ -12833,7 +12850,10 @@ async function _assistKoppelDossier(id, naam) {
         app.classificatie = data.classificatie;
         app.rapport       = data.rapport;
       }
-    } catch (_) { /* ga door zonder — context blijft placeholder */ }
+    } catch (e) {
+          // De assistent werkt dan met placeholders in plaats van echte dossierdata.
+          console.warn("[stil/assistent] dossiercontext niet geladen:", e.message);
+        }
   }
 
   _assist.dossierContext = _assistBouwDossierContext(id);
@@ -13425,7 +13445,7 @@ function _assistKopieerTekst(tekst, btn, origLabel) {
     btn.classList.add('gekopieerd');
     btn.innerHTML = `${_CHECK_ICO} Gekopieerd`;
     setTimeout(() => { btn.classList.remove('gekopieerd'); btn.innerHTML = origLabel; }, 2000);
-  }).catch(() => {});
+  }).catch(e => console.warn("[stil/klembord] kopieren mislukt:", e.message));
 }
 
 // Copy-knop handler — volledige bubble (voor enkelvoudige berichten)

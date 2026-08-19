@@ -91,6 +91,27 @@ met `legal_chunk`, `wettekst` of `kennisbank` in de naam. Wijzigingen die je
 rechtstreeks in het dashboard doet laten geen bestand achter, dus die vangt de hook
 niet — daarvoor geldt de regel hierboven.
 
+## Nieuwe logica gaat naar `src/`
+
+`index.html` telt bijna 15.000 regels en 286 functies. Het refactorplan in
+`docs/REFACTOR-PLAN-clausula.md` ging uit van 13.000 — het bestand groeide dus
+tijdens de refactor. Daarom een harde regel in plaats van een voornemen:
+
+**Nieuwe logica met een eigen redenering — een berekening, een validatie, een
+transformatie — komt in `src/` te staan, met een unittest.** UI-bedrading en
+DOM-opbouw mogen in `index.html` blijven.
+
+De reden is toetsbaarheid, niet netheid: alles wat in `src/` staat heeft tests,
+niets van de 286 functies in `index.html` heeft die. Dat is geen toeval — het is
+de enige manier waarop die code bereikbaar wordt voor een test.
+
+`tests/unit/omvang.test.js` bewaakt dit met een bovengrens op het aantal regels.
+Die grens mag **alleen omlaag**. Loopt hij vol, verplaats dan eerst iets; verhoog
+je hem toch, dan staat dat in de diff en is het een besluit.
+
+Aansluiten gaat via de bestaande ESM-brug onderaan `index.html` (`<script
+type="module">`), zonder build-stap.
+
 ## Skills bijhouden
 
 Skills in `.claude/skills/` leggen non-obvieuze kennis vast die niet direct uit de code
