@@ -15,6 +15,17 @@
   --sage:#2A7260; --amber:#B27820; --terra:#A83838;
   --blue:#4A90D9;
   --nav-bg:#1B3050; --nav-border:#243F68;
+  /* --accent werd op negen plekken gebruikt maar was nergens gedefinieerd. Gevolg:
+     ongeldige declaraties, dus witte tekst op een niet-getekende achtergrond — de
+     knop "Wijzigingen toepassen" was daardoor onzichtbaar. De bedoelde kleur is af
+     te leiden uit de fallback van --accent-faint (#e8f0ff) en de twaalf
+     rgba(30,58,95,…)-waarden elders in dit bestand. */
+  --accent:#1E3A5F; --accent-faint:#E8F0FF;
+  /* Idem voor deze twee, beide zonder fallback in gebruik: --muted staat onder de
+     kleine labels in het assistentpaneel (die kregen nu de volle inktkleur) en
+     --bg-soft is de achtergrond van de telbadge op de dimensietabs (die bleef
+     ongetekend). Aliassen van bestaande tokens, geen nieuwe kleuren. */
+  --muted:var(--ink-soft); --bg-soft:var(--bg);
   --brass:#BFA05B; --seal-bg:rgba(191,160,91,.08);
   --status-ok:#2A7260; --status-aandacht:#E07200; --status-risico:#C82020;
   --action-light:#FDF1EB; --action-border:#E8C4AE;
