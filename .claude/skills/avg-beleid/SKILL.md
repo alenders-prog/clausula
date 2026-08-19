@@ -23,6 +23,57 @@ description: AVG/GDPR-architectuur en design-beslissingen in Clausula. Gebruik b
 > dan is het verwijderen van die ene aanroep genoeg — de rest valt automatisch
 > terug op pseudoniemen.
 
+## De classificatiestap — waarom de kaart uit de wizard komt
+
+Er zijn twee Claude-aanroepen: **classificatie** (Haiku, documenttype + situatiekenmerken
++ datums) en **analyse**. De kaart werd vroeger opgebouwd uít het antwoord van de
+classificatie, dus die eerste aanroep kreeg noodzakelijkerwijs **ruwe tekst** — de eerste
+3.000 tekens per document, of 6.000 bij één document. Precies het personaliablok.
+
+Sinds 19 augustus 2026 komt de kaart uit de wizard-invoer: `huidigDossierPartijA/B` en
+`wizardRoepnaamA/B` staan al in de browser vóór er iets verstuurd wordt (*Voornamen* is
+zelfs een verplicht veld). Daarmee gaan de partijnamen in **geen van beide** stappen naar
+Anthropic.
+
+```
+wizard-invoer → _voorlopigeCls → bouwAnonMap → _voorafKaart
+                                                  │
+                       classificatietekst ────────┼──► anonimiseerTekst ──► Anthropic
+                                                  │
+                       antwoord met nep-namen ◄───┘
+                                                  │
+                                          herstelAnonObj ──► classificatie met echte namen
+```
+
+> **Twee kaarten, dezelfde nep-namen.** `bouwAnonMap` deelt `NEP_PERSONEN` uit in vaste
+> volgorde: partij A krijgt index 0, partij B index 1, daarna mediator en notaris. De
+> voorlopige kaart en de definitieve kaart geven de partijen dus dezelfde nep-naam.
+> Verander je die registratievolgorde, dan lopen ze uiteen en herstelt het antwoord van
+> de classificatie naar de verkeerde persoon.
+
+> **Wat nog steeds ruw meegaat**: namen die de browser vooraf niet kán kennen — kinderen,
+> mediator, notaris. Die haalt de classificatie juist uit de tekst. Wil je die ook
+> dichtzetten, dan moet de wizard ernaar vragen. Postcodes, adressen en woonplaatsen gaan
+> wél gemaskeerd: de PII-tracker wordt nu vóór de classificatie aangemaakt en over beide
+> stappen gedeeld.
+
+### Naamcontrole — waarom die er moet zijn
+
+De kaart matcht op **letterlijke tekst** (`naarAnon` op kleine letters: volledige naam,
+voornaam, achternaam, bezitsvorm). Zolang de namen uit het document kwamen, matchten ze
+per definitie. Nu ze uit een invoerveld komen, betekent één tikfout dat die naam **nergens**
+vervangen wordt — niet in de tekst naar Anthropic, niet in het opgeslagen rapport — zonder
+enig signaal.
+
+`controleerNamenTegenTekst()` draait daarom vóór de eerste aanroep: komt elke opgegeven
+naam letterlijk voor? Zo niet, dan zoekt hij via Levenshtein de meest gelijkende
+kandidaat in het personaliablok (drempel: een kwart van de naamlengte) en vraagt
+`toonNaamControle()` wat de bedoeling was. Wie doorgaat zonder correctie krijgt een
+`console.warn` met welke namen onvervangen meegaan.
+
+> Bijvangst: dit vangt ook het geval dat er een document aan het verkeerde dossier hangt.
+> Dan komt geen van de namen voor.
+
 ## Pseudonimisering-pipeline (opslaan)
 
 ```

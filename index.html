@@ -3829,6 +3829,45 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   if (documentTekst.trim().length < 200)
     throw new Error('Kon weinig tot geen tekst uit de documenten halen. Zijn ze leesbaar of gescand? Controleer of OCR is doorgelopen.');
 
+  // ── Namen controleren vóór er iets de deur uit gaat ────────────────────────
+  // Klopt een naam niet letterlijk, dan maskeert de kaart hem niet en gaat hij
+  // onvervangen mee. Liever hier een vraag dan daar een stil lek.
+  const _opgegevenNamen = [
+    { label: 'Partij A',            waarde: huidigDossierPartijA },
+    { label: 'Partij B',            waarde: huidigDossierPartijB },
+    { label: 'Roepnaam partij A',   waarde: wizardRoepnaamA },
+    { label: 'Roepnaam partij B',   waarde: wizardRoepnaamB },
+  ].filter(n => n.waarde);
+
+  if (_opgegevenNamen.length) {
+    const _problemen = controleerNamenTegenTekst(_opgegevenNamen, documentTekst);
+    if (_problemen.length) {
+      const { correcties, doorgaan } = await toonNaamControle(_problemen);
+      if (!doorgaan) throw new Error('Analyse afgebroken — controleer de namen bij het dossier.');
+      if (correcties.size) {
+        if (correcties.has('Partij A'))          huidigDossierPartijA = correcties.get('Partij A');
+        if (correcties.has('Partij B'))          huidigDossierPartijB = correcties.get('Partij B');
+        if (correcties.has('Roepnaam partij A')) wizardRoepnaamA      = correcties.get('Roepnaam partij A');
+        if (correcties.has('Roepnaam partij B')) wizardRoepnaamB      = correcties.get('Roepnaam partij B');
+        // Ook in het dossier bijwerken, anders komt dezelfde vraag bij elke analyse terug.
+        if (app.dossierId && (correcties.has('Partij A') || correcties.has('Partij B'))) {
+          db.from('dossiers').update({
+            partij_a: huidigDossierPartijA, partij_b: huidigDossierPartijB,
+          }).eq('id', app.dossierId).then(({ error }) => {
+            if (error) console.warn('[namen] dossier bijwerken mislukt:', error.message);
+          });
+        }
+      }
+      // Namen die de gebruiker liet staan: expliciet vastleggen dat die onvervangen meegaan.
+      const _blijftStaan = _problemen
+        .filter(p => !correcties.has(p.label))
+        .map(p => `${p.label} "${p.ingevoerd}"`);
+      if (_blijftStaan.length) {
+        console.warn('[namen] niet in de tekst gevonden, gaan onvervangen mee:', _blijftStaan.join('; '));
+      }
+    }
+  }
+
   // ── Stap 1: Splits in hoofddocumenten en contextstukken; classificatie ophalen ──
   onProgress('Stap 1 van 3 — Documenten herkennen…');
 
@@ -3859,13 +3898,46 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   const { data: kenmerken } = await db.from('situatie_kenmerken').select('key, label, categorie');
   const kenmerkenLijst = (kenmerken ?? []).map(k => `${k.key} (${k.label})`).join(', ');
 
-  const classificatieTekst = documentDelen.length > 1
+  // PII-tracker: gedeeld over álle anonimiseerTekst-aanroepen — ook die van de
+  // classificatie hieronder — zodat postcodes, adressen en woonplaatsen overal
+  // dezelfde genummerde placeholders krijgen.
+  const { getPh: _piiPh, phToVal: _piiPhToVal } = _maakPiiTracker();
+
+  // De classificatie moet de documenttekst lezen om documenttype, situatiekenmerken
+  // en datums te bepalen. Vroeger ging die tekst ruw naar Anthropic, want de
+  // pseudonimiseringskaart bestond op dat moment nog niet — die werd juist uit het
+  // antwoord opgebouwd. Maar de partijnamen kennen we al: die typt de mediator in de
+  // wizard. Daarmee bouwen we de kaart alvast en gaan de partijnamen in geen van
+  // beide stappen de deur uit.
+  //
+  // Wat hier NIET mee gemaskeerd wordt: namen die we nog niet kunnen kennen —
+  // kinderen, mediator, notaris. Die haalt de classificatie juist uit de tekst.
+  const _voorlopigeCls = {
+    partij_a_naam:     huidigDossierPartijA || '',
+    partij_b_naam:     huidigDossierPartijB || '',
+    partij_a_roepnaam: wizardRoepnaamA || '',
+    partij_b_roepnaam: wizardRoepnaamB || '',
+  };
+  // Zelfde registratievolgorde als straks in de definitieve kaart, dus partij A en B
+  // krijgen in beide dezelfde nep-namen.
+  const _voorafKaart = (huidigDossierPartijA || huidigDossierPartijB)
+    ? bouwAnonMap(_voorlopigeCls)
+    : null;
+  const _voorafMap = _voorafKaart?.naarAnon || null;
+  if (!_voorafMap) {
+    console.warn('[classificatie] geen partijnamen bekend — tekst gaat ongepseudonimiseerd mee');
+  }
+
+  const _classificatieRuw = documentDelen.length > 1
     ? documentDelen.map(d => `${d.header}\n${d.tekst.slice(0, 3000)}`).join('\n\n')
     : documentTekst.slice(0, 6000);
+  const classificatieTekst = _voorafMap
+    ? anonimiseerTekst(_classificatieRuw, _voorafMap, _piiPh)
+    : _classificatieRuw;
 
   // Haiku: classificatie is een simpele herkenningstaak, geen diepe analyse nodig
   // max_tokens 2048: bij 4 documenten kan de output (namen + kenmerken + samenvatting) >1024 tokens zijn
-  const classificatie = await askClaudeForJson(
+  let classificatie = await askClaudeForJson(
     `Je classificeert een set Nederlandse echtscheidingsdocumenten. Roep de tool ÉÉNMAAL aan met een gecombineerde classificatie die alle documenten dekt — niet één aanroep per document. Haal de volledige namen en geboortedatums van beide partijen eruit (partij_a_naam, partij_a_geboortedatum in dd-mm-jjjj, partij_b_naam, partij_b_geboortedatum in dd-mm-jjjj). Als alleen het jaar bekend is, gebruik dan partij_a_geboortejaar / partij_b_geboortejaar. Noteer ook de namen en geboortedatums van alle minderjarige kinderen (kinderen_namen, kinderen_geboortedatums in dd-mm-jjjj in dezelfde volgorde; gebruik kinderen_geboortejaren als fallback). Noteer de mediator/advocaat (mediator_naam) en notaris (notaris_naam) als die worden vermeld. Laat velden weg als niet vermeld.
 LET OP ROEPNAMEN: vul partij_a_roepnaam / partij_b_roepnaam in als de gangbare voornaam van een partij AFWIJKT van het eerste naamsdeel in partij_a_naam / partij_b_naam. Gevallen waarbij dit speelt:
 (1) Elders in het document staat consistent een andere voornaam (bijv. formeel 'Herma Eugenie ten Brink' maar in de lopende tekst 'Manon ten Brink') — vul dan 'Manon' in.
@@ -3875,6 +3947,20 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     classificatieTekst, classificatieTool, 2048,
     { model: 'claude-haiku-4-5-20251001' }
   );
+
+  // De classificatie las gepseudonimiseerde tekst, dus wat terugkomt draagt nep-namen:
+  // partij_a_naam is "Thomas Bergman" en de samenvatting noemt hem ook zo. Meteen
+  // terugzetten, anders zou de definitieve kaart de nep-naam als échte naam registreren
+  // en zou de mediator zijn eigen cliënten niet terugvinden op het scherm.
+  // Kindernamen en de mediator/notaris komen ongemaskeerd terug — die kende de kaart
+  // nog niet — en blijven dus onaangeroerd.
+  if (_voorafKaart) {
+    classificatie = herstelAnonObj(classificatie, _voorafKaart.naarEcht, _voorafKaart.naarEchtVolledig);
+    // Het herstel geeft de roepnaam terug waar die bestaat; voor de kaart hieronder is
+    // juist de formele naam nodig, precies zoals de mediator hem heeft ingevoerd.
+    if (huidigDossierPartijA) classificatie.partij_a_naam = huidigDossierPartijA;
+    if (huidigDossierPartijB) classificatie.partij_b_naam = huidigDossierPartijB;
+  }
 
   // Bouw pseudonimiseringsmap op basis van zojuist verkregen namen
   // Verrijkt met dossiernamen zodat roepnamen uit de dossierpartij-velden (bijv. "Manon ten Brink")
@@ -3904,9 +3990,8 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   huidigeNaarAnon = naarAnon;
   huidigeNaarEcht = naarEcht;
 
-  // PII-tracker: gedeeld over alle anonimiseerTekst-aanroepen zodat postcodes, adressen en
-  // woonplaatsen genummerde terugzetbare placeholders krijgen ([POSTCODE_0], [ADRES_1] enz.)
-  const { getPh: _piiPh, phToVal: _piiPhToVal } = _maakPiiTracker();
+  // De PII-tracker is hierboven al aangemaakt, vóór de classificatie, zodat postcodes,
+  // adressen en woonplaatsen in beide stappen dezelfde placeholders krijgen.
 
   // Bijlagen-tekst alvast anonimiseren (buiten de per-doc-loop)
   const bijlagenTekstAnon = anonimiseerTekst(bijlagenTekst, naarAnon, _piiPh);
@@ -5113,6 +5198,157 @@ function voegStandaardveldenToe(rapport) {
   };
   vulaan(rapport);
   if (Array.isArray(rapport.documenten)) rapport.documenten.forEach(d => vulaan(d));
+}
+
+// ── Naamcontrole vóór verzending ───────────────────────────────────────────
+// De pseudonimiseringskaart wordt opgebouwd uit de namen die de mediator intypt,
+// en die kaart matcht op letterlijke tekst. Een tikfout betekent dus dat de naam
+// nergens vervangen wordt: niet in de tekst die naar Anthropic gaat, niet in het
+// opgeslagen rapport. Zonder deze controle merkt niemand dat.
+//
+// Vangt bovendien het geval dat er een document aan het verkeerde dossier hangt:
+// dan komen de namen simpelweg niet voor.
+
+function _normNaamTekst(s) {
+  return (s || '')
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '')  // diakrieten weg: Sjögren = Sjogren
+    .replace(/[   ]/g, ' ')              // vaste spaties uit PDF-extractie
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function _levenshtein(a, b) {
+  if (a === b) return 0;
+  if (!a.length || !b.length) return Math.max(a.length, b.length);
+  let vorige = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 0; i < a.length; i++) {
+    const huidige = [i + 1];
+    for (let j = 0; j < b.length; j++) {
+      huidige[j + 1] = Math.min(
+        vorige[j + 1] + 1,
+        huidige[j] + 1,
+        vorige[j] + (a[i] === b[j] ? 0 : 1),
+      );
+    }
+    vorige = huidige;
+  }
+  return vorige[b.length];
+}
+
+// Kandidaat-namen uit het personaliablok: reeksen van hoofdletterwoorden, met
+// Nederlandse tussenvoegsels ertussen. Alleen de kop van het document — daar staan
+// de "Ondergetekenden" en verderop levert het vooral ruis op.
+const _TUSSENVOEGSELS = new Set(['van','de','den','der','het','ten','ter','te','op','in','aan','del','di','la','le']);
+function _kandidaatNamen(tekst, kopLengte = 4000) {
+  const kop = tekst.slice(0, kopLengte);
+  const woorden = kop.split(/[^\p{L}'-]+/u).filter(Boolean);
+  const namen = new Set();
+  for (let i = 0; i < woorden.length; i++) {
+    if (!/^\p{Lu}/u.test(woorden[i])) continue;
+    const reeks = [woorden[i]];
+    let j = i + 1;
+    while (j < woorden.length && reeks.length < 6) {
+      const w = woorden[j];
+      if (/^\p{Lu}/u.test(w) || _TUSSENVOEGSELS.has(w.toLowerCase())) { reeks.push(w); j++; }
+      else break;
+    }
+    // Eindigen op een tussenvoegsel is geen naam ("Van" alleen zegt niets)
+    while (reeks.length && _TUSSENVOEGSELS.has(reeks[reeks.length - 1].toLowerCase())) reeks.pop();
+    if (reeks.length >= 2) namen.add(reeks.join(' '));
+    i = j - 1;
+  }
+  return [...namen];
+}
+
+// Geeft per opgegeven naam terug of hij in de tekst voorkomt, en zo niet: de meest
+// gelijkende kandidaat. Drempel op een kwart van de lengte — ruim genoeg voor een
+// paar tikfouten, streng genoeg om een wildvreemde naam niet als suggestie te tonen.
+function controleerNamenTegenTekst(namen, tekst) {
+  const hooi = _normNaamTekst(tekst);
+  const kandidaten = _kandidaatNamen(tekst).map(k => ({ ruw: k, norm: _normNaamTekst(k) }));
+  const problemen = [];
+
+  for (const { label, waarde } of namen) {
+    const naald = _normNaamTekst(waarde);
+    if (!naald || naald.length < 3) continue;
+    if (hooi.includes(naald)) continue;
+
+    // Achternaam apart proberen: "Ingeborg Wilhelmina van Zand" mag ontbreken terwijl
+    // "van Zand" er wel staat — dan is de kaart voor dat deel alsnog raak. De achternaam
+    // is het laatste woord plus de tussenvoegsels die er direct voor staan; middelnamen
+    // tellen niet mee, anders vindt "wilhelmina van zand" nooit iets.
+    const delen = naald.split(' ');
+    let _ks = delen.length - 1;
+    while (_ks > 0 && _TUSSENVOEGSELS.has(delen[_ks - 1])) _ks--;
+    const achternaamGevonden = _ks > 0 && hooi.includes(delen.slice(_ks).join(' '));
+
+    let beste = null, besteAfstand = Infinity;
+    for (const k of kandidaten) {
+      const d = _levenshtein(naald, k.norm);
+      if (d < besteAfstand) { besteAfstand = d; beste = k.ruw; }
+    }
+    const drempel = Math.max(1, Math.floor(naald.length / 4));
+    problemen.push({
+      label,
+      ingevoerd: waarde,
+      suggestie: besteAfstand <= drempel ? beste : null,
+      deelsGevonden: achternaamGevonden,
+    });
+  }
+  return problemen;
+}
+
+// Toont de gevonden afwijkingen en geeft terug wat de gebruiker ermee wil.
+// Resolvet met { correcties: Map<label, nieuweWaarde>, doorgaan: bool }.
+function toonNaamControle(problemen) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay active';
+    ov.innerHTML = `
+      <div class="modal-card" style="max-width:560px">
+        <h3 style="margin:0 0 6px;font-family:'Source Serif 4',serif;font-size:1.15rem">
+          Namen komen niet in het document voor</h3>
+        <p style="margin:0 0 18px;color:var(--ink-soft);font-size:.88rem;line-height:1.55">
+          De namen die je hebt ingevoerd worden gebruikt om het document onherkenbaar te
+          maken vóór het naar de AI gaat. Wat niet letterlijk klopt, wordt niet vervangen.
+        </p>
+        ${problemen.map((p, i) => `
+          <div style="border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:10px">
+            <div style="font-size:.75rem;font-weight:700;letter-spacing:.05em;
+                        text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px">${escH(p.label)}</div>
+            <div style="font-size:.92rem;margin-bottom:${p.suggestie ? '10px' : '4px'}">
+              Ingevoerd: <strong>${escH(p.ingevoerd)}</strong></div>
+            ${p.suggestie
+              ? `<label style="display:flex;align-items:center;gap:8px;font-size:.92rem;cursor:pointer">
+                   <input type="checkbox" class="nc-kies" data-idx="${i}" checked
+                          style="width:auto;margin:0">
+                   In het document staat: <strong>${escH(p.suggestie)}</strong> — overnemen
+                 </label>`
+              : `<div style="font-size:.85rem;color:var(--ink-soft)">
+                   ${p.deelsGevonden
+                     ? 'De achternaam komt wel voor, de volledige naam niet.'
+                     : 'Geen gelijkende naam gevonden. Hoort dit document bij dit dossier?'}
+                 </div>`}
+          </div>`).join('')}
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+          <button class="btn-ghost" id="ncAfbreken" style="width:auto">Afbreken</button>
+          <button class="rp-btn-primary" id="ncDoorgaan" style="width:auto">Doorgaan</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const sluit = (resultaat) => { ov.remove(); resolve(resultaat); };
+    ov.querySelector('#ncAfbreken').onclick = () => sluit({ correcties: new Map(), doorgaan: false });
+    ov.querySelector('#ncDoorgaan').onclick = () => {
+      const correcties = new Map();
+      ov.querySelectorAll('.nc-kies').forEach(cb => {
+        if (!cb.checked) return;
+        const p = problemen[Number(cb.dataset.idx)];
+        correcties.set(p.label, p.suggestie);
+      });
+      sluit({ correcties, doorgaan: true });
+    };
+  });
 }
 
 function samenstellenBestandsnaam(cls, bestanden) {
