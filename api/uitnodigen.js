@@ -9,6 +9,10 @@
  *
  * Vereist: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM.
  * Poort 465 gebruikt impliciet TLS, 587 begint plat en doet STARTTLS.
+ *
+ * Vereist ook stap 1 uit supabase/dossiertoegang.sql (kolom uitnodigingen.email).
+ * Draai die migratie vóór de deploy: zonder de kolom faalt het vastleggen van het
+ * adres en weigert dit endpoint de uitnodiging.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -69,18 +73,28 @@ export default async function handler(req, res) {
     const inv = Array.isArray(uitnodiging) ? uitnodiging[0] : uitnodiging;
     if (!inv?.token) throw new Error('Uitnodiging aanmaken mislukt');
 
-    // Dossiertoegang op de uitnodiging zetten; de trigger op auth.users neemt
-    // hem straks over in het profiel. Bewust een aparte update in plaats van een
-    // extra parameter op maak_uitnodiging: die functie hoeft er niet voor open.
-    // Service role, want RLS laat een gebruiker zijn eigen uitnodigingen niet bijwerken.
-    if (req.body?.zietAlle === true) {
-      const { error: tgErr } = await sbService
-        .from('uitnodigingen')
-        .update({ ziet_alle_dossiers: true })
-        .eq('token', inv.token);
-      // Niet fataal: de uitnodiging werkt, de collega start dan met alleen eigen
-      // dossiers en een beheerder kan het achteraf omzetten in de gebruikerslijst.
-      if (tgErr) console.warn('[uitnodigen] dossiertoegang niet gezet:', tgErr.message);
+    // Adres en dossiertoegang op de uitnodiging zetten; de trigger op auth.users
+    // controleert het adres en neemt de toegangskeuze over in het profiel.
+    // Bewust een aparte update in plaats van extra parameters op maak_uitnodiging:
+    // die functie hoeft er niet voor open. Service role, want RLS laat een
+    // gebruiker zijn eigen uitnodigingen niet bijwerken.
+    //
+    // Het adres is hier niet optioneel: zonder adres draagt het token alleen de
+    // organisatie en de rol, en kan wie de link onderschept zich met een
+    // willekeurig e-mailadres aanmelden. Lukt het niet, dan trekken we de
+    // uitnodiging in — een ongebonden token laten rondslingeren is erger dan
+    // een mislukte uitnodiging.
+    const { error: tgErr } = await sbService
+      .from('uitnodigingen')
+      .update({
+        email: email.trim().toLowerCase(),
+        ...(req.body?.zietAlle === true ? { ziet_alle_dossiers: true } : {}),
+      })
+      .eq('token', inv.token);
+    if (tgErr) {
+      await sbService.from('uitnodigingen').delete().eq('token', inv.token);
+      console.error('[uitnodigen] uitnodiging niet vastgelegd op adres:', tgErr.message);
+      throw new Error('Uitnodiging aanmaken mislukt.');
     }
 
     // ── Uitnodigingslink samenstellen ─────────────────────

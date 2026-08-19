@@ -1,24 +1,57 @@
--- Dossiertoegang per mediator: "alle dossiers van het kantoor" versus "alleen eigen".
+-- Uitnodigingen: vastleggen vóór wie ze bedoeld zijn en wat de nieuwe collega ziet.
 --
--- VOLGORDE IS BELANGRIJK. Draai stap 1 en 2 wanneer je wilt; ze veranderen niets
--- aan wie wat ziet. Stap 3 zet de afscherming daadwerkelijk aan en mag pas ná de
--- deploy van de bijbehorende app-versie: die vult organisatie_id en gebruiker_id
--- op nieuwe screenings, en zonder die velden zou stap 3 records onzichtbaar maken
+--   1. e-mailadres en dossiertoegang op de uitnodiging
+--   2. valideer_uitnodiging geeft het adres terug (zodat het formulier het invult)
+--   3. de trigger controleert het adres en neemt de toegangskeuze over
+--   4. de afscherming per eigenaar aanzetten
+--
+-- VOLGORDE IS BELANGRIJK. Stap 1 t/m 3 mogen meteen; ze veranderen niets aan wie
+-- wat ziet. Stap 4 zet de afscherming daadwerkelijk aan en mag pas ná de deploy
+-- van de bijbehorende app-versie: die vult organisatie_id en gebruiker_id op
+-- nieuwe screenings, en zonder die velden zou stap 4 records onzichtbaar maken
 -- voor iedereen behalve beheerders.
 --
--- Controleer vóór stap 3:
+-- Controleer vóór stap 4:
 --   select count(*) filter (where gebruiker_id is null) as zonder_eigenaar
 --   from public.screeningen;
 -- Staat daar iets anders dan 0, wijs die rijen dan eerst een eigenaar toe.
 
 
--- ── Stap 1: de keuze vastleggen op de uitnodiging ────────────────────────────
+-- ── Stap 1: adres en toegangskeuze vastleggen op de uitnodiging ──────────────
+-- Zonder e-mailadres draagt een uitnodiging alleen de organisatie en de rol.
+-- Wie de link onderschept, kan zich dan met een willekeurig adres aanmelden —
+-- de domeincontrole in api/uitnodigen.js kijkt immers alleen naar wat de
+-- beheerder intypt, niet naar wat er bij het aanmelden wordt ingevuld.
 alter table public.uitnodigingen
-  add column if not exists ziet_alle_dossiers boolean not null default false;
+  add column if not exists ziet_alle_dossiers boolean not null default false,
+  add column if not exists email text;
 
 
--- ── Stap 2: de trigger neemt de keuze over in het profiel ────────────────────
--- Zelfde functie als de tokenbeveiliging, met één regel extra in de INSERT.
+-- ── Stap 2: het adres teruggeven aan het aanmeldformulier ───────────────────
+-- Return type verandert, dus eerst weg. De functie is bewust publiek: ze wordt
+-- aangeroepen door iemand die nog geen account heeft. Het token ís het geheim;
+-- wie dat heeft, heeft de mail gekregen en kent het adres al.
+drop function if exists public.valideer_uitnodiging(text);
+
+create function public.valideer_uitnodiging(p_token text)
+returns table(organisatie_id uuid, kantoor_naam text, rol text, email text)
+language plpgsql security definer set search_path = public
+as $$
+begin
+  return query
+  select u.organisatie_id, o.naam, u.rol, u.email
+  from   uitnodigingen u
+  join   organisaties  o on o.id = u.organisatie_id
+  where  u.token       = p_token
+    and  u.gebruikt_op is null
+    and  u.vervalt_op  > now();
+end;
+$$;
+
+
+-- ── Stap 3: de trigger controleert het adres en neemt de keuze over ─────────
+-- Zelfde functie als de tokenbeveiliging, met de adrescontrole en één regel
+-- extra in de INSERT.
 create or replace function public._maak_gebruikersprofiel()
 returns trigger
 language plpgsql
@@ -48,6 +81,16 @@ begin
     return new;  -- ongeldig, verlopen of al gebruikt
   end if;
 
+  -- De uitnodiging geldt voor één adres. Een exception in plaats van een stille
+  -- weigering: die draait de hele transactie terug, dus ook het claimen
+  -- hierboven — de uitnodiging blijft bruikbaar voor wie hem wél kreeg.
+  -- Uitnodigingen van vóór deze migratie hebben geen adres; die slaan we over.
+  if v_uitn.email is not null
+     and lower(new.email) <> lower(v_uitn.email) then
+    raise exception 'Deze uitnodiging is bedoeld voor een ander e-mailadres'
+      using errcode = 'check_violation';
+  end if;
+
   -- Rol komt uit de uitnodiging (door een beheerder gezet), nooit uit de aanmelding.
   v_rol := coalesce(v_uitn.rol, 'gebruiker');
 
@@ -73,7 +116,7 @@ end;
 $function$;
 
 
--- ── Stap 3: de afscherming aanzetten (PAS NA DE DEPLOY) ──────────────────────
+-- ── Stap 4: de afscherming aanzetten (PAS NA DE DEPLOY) ─────────────────────
 -- RESTRICTIVE is hier het hele punt: gewone policies worden met OF gecombineerd,
 -- dus een extra permissieve regel zou de toegang juist verruimen. Restrictieve
 -- policies worden met EN gecombineerd en beperken dus wél. De bestaande
