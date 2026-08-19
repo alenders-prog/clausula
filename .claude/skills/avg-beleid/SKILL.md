@@ -10,6 +10,8 @@ description: AVG/GDPR-architectuur en design-beslissingen in Clausula. Gebruik b
 | Data | Opslag | Toelichting |
 |------|--------|-------------|
 | Rapport-JSON (issues, scores, samenvatting) | Supabase DB `screeningen.rapport` | **Gepseudonimiseerd**: echte namen vervangen door nep-namen via `anonimiseerObj` |
+| Bestandsnaam (`{partij A} - {partij B}, {uploadnamen}`) | Supabase DB `screeningen.bestandsnaam` | **Gepseudonimiseerd** sinds 19-08-2026 (`_opsl_bestandsnaam`); hersteld in `laadScreening()` |
+| Dossiernaam en partijvelden | Supabase DB `dossiers.naam`, `partij_a`, `partij_b` | **Bewust in klare tekst** — zie hieronder |
 | Classificatie (doc_type, partijnamen) | Supabase DB `screeningen.classificatie` | **Gepseudonimiseerd** via `bouwClassificatiePseudo` |
 | Naam-koppeling (nep → echt) | Supabase DB `screeningen.namen_map` | **AES-256-GCM versleuteld** met `NAAM_ENCRYPTION_KEY` |
 | Ruwe geëxtraheerde tekst (`_teksten_per_pad`) | **Nooit opgeslagen** | Wordt gestript vóór opslaan (regel in `opslaan()`) |
@@ -22,6 +24,32 @@ description: AVG/GDPR-architectuur en design-beslissingen in Clausula. Gebruik b
 > het browsergeheugen. Bewuste keuze van de gebruiker; wil je die weer weghalen,
 > dan is het verwijderen van die ene aanroep genoeg — de rest valt automatisch
 > terug op pseudoniemen.
+
+### De dossierlaag blijft in klare tekst — bewuste uitzondering
+
+`dossiers.naam`, `partij_a` en `partij_b` staan onversleuteld in de database. Dat is geen
+omissie: een mediator moet zijn zaak kunnen terugvinden, en een dossierlijst met
+"Thomas Bergman" is onbruikbaar. Zoeken en sorteren zouden bovendien een ontsleutelronde
+per rij vergen.
+
+Gevolg voor de verantwoording: de echte namen wonen op **precies één plek per dossier** —
+de `dossiers`-rij — beschermd door RLS per organisatie en per eigenaar. Alles eromheen
+(rapport, classificatie, bestandsnaam, storage-metadata) draagt nep-namen. Schrijf in het
+verwerkingsregister dus niet dat de database geen persoonsgegevens bevat; schrijf dat ze
+tot één tabel beperkt zijn.
+
+### Bestandsnamen gaan niet naar de server
+
+`documentenVoorServer` stuurt `doc-1`, `doc-2` in plaats van de echte bestandsnaam.
+Bestandsnamen dragen routinematig cliëntnamen ("Convenant fam. Schreven-van Zand def2.pdf")
+en `api/analyseer.js` zet ze onbewerkt in de prompt (regels 323, 488, 733).
+
+> Pseudonimiseren zou hier niet volstaan: de kaart matcht op formele naamvormen, terwijl
+> een bestandsnaam juist afkortingen en samenstellingen bevat die daarbuiten vallen.
+>
+> De server echoot het kenmerk terug in elk SSE-event. `_bnVanServer` vertaalt het bij
+> binnenkomst terug, want `_sseAcc` en de documenttabbladen zijn op de échte bestandsnaam
+> gesleuteld. Voeg je een nieuw SSE-event toe: vertaal daar dus ook.
 
 ## De classificatiestap — waarom de kaart uit de wizard komt
 

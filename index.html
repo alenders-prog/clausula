@@ -4002,9 +4002,22 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   // De server stuurt per Claude-call één SSE-event; de browser dedupliceert zelf.
   onProgress('Stap 2 van 2 — Analyseren…', 0);
 
-  // Bouw de gepseudonimiseerde documenten-array voor de server
+  // Bestandsnamen gaan NIET mee. Ze dragen routinematig cliëntnamen ("Convenant
+  // fam. Schreven-van Zand def2.pdf") en de server zet ze onbewerkt in de prompt.
+  // Pseudonimiseren zou hier niet volstaan: de kaart matcht op de formele naamvormen
+  // en een bestandsnaam bevat net zo goed afkortingen en samenstellingen die daar
+  // buiten vallen. Een neutraal kenmerk dekt de lading — de server heeft alleen
+  // iets nodig om documenten uit elkaar te houden, en het documenttype staat apart.
+  const _bnNaarServer = new Map();  // echte bestandsnaam → doc-1
+  const _bnVanServer  = new Map();  // doc-1 → echte bestandsnaam
+  resolvedItems.forEach((item, i) => {
+    const kenmerk = `doc-${i + 1}`;
+    _bnNaarServer.set(item.bestandsnaam, kenmerk);
+    _bnVanServer.set(kenmerk, item.bestandsnaam);
+  });
+
   const documentenVoorServer = resolvedItems.map((item, i) => ({
-    bestandsnaam: item.bestandsnaam,
+    bestandsnaam: _bnNaarServer.get(item.bestandsnaam),
     type:         item.type,
     tekst:        anonimiseerTekst(documentDelen[i].tekst, naarAnon, _piiPh),
   }));
@@ -4366,7 +4379,9 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         let _data;
         try { _data = JSON.parse(_trimmed.slice(6)); } catch { continue; }
 
-        const _bn = _data.bestandsnaam;
+        // De server echoot het neutrale kenmerk terug; hier weer de echte bestandsnaam
+        // van maken, want daarop zijn de accumulator en de documenttabbladen gesleuteld.
+        const _bn = _bnVanServer.get(_data.bestandsnaam) ?? _data.bestandsnaam;
         switch (_data.type) {
           case 'structuur':
             // De-pseudonimiseer direct bij binnenkomst — progressive render toont al echte namen
@@ -6666,6 +6681,12 @@ async function opslaan() {
     // strip ook _teksten_per_pad (grote bulk-tekst, herinstelbaar via Storage).
     // _document_tekst wordt gepseudonymiseerd bewaard (nodig voor vindDocVolgorde na laden).
     const _opsl_classificatie = namen_map ? bouwClassificatiePseudo(app.classificatie) : app.classificatie;
+    // De bestandsnaam is "{partij A} - {partij B}, {geüploade bestandsnamen}" en stond
+    // als enige veld onbewerkt in de database — met volledige namen, terwijl rapport en
+    // classificatie ernaast gepseudonimiseerd waren. laadScreening() zet hem terug.
+    const _opsl_bestandsnaam  = namen_map
+      ? anonimiseerTekst(huidigeBestandsnaam || '', huidigeNaarAnon)
+      : huidigeBestandsnaam;
     let   _opsl_rapport       = app.rapport;
     if (namen_map) {
       const { _teksten_per_pad, ...rapportZonderBulk } = app.rapport;
@@ -6689,7 +6710,7 @@ async function opslaan() {
       }
 
       const updatePayload = {
-        bestandsnaam:  huidigeBestandsnaam,
+        bestandsnaam:  _opsl_bestandsnaam,
         classificatie: _opsl_classificatie,
         rapport:       _opsl_rapport,
         updated_at:    new Date().toISOString(),
@@ -6702,7 +6723,7 @@ async function opslaan() {
       if (!error) verwijderStoragePaden(_verlopenPaden, app.screeningId);
     } else {
       const insertPayload = {
-        bestandsnaam:  huidigeBestandsnaam,
+        bestandsnaam:  _opsl_bestandsnaam,
         classificatie: _opsl_classificatie,
         rapport:       _opsl_rapport,
         dossier_id:    app.dossierId || null,
@@ -12258,6 +12279,10 @@ async function laadScreening(id, origin = 'main') {
           // die ook in de PDF-tekstlaag staat.
           data.rapport       = herstelAnonObj(data.rapport, huidigeNaarEcht, huidigeNaarEcht);
           data.classificatie = herstelAnonObj(data.classificatie, huidigeNaarEcht, huidigeNaarEcht);
+          // Ook de bestandsnaam: die wordt samengesteld uit de partijnamen plus de
+          // geüploade bestandsnamen en werd tot 19 augustus 2026 als enige veld
+          // onversleuteld en ongepseudonimiseerd opgeslagen.
+          data.bestandsnaam  = herstelAnonObj(data.bestandsnaam, huidigeNaarEcht, huidigeNaarEcht);
           // Herbouw naarAnon vanuit de herstelde classificatie (voor toekomstig opslaan)
           huidigeNaarAnon = bouwAnonMap(data.classificatie).naarAnon;
         } else {
