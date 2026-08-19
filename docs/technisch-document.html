@@ -397,7 +397,7 @@ pre code { background: none; border: none; padding: 0; font-size: inherit; }
           <tr><td><strong>Database</strong></td><td>Supabase (PostgreSQL)</td><td>Auth, RLS, storage en realtime. Vier kerntabellen (zie §5).</td></tr>
           <tr><td><strong>AI-model</strong></td><td>Anthropic <code>claude-sonnet-4-6</code></td><td>Tool-use voor gestructureerde JSON-output. SSE-streaming via <code>askClaude()</code>-wrapper.</td></tr>
           <tr><td><strong>PDF→DOCX</strong></td><td>Adobe PDF Services API</td><td>Async job-model: <code>adobe-start.js</code> start de export, <code>adobe-result.js</code> pollt de status.</td></tr>
-          <tr><td><strong>E-mail</strong></td><td>Resend API</td><td>Uitnodigingsmails via <code>api/uitnodigen.js</code>.</td></tr>
+          <tr><td><strong>E-mail</strong></td><td>SMTP op eigen domein (clausula.nl)</td><td>Uitnodigingsmails via <code>api/uitnodigen.js</code> (nodemailer). Geen externe maildienst meer; SPF, DKIM en DMARC op het eigen domein.</td></tr>
           <tr><td><strong>Versleuteling</strong></td><td>AES-256-GCM</td><td>Namen worden client-side versleuteld vóór opslag in Supabase. Sleutel: <code>NAAM_ENCRYPTION_KEY</code>.</td></tr>
           <tr><td><strong>Deployment</strong></td><td>Vercel (automatisch via GitHub)</td><td>Push naar <code>main</code> → productie-deploy. <code>vercel dev</code> lokaal.</td></tr>
         </table>
@@ -428,7 +428,7 @@ graph TB
     CLAUDE["Anthropic Claude\nclaude-sonnet-4-6"]
     SB["Supabase\n(PostgreSQL + Auth + Storage)"]
     ADOBE["Adobe PDF Services"]
-    RESEND["Resend (e-mail)"]
+    MAIL["Mailserver clausula.nl\n(SMTP)"]
   end
 
   UI -->|"document + JWT"| AN
@@ -439,7 +439,7 @@ graph TB
   NE -->|"encrypt/decrypt"| SB
   CE --> CLAUDE
   AD --> ADOBE
-  UI2 --> RESEND
+  UI2 --> MAIL
   SB -->|"Auth JWT"| AN
       </pre>
 
@@ -597,7 +597,7 @@ sequenceDiagram
           <tr><td><code>api/naam-decrypt.js</code></td><td>POST</td><td>✓ JWT</td><td>Namen ontsleutelen voor weergave of export</td></tr>
           <tr><td><code>api/adobe-start.js</code></td><td>POST</td><td>✓ JWT</td><td>PDF uploaden naar Adobe, export-job starten</td></tr>
           <tr><td><code>api/adobe-result.js</code></td><td>POST</td><td>✓ JWT</td><td>Adobe-job pollen; DOCX ophalen als klaar</td></tr>
-          <tr><td><code>api/uitnodigen.js</code></td><td>POST</td><td>✓ JWT</td><td>Uitnodigingsmail sturen via Resend</td></tr>
+          <tr><td><code>api/uitnodigen.js</code></td><td>POST</td><td>✓ JWT</td><td>Uitnodigingsmail sturen via SMTP; legt het adres vast op de uitnodiging</td></tr>
           <tr><td><code>api/registreer.js</code></td><td>POST</td><td>✗ open</td><td>Nieuwe gebruiker aanmaken (geen JWT vereist)</td></tr>
         </table>
       </div>
@@ -707,7 +707,7 @@ sequenceDiagram
           <tr><td><strong>Vercel</strong></td><td>Serverless functies — alle API-calls inclusief documenten en rapportdata</td><td><span class="badge hoog">Niet geregeld</span></td><td>DPA beschikbaar in Vercel dashboard → Settings → Legal</td></tr>
           <tr><td><strong>Supabase</strong></td><td>Database met screeningen, namen_map (encrypted), dossiers; Supabase Storage met PDFs</td><td><span class="badge ok">Geregeld — 2026-07-20</span></td><td>DPA via Supabase dashboard ondertekend. Toezichthoudende autoriteit: Autoriteit Persoonsgegevens (NL). Bijzondere categorieën persoonsgegevens (gezondheids-/financiële data) gedekt.</td></tr>
           <tr><td><strong>Anthropic</strong></td><td>Gepseudonimiseerde documentteksten voor analyse via Claude API</td><td><span class="badge ok">Geregeld — Commercial Terms</span></td><td>DPA is automatisch onderdeel van de Anthropic Commercial Terms (geaccepteerd bij aanmaken account). Geen apart ondertekenen vereist. Zero Data Retention (ZDR) nog aanvragen via Anthropic support.</td></tr>
-          <tr><td><strong>Resend</strong></td><td>E-mailadressen voor uitnodigings-e-mails</td><td><span class="badge ok">Geregeld — pre-signed</span></td><td>DPA beschikbaar als download via Resend dashboard → Settings → Security. Pre-signed door Resend, geen actie meer vereist.</td></tr>
+          <tr><td><strong>Mailserver clausula.nl</strong></td><td>E-mailadressen voor uitnodigings-e-mails</td><td><span class="badge ok">Geen verwerker meer</span></td><td>Uitnodigingen lopen sinds augustus 2026 over de eigen mailserver op clausula.nl in plaats van via Resend. Daarmee vervalt Resend als verwerker; de hostingpartij van de mailserver valt onder de bestaande hostingovereenkomst.</td></tr>
           <tr><td><strong>Adobe PDF Services</strong></td><td>PDF-documenten voor PDF→DOCX-conversie</td><td><span class="badge hoog">Niet geregeld</span></td><td>DPA beschikbaar via Adobe Enterprise agreement</td></tr>
         </table>
       </div>
@@ -802,7 +802,7 @@ sequenceDiagram
           <tr>
             <td>Verwerkersovereenkomsten AVG</td>
             <td><span class="badge mid">Gedeeltelijk</span></td>
-            <td>Supabase ✅ (2026-07-20), Anthropic ✅ (Commercial Terms), Resend ✅ (pre-signed). Nog open: <strong>Vercel</strong> (dashboard → Settings → Legal) en <strong>Adobe PDF Services</strong> (Enterprise agreement). Verwerkingsregister bijwerken zodra volledig.</td>
+            <td>Supabase ✅ (2026-07-20), Anthropic ✅ (Commercial Terms). Resend vervallen als verwerker — uitnodigingen lopen nu over de eigen mailserver. Nog open: <strong>Vercel</strong> (dashboard → Settings → Legal) en <strong>Adobe PDF Services</strong> (Enterprise agreement). Verwerkingsregister bijwerken zodra volledig.</td>
           </tr>
           <tr>
             <td>IBAN-terugvertaling in bevindingstekst</td>
@@ -856,7 +856,7 @@ flowchart LR
           <tr><td><code>SUPABASE_ANON_KEY</code></td><td>JWT-verificatie (<code>/auth/v1/user</code>)</td><td>JWT</td></tr>
           <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Claude API-aanroepen</td><td><code>sk-ant-...</code></td></tr>
           <tr><td><code>NAAM_ENCRYPTION_KEY</code></td><td>AES-256-GCM sleutel voor <code>namen_map</code></td><td>Exact 64 hex-tekens</td></tr>
-          <tr><td><code>RESEND_API_KEY</code></td><td>Uitnodigings-e-mails via Resend</td><td><code>re_...</code></td></tr>
+          <tr><td><code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_FROM</code></td><td>Uitnodigings-e-mails via de eigen mailserver</td><td>Poort 465 (impliciet TLS) of 587 (STARTTLS)</td></tr>
           <tr><td><code>ADOBE_CLIENT_ID</code></td><td>Adobe PDF Services authenticatie</td><td>UUID-formaat</td></tr>
           <tr><td><code>ADOBE_CLIENT_SECRET</code></td><td>Adobe PDF Services authenticatie</td><td>String</td></tr>
         </table>

@@ -27,7 +27,8 @@ Open daarna: http://localhost:3000
    - `SUPABASE_ANON_KEY` — JWT-format publieke key (voor server-side JWT-verificatie via `/auth/v1/user`)
    - `ANTHROPIC_API_KEY`
    - `NAAM_ENCRYPTION_KEY` — exact 64 hex-tekens (AES-256-GCM voor namen_map-versleuteling)
-   - `RESEND_API_KEY` — voor uitnodigings-e-mails via `api/uitnodigen.js`
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` — eigen mailserver
+     op clausula.nl, voor uitnodigings-e-mails via `api/uitnodigen.js`
    - `ADOBE_CLIENT_ID` — voor PDF→DOCX conversie via Adobe PDF Services
    - `ADOBE_CLIENT_SECRET`
 3. `vercel dev` starten
@@ -45,7 +46,7 @@ Het `.env` bestand staat in `.gitignore` — nooit committen.
 | `api/adobe-result.js` | POST — Adobe export-job status opvragen / DOCX ophalen |
 | `api/naam-encrypt.js` | POST — namen versleutelen (AES-256-GCM) voor namen_map opslag |
 | `api/naam-decrypt.js` | POST — namen ontsleutelen voor weergave / export |
-| `api/uitnodigen.js` | POST — uitnodigingsmail sturen via Resend |
+| `api/uitnodigen.js` | POST — uitnodigingsmail sturen via SMTP (eigen mailserver) |
 | `api/registreer.js` | POST — nieuwe gebruiker registreren (geen JWT vereist) |
 | `api/_crypto.js` | Helper — AES-256-GCM encrypt/decrypt (gebruikt door naam-encrypt/decrypt) |
 | `config.js` | Publieke Supabase-URL en anon key (ingeladen door `index.html`) |
