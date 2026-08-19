@@ -23,6 +23,7 @@ Elke analyse bestaat uit twee gelijktijdige Sonnet-calls + één afsluitende Hai
 | **cross_doc** | inconsistenties over twee documenten heen | `registreer_cross_doc_bevindingen` / Sonnet |
 | **IBAN-validatie** | verwijdert issues met hallucinated of tegenstrijdige IBAN-vermeldingen | server-side code / geen LLM |
 | **consolidatie** | semantische deduplicatie van alle bovenstaande issues | `consolideer_issues` / Haiku |
+| **consistentie** | titel die meer beweert dan de bevinding aantoont | `controleer_consistentie` / Haiku |
 
 **IBAN-validatie (vóór Haiku-consolidatie, `filterIssuesOpIban` in `api/analyseer.js`):**
 Twee checks op basis van regex `\bNL\d{2}[A-Z]{4}\d{10}\b`:
@@ -282,6 +283,44 @@ Voordat je rapporteert dat iets ontbreekt:
 2. Controleer bij genummerde verwijzingen ("zie punt 21") of dat nummer ELDERS in het document voorkomt als sectietitel of genummerd lid
 3. Bij aantoonbaar doorlopende sectienummering: ga er altijd vanuit dat hogere nummers bestaan
 4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat
+
+### Verificatieplicht bij berekende en normatieve claims
+
+Toegevoegd 19 augustus 2026, na een issue met de titel *"Zorgkorting-percentages optellen
+tot meer dan 100%"* waarvan de eigen bevinding `30% + 39% = 69%` berekende. De kop
+weerlegde zichzelf in de eerste zin, en omdat de ernst op de kop wordt bepaald stond het
+issue op `hoog`.
+
+- Reken elke bewering over bedragen, percentages of termijnen voor **in de bevinding**.
+- Spreekt de uitkomst de bewering tegen, dan vervalt het issue — of blijft alleen de
+  observatie over die wél onderbouwd is, met een titel die dáárbij past.
+- Een afwijking van een standaardwaarde is een afwijking, geen overtreding. Claim alleen
+  een normschending als die norm in de aangeleverde kennisbank staat.
+
+### Samenhang tussen kop en bevinding
+
+`onderwerp` was tot 19 augustus 2026 het enige veld in `issueItem` **zonder beschrijving**
+(`{ type: 'string' }`), terwijl `passage` ernaast een beschrijving van vijf regels had die
+zelfs eist dat het citaat overeenkomt met "de fout in onderwerp en bevinding". De samenhang
+werd dus verondersteld maar nergens opgelegd, en zonder sturing drijven koppen af naar
+alarmerend.
+
+> De regel *"NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander
+> onderwerp Y"* bestond al — maar alleen in het **grammaticablok**. Hij staat nu ook in
+> `stabielGedeeld`, dus voor alle calls. Let hierop bij nieuwe promptregels: een instructie
+> die maar in één call-blok staat, geldt niet voor de rest.
+
+**Vangnet:** `controleer_consistentie` (Haiku, `api/_consistentie.js`) draait ná de
+consolidatie over de hele issuelijst per document en herschrijft koppen die meer beweren
+dan hun bevinding aantoont. Hij verwijdert nooit een issue en verlaagt de ernst hooguit één
+stap — nooit omhoog, want hij beoordeelt samenhang, geen juridische ernst. Mislukt de
+aanroep, dan gaat de lijst ongewijzigd door.
+
+> **Waarom niet de diepe verificatie overal draaien?** Die kost op `claude-fable-5` ruwweg
+> $0,15 per issue — bij 26 issues meer dan tien keer de kosten van de hele analyse — en ze
+> krijgt de documenttekst niet mee, dus valse "dit ontbreekt"-claims vangt ze evenmin.
+> Bovendien is `claude-fable-5` niet beschikbaar onder zero data retention; de ZDR-aanvraag
+> bij Anthropic staat nog open. De consistentiecontrole kost één Haiku-aanroep per document.
 
 ### OOXML auto-nummering in tekst zichtbaar voor Claude
 

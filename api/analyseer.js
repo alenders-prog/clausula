@@ -29,6 +29,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { filterIssuesOpIban } from './_iban.js';
 import { verifieerJWT } from './_auth.js';
+import {
+  consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
+} from './_consistentie.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -164,10 +167,49 @@ const mfnScoreSchema = {
   required: ['score_aanwezig', 'score_totaal', 'elementen'],
 };
 
+// De kop was lang het enige veld zonder specificatie. Zonder sturing schrijft het
+// model een pakkende kop, en pakkende koppen drijven af naar alarmerend: een issue
+// kwam terug als "Zorgkorting-percentages optellen tot meer dan 100%" terwijl de
+// eigen bevinding eronder "30% + 39% = 69%" berekende. De kop moet volgen uit wat
+// eronder staat, niet andersom.
+const onderwerpBeschrijving =
+  'Korte, feitelijke titel van het probleem. HARDE EIS: alles wat de titel beweert moet ' +
+  'in "bevinding" worden aangetoond. Beweer in de titel nooit een schending, overschrijding ' +
+  'of tegenstrijdigheid die de bevinding niet onderbouwt — noem dan wat je wél vaststelt ' +
+  '(bijv. "Zorgkortingspercentages wijken af van de Tremanormen en zijn niet gemotiveerd", ' +
+  'niet "Percentages tellen op tot meer dan 100%"). Reken elke optelling of vergelijking in ' +
+  'de titel na tegen de getallen in de bevinding; klopt die niet, herformuleer de titel.';
+
+// Eén Haiku-aanroep over de hele issuelijst van een document, in dezelfde vorm als
+// de consolidatiestap: lijst erin, alleen de correcties eruit. Niet-fataal — mislukt
+// de aanroep, dan gaat de oorspronkelijke lijst door. Een ontbrekende controle mag
+// geen analyse kosten. Schema, prompt en toepassingslogica staan in api/_consistentie.js.
+async function pasConsistentieToe(issues, label) {
+  if (!Array.isArray(issues) || issues.length === 0) return issues;
+  try {
+    const res = await askClaude(
+      sysConsistentie,
+      bouwConsistentieLijst(issues),
+      consistentieTool,
+      1500,
+      'claude-haiku-4-5-20251001',
+    );
+    const { issues: aangepast, toegepast } = pasCorrectiesToe(issues, res?.correcties);
+    for (const t of toegepast) {
+      console.log(`[consistentie] ${label} [${t.index}] "${t.oud}" → "${t.nieuw}" (${t.reden || 'geen reden'})`);
+    }
+    if (toegepast.length) console.log(`[consistentie] ${label}: ${toegepast.length} titel(s) bijgesteld`);
+    return aangepast;
+  } catch (err) {
+    console.warn(`[consistentie] overgeslagen voor ${label}:`, err.message);
+    return issues;
+  }
+}
+
 const issueItem = {
   type: 'object',
   properties: {
-    onderwerp:   { type: 'string' },
+    onderwerp:   { type: 'string', description: onderwerpBeschrijving },
     ernst:       { type: 'string', enum: ['laag', 'midden', 'hoog'] },
     dimensies:   { type: 'array', items: { type: 'string' } },
     bevinding:   { type: 'string' },
@@ -230,7 +272,7 @@ const crossDocTool = {
         items: {
           type: 'object',
           properties: {
-            onderwerp:          { type: 'string' },
+            onderwerp:          { type: 'string', description: onderwerpBeschrijving },
             ernst:              { type: 'string', enum: ['laag', 'midden', 'hoog'] },
             dimensies:          { type: 'array', items: { type: 'string' } },
             bevinding:          { type: 'string' },
@@ -550,7 +592,27 @@ Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtba
       een extractie-artefact, GEEN documentfout.
    e. Enige uitzondering: als NERGENS in het document ook maar één sectienummer zichtbaar is (dus ook
       punt 1, 2, 3 ontbreken volledig), dan mag je de nummering in twijfel trekken.
-4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.`;
+4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.
+
+VERIFICATIEPLICHT BIJ BEREKENDE EN NORMATIEVE CLAIMS:
+Deze plicht gold lang alleen voor "dit ontbreekt"-claims. Ze geldt evengoed voor beweringen die
+op een berekening of op een norm steunen.
+1. REKEN VOOR. Beweer je dat bedragen, percentages of termijnen niet kloppen, zet de som dan
+   uit in de bevinding: welke getallen, welke bewerking, welke uitkomst.
+2. SPREEKT DE UITKOMST JE BEWERING TEGEN, DAN VERVALT HET ISSUE. Rapporteer nooit een
+   overschrijding, tegenstrijdigheid of schending die je eigen berekening niet oplevert.
+   Blijft er een andere, wél onderbouwde observatie over (bijv. "de percentages zijn
+   ongebruikelijk en niet gemotiveerd"), rapporteer dán die — met een titel die daarbij past.
+3. NORMCLAIMS: beweer alleen dat een grens of norm wordt overschreden als die grens
+   daadwerkelijk in de aangeleverde kennisbank of wettekst staat. Een percentage dat afwijkt
+   van een standaardwaarde is een afwijking, geen overtreding.
+
+SAMENHANG TUSSEN KOP, BEVINDING EN PASSAGE:
+- 'onderwerp': benoem de exacte fout zoals die uit de bevinding blijkt.
+- 'bevinding': beschrijf waarom DEZE passage een probleem is — niet een andere passage,
+  niet een ander onderwerp.
+NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onderwerp Y.
+NOOIT: een kop die meer beweert dan de bevinding aantoont.`;
 
       // Gecombineerd: één blok → één cache-entry voor alle 3 calls + heranalyse
       const stabielGedeeld = `${pseudonimiseringNota}\n\n${verificatieplicht}\n\n${ernstCriteria}`;
@@ -914,7 +976,9 @@ Geef ALTIJD minimaal één index terug.`;
             : allIssues; // veiligheidsfallback: bewaar alles
           const verwijderd = allIssues.length - geconsolideerd.length;
           if (verwijderd > 0) console.log(`[analyseer] consolidatie ${doc.bestandsnaam}: ${verwijderd} duplicaat(en) verwijderd`);
-          sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: geconsolideerd } });
+
+          const definitief = await pasConsistentieToe(geconsolideerd, doc.bestandsnaam);
+          sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: definitief } });
         } catch (err) {
           console.warn(`[analyseer] consolidatie mislukt voor ${doc.bestandsnaam}:`, err.message);
           // Niet-fataal: frontend valt terug op client-side dedupIssues
