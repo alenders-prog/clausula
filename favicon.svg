@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Merkteken uit de topbar: navy vlak met brass initiaal.
+       Old English Text MT staat op Windows; de fallbacks vangen macOS en Linux op,
+       waar de letter dan als gewone schreefletter verschijnt in plaats van gebroken. -->
+  <rect width="64" height="64" rx="13" fill="#1B3050"/>
+  <text x="32" y="47"
+        font-family="Old English Text MT, Luminari, Palatino, Georgia, serif"
+        font-size="46" fill="#BFA05B" text-anchor="middle">C</text>
+</svg>
