@@ -185,13 +185,37 @@ Keyword-matching, eerste treffer wint:
 
 | Term | Betekenis |
 |------|-----------|
-| **Dossier** | Benoemde verzameling screenings (aparte tabel) |
+| **Dossier** | Benoemde houder van **één** screening (aparte tabel) — zie hieronder |
 | **Screening** | Één rij in `screeningen` tabel: bevat `classificatie` (jsonb) + `rapport` (jsonb) |
 | **classificatie** | Metadata: `doc_type`, `partij_a_naam`, `partij_b_naam`, `situatie_kenmerken`, `samenvatting` |
 | **rapport** | Alle analyse-output: issues, mfn_score, documenten[], _document_tekst, _concepts |
 | `huidigeId` | UUID van de actieve screening |
 | `huidigeClassificatie` | Het `classificatie` jsonb-object |
 | `huidigRapport` | Het `rapport` jsonb-object; in multi-doc = het rapport van het actieve tabblad (na tab-switch) |
+
+### Eén dossier houdt één screening — vervangen, niet versioneren
+
+Het datamodel staat meerdere screenings per dossier toe (`dossier_id` is een gewone
+foreign key), maar de app doet dat niet meer. In `opslaan()` staat:
+
+```js
+// 2. Als er een dossier is maar nog geen screeningId: zoek bestaande screening op (vervangen).
+if (app.dossierId && !app.screeningId) { … app.screeningId = bestaand.id; }
+```
+
+Een nieuwe analyse in een bestaand dossier werkt dus de bestaande rij bij. `laadDossiers()`
+toont per dossier alleen de nieuwste screening; er is **geen** weergave van oudere versies
+en **geen** weergave van screenings zonder dossier.
+
+> **Valkuil.** In de CSS en de eventhandlers zaten tot 19 augustus 2026 resten van het
+> oude versiemodel: `.dos-oud-kaart`, `.dos-expand-btn` en een tweede
+> versie-verwijderknop in `laadDossiers()`. Die verwezen naar HTML die niemand meer
+> genereerde en suggereerden functionaliteit die er niet was. Verwijderd. Kom je nog
+> zoiets tegen: controleer eerst of iets de betreffende class nog uitschrijft.
+>
+> Gevolg voor opruimen: laat een screening nooit achter zonder dossier. Er is geen
+> scherm dat hem toont, dus hij wordt onvindbaar terwijl zijn PDF's blijven staan.
+> Zie de skill `avg-beleid` voor de drie routes die moeten opruimen.
 
 ---
 

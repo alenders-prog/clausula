@@ -392,25 +392,12 @@ button.secundair:hover{background:#FFF1EA;}
   width:34px;height:34px;padding:0;border-radius:8px;justify-content:center;
   font-size:.72rem;letter-spacing:0;}
 .dos-kaart-rechts .best-lbl{display:none;}
-/* Expand-knop */
-.dos-expand-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);
-  background:var(--bg);display:inline-flex;align-items:center;justify-content:center;
-  color:var(--ink-soft);cursor:pointer;font-size:.78rem;transition:all .15s;flex-shrink:0;}
-.dos-expand-btn:hover{border-color:var(--ink-mid);color:var(--ink);}
 /* Doc-kolommen klikbaar */
 .v2-doc-kolom{cursor:pointer;}
 .dos-kaart-midden{cursor:pointer;}
-.dos-oudere-sectie{border-top:1px solid var(--line);}
-/* Oudere versiekaart: zelfde grid als hoofdkaart voor exacte uitlijning */
-.dos-oud-kaart{display:grid;grid-template-columns:270px 1fr auto;
-  align-items:stretch;padding:14px 18px;gap:20px;}
-.dos-oud-kaart+.dos-oud-kaart{border-top:1px solid var(--line);}
-/* Linkerkolom: versie-info (zelfde breedte als dos-kaart-links) */
-.dos-oud-links{display:flex;flex-direction:column;justify-content:center;gap:2px;}
-.dos-rechts-oud{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;align-self:center;}
-.dos-rechts-oud .best-lbl{display:none;}
-.dos-rechts-oud .v2-bestanden-detail{width:34px;position:relative;}
-.dos-rechts-oud .v2-bestanden-detail summary{width:34px;height:34px;padding:0;border-radius:8px;justify-content:center;font-size:.72rem;}
+/* Eén dossier houdt één analyse: een nieuwe analyse vervangt de vorige. De opmaak
+   voor oudere-versiekaarten is daarmee vervallen. .versie-verwijder-btn blijft:
+   die knop staat op de analysekaart in toonDossierDetail(). */
 .versie-verwijder-btn{background:none;border:1px solid transparent;border-radius:6px;
   cursor:pointer;font-size:.9rem;padding:4px 7px;color:var(--ink-soft);
   transition:border-color .12s,color .12s,background .12s;line-height:1;}
@@ -6451,6 +6438,19 @@ async function opslaan() {
     const _wasInsert = !app.screeningId;
     let data, error;
     if (app.screeningId) {
+      // Vervangen overschrijft het rapport, maar laat de documenten van de vorige
+      // analyse in Storage staan — dat is de tweede bron van verweesde PDF's met
+      // persoonsgegevens. Alleen opruimen wat in het nieuwe rapport niet meer
+      // voorkomt, en alleen als dat nieuwe rapport zelf documenten heeft: bij een
+      // tussentijdse opslag zonder bestandenlijst zouden we anders alles wissen.
+      const _nieuwePaden = new Set((_opsl_rapport?._document_bestanden ?? [])
+        .map(b => b?.pad).filter(Boolean));
+      let _verlopenPaden = [];
+      if (_nieuwePaden.size) {
+        _verlopenPaden = (await storagePadenVanScreening(app.screeningId))
+          .filter(p => !_nieuwePaden.has(p));
+      }
+
       const updatePayload = {
         bestandsnaam:  huidigeBestandsnaam,
         classificatie: _opsl_classificatie,
@@ -6461,6 +6461,8 @@ async function opslaan() {
       ({ data, error } = await db.from('screeningen')
         .update(updatePayload)
         .eq('id', app.screeningId).select('id').single());
+      // Pas opruimen als de nieuwe versie veilig is opgeslagen.
+      if (!error) verwijderStoragePaden(_verlopenPaden, app.screeningId);
     } else {
       const insertPayload = {
         bestandsnaam:  huidigeBestandsnaam,
@@ -8220,6 +8222,44 @@ async function storagePadenVanScreening(id) {
     (sf ?? []).forEach(f => paden.add(`${id}/${f.name}`));
   } catch { /* map bestaat niet — geen probleem */ }
   return [...paden];
+}
+
+// Alle analyses van één dossier plus hun bestanden. Ook dit moet vóór het
+// verwijderen draaien: daarna is niet meer te achterhalen welke bestanden erbij
+// hoorden, en blijven ze als verweesde PDF's met persoonsgegevens achter.
+async function storagePadenVanDossier(dosId) {
+  const { data } = await db.from('screeningen').select('id').eq('dossier_id', dosId);
+  const ids   = (data ?? []).map(r => r.id);
+  const paden = [];
+  for (const id of ids) paden.push(...await storagePadenVanScreening(id));
+  return { ids, paden };
+}
+
+// Eén plek voor het verwijderen van een dossier — vanaf het overzicht én vanuit
+// het dossier zelf. De analyses gaan mee: er is geen scherm voor analyses zonder
+// dossier, dus loskoppelen betekende in de praktijk dat ze onvindbaar werden en
+// hun PDF's in Storage achterbleven.
+// Retourneert false als de gebruiker annuleert; gooit door bij een echte fout.
+async function verwijderDossierMetAnalyses(dosId, naam) {
+  const { ids, paden } = await storagePadenVanDossier(dosId);
+  const mv = (n, ev, mv_) => `${n} ${n === 1 ? ev : mv_}`;
+  const omvang = ids.length
+    ? `Hiermee verdwijnen ook ${mv(ids.length, 'analyse', 'analyses')}` +
+      (paden.length ? ` en ${mv(paden.length, 'document', 'documenten')}` : '') + '.'
+    : 'Dit dossier bevat nog geen analyses.';
+  if (!confirm(`Dossier "${naam || 'dit dossier'}" verwijderen?\n\n${omvang}\n` +
+               'Dit kan niet ongedaan worden gemaakt.')) return false;
+
+  // Analyses eerst: mislukt dat, dan blijft het dossier staan en is er niets
+  // losgeraakt. Andersom zouden de rijen achterblijven zonder dossier.
+  if (ids.length) {
+    const { error: sErr } = await db.from('screeningen').delete().in('id', ids);
+    if (sErr) throw sErr;
+  }
+  const { error } = await db.from('dossiers').delete().eq('id', dosId);
+  if (error) throw error;
+  verwijderStoragePaden(paden, dosId);
+  return true;
 }
 
 // Fire-and-forget: een mislukte opruiming mag het verwijderen niet blokkeren,
@@ -10952,19 +10992,6 @@ async function laadDossiers() {
     }).join('');
 
     // ── Event delegation ──────────────────────────────────
-    // Expand/collapse oudere versies
-    el.querySelectorAll('.dos-expand-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const sectie = document.getElementById(`oudere-${btn.dataset.dosId}`);
-        if (!sectie) return;
-        const open = sectie.style.display === 'none';
-        sectie.style.display = open ? '' : 'none';
-        btn.innerHTML = open
-          ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`
-          : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-      });
-    });
     // Dossiernaam opslaan (contenteditable div)
     el.querySelectorAll('.dos-naam-titel').forEach(div => {
       div.addEventListener('blur', () => slaDosnamenOp(div.dataset.dosId));
@@ -11016,32 +11043,9 @@ async function laadDossiers() {
       btn.addEventListener('click', async e => {
         e.stopPropagation();
         const dos = alleDosCacheData.find(d => d.id === btn.dataset.dosId);
-        if (!confirm(`Dossier "${dos?.naam || 'dit dossier'}" verwijderen?\n\nDe analyses worden niet verwijderd — ze verschijnen daarna onder losse analyses.`)) return;
         try {
-          const { error } = await db.from('dossiers').delete().eq('id', btn.dataset.dosId);
-          if (error) throw error;
-          laadDossiers();
+          if (await verwijderDossierMetAnalyses(btn.dataset.dosId, dos?.naam)) laadDossiers();
         } catch (err) { alert('Verwijderen mislukt: ' + err.message); }
-      });
-    });
-    // Versie verwijderen (oudere versies)
-    el.querySelectorAll('.versie-verwijder-btn').forEach(btn => {
-      btn.addEventListener('click', async e => {
-        e.stopPropagation();
-        if (!confirm('Deze versie verwijderen?')) return;
-        btn.textContent = '…'; btn.disabled = true;
-        try {
-          // Paden ophalen vóór het verwijderen: daarna is het rapport er niet meer.
-          const _paden = await storagePadenVanScreening(btn.dataset.versieId);
-          const { error } = await db.from('screeningen').delete().eq('id', btn.dataset.versieId);
-          if (error) throw error;
-          if (app.screeningId === btn.dataset.versieId) closeSplitView();
-          btn.closest('.dos-oud-kaart').remove();
-          verwijderStoragePaden(_paden, btn.dataset.versieId);
-        } catch (err) {
-          alert('Verwijderen mislukt: ' + err.message);
-          btn.textContent = '🗑'; btn.disabled = false;
-        }
       });
     });
     // Gear-knop: dossier bewerken (wizard in bewerkingsmodus)
@@ -11259,10 +11263,8 @@ document.getElementById('dossiersOverzichtBtn').addEventListener('click', gaTeru
 document.getElementById('dossierVerwijderBtn').addEventListener('click', async () => {
   if (!app.dossierId) return;
   const naam = app.dossierNaam || 'dit dossier';
-  if (!confirm(`Dossier "${naam}" verwijderen?\n\nDe analyses in dit dossier worden niet verwijderd — ze verschijnen daarna onder "Losse analyses".`)) return;
   try {
-    const { error } = await db.from('dossiers').delete().eq('id', app.dossierId);
-    if (error) throw error;
+    if (!await verwijderDossierMetAnalyses(app.dossierId, naam)) return;
     schakelRechts('rp-home');
     app.dossierId  = null;
     app.dossierNaam = null;

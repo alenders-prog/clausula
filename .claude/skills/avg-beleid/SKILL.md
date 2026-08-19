@@ -110,6 +110,25 @@ indelingen — en neemt de map `{screeningId}/` als fallback voor oudere records
 > `storage.list(versieId)` en liet dus alles onder het organisatie-id staan —
 > 336 verweesde PDF's met persoonsgegevens tegenover 111 screenings.
 
+**Drie routes waarlangs bestanden verdwijnen — alle drie moeten opruimen.**
+Op 19 augustus 2026 bleek dat er maar één werkte, wat de tweede bron van die 336
+verweesde PDF's was:
+
+| Route | Waar | Opruiming |
+|---|---|---|
+| Analyse verwijderen in een geopend dossier | `toonDossierDetail()` | `storagePadenVanScreening` |
+| Dossier verwijderen (overzicht én detail) | `verwijderDossierMetAnalyses()` | `storagePadenVanDossier` |
+| Analyse vervangen door een nieuwe | update-tak van `opslaan()` | oude paden minus nieuwe |
+
+> Bij het vervangen geldt een voorwaarde: ruim alleen op als het **nieuwe** rapport
+> zelf `_document_bestanden` heeft. Een tussentijdse opslag zonder bestandenlijst
+> zou anders het verschil als "verlopen" zien en alles wissen.
+
+> Het verwijderen van een dossier zette `dossier_id` vroeger op `null` (de
+> foreign key is `ON DELETE SET NULL`) met de belofte dat de analyse onder "losse
+> analyses" zou verschijnen. Dat scherm bestaat niet — de analyse werd onvindbaar
+> en hield zijn PDF's. Sindsdien gaan de analyses mee.
+
 **Metadata** (`rapport._document_bestanden`): `[{ pad, naam }]`
 - `pad` = storage-pad (geen persoonsdata)
 - `naam` = oorspronkelijke bestandsnaam (voor UI-weergave + file-matching)
