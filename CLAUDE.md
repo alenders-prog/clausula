@@ -41,6 +41,7 @@ Het `.env` bestand staat in `.gitignore` — nooit committen.
 |---|---|
 | `index.html` | Volledige frontend (upload, rapport, opgeslagen analyses, concepten) |
 | `api/analyseer.js` | POST — document analyseren via Claude, SSE-streaming |
+| `api/prompts/` | De screening-prompts, apart van de orkestratie — zie hieronder |
 | `api/claude-edge.js` | POST — Claude proxy (concept-generatie, vraag-antwoord), SSE |
 | `api/adobe-start.js` | POST — PDF uploaden naar Adobe PDF Services, start export-job |
 | `api/adobe-result.js` | POST — Adobe export-job status opvragen / DOCX ophalen |
@@ -90,6 +91,29 @@ Een PostToolUse-hook draait deze controle automatisch bij het bewerken van besta
 met `legal_chunk`, `wettekst` of `kennisbank` in de naam. Wijzigingen die je
 rechtstreeks in het dashboard doet laten geen bestand achter, dus die vangt de hook
 niet — daarvoor geldt de regel hierboven.
+
+## Screening-prompts staan in `api/prompts/`
+
+Sinds 20 augustus 2026 staan de prompts niet meer in `api/analyseer.js` — dat
+bestand was voor 84% prompttekst, waardoor elke promptwijziging hetzelfde bestand
+raakte als elke logicawijziging en er dus niets aan te koppelen viel.
+
+| Bestand | Inhoud |
+|---|---|
+| `prompts/gedeeld.js` | Ernst-criteria, verificatieplicht, pseudonimiseringsnota — samen één gecachet blok |
+| `prompts/structuur.js` | System prompt voor volledigheid + MfN-score |
+| `prompts/bevindingen.js` | System prompt voor juridisch, balans, grammatica, conflicten |
+| `prompts/cross-doc.js` | System prompt voor inconsistenties tussen documenten |
+| `prompts/consolidatie.js` | Deduplicatiestap (Haiku) |
+| `prompts/fragmenten.js` | Voorwaardelijke blokken: notities en checklijsten per documenttype |
+
+**Na elke wijziging hier: `npm run test:eval` draaien** en vergelijken met de
+baseline (`docs/auto-test-setup.md`, punt D10). Een PostToolUse-hook herinnert
+daaraan; `api/_consistentie.js` valt onder dezelfde regel.
+
+> **Raak witruimte en spelling niet zonder reden aan.** De gedeelde blokken worden
+> byte-exact door Anthropic gecachet — elke wijziging kost eenmalig een volledige
+> cache-miss op alle lopende analyses.
 
 ## Nieuwe logica gaat naar `src/`
 

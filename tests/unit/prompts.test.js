@@ -1,0 +1,138 @@
+/**
+ * Unit tests — api/prompts/
+ *
+ * De prompts zijn op 20 augustus 2026 uit api/analyseer.js gehaald (84% van dat
+ * bestand was prompttekst). Doel: een promptwijziging is nu zichtbaar in een diff
+ * op een eigen pad, zodat er een controle aan gekoppeld kan worden.
+ *
+ * Deze tests bewaken twee dingen die stil kunnen breken:
+ *   1. De blokken zijn niet leeg of half afgekapt bij het verplaatsen.
+ *   2. De samenstelling van het gedeelde blok blijft in de juiste volgorde —
+ *      die volgorde bepaalt de cache-sleutel bij Anthropic.
+ */
+
+import { describe, it, expect } from 'vitest';
+import {
+  ERNST_CRITERIA, VERIFICATIEPLICHT, bouwPseudonimiseringNota, bouwStabielGedeeld,
+} from '../../api/prompts/gedeeld.js';
+import { bouwSysStructuur }   from '../../api/prompts/structuur.js';
+import { bouwSysBevindingen } from '../../api/prompts/bevindingen.js';
+import { bouwSysCrossDoc }    from '../../api/prompts/cross-doc.js';
+import { SYS_CONSOLIDATIE }   from '../../api/prompts/consolidatie.js';
+import {
+  bouwAnderDocsNota, bouwRoepnamenNota, bouwJuridischeChecks,
+  bouwHvChecks, bouwIprChecks, bouwMfnInstructie,
+} from '../../api/prompts/fragmenten.js';
+
+const LEEG = { docTypLabel: '', anderDocsNota: '', roepnamenNota: '', mfnInstructie: '',
+               heeftMfn: false, mfnElemList: [], juridischeChecks: '', hvChecks: '',
+               iprChecks: '', docTypenLabel: '', wetTekst: '' };
+
+describe('gedeelde promptblokken', () => {
+  it('zijn niet leeg en niet afgekapt', () => {
+    expect(ERNST_CRITERIA.length).toBeGreaterThan(500);
+    expect(VERIFICATIEPLICHT.length).toBeGreaterThan(3000);
+    expect(SYS_CONSOLIDATIE.length).toBeGreaterThan(500);
+  });
+
+  it('bevatten de regels die vandaag zijn toegevoegd', () => {
+    // De verificatieplicht dekt sinds 19-08-2026 ook berekende en normatieve claims.
+    expect(VERIFICATIEPLICHT).toContain('VERIFICATIEPLICHT BIJ BEREKENDE EN NORMATIEVE CLAIMS');
+    expect(VERIFICATIEPLICHT).toContain('SAMENHANG TUSSEN KOP, BEVINDING EN PASSAGE');
+  });
+
+  it('zetten het gedeelde blok in de vaste volgorde — die bepaalt de cache-sleutel', () => {
+    const blok = bouwStabielGedeeld('20-08-2026');
+    const iNota = blok.indexOf(bouwPseudonimiseringNota('20-08-2026').slice(0, 40));
+    const iVerif = blok.indexOf(VERIFICATIEPLICHT.slice(0, 40));
+    const iErnst = blok.indexOf(ERNST_CRITERIA.slice(0, 40));
+    expect(iNota).toBeGreaterThanOrEqual(0);
+    expect(iVerif).toBeGreaterThan(iNota);
+    expect(iErnst).toBeGreaterThan(iVerif);
+  });
+
+  it('zet de datum in de pseudonimiseringsnota', () => {
+    expect(bouwPseudonimiseringNota('20-08-2026')).toContain('20-08-2026');
+  });
+
+  it('is stabiel bij dezelfde datum — anders mist elke call de cache', () => {
+    expect(bouwStabielGedeeld('20-08-2026')).toBe(bouwStabielGedeeld('20-08-2026'));
+  });
+});
+
+describe('system prompts per call', () => {
+  it('leveren gevulde tekst op, ook met lege optionele blokken', () => {
+    expect(bouwSysStructuur(LEEG).length).toBeGreaterThan(2000);
+    expect(bouwSysBevindingen(LEEG).length).toBeGreaterThan(8000);
+    expect(bouwSysCrossDoc(LEEG).length).toBeGreaterThan(2000);
+  });
+
+  it('verwerken het documenttype-label', () => {
+    expect(bouwSysStructuur({ ...LEEG, docTypLabel: 'Ouderschapsplan' })).toContain('Ouderschapsplan');
+    expect(bouwSysBevindingen({ ...LEEG, docTypLabel: 'Ouderschapsplan' })).toContain('Ouderschapsplan');
+  });
+
+  it('voegen de MfN-instructie alleen toe als er een MfN-score is', () => {
+    const zonder = bouwSysStructuur({ ...LEEG, heeftMfn: false });
+    const met = bouwSysStructuur({
+      ...LEEG, heeftMfn: true, mfnElemList: ['a', 'b', 'c'],
+      mfnInstructie: '\n\n**mfn_score** — Beoordeel op MfN-vereisten.',
+    });
+    expect(met).toContain('mfn_score');
+    expect(met).toContain('EXACT 3 items');
+    expect(zonder).not.toContain('EXACT');
+  });
+
+  it('nemen de meegegeven wetteksten op in de cross-doc prompt', () => {
+    const p = bouwSysCrossDoc({ ...LEEG, wetTekst: '[Art. 1:94 BW] beperkte gemeenschap' });
+    expect(p).toContain('[Art. 1:94 BW] beperkte gemeenschap');
+  });
+
+  it('laten optionele checkblokken weg als ze leeg zijn', () => {
+    // Lege blokken mogen geen kale kopjes of dubbele witregels achterlaten.
+    expect(bouwSysBevindingen(LEEG)).not.toContain('undefined');
+    expect(bouwSysStructuur(LEEG)).not.toContain('undefined');
+    expect(bouwSysCrossDoc(LEEG)).not.toContain('undefined');
+  });
+});
+
+describe('voorwaardelijke fragmenten', () => {
+  it('geven een lege string als de voorwaarde niet geldt', () => {
+    // Belangrijk: leeg, niet undefined. Een undefined belandt als "undefined"
+    // in de prompt en instrueert het model met een woord dat er niet hoort.
+    expect(bouwAnderDocsNota([])).toBe('');
+    expect(bouwRoepnamenNota([])).toBe('');
+    expect(bouwRoepnamenNota(null)).toBe('');
+    expect(bouwHvChecks(false)).toBe('');
+    expect(bouwIprChecks('ouderschapsplan')).toBe('');
+    expect(bouwMfnInstructie({ heeftMfn: false, docTypLabel: '', mfnElemList: [] })).toBe('');
+  });
+
+  it('vervoegt de notitie over meegeleverde documenten correct', () => {
+    expect(bouwAnderDocsNota(['Ouderschapsplan'])).toContain('is ook aangeleverd');
+    expect(bouwAnderDocsNota(['Ouderschapsplan', 'Convenant'])).toContain('zijn ook aangeleverd');
+  });
+
+  it('noemt elke roepnaam met de bijbehorende volledige naam', () => {
+    const n = bouwRoepnamenNota([{ nepVoornaam: 'Thomas', nepVolledig: 'Thomas Bergman' }]);
+    expect(n).toContain('"Thomas" als roepnaam van "Thomas Bergman"');
+  });
+
+  it('kiest de checklijst op documenttype, met een terugval', () => {
+    expect(bouwJuridischeChecks('ouderschapsplan')).toContain('HOOFDVERBLIJFPLAATS');
+    expect(bouwJuridischeChecks('convenant')).toContain('PENSIOENVEREVENING');
+    // Bijlagen en onbekende types krijgen de algemene instructie, geen lege string.
+    expect(bouwJuridischeChecks('bijlage')).toContain('juridische juistheid');
+  });
+
+  it('geeft de IPR-checks alleen bij een convenant', () => {
+    expect(bouwIprChecks('convenant')).toContain('INTERNATIONAAL PRIVAATRECHT');
+  });
+
+  it('nummert de MfN-elementen en telt ze', () => {
+    const m = bouwMfnInstructie({ heeftMfn: true, docTypLabel: 'Convenant', mfnElemList: ['x', 'y'] });
+    expect(m).toContain('Score_totaal = 2');
+    expect(m).toContain('1. x');
+    expect(m).toContain('2. y');
+  });
+});

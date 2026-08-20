@@ -16,6 +16,10 @@
             "type": "command",
             "command": "node .claude/hooks/kennisbank-tag-check.js",
             "statusMessage": "Kennisbank-tags controleren..."
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/prompt-eval-hint.js"
           }
         ]
       }

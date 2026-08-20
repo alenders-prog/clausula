@@ -32,6 +32,17 @@ import { verifieerJWT } from './_auth.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
 } from './_consistentie.js';
+// De prompts staan apart in api/prompts/. Wijzigingen daar raken de screening-
+// kwaliteit en horen gevolgd te worden door `npm run test:eval`.
+import { ERNST_CRITERIA, VERIFICATIEPLICHT, bouwPseudonimiseringNota } from './prompts/gedeeld.js';
+import { bouwSysStructuur }   from './prompts/structuur.js';
+import { bouwSysBevindingen } from './prompts/bevindingen.js';
+import { bouwSysCrossDoc }    from './prompts/cross-doc.js';
+import { SYS_CONSOLIDATIE }   from './prompts/consolidatie.js';
+import {
+  bouwAnderDocsNota, bouwRoepnamenNota, bouwJuridischeChecks,
+  bouwHvChecks, bouwIprChecks, bouwMfnInstructie,
+} from './prompts/fragmenten.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -451,14 +462,10 @@ export default async function handler(req, res) {
       const andereDocs = effectiefHoofd
         .filter(d => d.bestandsnaam !== doc.bestandsnaam)
         .map(d => d.type === 'ouderschapsplan' ? 'Ouderschapsplan' : 'Echtscheidingsconvenant');
-      const anderDocsNota = andereDocs.length
-        ? `\nMEEGELEVERDE ANDERE DOCUMENTEN: ${andereDocs.join(', ')} ${andereDocs.length > 1 ? 'zijn' : 'is'} ook aangeleverd en word${andereDocs.length > 1 ? 'en' : 't'} parallel apart geanalyseerd. Rapporteer NOOIT dat een van deze documenten "niet meegeleverd is" of "als bijlage ontbreekt".`
-        : '';
+      const anderDocsNota = bouwAnderDocsNota(andereDocs);
 
       // Roepnamen die in de bestandsnaam/dossiernaam gevonden zijn maar afwijken van de formele naam
-      const roepnamenNota = Array.isArray(roepnamen) && roepnamen.length
-        ? `\nROEPNAMEN: De volgende partijen worden mogelijk aangeduid met een roepnaam die afwijkt van hun formele naam:${roepnamen.map(r => `\n- "${r.nepVoornaam}" als roepnaam van "${r.nepVolledig}"`).join('')}\nControleer voor elk of het document de roepnaam formeel introduceert (bijv. "verder te noemen als X" of vergelijkbaar). Indien de roepnaam NERGENS formeel omschreven is maar WEL elders in het documentlichaam (buiten de introductiezin) gebruikt wordt: meld dit als LAAG-issue. Indien de roepnaam NERGENS in het document voorkomt (ook niet in het lichaam), is er geen issue. Meld NOOIT een roepnaam-issue op basis van het bestaan van de roepnaam buiten het document.`
-        : '';
+      const roepnamenNota = bouwRoepnamenNota(roepnamen);
 
       const tmplType    = docType === 'ouderschapsplan' ? 'ouderschapsplan' : 'convenant';
       const checklist   = (templatesPer[tmplType] || []).filter(
@@ -466,61 +473,14 @@ export default async function handler(req, res) {
       );
       const checklistTekst = checklist.map(c => `- ${c.section_name}: ${c.instructions ?? ''}`).join('\n');
 
-      const juridischeChecks = docType === 'ouderschapsplan' ? `
-Controleer specifiek op:
-1. HOOFDVERBLIJFPLAATS — Wettelijk verplicht (art. 826 Rv).
-2. ZORGREGELING — Omgangstijden specifiek (welke dagen, weekenden, vakanties, feestdagen)?
-3. INFORMATIEPLICHT — Opgenomen (art. 1:377b BW)?
-4. KINDERALIMENTATIE — Tremanormen of gemotiveerde afwijking (art. 1:404 BW)?
-5. GEZAG — Gezamenlijk gezag bevestigd of afwijking gevraagd (art. 1:247 BW)?
-6. GESCHILLENREGELING — Escalatiebepaling of mediationclausule (art. 1:253a BW)?
-7. INDEXERING — Kinderalimentatie jaarlijks geïndexeerd?`
-        : docType === 'convenant' ? `
-Controleer specifiek op:
-1. PARTNERALIMENTATIE — Bedrag of nihilbeding? Bij nihilbeding: bewust en geïnformeerd (art. 1:159 BW)? Termijn max 12 jaar (art. 1:157 BW)? Indexering?
-2. KINDERALIMENTATIE — Tremanormen of gemotiveerde afwijking (art. 1:404 BW)? LET OP: als het convenant expliciet verwijst naar een bijgevoegd of apart opgemaakt ouderschapsplan voor alle kinderafspraken, is dat een correcte en gangbare opzet — flag dit DAN NIET als ontbrekend. De kinderalimentatie hoeft in dat geval niet ook nog in het convenant herhaald te worden.
-3. PENSIOENVEREVENING — WVPS 50/50 of schriftelijke afwijking (WVPS art. 2 en 5)?
-4. WONING — Leverings-/passeerdatum? Hypotheek overname of verkoop? Ontslag aansprakelijkheid?
-5. BELASTING — Fiscaal partnerschap tot welke datum? Aanslagen/teruggaven verdeeld?
-6. VERMOGEN — Huwelijksgemeenschap of verrekenbeding volledig afgewikkeld (art. 1:94 en 1:121 BW)?
-7. SCHULDEN — Wie neemt welke schulden over?
-NOOIT als inconsistentie of conflict aanmerken: het hanteren van een gemaximeerd netto gezinsinkomen (bijv. € 7.500,-/maand per de Alimentatienormen/Trema) als grondslag voor kinderalimentatieberekeningen, terwijl het werkelijke (hogere) netto gezinsinkomen geldt als grondslag voor partneralimentatie. Dit is de standaard Trema-methode en is juridisch correct — ook als beide grondslagen in hetzelfde document naast elkaar staan.`
-        : `\nControleer op juridische juistheid, volledigheid en consistentie.`;
+      const juridischeChecks = bouwJuridischeChecks(docType);
 
-      const hvChecks = heeftHV ? `
-
-HUWELIJKSE VOORWAARDEN AANWEZIG — kruiscontroles uitvoeren:
-HV-A. STELSEL — Benoem het vermogensrechtelijk stelsel (koude uitsluiting / beperkte gemeenschap / verrekenbeding).
-  Bij KOUDE UITSLUITING: gezamenlijk eigendom? Ten onrechte "huwelijksgemeenschap"? WVPS geldt ook bij koude uitsluiting.
-  Bij VERREKENBEDING: jaarlijks nagekomen? Finale verrekening of kwijtschelding opgenomen?
-HV-B. UITSLUITINGSCLAUSULES — Erfenissen/schenkingen (art. 1:94 lid 3 BW) correct buiten verdeling?
-HV-C. REFERENTIE — Verwijst convenant expliciet naar huwelijkse voorwaarden (datum en notaris)?` : '';
+      const hvChecks = bouwHvChecks(heeftHV);
 
       // IPR-checks — alleen bij convenant; detectie op basis van documentinhoud
-      const iprChecks = docType === 'convenant' ? `
+      const iprChecks = bouwIprChecks(docType);
 
-IPR — INTERNATIONAAL PRIVAATRECHT (verplicht bij convenant):
-Detecteer of het document een internationaal element bevat. Signalen: buitenlandse nationaliteit van één of beide partijen, huwelijk in het buitenland gesloten, woonhistorie buiten Nederland ná het huwelijk, of vermogen in het buitenland (onroerend goed, bankrekening, pensioen, onderneming).
-
-Als EEN OF MEER signalen aanwezig zijn — check de vier punten hieronder. Als GEEN signaal → maak géén IPR-issues.
-
-IPR-A. TOEPASSELIJK RECHT — Vermeldt het convenant welk recht het huwelijksvermogensregime beheerst (bijv. "Op grond van EU-Verordening 2016/1103 / Haags Huwelijksvermogensverdrag 1978 is het recht van [land] van toepassing")?
-  → Niet vermeld: volledigheid-issue (midden). Signalering: "Internationaal element aanwezig maar toepasselijk huwelijksvermogensrecht niet benoemd in het convenant."
-
-IPR-B. WAGONSTELSEL — Alleen relevant bij huwelijken gesloten 1-9-1992 t/m 28-1-2019 (Haags Verdrag 1978). Als uit het document buitenlandse woonhistorie na het huwelijk blijkt: is vastgesteld of het wagonstelsel (automatische regimewijziging na 10 jaar verblijf in ander land, of vestiging in nationaliteitsland) tot een regimewisseling heeft geleid?
-  → Niet vastgesteld: volledigheid-issue (midden). Signalering: "Buitenlandse woonhistorie tijdens tijdvak wagonstelsel (1992–2019): convenant vermeldt niet of automatische regimewijziging heeft plaatsgevonden."
-
-IPR-C. VERDELING OP VERKEERD STELSEL — Wordt de verdeling berekend op de Nederlandse algehele of beperkte gemeenschap van goederen, terwijl het toepasselijke recht een ander stelsel aanwijst of aannemelijk maakt?
-  → Ja: juridisch-issue (hoog). Signalering: "Verdeling gebaseerd op Nederlands recht terwijl een internationaal element duidt op toepasselijkheid van buitenlands huwelijksvermogensrecht — dit moet vóór ondertekening worden vastgesteld."
-
-IPR-D. BUITENLANDS PENSIOEN — Is er een buitenlands pensioen vermeld zonder concrete afspraak over verevening of afstand?
-  → Ja: volledigheid-issue (midden). Signalering: "Buitenlands pensioen vermeld zonder regeling: de WVPS is niet automatisch van toepassing op buitenlandse pensioenrechten — een expliciete afspraak is vereist."` : '';
-
-      const mfnInstructie = heeftMfn ? `
-
-**mfn_score** — Beoordeel op MfN-vereisten. Score_aanwezig = aantal "aanwezig". Score_totaal = ${mfnElemList.length}.
-MfN-VEREISTE ELEMENTEN (${docTypLabel}):
-${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
+      const mfnInstructie = bouwMfnInstructie({ heeftMfn, docTypLabel, mfnElemList });
 
       // ── Documenten opsplitsen: hoofdtekst vs. bijlagen + andere hoofddocs (context) ──
       // contextBlok en stabielGedeeld zijn identiek voor alle 3 calls van hetzelfde document
@@ -541,186 +501,27 @@ ${mfnElemList.map((e, i) => `${i + 1}. ${e}`).join('\n')}` : '';
 
       // Gedeeld regelsblok — identiek voor alle 3 calls + heranalyse → gecached in user-content
       // (voorheen in elke system prompt herhaald → aparte cache-entries per call-type)
-      const ernstCriteria =
-`Ernst-criteria (verplicht toepassen — wees terughoudend met 'hoog'):
-- hoog: reserveer dit uitsluitend voor evidente wettelijke overtreding of volstrekte onuitvoerbaarheid; het document kan zo NIET worden gepasseerd of vastgelegd (bijv. verplichte WVPS-afstand volledig afwezig zonder vervangende regeling, nihilbeding kinderalimentatie voor minderjarigen zonder draagkrachtberekening).
-- midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
-- laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
+      const ernstCriteria = ERNST_CRITERIA;;
 
       // Waarschuwing over pseudonimisering — voorkomt valse format-validatiefouten.
       // Persoonsnamen worden als nep-namen verstuurd (bijv. "Thomas Bergman") — niet als
       // [PERSOON_A]-placeholders — zodat Claude ze als gewone tekst behandelt en geen valse
       // dubbele-naam-alerts genereert door placeholder-herhaling in zijn eigen output.
-      const pseudonimiseringNota =
-`PSEUDONIMISERING — VERPLICHTE UITSLUITINGSREGEL:
-Het document is vóór verzending automatisch pseudonimiseerd. Adressen, postcodes, woonplaatsen en andere PII zijn vervangen door placeholders:
-  [ADRES]      → straatadres incl. huisnummer (bijv. "Grotestraat 140")
-  [WOONPLAATS] → woonplaatsnaam (bijv. "Almelo")
-  [POSTCODE]   → Nederlandse postcode
-  [BSN] / [TEL] / [EMAIL] → overige persoonsgegevens
-  [IBAN-1], [IBAN-2], … → rekeningnummers (automatisch genummerd; hetzelfde nummer = zelfde placeholder)
-GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
-- Maak GEEN issue aan als een BSN, telefoonnummer of e-mailadres niet het verwachte formaat heeft.
-- Maak GEEN issue over een ontbrekende of generieke woonplaats of adres — het [ADRES]/[WOONPLAATS] staat WEL in het originele document.
-- Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau.
-Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — schrijf altijd [WOONPLAATS] resp. [ADRES].
-
-HUIDIGE DATUM: ${vandaag}. Gebruik deze datum bij alle temporele beoordelingen — bijv. of een peildatum, ondertekeningsdatum of ingangsdatum in het verleden of de toekomst ligt. Rapporteer een datum NOOIT als "in de toekomst" als die datum eerder is dan de huidige datum.`;
+      const pseudonimiseringNota = bouwPseudonimiseringNota(vandaag);;
 
       // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims maar behoudt echte fouten
-      const verificatieplicht =
-`VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
-Voordat je rapporteert dat iets "ontbreekt", "niet aanwezig is" of "niet zichtbaar is":
-1. Doorzoek de VOLLEDIGE documenttekst actief op het beweerde ontbrekende element.
-2. Bij INTERNE verwijzingen (bijv. "de in artikel 4.1.1 vermelde ...", "zie punt 21", "zie artikel 3.2"):
-   Zoek of het gerefereerde nummer ELDERS in het document voorkomt — als sectietitel, koptekst, nummeringsprefix van een lid of sub-artikel (bijv. "4.1.1" of "4.1.1." aan het begin van een alinea of opsommingspunt), of andere onderdelen van de documentstructuur BUITEN de verwijzingstekst zelf.
-   - Artikelnummer komt ERGENS ANDERS in het document voor → rapporteer GEEN issue.
-   - Bij TWIJFEL of het artikel ergens gedefinieerd is → rapporteer GEEN issue.
-   - Alleen bij ABSOLUTE ZEKERHEID dat het nummer nergens als definitie, sectie of genummerd lid voorkomt → rapporteer een issue.
-2b. Bij EXTERNE verwijzingen naar een ander document (bijv. "zie het ouderschapsplan", "conform het convenant"):
-    Dat andere document wordt apart geanalyseerd. Maak GEEN issue over ontbrekende inhoud daarin —
-    rapporteer hooguit als 'laag' dat het referentiedocument als bijlage ontbreekt.
-   OPGELET: het feit dat "4.1.1" in de verwijzingstekst zelf staat ("de in artikel 4.1.1 vermelde...") telt NIET als bewijs dat het artikel bestaat. Zoek naar een APARTE definitieplek.
-3. SECTIENUMMERING — ABSOLUTE REGEL: Als het document aantoonbaar doorlopend genummerde secties heeft
-   (bv. "1. Ouderlijk gezag", "2. Woon- en verblijfplaats", "3. Identiteitsbewijzen"…):
-   a. Ga er dan ALTIJD vanuit dat hogere sectienummers (bv. "punt 21", "artikel 15") eveneens bestaan.
-   b. Maak NOOIT een issue over een "ontbrekend" of "niet-aantoonbaar" puntgetal.
-   c. Maak NOOIT een issue over een "onduidelijke verwijzing" naar een sectienummer — als het document
-      genummerd is, zijn verwijzingen als "punt 21 Financiële afspraken" per definitie correct.
-   d. Maak NOOIT een issue dat de nummering "niet zichtbaar" is of dat een sectienummer "niet als
-      koptekst is opgenomen" — tekst-extractie kan sectienummers losmaken van hun koptekst. Dat is
-      een extractie-artefact, GEEN documentfout.
-   e. Enige uitzondering: als NERGENS in het document ook maar één sectienummer zichtbaar is (dus ook
-      punt 1, 2, 3 ontbreken volledig), dan mag je de nummering in twijfel trekken.
-4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat.
-
-VERIFICATIEPLICHT BIJ BEREKENDE EN NORMATIEVE CLAIMS:
-Deze plicht gold lang alleen voor "dit ontbreekt"-claims. Ze geldt evengoed voor beweringen die
-op een berekening of op een norm steunen.
-1. REKEN VOOR. Beweer je dat bedragen, percentages of termijnen niet kloppen, zet de som dan
-   uit in de bevinding: welke getallen, welke bewerking, welke uitkomst.
-2. SPREEKT DE UITKOMST JE BEWERING TEGEN, DAN VERVALT HET ISSUE. Rapporteer nooit een
-   overschrijding, tegenstrijdigheid of schending die je eigen berekening niet oplevert.
-   Blijft er een andere, wél onderbouwde observatie over (bijv. "de percentages zijn
-   ongebruikelijk en niet gemotiveerd"), rapporteer dán die — met een titel die daarbij past.
-3. NORMCLAIMS: beweer alleen dat een grens of norm wordt overschreden als die grens
-   daadwerkelijk in de aangeleverde kennisbank of wettekst staat. Een percentage dat afwijkt
-   van een standaardwaarde is een afwijking, geen overtreding.
-
-SAMENHANG TUSSEN KOP, BEVINDING EN PASSAGE:
-- 'onderwerp': benoem de exacte fout zoals die uit de bevinding blijkt.
-- 'bevinding': beschrijf waarom DEZE passage een probleem is — niet een andere passage,
-  niet een ander onderwerp.
-NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onderwerp Y.
-NOOIT: een kop die meer beweert dan de bevinding aantoont.`;
+      const verificatieplicht = VERIFICATIEPLICHT;;
 
       // Gecombineerd: één blok → één cache-entry voor alle 3 calls + heranalyse
       const stabielGedeeld = `${pseudonimiseringNota}\n\n${verificatieplicht}\n\n${ernstCriteria}`;
 
       // System prompts: alleen call-specifieke instructies (gedeelde regels in stabielGedeeld)
-      const sysStructuur =
-`Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert.
-DOCUMENTTYPE: ${docTypLabel}${anderDocsNota}${roepnamenNota}
-${mfnInstructie}
-
-**samenvatting** — Beschrijf de feitelijke situatie van partijen op basis van het document. Behandel altijd de volgende thema's, ook als er geen issues over zijn:
-- Gezamenlijke of eigen woning: aanwezig, te verdelen, of afwezig (partijen hebben geen gezamenlijke woning)?
-- Kinderen: aantal en voornamen met leeftijd in jaren, bijv. "één kind: Jochem (14)" — geen achternamen, geen geboortedatums, geen plaatsnamen.
-- Onderneming of ZZP: aanwezig bij welke partij, of afwezig?
-- Huwelijksvermogensregime: gemeenschap van goederen, huwelijkse voorwaarden (met jaar indien vermeld), of onbekend?
-- Alimentatie: kinderalimentatie (bedrag en ontvanger), partneralimentatie (bedrag en duur), of nihil/afwezig?
-- Overige bijzondere vermogensbestanddelen: pensioen, schulden, spaarrekeningen, beleggingen — alleen vermelden als ze in het document staan.
-Schrijf dit als lopende tekst van 3–8 zinnen. De samenvatting dient als feitenbasis voor de mediator — wees volledig en concreet.
-
-**issues (volledigheid)** — Rapporteer secties die ontbreken OF aanwezig zijn maar inhoudelijk onvolledig. Dimensies altijd ["volledigheid"].
-- ONTBREKEND: een verplichte of gebruikelijke sectie staat geheel niet in het document.
-- ONVOLLEDIG: een sectie is aanwezig maar mist essentiële details die nodig zijn voor uitvoerbaarheid.
-  Voorbeelden: vakantieregelingen zonder concrete wisseltijden per feestdag; zorgregeling zonder specificatie van welke weekenden; alimentatie zonder ingangsdatum of indexering.
-- NIET INGEVULD (ALTIJD volledigheid, NOOIT juridisch of balans): een bedrag, datum, naam of andere waarde is leeggelaten of bevat een sjabloonplaatshouder. Herkenbaar aan: "€ ,–"; "€ __"; "____"; "*OF"; "te noemen __"; streepjes of puntjes als invulruimte. Dit is ALTIJD volledigheid — ook als het om een juridisch verplicht bedrag gaat (bijv. alimentatie, afkoopsom). De reden: het is een invulfout, geen juridische fout in de inhoud.
-  Uitgebreide plaatshouder-patronen (ook altijd volledigheid):
-  - Onlogisch rekeningnummer: een accountnummer met duidelijk aaneensluitende of herhalende cijfers (bijv. 010203040, 0102030405, 123456789, 0000000000) is een testgetal — geen echt banknummer. Rapporteer als niet-ingevuld rekeningnummer.
-  - Onlogische datum: een datum met jaar vóór 1900 of na 2099, of een duidelijk onmogelijke datum (bijv. 01-01-0001, 00-00-0000) is een plaatshouder. Rapporteer als niet-ingevulde datum.
-- ONVOLLEDIGE ZIN (ALTIJD volledigheid, NOOIT juridisch): een zin die wél aanwezig is maar geen concrete afspraak, verplichting of bepaling bevat. Herkenbaar aan: de zin beschrijft een onderwerp of noemt een thema, maar zegt niet wat de partijen zijn overeengekomen. Voorbeeld: "Afspraken over een betaling of een splitsing van het rentecontract." — er staat geen afspraak, alleen een aankondiging. Dit is ALTIJD volledigheid: de inhoud ontbreekt. NOOIT juridisch, ook niet als het onderwerp juridisch relevant is.
-- HANDTEKENINGEN — drie strikte regels:
-  1. De sectie "Ondergetekenden" of "Partijen" bovenaan het document is de partij-INTRODUCTIE (naam, geboortedatum, adres, "hierna te noemen"). Dit is NOOIT een handtekeningenblok. Verwar deze sectie nooit met een ondertekeningsruimte.
-  2. Een handtekening-issue mag alleen worden gerapporteerd als de ondertekeningsruimte onderaan het document (herkenbaar aan tekst als "Aldus overeengekomen", "Handtekening:", lege signeerregels, of de namen van partijen als slotblok) ontbreekt of geen handtekeningen bevat. De 'passage' moet altijd uit dit slotblok komen — nooit uit de partij-introductie.
-  3. Als het document een CONCEPT-watermerk bevat of anderszins als concept is aangeduid: ontbrekende handtekeningen zijn LAAG (concepten worden pas bij de definitieve versie ondertekend). Rapporteer dit NOOIT als midden of hoog.
-- Bij twijfel: geen issue. Secties die aanwezig én voldoende uitgewerkt zijn NIET rapporteren.${heeftMfn ? `\n- mfn_score.elementen MOET EXACT ${mfnElemList.length} items bevatten.` : ''}
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de voorafgaande zin als context). NOOIT een persoonsomschrijving of naamsdefinitie als passage gebruiken als de fout elders in het document staat. Leeg laten als een sectie volledig ontbreekt.`;
+      const sysStructuur = bouwSysStructuur({ docTypLabel, anderDocsNota, roepnamenNota, mfnInstructie, heeftMfn, mfnElemList });;
 
       // Gecombineerde prompt voor alle niet-structuur dimensies — één call ipv twee.
       // Voordeel: Claude ziet het volledige document in één context → minder kans op overlap
       // of tegenspraak tussen juridisch/balans-call en grammatica/conflicten-call.
-      const sysBevindingen =
-`Je bent een ervaren familierechtjurist die een Nederlands ${docTypLabel} controleert op juridische correctheid, evenwichtigheid en taal.
-DOCUMENTTYPE: ${docTypLabel}${anderDocsNota}${roepnamenNota}
-
-NAAMGEBRUIK: Zodra een partij formeel geïntroduceerd is (bijv. "Peter Adriaan Dikkeschei, verder te noemen: 'de vader'"), zijn alle drie de volgende aanduidingen door het hele document rechtsgeldig: de volledige naam, de voornaam alleen ("Peter"), en de rol-aanduiding ("de vader"). Gebruik van de officiële voornaam is NOOIT een roepnaam-probleem, naamsfout of inconsistente aanduiding — ook niet als het document elders uitsluitend de rol-aanduiding gebruikt. Rapporteer NOOIT dat een voornaam "niet formeel is geïntroduceerd" als die voornaam het eerste naamsdeel is van de geïntroduceerde partij.
-
-ROL-AANDUIDINGEN ZIJN NOOIT ROEPNAMEN: "de man", "de vrouw", "de moeder", "de vader", "partijen", "de schuldenaar", "de schuldeiser" en vergelijkbare functie- of rolbenamingen zijn partij-aanduidingen, GEEN roepnamen. Rapporteer NOOIT dat "de vrouw" of "de man" als roepnaam ontbreekt of niet formeel geïntroduceerd is. Een partij die "hierna te noemen 'de vrouw'" wordt geïntroduceerd, heeft haar aanduidingsvorm volledig geregeld — dit vereist geen aanvullende roepnaam.
-
-ROEPNAMEN: Als een partij formeel is geïntroduceerd onder haar geboortenaam maar verderop in het document aangeduid wordt met een naam die NIET afleidbaar is uit de officiële voornamen (bijv. geïntroduceerd als "Gerbrand Dirk Johan Lebbink" maar elders aangeduid als "Gerjon"; of geïntroduceerd als "Herma Eugenie ten Brink" maar aangeduid als "Manon"), is dit een volledigheid-issue. Nooit juridisch.
-
-Drie verplichte regels voor roepnaam-issues:
-1. ONDERSCHEID officieel vs. roepnaam: de officiële naam staat in de introductiezin ("Gerbrand Dirk Johan Lebbink, geboren te..."). De roepnaam is de afwijkende aanduiding elders in het document ("Gerjon"). NOOIT verwarren. De bevinding formuleert altijd: "officiële naam is [X], elders gebruikt als [Y] — [Y] is niet afleidbaar van [X] en moet formeel worden geïntroduceerd."
-2. PASSAGE: citeer de zin ELDERS in het document waar de roepnaam wordt gebruikt (bijv. "Gerjon betaalt maandelijks..."), NIET de introductiezin. De introductiezin is correct — de fout zit in het ontbreken van de roepnaam daarin.
-3. AANBEVELING: altijd in de vorm "Voeg 'ook te noemen [roepnaam]' toe aan de introductiezin: '[volledige officiële naam], ook te noemen '[roepnaam]', geboren te [...]'." NOOIT de introductiezin herschrijven zodat de roepnaam de hoofdnaam wordt.
-
-**issues (juridisch)** — Primaire dimensie: "juridisch". Voeg extra dimensies toe als het issue ook een ander aspect raakt (bijv. ["juridisch","conflicten"] als de clausule zowel wettelijk onjuist als intern tegenstrijdig is).${juridischeChecks}${hvChecks}${iprChecks}
-
-- Gebruik uitsluitend wetsartikelen uit de WETSARTIKELEN-sectie.
-- Standaardclausules uit WETSARTIKELEN nooit als fout aanmerken.
-- Geef bij "aanbeveling" de exacte tekst die de mediator direct kan overnemen.
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE DE FOUT BEVAT (niet de omringende context of de vorige zin). NOOIT een persoonsomschrijving of naamsdefinitie als passage — als de fout in een specifiek bedrag, datum of clausule zit, citeer dan die zin.
-- NOOIT juridisch als het veld NIET INGEVULD is: lege bedragen ("€ ,–"), blanco data, sjabloonplaatshouders ("___", "*OF") en andere invulresten zijn ALTIJD volledigheid. Een leeg veld is geen juridische fout — het is een ontbrekend gegeven.
-- NOOIT juridisch als een zin inhoudelijk onvolledig is: een zin die wel aanwezig is maar geen concrete afspraak bevat (bijv. "Afspraken over X." zonder verder iets), is ALTIJD volledigheid — zelfs als het onderwerp juridisch relevant is.
-- Bij twijfel: geen issue. Speculeer niet.
-- ALLEEN echte problemen rapporteren. Leg NOOIT een issue vast als het document aan de eis voldoet. Positieve bevestigingen ("Geen issue", "Voldoet aan...", "Geen actie vereist", "Correct geregeld") horen NIET in de issues-lijst — die lijst bevat uitsluitend punten die de mediator moet aanpassen of controleren.
-
-**issues (balans)** — Primaire dimensie: "balans". Voeg extra dimensies toe waar van toepassing (bijv. ["balans","juridisch"] bij een alimentatiebedrag dat zowel eenzijdig is als wettelijk onjuist berekend). Onderwerpen: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering, ongemotiveerde afwijking van wettelijke maatstaven.
-- ZORGVERDELING-TABELLEN: beoordeel altijd de volledige cyclus (oneven + even week samen). Als de even week het spiegelbeeld is van de oneven week → het schema is per definitie symmetrisch. Het patroon waarbij één ouder de maandagochtend heeft en de andere ouder de rest t/m de volgende maandagochtend ("weekwissel op maandag") is een standaard Nederlands co-ouderschapspatroon — dit is geen asymmetrie en geen fout.
-
-**issues (grammatica)** — Dimensies ["grammatica"]. Scan het VOLLEDIGE document op:
-- Spelling- en tikfouten (bijv. 'invullen' waar 'invulling' bedoeld is, dubbele spaties, hoofdletterfouten)
-- Interpunctiefouten: ontbrekende punt, komma, puntkomma of alineascheiding die de leesbaarheid verslechtert. Dit is ALTIJD een grammatica-issue — NOOIT juridisch, ook niet als de bepaling daardoor minder duidelijk wordt.
-- Dubbele woorden (bijv. "Land Rover Land Rover", "de de kinderen")
-- Foutieve of onvolledige zinsconstructies (bijv. ontbrekend hoofdwerkwoord: 'Moeder die ze naar school brengt' — dit is geen volledige zin)
-- Inconsistente aanduidingen: zelfde persoon/datum/bedrag op verschillende plekken anders gespeld of benoemd (inclusief hoofdlettergebruik van bedrijfs- of instellingsnamen, bijv. 'peaks' vs. 'Peaks')
-- BEDRAGOPMAAK — verplichte precisie: onderscheid altijd tussen (a) ontbrekend €-teken: het getal heeft géén valutateken → echt probleem; en (b) ontbrekende ',-' suffix: bedrag heeft wél €-teken maar mist de standaard afsluiting (bijv. "€ 5.569" vs. "€ 5.569,-") → opmaakinconsistentie. NOOIT beweren dat een €-teken ontbreekt als het er wél staat. Controleer elk bedrag in de relevante passage afzonderlijk.
-- REKENINGNUMMERS EN KENMERKEN: citeer altijd het exacte kenmerk/rekeningnummer uit het document en koppel het aan het juiste bedrag. Nooit hetzelfde kenmerk twee keer noemen voor verschillende bedragen — dat is een fout in de bevinding zelf.
-- Niet-uitvoerbare afspraken door vage bewoording ('eventueel', 'zo mogelijk', 'nader te bepalen' zonder concrete uitwerking)
-- Voornaamwoord-inconsistenties (hij/zij/zijn/haar/hem) NOOIT rapporteren. Dit geldt zonder uitzondering.
-- Roepnamen (voornamen) van eerder geïntroduceerde partijen zijn GELDIGE verwijzingen. Als een partij is geïntroduceerd met volledige naam, is het gebruik van alleen de voornaam of de bezitsvorm (bijv. 'Peters' als verwijzing naar iemand genaamd 'Peter') een geldige verkorte aanduiding. Rapporteer dit NOOIT als naamsfout of als verwijzing naar een onbekende persoon.
-- Tweede voornamen (middelste namen) weglaten is NORMALE schrijfpraktijk in Nederlandse juridische documenten. Als een partij is geïntroduceerd als 'Willem David ter Kulve', is 'Willem ter Kulve' of 'W. ter Kulve' een geldige verkorte aanduiding — ook bij bankrekening-vermeldingen of kopregels. Rapporteer dit NOOIT als inconsistentie in de naamsvermelding.
-- Rapporteer ELKE tikfout of grammaticakwestie als een APART issue — NOOIT bundelen.
-  Zo kan de mediator per correctie accepteren of afwijzen.
-
-KRITISCH voor grammatica-issues — ALLE drie velden moeten over DEZELFDE fout gaan:
-- 'passage': citeer LETTERLIJK de zin die DE FOUT ZELF bevat (de zin met het tikfout-woord, het dubbele woord, de vage term)
-- 'onderwerp': benoem de exacte fout die IN de passage staat (bijv. 'Dubbel woord "Land Rover" in artikel 5')
-- 'bevinding': beschrijf waarom DE PASSAGE een probleem is — NIET een andere passage of een ander onderwerp
-
-NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onderwerp Y.
-
-**issues (conflicten)** — Primaire dimensie: "conflicten". Voeg extra dimensies toe waar van toepassing (bijv. ["conflicten","juridisch"]). Zoek tegenstrijdigheden BINNEN het document op ALLE niveaus:
-- Inter-artikel: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
-- Intra-sectie: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. 'uitsluitend mondeling' gevolgd door 'schriftelijk vastgelegd', of een vakantieregeling die intern inconsistente aantallen weken of wisseldata noemt)
-- Bedrag/datum: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
-- DEDUPLICATIE: als meerdere inconsistenties voortkomen uit DEZELFDE onderliggende oorzaak (bijv. één fout bedrag dat op meerdere plekken terugkomt), maak dan EEN bevinding die de kernfout beschrijft en de gevolgen noemt — GEEN afzonderlijk issue per plek.
-
-- Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE HET SPECIFIEKE GETAL, DE DATUM OF DE TEGENSTRIJDIGHEID BEVAT (niet de persoonsomschrijving of definitiebepaling van de betrokkene, ook niet de omringende context). Bij een bedrag/datum-conflict: citeer de zin mét het afwijkende getal/datum, niet de zin die de persoon of het onderwerp introduceert.
-- PASSAGE-DEDUPLICATIE: NOOIT twee issues met EXACT DEZELFDE passage. Als één passage meerdere problemen heeft (bijv. zowel grammaticaal onhelder als inhoudelijk onvolledig), rapporteer uitsluitend het zwaarste conform de dimensie-voorrangsvolgorde: juridisch > conflicten > volledigheid > balans > grammatica. LET OP: deze voorrangsvolgorde geldt UITSLUITEND voor deduplicatie bij exact dezelfde passage — gebruik hem NIET als algemene classificatieregel. Een grammaticafout (tikfout, ontbrekend leesteken, dubbel woord) is en blijft grammatica, ook als hij in een juridisch artikel staat.
-- Bij twijfel: geen issue. Speculeer niet.
-
-ZELFCONTROLE (verplicht vóór afsluiting): Controleer de volledige issues-lijst op de volgende patronen:
-1. ZELFDE PASSAGE: twee issues met exact hetzelfde verbatim citaat → bewaar alleen het zwaarste.
-2. ZELFDE BEDRAG/DATUM-CONFLICT: twee issues die hetzelfde getalpaar of datumpaar benoemen als inconsistentie (bijv. "€ 462" vs "€ 463" in twee afzonderlijke issues) → verwijder het minder ernstige en verwerk de extra context in het bewaarde issue.
-3. ZELFDE KERN-ONDERWERP: twee issues die hetzelfde fundamentele probleem beschrijven maar anders geformuleerd (bijv. "Fiscaal partnerschap: einddatum niet concreet" en "Fiscaal partnerschap: einddatum niet expliciet vastgelegd") → fuseer tot één issue met de meest volledige bevinding en aanbeveling. Let speciaal op: als twee issues HETZELFDE SPECIFIEKE BEDRAG noemen in hun titel (bijv. beide "€ 116.600 overbedeling"), beschrijven ze altijd hetzelfde probleem — fuseer altijd, ook als de invalshoek verschilt (bijv. "ontbreekt in hoofdtekst" en "tegenstrijdig met tekst").
-4. PERSOONSGEBONDEN PATROON: meerdere issues die variaties zijn van DEZELFDE fout voor DEZELFDE persoon (bijv. drie genderfouten voor Kind X op verschillende plekken, of twee naamsspellingsfouten voor dezelfde partij) → combineer ALTIJD tot EEN issue. Noem in de bevinding alle plekken waar de fout voorkomt, en geef één allesomvattende aanbeveling.
-5. REKENKUNDIGE VERIFICATIE: Zoek ALLE vermelde rekensommen in het document: optellingen van bedragen, verschilberekeningen (A − B), procenten van een totaal, resterende budgetten. Reken ELKE som zelf na. Als de berekende uitkomst afwijkt van de vermelde uitkomst → voeg een issue toe (dimensie ["conflicten"], ernst "hoog") met: (a) de correcte berekening en uitkomst, (b) de vermelde (incorrecte) uitkomst, en (c) als passage een verbatim citaat van de zin met het onjuiste getal. Voorbeeld: document vermeldt "€ 834 + € 861 + € 238 = € 1.695" maar 834 + 861 + 238 = 1.933 → dit is een rekenkundige fout, rapporteer het.
-Pas de lijst aan vóór je de tool aanroept.
-
-DIMENSIE-VERBOD: De dimensie "cross_doc" mag NOOIT worden gebruikt in deze call. Toegestane dimensies: "juridisch", "volledigheid", "balans", "grammatica", "conflicten". Cross-document vergelijkingen worden verwerkt in een aparte, dedicated analyse.`;
+      const sysBevindingen = bouwSysBevindingen({ docTypLabel, anderDocsNota, roepnamenNota, juridischeChecks, hvChecks, iprChecks });;
 
       const stabielBlokWet = `WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
 
@@ -797,58 +598,7 @@ DIMENSIE-VERBOD: De dimensie "cross_doc" mag NOOIT worden gebruikt in deze call.
 
       const docTypenLabel = effectiefHoofd.map(d => d.type).join(' en ');
 
-      const sysCrossDoc =
-`Je bent een ervaren familierechtjurist. Je legt twee documenten naast elkaar: ${docTypenLabel}.
-
-TAAK: Vind uitsluitend inconsistenties die ALLEEN ZICHTBAAR zijn door BEIDE documenten samen te lezen.
-Rapporteer NIET wat al in één document afzonderlijk een fout is — alleen wat TUSSEN de documenten botst of ontbreekt.
-Als een issue slechts in één document zichtbaar is (interne fout van dat document), laat het dan VOLLEDIG weg — het is al gevonden door de per-document analyse.
-
-ABSOLUUT VERBOD — GESLACHT/VOORNAAMWOORDEN: Rapporteer NOOIT een gender- of voornaamwoord-inconsistentie, noch binnen één document noch tussen documenten. Voornaamwoorden ('hij', 'zij', 'zijn', 'haar') wisselen vanzelf per persoon of per kind — dit is GEEN cross-document issue.
-
-Zoek op ALLE dimensies (gebruik uitsluitend deze drie — NOOIT "conflicten" of "grammatica"):
-- VOLLEDIGHEID ["volledigheid"]: document A verwijst voor een onderwerp naar document B, maar dat onderwerp ontbreekt in document B
-- JURIDISCH ["juridisch"]: een bepaling in A die een bepaling in B inconsistent maakt of wettelijk onderuit haalt, of een afwijkende datum/bedrag met juridische gevolgen
-- BALANS ["balans"]: een clausule die in A en B anders uitpakt of eenzijdig is over de documenten heen
-
-Gebruik NOOIT "conflicten" als dimensie: cross-document tegenstrijdigheden zijn al geïdentificeerd als cross-doc en hoeven geen extra conflicten-tag.
-Gebruik NOOIT "grammatica" als dimensie: spellingsverschillen of notatiestijl-verschillen tussen documenten horen niet in de cross-doc analyse thuis.
-
-CLASSIFICATIEREGEL REKENINGNUMMERS/IBAN: Als een IBAN of rekeningnummer in A en B verschilt, of als naam/saldo bij dezelfde rekening afwijkt → gebruik ALTIJD "volledigheid". Een rekening heeft één feitelijk juiste IBAN — de afwijking betekent dat één document onjuist is ingevuld, geen juridisch eigendomsconflict. Dit is dus NOOIT "juridisch" en NOOIT "balans".
-Voor betreft_documenten bij IBAN-issues: de fix zit in het document dat de tenaamstelling of het rekeningnummer onjuist/onvolledig vermeldt (doorgaans het convenant). De passage komt uit DAT document — citeer de zin met het onjuiste/onvolledige IBAN. Zet de correcte referentie (uit het andere document) in 'bevinding', niet in 'passage'.
-
-Ernst-criteria:
-- hoog: evidente tegenstrijdigheid die tot onuitvoerbaarheid leidt of een wettelijke eis raakt
-- midden: afwijking die aanpassing verdient maar de kern van de afspraken intact laat
-- laag: kleine inconsistentie of spellingsverschil
-
-VERPLICHT voor elk issue: vul betreft_documenten in met de doc-type(s) waar de aanpassing moet plaatsvinden:
-- ["convenant"] — de fix zit alleen in het convenant
-- ["ouderschapsplan"] — de fix zit alleen in het ouderschapsplan
-- ["convenant","ouderschapsplan"] — beide documenten moeten worden aangepast (tegenstrijdigheid tussen de twee)
-
-Bij twijfel: geen issue. Speculeer niet.
-ALLEEN echte cross-document problemen — geen positieve bevestigingen ("Geen issue", "Voldoet aan...").
-
-PASSAGE-INSTRUCTIE (verplicht):
-Vul 'passage' ALTIJD in met een verbatim citaat uit het document dat moet worden aangepast — dat is altijd betreft_documenten[0].
-Vul 'passage_document' in met datzelfde documenttype (identiek aan betreft_documenten[0]).
-
-Reden: de passage wordt getoond in het tabblad van betreft_documenten[0]. De zin moet dus letterlijk in dát document staan.
-Citeer NOOIT bewijstekst uit het andere document als passage — die context hoort in 'bevinding'.
-
-Laat 'passage' leeg als betreft_documenten[0] geen citeerbare zin bevat (bijv. sectie volledig afwezig).
-
-VERBODEN als passage (dit zijn NOOIT goede passages):
-- Een zin die enkel een persoon introduceert: "Jan de Vries, geboren te Amsterdam op 12-03-1980" → FOUT
-- Een zin die enkel een kind noemt zonder concrete afspraak: "Maartje Wilma Antonia Schreven geboren te Deventer op 29-01-2015" → FOUT
-- Een sectietitel of kopje zonder het conflicterende getal/datum zelf → FOUT
-
-CORRECT voorbeeld bij een peildatum-conflict:
-- "De peildatum voor de spaarrekeningen van de kinderen is vastgesteld op 15-03-2026." → GOED
-- "Het saldo op rekening NL91INGB... per 15-03-2026 bedraagt € 4.200,-." → GOED
-
-WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
+      const sysCrossDoc = bouwSysCrossDoc({ docTypenLabel, wetTekst });;
 
       sse({ type: 'cross_doc_start', documenten: effectiefHoofd.map(d => d.type) });
       crossDocPromise = askClaude(sysCrossDoc, docBlokken, crossDocTool, 6000);
@@ -928,19 +678,7 @@ WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
           required: ['te_bewaren'],
         },
       };
-      const sysConsolidatie =
-`Je analyseert een genummerde lijst van juridische issues uit een echtscheidingsdocument.
-De lijst bevat issues uit meerdere analyse-calls (structuur, bevindingen, cross-document) die hetzelfde probleem soms dubbel rapporteren.
-
-Taak: verwijder semantisch identieke of sterk overlappende issues.
-Merge-criteria (verwijder het issue met de lagere ernst of lagere juridische prioriteit):
-- Zelfde passage + zelfde kernprobleem, ook al verschillen de woorden van de titel.
-- Per-document issue en cross-document issue over hetzelfde concrete feit (bijv. zelfde IBAN, zelfde tegenstrijdigheid, zelfde ontbrekend veld).
-- Twee dimensie-varianten van hetzelfde probleem (bijv. "onvolledig" én "onvolledige zin" over exact dezelfde passage).
-
-Bewaar issues die écht een ander probleem beschrijven of die samen meer informatie geven dan elk apart.
-Bij twijfel: bewaar het issue.
-Geef ALTIJD minimaal één index terug.`;
+      const sysConsolidatie = SYS_CONSOLIDATIE;;
 
       for (const doc of effectiefHoofd) {
         const pdRes = perDocResultaten.get(doc.bestandsnaam);
