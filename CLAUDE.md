@@ -41,7 +41,7 @@ Het `.env` bestand staat in `.gitignore` — nooit committen.
 |---|---|
 | `index.html` | Volledige frontend (upload, rapport, opgeslagen analyses, concepten) |
 | `api/analyseer.js` | POST — document analyseren via Claude, SSE-streaming |
-| `api/prompts/` | De screening-prompts, apart van de orkestratie — zie hieronder |
+| `api/_prompts/` | De screening-prompts, apart van de orkestratie — zie hieronder |
 | `api/claude-edge.js` | POST — Claude proxy (concept-generatie, vraag-antwoord), SSE |
 | `api/adobe-start.js` | POST — PDF uploaden naar Adobe PDF Services, start export-job |
 | `api/adobe-result.js` | POST — Adobe export-job status opvragen / DOCX ophalen |
@@ -67,9 +67,26 @@ Alle endpoints gebruiken ES modules (`export default async function handler(req,
 Alle endpoints behalve `api/registreer.js` vereisen een Supabase JWT via `Authorization: Bearer <token>` — gevalideerd via `GET /auth/v1/user`.  
 Claude wordt aangeroepen via `askClaude()` in `api/analyseer.js` (tool-use, gestructureerde JSON) en via streaming in `api/claude-edge.js` (concept-generatie, SSE).
 
+> **Maximaal 12 serverless functies.** Vercel maakt van élk bestand in `api/` een
+> aparte functie, en het Hobby-plan staat er hoogstens twaalf toe. Er zijn negen
+> endpoints, dus er is weinig ruimte.
+>
+> Bestanden en mappen met een **liggend streepje ervoor** worden niet als endpoint
+> geteld — vandaar `_auth.js`, `_iban.js`, `_crypto.js` en de map `_prompts/`.
+> Zet nieuwe helpers of promptbestanden dus altijd achter een `_`.
+>
+> Op 21 augustus 2026 sneuvelde een deploy hierop: de map `api/prompts/` voegde zes
+> bestanden toe en bracht het totaal op vijftien. De build slaagde, het uitrollen
+> niet — met als gevolg dat elf commits stil op GitHub bleven staan terwijl de
+> site gewoon de oude versie bleef serveren.
+
 ## Git
 
 Nooit automatisch pushen. Alleen pushen als de gebruiker dat expliciet vraagt.
+
+**Controleer na een push of de deploy ook echt geslaagd is.** Een mislukte
+deployment verandert niets aan de site: die blijft de vorige versie serveren, dus
+alles lijkt te werken terwijl je wijziging nergens staat.
 
 ## Kennisbank (`legal_chunks`) wijzigen
 
@@ -92,7 +109,7 @@ met `legal_chunk`, `wettekst` of `kennisbank` in de naam. Wijzigingen die je
 rechtstreeks in het dashboard doet laten geen bestand achter, dus die vangt de hook
 niet — daarvoor geldt de regel hierboven.
 
-## Screening-prompts staan in `api/prompts/`
+## Screening-prompts staan in `api/_prompts/`
 
 Sinds 20 augustus 2026 staan de prompts niet meer in `api/analyseer.js` — dat
 bestand was voor 84% prompttekst, waardoor elke promptwijziging hetzelfde bestand
@@ -100,12 +117,12 @@ raakte als elke logicawijziging en er dus niets aan te koppelen viel.
 
 | Bestand | Inhoud |
 |---|---|
-| `prompts/gedeeld.js` | Ernst-criteria, verificatieplicht, pseudonimiseringsnota — samen één gecachet blok |
-| `prompts/structuur.js` | System prompt voor volledigheid + MfN-score |
-| `prompts/bevindingen.js` | System prompt voor juridisch, balans, grammatica, conflicten |
-| `prompts/cross-doc.js` | System prompt voor inconsistenties tussen documenten |
-| `prompts/consolidatie.js` | Deduplicatiestap (Haiku) |
-| `prompts/fragmenten.js` | Voorwaardelijke blokken: notities en checklijsten per documenttype |
+| `_prompts/gedeeld.js` | Ernst-criteria, verificatieplicht, pseudonimiseringsnota — samen één gecachet blok |
+| `_prompts/structuur.js` | System prompt voor volledigheid + MfN-score |
+| `_prompts/bevindingen.js` | System prompt voor juridisch, balans, grammatica, conflicten |
+| `_prompts/cross-doc.js` | System prompt voor inconsistenties tussen documenten |
+| `_prompts/consolidatie.js` | Deduplicatiestap (Haiku) |
+| `_prompts/fragmenten.js` | Voorwaardelijke blokken: notities en checklijsten per documenttype |
 
 **Na elke wijziging hier: `npm run test:eval` draaien** en vergelijken met de
 baseline (`docs/auto-test-setup.md`, punt D10). Een PostToolUse-hook herinnert

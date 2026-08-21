@@ -1,5 +1,5 @@
 /**
- * Unit tests — api/prompts/
+ * Unit tests — api/_prompts/
  *
  * De prompts zijn op 20 augustus 2026 uit api/analyseer.js gehaald (84% van dat
  * bestand was prompttekst). Doel: een promptwijziging is nu zichtbaar in een diff
@@ -14,15 +14,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   ERNST_CRITERIA, VERIFICATIEPLICHT, bouwPseudonimiseringNota, bouwStabielGedeeld,
-} from '../../api/prompts/gedeeld.js';
-import { bouwSysStructuur }   from '../../api/prompts/structuur.js';
-import { bouwSysBevindingen } from '../../api/prompts/bevindingen.js';
-import { bouwSysCrossDoc }    from '../../api/prompts/cross-doc.js';
-import { SYS_CONSOLIDATIE }   from '../../api/prompts/consolidatie.js';
+} from '../../api/_prompts/gedeeld.js';
+import { bouwSysStructuur }   from '../../api/_prompts/structuur.js';
+import { bouwSysBevindingen } from '../../api/_prompts/bevindingen.js';
+import { bouwSysCrossDoc }    from '../../api/_prompts/cross-doc.js';
+import { SYS_CONSOLIDATIE }   from '../../api/_prompts/consolidatie.js';
 import {
   bouwAnderDocsNota, bouwRoepnamenNota, bouwJuridischeChecks,
   bouwHvChecks, bouwIprChecks, bouwMfnInstructie,
-} from '../../api/prompts/fragmenten.js';
+} from '../../api/_prompts/fragmenten.js';
 
 const LEEG = { docTypLabel: '', anderDocsNota: '', roepnamenNota: '', mfnInstructie: '',
                heeftMfn: false, mfnElemList: [], juridischeChecks: '', hvChecks: '',

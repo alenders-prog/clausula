@@ -18,7 +18,7 @@ process.stdin.on('end', () => {
     pad = json.tool_input?.file_path || json.tool_response?.filePath || '';
   } catch { /* geen bruikbare invoer — niets doen */ }
 
-  const isPrompt = /[\\/]api[\\/]prompts[\\/]/.test(pad)
+  const isPrompt = /[\\/]api[\\/]_prompts[\\/]/.test(pad)
                 || /_consistentie\.js$/.test(pad);
   if (!isPrompt) process.exit(0);
 

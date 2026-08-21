@@ -33,17 +33,23 @@ import { verifieerJWT } from './_auth.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
 } from './_consistentie.js';
-// De prompts staan apart in api/prompts/. Wijzigingen daar raken de screening-
+// De prompts staan apart in api/_prompts/. Wijzigingen daar raken de screening-
 // kwaliteit en horen gevolgd te worden door `npm run test:eval`.
-import { ERNST_CRITERIA, VERIFICATIEPLICHT, bouwPseudonimiseringNota } from './prompts/gedeeld.js';
-import { bouwSysStructuur }   from './prompts/structuur.js';
-import { bouwSysBevindingen } from './prompts/bevindingen.js';
-import { bouwSysCrossDoc }    from './prompts/cross-doc.js';
-import { SYS_CONSOLIDATIE }   from './prompts/consolidatie.js';
+//
+// Het liggende streepje is geen stijlkeuze: Vercel maakt van élk bestand in api/
+// een serverless functie, en op het Hobby-plan mogen dat er hoogstens twaalf zijn.
+// Met negen endpoints erbij liep de map prompts/ de deploy stuk op vijftien.
+// Bestanden met _ ervoor worden niet als endpoint geteld — vandaar ook _iban.js,
+// _auth.js en de rest.
+import { ERNST_CRITERIA, VERIFICATIEPLICHT, bouwPseudonimiseringNota } from './_prompts/gedeeld.js';
+import { bouwSysStructuur }   from './_prompts/structuur.js';
+import { bouwSysBevindingen } from './_prompts/bevindingen.js';
+import { bouwSysCrossDoc }    from './_prompts/cross-doc.js';
+import { SYS_CONSOLIDATIE }   from './_prompts/consolidatie.js';
 import {
   bouwAnderDocsNota, bouwRoepnamenNota, bouwJuridischeChecks,
   bouwHvChecks, bouwIprChecks, bouwMfnInstructie,
-} from './prompts/fragmenten.js';
+} from './_prompts/fragmenten.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
