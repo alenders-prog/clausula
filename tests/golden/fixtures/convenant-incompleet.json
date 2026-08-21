@@ -32,14 +32,17 @@
         "toelichting": "kinderalimentatie ontbreekt volledig"
       },
       {
-        "categorie": "juridisch",
+        "categorie": [
+          "juridisch",
+          "volledigheid"
+        ],
         "sleutelwoorden": [
           "wvps",
           "pensioenverevening",
           "verevening",
           "pensioen"
         ],
-        "toelichting": "pensioenregeling niet conform WVPS"
+        "toelichting": "Pensioenregeling: het convenant spreekt van OVERDRAGEN van de helft, wat conversie is (WVPS art. 5) en niet verevening (art. 2). Gevonden als volledigheidsgebrek; de juridische nuance dat conversie een uitdrukkelijke schriftelijke afspraak vereist wordt nog gemist."
       }
     ],
     "mogen_NIET_gevonden_worden": [

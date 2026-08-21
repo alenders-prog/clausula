@@ -224,3 +224,18 @@ describe('passage moet de fout uit de titel bevatten', () => {
     expect(VERIFICATIEPLICHT).toContain('Herformuleer het naar wat de aangewezen zin wél laat zien');
   });
 });
+
+describe('naamsvermelding van partijen', () => {
+  it('schrijft voor de personalia te vergelijken met vermeldingen verderop', () => {
+    // Gat gevonden door de eval van 21-08-2026: elf issues op een convenant waarin de
+    // man "Sander Alexander Schreven" heet en de bankrekening op "Alexander Schreven"
+    // staat — geen enkele ging over die naam.
+    expect(VERIFICATIEPLICHT).toContain('NAAMSVERMELDING VAN PARTIJEN');
+    expect(VERIFICATIEPLICHT).toContain('op bankrekeningen, in het ondertekeningsblok');
+  });
+
+  it('sluit normale verkortingen uit', () => {
+    // "A. Schreven" of "de heer Schreven" mag geen bevinding opleveren.
+    expect(VERIFICATIEPLICHT).toContain('is normaal en geen bevinding');
+  });
+});

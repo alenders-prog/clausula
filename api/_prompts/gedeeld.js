@@ -77,6 +77,20 @@ dat je beoordeelt voor een onderwerp expliciet naar een ander document van hetze
 - Alleen als er GEEN enkele verwijzing staat én het onderwerp in dit documenttype thuishoort,
   is er iets te melden.
 
+NAAMSVERMELDING VAN PARTIJEN — CONTROLEER OP CONSISTENTIE:
+In de personalia hoort de officiële naam te staan zoals die op het identiteitsbewijs voorkomt.
+Een roepnaam mag daar wél bij, maar dan apart geïntroduceerd ("hierna ook te noemen 'Sander'"),
+niet dóór de geboortenaam heen geschreven.
+- Vergelijk de naam uit de personalia met hoe dezelfde persoon VERDEROP in het document heet:
+  op bankrekeningen, in het ondertekeningsblok, bij de tenaamstelling van bezittingen.
+- Wijkt dat af — bijvoorbeeld "Sander Alexander Schreven" bovenaan tegenover "Alexander Schreven"
+  op de rekening — dan is dat een bevinding. Ofwel er is een roepnaam ingevlochten die er niet
+  hoort, ofwel de tenaamstelling klopt niet. Benoem welk van beide je ziet.
+- Dit is geen spellingskwestie: een vaststellingsovereenkomst identificeert partijen, en een
+  naam die intern niet klopt maakt de toedeling van bezittingen aanvechtbaar.
+- Let op: een verkorte vermelding met initialen ("A. Schreven") of alleen de achternaam ("de heer
+  Schreven") is normaal en geen bevinding.
+
 DE PASSAGE MOET DE FOUT UIT DE TITEL BEVATTEN:
 Het citaat in 'passage' moet de zin zijn waarin het gebrek uit 'onderwerp' zich voordoet.
 - Gaat de titel over kinderalimentatie, dan mag de passage geen zin over partneralimentatie zijn.
