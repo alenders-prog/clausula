@@ -11,7 +11,12 @@
  * als gepseudonimiseerde teksten.
  */
 
-export const IBAN_RE = /(?:\bNL\d{2}[A-Z]{4}\d{10}\b|\[IBAN_\d+\])/g;
+// Patroon uit src/iban-patroon.js — één definitie voor browser en server. Laat
+// witruimte toe ("NL28 RABO 0328582298") en herkent beide placeholder-schrijfwijzen:
+// de browser nummert met [IBAN_0], de server met [IBAN-1].
+import { ibanOfTokenRe } from '../src/iban-patroon.js';
+
+export const IBAN_RE = ibanOfTokenRe();
 
 export function ibanSet(tekst) {
   return new Set(tekst.match(new RegExp(IBAN_RE.source, 'g')) ?? []);

@@ -16,6 +16,8 @@
  *
  * Geladen via ESM-bridge in index.html en assistent-mobiel.html (window.piiAnonimiseer).
  */
+import { ibanRe, ibanSleutel } from './iban-patroon.js';
+
 export function piiAnonimiseer(tekst) {
   if (!tekst) return tekst;
   let t = tekst;
@@ -24,11 +26,15 @@ export function piiAnonimiseer(tekst) {
   // EU-IBAN formaat: 2 landletters + 2 checkdigits + 10-26 BBAN-tekens.
   // Hetzelfde IBAN krijgt altijd hetzelfde token binnen één aanroep.
   // Consistent met [IBAN_n]-conventie in api/_iban.js (IBAN_RE).
+  // Patroon uit src/iban-patroon.js — laat witruimte toe, want documenten schrijven
+  // "NL28 RABO 0328582298". Zonder die spaties in het patroon bleven de tien cijfers
+  // over en werden ze verderop als telefoonnummer gemaskeerd.
   let ibanTeller = 0;
   const ibanMap  = new Map();
-  t = t.replace(/\b[A-Z]{2}\d{2}[A-Z0-9]{10,26}\b/g, iban => {
-    if (!ibanMap.has(iban)) ibanMap.set(iban, `[IBAN_${ibanTeller++}]`);
-    return ibanMap.get(iban);
+  t = t.replace(ibanRe(), iban => {
+    const sleutel = ibanSleutel(iban);
+    if (!ibanMap.has(sleutel)) ibanMap.set(sleutel, `[IBAN_${ibanTeller++}]`);
+    return ibanMap.get(sleutel);
   });
 
   // ── BSN ────────────────────────────────────────────────────────────────────

@@ -9,6 +9,8 @@
  * Geen DOM-afhankelijkheden; geschikt voor unit-tests in Node/Vitest.
  */
 
+import { ibanRe, ibanSleutel } from './iban-patroon.js';
+
 // ── bouwAnonMap ───────────────────────────────────────────────────────────────
 // Bouwt drie maps:
 //   naarAnon        : lowercase-naam → nep-naam         (voor case-insensitieve vervanging)
@@ -381,7 +383,11 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
   //   De server herkent ze via de uitgebreide IBAN_RE die ook [IBAN_n] matcht.
   //   Alleen als piiPh aanwezig (= server-gebonden aanroepen); passage-normalisatie-aanroepen
   //   gebruiken naarAnon dat na de eerste aanroep de IBAN-mapping al bevat.
-  if (piiPh) t = t.replace(/\bNL\d{2}[A-Z]{4}\d{10}\b/g, iban => piiPh('IBAN', iban));
+  // Patroon uit src/iban-patroon.js — laat witruimte toe. Stond hier eerder zonder,
+  // waardoor "NL28 RABO 0328582298" niet werd herkend en de tien resterende cijfers
+  // even verderop als telefoonnummer werden gemaskeerd.
+  // Sleutel op de spatieloze vorm, zodat dezelfde rekening altijd hetzelfde nummer krijgt.
+  if (piiPh) t = t.replace(ibanRe(), iban => piiPh('IBAN', ibanSleutel(iban)));
   // - BSN maskeren: uniek persoonskenmerk, nooit nodig voor analyse.
   // - Lookbehind (?<![A-Z]{4} ): voorkomt false positive op IBAN-accountcijfers
   //   (bankcode is altijd 4 hoofdletters, bijv. ABNA). "BSN 123456789" wordt WEL
