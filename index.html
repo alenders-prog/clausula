@@ -5803,43 +5803,46 @@ async function diepteAnalyse(idx) {
       issue.onderwerp, issue.bevinding, issue.aanbeveling, issue.signalering,
     ].filter(Boolean).join(' ');
 
-    // Stap 1: artikelnummers (bijv. "1:88", "3:170", "art. 157") uit alle tekstvelden
-    const _artNrs = [...new Set(
-      [..._issueTekst.matchAll(/\b(\d+:\d+[a-z]?)\b/gi)].map(m => m[1])
-    )].slice(0, 6);
-
-    let chunks = [];
-
+    // Stap 1 — artikelnummers uit het issue. Dekt nu ook "art. 828 Rv" en
+    // "art. 5 WVPS"; het oude patroon vond alleen artikelen mét dubbele punt.
+    const _artNrs = artikelVerwijzingen(_issueTekst);
+    const _perArtikel = [];
     if (_artNrs.length) {
-      // Zoek per artikelnummer in citation (OR via meerdere queries, neem unieke resultaten)
       const _results = await Promise.all(
         _artNrs.map(nr => db.from('legal_chunks').select('citation,content')
           .ilike('citation', `%${nr}%`).limit(2))
       );
-      const _seen = new Set();
-      for (const { data } of _results) {
-        for (const c of (data || [])) {
-          if (!_seen.has(c.citation)) { _seen.add(c.citation); chunks.push(c); }
-        }
+      for (const { data } of _results) _perArtikel.push(...(data || []));
+    }
+
+    // Stap 2 — situatiekenmerken van het dossier. Dit is het mechanisme dat de
+    // analyse al gebruikt (topic_tags tegen kenmerk-keys) en het vangt op wat stap 1
+    // structureel mist: de verificatie redeneert vaak naar een artikel dat in het
+    // issue zelf niet genoemd wordt. Bij een ouderschapsplan-dossier levert dit
+    // art. 1:247 BW op, dat eerder als "trainingskennis" werd afgedaan terwijl het
+    // gewoon in de kennisbank staat.
+    const _kenmerken = app.classificatie?.situatie_kenmerken;
+    let _perTag = [];
+    if (Array.isArray(_kenmerken) && _kenmerken.length) {
+      const { data } = await db.from('legal_chunks')
+        .select('citation,content').overlaps('topic_tags', _kenmerken).limit(6);
+      _perTag = data || [];
+    }
+
+    // Stap 3 — trefwoord als terugval, nu het lángste woord uit de titel in plaats
+    // van het eerste woord langer dan vijf letters ("Ontbinding" zei niets).
+    let _perTrefwoord = [];
+    if (_perArtikel.length + _perTag.length < 3) {
+      const _woord = trefwoord(issue.onderwerp, issue.aanbeveling);
+      if (_woord) {
+        const { data } = await db.from('legal_chunks')
+          .select('citation,content').ilike('content', `%${_woord}%`).limit(3);
+        _perTrefwoord = data || [];
       }
     }
 
-    // Stap 2: aanvullend keyword-zoek als er minder dan 3 chunks zijn
-    if (chunks.length < 3) {
-      // Extraheer zinvol zoekwoord: eerste zelfstandig naamwoord van onderwerp of aanbeveling
-      const _zoekZin = (issue.onderwerp || issue.aanbeveling || '').replace(/vanuit AI Assistent/i, '').trim();
-      const _zoekWoord = _zoekZin.split(/\s+/).find(w => w.length > 5) || '';
-      if (_zoekWoord) {
-        const { data: extra } = await db.from('legal_chunks')
-          .select('citation,content')
-          .ilike('content', `%${_zoekWoord}%`)
-          .limit(3);
-        const _seen2 = new Set(chunks.map(c => c.citation));
-        for (const c of (extra || [])) {
-          if (!_seen2.has(c.citation)) chunks.push(c);
-        }
-      }
-    }
+    const chunks = voegChunksSamen(
+      { artikel: _perArtikel, tags: _perTag, trefwoord: _perTrefwoord }, 6);
 
     if (chunks.length) {
       kennisbankContext = '\n\n## Relevante juridische kennisbank\n' +
@@ -14801,6 +14804,7 @@ import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/
 import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
 import { bulletPrefix, metBullet }                          from './src/docx/bullet-prefix.js';
 import { bouwVerificatieContext }                           from './src/rapport/verificatie-context.js';
+import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -14826,6 +14830,9 @@ window.bouwSubRapport    = bouwSubRapport;
 window.bulletPrefix           = bulletPrefix;
 window.metBullet              = metBullet;
 window.bouwVerificatieContext = bouwVerificatieContext;
+window.artikelVerwijzingen    = artikelVerwijzingen;
+window.voegChunksSamen        = voegChunksSamen;
+window.trefwoord              = trefwoord;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>
