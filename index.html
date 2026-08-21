@@ -7895,8 +7895,14 @@ function vervangInDocxXml(xml, wijzigingen) {
   }
 
   // Markeer een volledige alinea als verwijderd; retourneert de genormaliseerde tekstlengte
+  // Onthoudt het opsommingsteken van de laatste volledig verwijderde alinea, zodat
+  // de invoeging het terugkrijgt. Adobe zet bullets als letterlijk teken in de tekst,
+  // dus ze verdwijnen mét de doorgehaalde regel.
+  let _laatsteBulletPfx = '';
+
   function markeerVolleAlineaAlsDel(para, rPr) {
     const txt = paraTxt(para);
+    _laatsteBulletPfx = bulletPrefix(txt);
     const pPr = para.getElementsByTagNameNS(wNs, 'pPr')[0] || null;
     while (para.firstChild) para.removeChild(para.firstChild);
     if (pPr) para.appendChild(pPr.cloneNode(true));
@@ -7937,7 +7943,7 @@ function vervangInDocxXml(xml, wijzigingen) {
       const normTxt = norm(txt);
       // PDF-geconverteerde DOCX heeft vaak ●/•/▪ als letterlijk teken vóór de tekst.
       // Sla dit op voor positiebepaling na een bullet-vrije zoekopdracht.
-      const _bulletPfx   = txt.match(/^([\t ]*[●•◦▪\-\*>][\t ]+)/)?.[1] ?? '';
+      const _bulletPfx   = bulletPrefix(txt);
       const normTxtNoBul = _bulletPfx ? norm(txt.slice(_bulletPfx.length)) : normTxt;
 
       // Progressief kortere zoekterm
@@ -8023,6 +8029,10 @@ function vervangInDocxXml(xml, wijzigingen) {
       let gedekt      = norm(txtOud).length;
       let lastDelPara = para;
       let lastRPr     = rPr;
+      // Zat het bolletje in het doorgehaalde deel? Alleen dan mag de invoeging er
+      // een krijgen — begon de wijziging middenin de regel, dan staat het bolletje
+      // nog in het ongewijzigde deel ervóór.
+      _laatsteBulletPfx = txtVoor.trim() ? '' : _bulletPfx;
 
       if (gedekt < oudNorm.length) {
         let nextIdx = pIdx + 1;
@@ -8058,7 +8068,9 @@ function vervangInDocxXml(xml, wijzigingen) {
         insEl.setAttributeNS(wNs, 'w:id',     String(revId++));
         insEl.setAttributeNS(wNs, 'w:author', 'Clausula');
         insEl.setAttributeNS(wNs, 'w:date',   datum);
-        insEl.appendChild(maakRun(nieuwTxt, lastRPr, false));
+        // Bolletje terugzetten als het met de doorgehaalde tekst is verdwenen —
+        // anders staat de vervangende regel als losse alinea onder de opsomming.
+        insEl.appendChild(maakRun(metBullet(nieuwTxt, _laatsteBulletPfx), lastRPr, false));
         lastDelPara.appendChild(insEl);
       }
 
@@ -9932,6 +9944,10 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
       // Chip bijwerken (sla ook origineelTekst en docType op voor de diff-weergave / heranalyse)
       _generaties.set(genId, { naam: snapNaam, screeningId: snapId, status: 'klaar', docType: snapDocType, documentTekst, origineelTekst: snapOrigineel, wijzigingen: wijzigingenEcht, bestand: snapBestand });
       renderConceptChips();
+      // Knoptoestand opnieuw bepalen. Zonder dit blijft de kop op "Concept wordt
+      // gegenereerd…" staan en de knop op "Genereren…" met spinner, ook al is de
+      // generatie klaar — updateConceptKnop draaide alleen bij de start.
+      updateConceptKnop();
 
       // Als gebruiker nog op hetzelfde document zit → direct openen
       if (app.screeningId === snapId) {
@@ -9948,8 +9964,11 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
         // Chip NIET verwijderen — gebruiker moet concept opnieuw kunnen bekijken
       }
     } catch (err) {
-      _generaties.set(genId, { naam: snapNaam, screeningId: snapId, status: 'fout', fout: err.message });
+      // docType hoort er ook bij: de opruimlus vóór een nieuwe generatie filtert
+      // erop, dus zonder dit blijft een mislukte chip eeuwig staan.
+      _generaties.set(genId, { naam: snapNaam, screeningId: snapId, docType: snapDocType, status: 'fout', fout: err.message });
       renderConceptChips();
+      updateConceptKnop();
     }
   })();
 });
@@ -14756,6 +14775,7 @@ import { raadDocType, contextVoorHoofd,
 import { maakGrad, telHml, filterActief, kopKlasse, hmlSegs } from './src/chips/hml-counts.js';
 import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/sorteer-docs.js';
 import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
+import { bulletPrefix, metBullet }                          from './src/docx/bullet-prefix.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen

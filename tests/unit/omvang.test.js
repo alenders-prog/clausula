@@ -22,7 +22,14 @@ import { fileURLToPath } from 'url';
 const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
 // Vastgesteld op 19 augustus 2026. Verlaag deze waarde bij elke extractie.
-const MAX_REGELS_INDEX = 14894;
+//
+// 21-08-2026: bewust verhoogd van 14894 naar 14914 (+20). Twee bugfixes hadden
+// regels nodig die niet te verplaatsen zijn: het terugzetten van de knoptoestand
+// na een concept-generatie, en het herstellen van opsommingstekens in de
+// tracked-changes patcher. De pure logica van dat laatste is wél verhuisd, naar
+// src/docx/bullet-prefix.js met elf tests. De rest is bedrading die niets te
+// bewijzen heeft — dat verplaatsen zou alleen indirectie opleveren.
+const MAX_REGELS_INDEX = 14914;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
