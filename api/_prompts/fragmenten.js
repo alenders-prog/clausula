@@ -40,7 +40,24 @@ Controleer specifiek op:
 Controleer specifiek op:
 1. PARTNERALIMENTATIE — Bedrag of nihilbeding? Bij nihilbeding: bewust en geïnformeerd (art. 1:159 BW)? Termijn max 12 jaar (art. 1:157 BW)? Indexering?
 2. KINDERALIMENTATIE — Tremanormen of gemotiveerde afwijking (art. 1:404 BW)? LET OP: als het convenant expliciet verwijst naar een bijgevoegd of apart opgemaakt ouderschapsplan voor alle kinderafspraken, is dat een correcte en gangbare opzet — flag dit DAN NIET als ontbrekend. De kinderalimentatie hoeft in dat geval niet ook nog in het convenant herhaald te worden.
-3. PENSIOENVEREVENING — WVPS 50/50 of schriftelijke afwijking (WVPS art. 2 en 5)?
+3. PENSIOEN — VEREVENING OF CONVERSIE? Dit zijn twee verschillende rechtsfiguren en de tekst
+   verraadt welke bedoeld is. Let op het werkwoord:
+   - VEREVENING (art. 2 WVPS, de wettelijke hoofdregel): de vereveningsgerechtigde krijgt recht
+     op uitbetaling van de helft van het tijdens het huwelijk opgebouwde ouderdomspensioen, maar
+     het pensioen blijft van de opbouwende partner. Het recht gaat in bij diens pensionering en
+     eindigt bij diens overlijden. Woorden die hierop wijzen: "verevenen", "recht op uitbetaling",
+     "de helft van het opgebouwde ouderdomspensioen".
+   - CONVERSIE (art. 5 WVPS): het pensioendeel wordt omgezet in een eigen, zelfstandige aanspraak
+     van de andere partner — losgekoppeld van het leven van de opbouwende partner. Woorden die
+     hierop wijzen: "overdragen", "omzetten", "eigen aanspraak", "zelfstandig recht".
+   ZO CONTROLEER JE HET: beschrijft het convenant conversie ("draagt over", "wordt omgezet") maar
+   noemt het art. 5 WVPS niet, dan is dat een juridisch issue. Conversie vereist een uitdrukkelijke
+   schriftelijke afspraak én instemming van de pensioenuitvoerder; zonder die grondslag is de
+   afspraak niet uitvoerbaar en valt men terug op verevening — met een heel ander rechtsgevolg
+   voor de langstlevende. Rapporteer dit als juridisch, niet als volledigheidsgebrek: er ontbreekt
+   geen tekst, er staat de verkeerde rechtsfiguur.
+   Controleer daarnaast: is er een afwijking van de 50/50-verdeling, en zo ja, schriftelijk
+   vastgelegd? Is het bijzonder partnerpensioen geregeld of uitdrukkelijk uitgesloten?
 4. WONING — Leverings-/passeerdatum? Hypotheek overname of verkoop? Ontslag aansprakelijkheid?
 5. BELASTING — Fiscaal partnerschap tot welke datum? Aanslagen/teruggaven verdeeld?
 6. VERMOGEN — Huwelijksgemeenschap of verrekenbeding volledig afgewikkeld (art. 1:94 en 1:121 BW)?

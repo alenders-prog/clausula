@@ -120,7 +120,7 @@ describe('voorwaardelijke fragmenten', () => {
 
   it('kiest de checklijst op documenttype, met een terugval', () => {
     expect(bouwJuridischeChecks('ouderschapsplan')).toContain('HOOFDVERBLIJFPLAATS');
-    expect(bouwJuridischeChecks('convenant')).toContain('PENSIOENVEREVENING');
+    expect(bouwJuridischeChecks('convenant')).toContain('PARTNERALIMENTATIE');
     // Bijlagen en onbekende types krijgen de algemene instructie, geen lege string.
     expect(bouwJuridischeChecks('bijlage')).toContain('juridische juistheid');
   });
@@ -237,5 +237,29 @@ describe('naamsvermelding van partijen', () => {
   it('sluit normale verkortingen uit', () => {
     // "A. Schreven" of "de heer Schreven" mag geen bevinding opleveren.
     expect(VERIFICATIEPLICHT).toContain('is normaal en geen bevinding');
+  });
+});
+
+describe('pensioen: verevening tegenover conversie', () => {
+  const checks = bouwJuridischeChecks('convenant');
+
+  it('legt het onderscheid uit in plaats van alleen de artikelnummers te noemen', () => {
+    // Aanleiding: de eval vond het pensioenpunt wel, maar als volledigheidsgebrek.
+    // Het convenant zegt "draagt over" — dat is conversie (art. 5), geen verevening.
+    expect(checks).toContain('VEREVENING OF CONVERSIE');
+    expect(checks).toContain('art. 5 WVPS');
+  });
+
+  it('noemt de woorden waaraan het te herkennen is', () => {
+    expect(checks).toContain('"overdragen"');
+    expect(checks).toContain('"verevenen"');
+  });
+
+  it('schrijft juridisch voor, niet volledigheid', () => {
+    expect(checks).toContain('Rapporteer dit als juridisch, niet als volledigheidsgebrek');
+  });
+
+  it('raakt de checklijst van het ouderschapsplan niet', () => {
+    expect(bouwJuridischeChecks('ouderschapsplan')).not.toContain('CONVERSIE');
   });
 });

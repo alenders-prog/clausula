@@ -29,6 +29,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { filterIssuesOpIban } from './_iban.js';
 import { bouwConsolidatieLijst } from './_dedup-passage.js';
+import { hoortBijDocument } from './_cross-doc-toewijzing.js';
 import { verifieerJWT } from './_auth.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
@@ -639,12 +640,11 @@ export default async function handler(req, res) {
             ])],
           }));
           for (const d of effectiefHoofd) {
-            // Stuur issues die dit document-type betreffen (beide documenten ontvangen gedeelde cross-doc issues)
-            const relevantIssues = issuesMetId.filter(iss => {
-              const bd = iss.betreft_documenten;
-              if (!Array.isArray(bd) || bd.length === 0) return true; // ontbrekend veld: naar alle docs
-              return bd.includes(d.type);
-            });
+            // Eén tabblad per issue: dat van de passage. Ging het issue naar béíde
+            // documenten, dan stond het ook op het tabblad waar de geciteerde zin
+            // niet staat — en sprong de viewer bij aanklikken naar het andere
+            // document. Zie api/_cross-doc-toewijzing.js.
+            const relevantIssues = issuesMetId.filter(iss => hoortBijDocument(iss, d.type));
             crossIssuesPerDoc.set(d.bestandsnaam, relevantIssues);
             if (relevantIssues.length > 0) {
               sse({ type: 'cross_doc', bestandsnaam: d.bestandsnaam, result: { issues: relevantIssues } });
