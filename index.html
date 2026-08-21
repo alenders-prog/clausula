@@ -5874,6 +5874,22 @@ async function diepteAnalyse(idx) {
   if (_bekendRijen.length) {
     _prefixBlokken.push(`[BEKENDE GEGEVENS]\n${_bekendRijen.join('\n')}\n[/BEKENDE GEGEVENS]`);
   }
+  // ── Documentcontext rond de passage ──────────────────────────────────────────
+  // De verificatie kreeg tot 21 augustus 2026 alleen het issue en de kennisbank.
+  // Daardoor kon ze twee soorten fouten niet corrigeren: een oordeel dat de alinea
+  // ná de passage negeert, en een claim dat een sectie ontbreekt terwijl die onder
+  // een iets andere naam bestaat. Beide kwamen die dag voorbij.
+  //
+  // _document_tekst staat gepseudonimiseerd in het geheugen; toch nog een keer door
+  // anonimiseerTekst, want hier geldt geen aanname maar een controle — dit blok gaat
+  // de deur uit naar Anthropic.
+  if (issue.bron !== 'assistent' && app.rapport?._document_tekst) {
+    const _ctx = bouwVerificatieContext(app.rapport._document_tekst, issue.passage || '');
+    if (_ctx) {
+      _prefixBlokken.push(huidigeNaarAnon?.size ? anonimiseerTekst(_ctx, huidigeNaarAnon) : _ctx);
+    }
+  }
+
   const _contextPrefix = _prefixBlokken.length ? _prefixBlokken.join('\n\n') + '\n\n' : '';
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -5887,6 +5903,14 @@ async function diepteAnalyse(idx) {
   ].filter(Boolean).join('\n');
 
   const prompt = `${_contextPrefix}${regels}\n\nKijk naar dit issue. Zoek uit of dit juridisch juist is en hoe het opgelost zou moeten worden.
+
+Beoordeel het issue NADRUKKELIJK tegen de documentcontext hierboven, als die is meegegeven:
+- Weerlegt of nuanceert een alinea vóór of ná de passage de bevinding? Zeg dat dan expliciet.
+- Beweert het issue dat een sectie, artikel of bepaling ontbreekt? Zoek het dan op in de
+  sectiekopjes. Een verwijzing die net anders luidt dan de sectienaam is een onnauwkeurige
+  verwijzing, geen ontbrekende sectie — benoem het verschil in plaats van het gebrek.
+Blijkt het issue op grond van de context onterecht of te zwaar, zeg dat dan onomwonden en
+stel in het voorstel een lagere ernst voor.
 
 Sluit je analyse af met exact dit scheidingsteken op een eigen regel:
 ---VOORSTEL---
@@ -14776,6 +14800,7 @@ import { maakGrad, telHml, filterActief, kopKlasse, hmlSegs } from './src/chips/
 import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/sorteer-docs.js';
 import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
 import { bulletPrefix, metBullet }                          from './src/docx/bullet-prefix.js';
+import { bouwVerificatieContext }                           from './src/rapport/verificatie-context.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
