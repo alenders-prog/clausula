@@ -8086,6 +8086,7 @@ function vervangInDocxXml(xml, wijzigingen) {
 
       if (gedekt < oudNorm.length) {
         let nextIdx = pIdx + 1;
+        let _legeOpEenRij = 0;
         while (gedekt < oudNorm.length && nextIdx < paras.length) {
           const nextPara = paras[nextIdx];
           if (verwerkt.has(nextIdx) || nextPara.getElementsByTagNameNS(wNs, 'del').length) {
@@ -8093,15 +8094,17 @@ function vervangInDocxXml(xml, wijzigingen) {
             continue;
           }
           const nextTekst = paraTxt(nextPara).trim();
-          const nextNorm  = norm(nextTekst);
 
-          // Stop bij genummerde sectie-headers (bv. "3. Identiteitsbewijzen" / "3.1. Titel")
-          if (/^\d+(\.\d+)*\.?\s+[A-Z]/.test(nextTekst)) break;
-
-          // Stop als de volgende alinea GEEN overlap heeft met originele_tekst
-          // (gedeelde sleutelwoorden ≥8 tekens). Voorkomt drift naar volgende secties.
-          const _kw = (nextNorm.match(/\b[a-z]{8,}\b/g) || []).filter((w,i,a)=>a.indexOf(w)===i);
-          if (_kw.length > 0 && !_kw.some(w => oudNorm.includes(w))) break;
+          // Stoppen, overslaan of verwijderen — zie src/docx/alinea-actie.js.
+          // Lege alinea's worden overgeslagen zonder het ankerpunt te verplaatsen:
+          // Adobe laat er bij elke paginaovergang een paar achter, en die namen
+          // de invoeging anders mee naar beneden.
+          const _actie = volgendeAlineaActie({
+            tekst: nextTekst, origineelNorm: oudNorm, legeOpEenRij: _legeOpEenRij,
+          });
+          if (_actie === 'stop') break;
+          if (_actie === 'overslaan') { _legeOpEenRij++; nextIdx++; continue; }
+          _legeOpEenRij = 0;
 
           const nextRPr = paraRPr(nextPara);
           gedekt += markeerVolleAlineaAlsDel(nextPara, nextRPr || lastRPr);
@@ -14827,6 +14830,7 @@ import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/
 import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
 import { bulletPrefix, metBullet }                          from './src/docx/bullet-prefix.js';
 import { bouwVerificatieContext }                           from './src/rapport/verificatie-context.js';
+import { volgendeAlineaActie }                              from './src/docx/alinea-actie.js';
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
@@ -14853,6 +14857,7 @@ window.bouwSubRapport    = bouwSubRapport;
 window.bulletPrefix           = bulletPrefix;
 window.metBullet              = metBullet;
 window.bouwVerificatieContext = bouwVerificatieContext;
+window.volgendeAlineaActie    = volgendeAlineaActie;
 window.artikelVerwijzingen    = artikelVerwijzingen;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
