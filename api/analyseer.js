@@ -41,7 +41,7 @@ import {
 // Met negen endpoints erbij liep de map prompts/ de deploy stuk op vijftien.
 // Bestanden met _ ervoor worden niet als endpoint geteld — vandaar ook _iban.js,
 // _auth.js en de rest.
-import { ERNST_CRITERIA, VERIFICATIEPLICHT, bouwPseudonimiseringNota } from './_prompts/gedeeld.js';
+import { bouwStabielGedeeld } from './_prompts/gedeeld.js';
 import { bouwSysStructuur }   from './_prompts/structuur.js';
 import { bouwSysBevindingen } from './_prompts/bevindingen.js';
 import { bouwSysCrossDoc }    from './_prompts/cross-doc.js';
@@ -506,21 +506,14 @@ export default async function handler(req, res) {
       // Huidige datum voor temporele beoordeling (bijv. of een peildatum in het verleden ligt)
       const vandaag = new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-      // Gedeeld regelsblok — identiek voor alle 3 calls + heranalyse → gecached in user-content
-      // (voorheen in elke system prompt herhaald → aparte cache-entries per call-type)
-      const ernstCriteria = ERNST_CRITERIA;;
-
-      // Waarschuwing over pseudonimisering — voorkomt valse format-validatiefouten.
-      // Persoonsnamen worden als nep-namen verstuurd (bijv. "Thomas Bergman") — niet als
-      // [PERSOON_A]-placeholders — zodat Claude ze als gewone tekst behandelt en geen valse
-      // dubbele-naam-alerts genereert door placeholder-herhaling in zijn eigen output.
-      const pseudonimiseringNota = bouwPseudonimiseringNota(vandaag);;
-
-      // Gedeelde verificatieregel — voorkomt valse "ontbreekt"-claims maar behoudt echte fouten
-      const verificatieplicht = VERIFICATIEPLICHT;;
-
-      // Gecombineerd: één blok → één cache-entry voor alle 3 calls + heranalyse
-      const stabielGedeeld = `${pseudonimiseringNota}\n\n${verificatieplicht}\n\n${ernstCriteria}`;
+      // Eén gedeeld regelsblok voor alle 3 calls én een heranalyse → één cache-entry
+      // in plaats van een aparte per call-type. Inhoud staat in api/_prompts/gedeeld.js:
+      // vaststaande feiten, pseudonimiseringsnota, verificatieplicht en ernst-criteria.
+      // De kenmerken uit de intake gaan als vaststaande feiten mee. Zonder die moest
+      // het model de relatievorm uit de tekst afleiden — en een ouderschapsplan noemt
+      // die vaak niet, waarna een zin over een mogelijk toekomstig huwelijk van een
+      // ouder werd gelezen als bewijs dat partijen gehuwd zijn.
+      const stabielGedeeld = bouwStabielGedeeld(vandaag, situatieKenmerken);
 
       // System prompts: alleen call-specifieke instructies (gedeelde regels in stabielGedeeld)
       const sysStructuur = bouwSysStructuur({ docTypLabel, anderDocsNota, roepnamenNota, mfnInstructie, heeftMfn, mfnElemList });;

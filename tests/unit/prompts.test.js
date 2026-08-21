@@ -150,3 +150,43 @@ describe('vakinhoudelijke regels in de verificatieplicht', () => {
     expect(VERIFICATIEPLICHT).toContain('maak er geen issue van');
   });
 });
+
+describe('vaststaande dossierfeiten', () => {
+  it('noemt de relatievorm expliciet zodat die niet geraden hoeft te worden', () => {
+    // Aanleiding: een ouderschapsplan kreeg het advies om overal "huwelijk" van te
+    // maken, terwijl partijen geregistreerd partners zijn. Het model leidde dat af
+    // uit een sectie over een mogelijk toekomstig huwelijk van een ouder.
+    const blok = bouwStabielGedeeld('21-08-2026', ['geregistreerd_partnerschap']);
+    expect(blok).toContain('GEREGISTREERD PARTNERSCHAP, geen huwelijk');
+    expect(blok).toContain('ontbinding van het geregistreerd partnerschap');
+  });
+
+  it('schrijft voor dat het document wijkt, niet het feit', () => {
+    const blok = bouwStabielGedeeld('21-08-2026', ['geregistreerd_partnerschap']);
+    expect(blok).toContain('dan is het DOCUMENT wat gecorrigeerd moet worden');
+  });
+
+  it('waarschuwt dat voorwaardelijke passages geen feiten zijn', () => {
+    const blok = bouwStabielGedeeld('21-08-2026', ['huwelijk']);
+    expect(blok).toContain('VOORWAARDELIJKE EN TOEKOMSTIGE PASSAGES ZEGGEN NIETS');
+  });
+
+  it('zet de feiten vooraan, vóór de beoordelingsregels', () => {
+    const blok = bouwStabielGedeeld('21-08-2026', ['huwelijk']);
+    expect(blok.indexOf('VASTSTAANDE FEITEN'))
+      .toBeLessThan(blok.indexOf('VERIFICATIEPLICHT'));
+  });
+
+  it('laat het blok weg als er geen bruikbare kenmerken zijn', () => {
+    const zonder = bouwStabielGedeeld('21-08-2026', []);
+    expect(zonder).not.toContain('VASTSTAANDE FEITEN');
+    // Zonder kenmerken exact het oude gedrag — anders verschuift de cache-sleutel.
+    expect(zonder).toBe(bouwStabielGedeeld('21-08-2026'));
+  });
+
+  it('negeert onbekende kenmerken zonder te breken', () => {
+    const blok = bouwStabielGedeeld('21-08-2026', ['bestaat_niet', 'huwelijk']);
+    expect(blok).toContain('Partijen zijn gehuwd');
+    expect(blok).not.toContain('bestaat_niet');
+  });
+});

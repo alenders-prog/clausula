@@ -12,6 +12,8 @@
  * volledige cache-miss op alle lopende analyses.
  */
 
+import { bouwFeitenBlok } from './feiten.js';
+
 export const ERNST_CRITERIA =
 `Ernst-criteria (verplicht toepassen — wees terughoudend met 'hoog'):
 - hoog: reserveer dit uitsluitend voor evidente wettelijke overtreding of volstrekte onuitvoerbaarheid; het document kan zo NIET worden gepasseerd of vastgelegd (bijv. verplichte WVPS-afstand volledig afwezig zonder vervangende regeling, nihilbeding kinderalimentatie voor minderjarigen zonder draagkrachtberekening).
@@ -95,5 +97,10 @@ Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — 
 
 HUIDIGE DATUM: ${vandaag}. Gebruik deze datum bij alle temporele beoordelingen — bijv. of een peildatum, ondertekeningsdatum of ingangsdatum in het verleden of de toekomst ligt. Rapporteer een datum NOOIT als "in de toekomst" als die datum eerder is dan de huidige datum.`;
 
-export const bouwStabielGedeeld = (vandaag) =>
-  `${bouwPseudonimiseringNota(vandaag)}\n\n${VERIFICATIEPLICHT}\n\n${ERNST_CRITERIA}`;
+// Het feitenblok staat vooraan: wat vaststaat hoort te gelden vóór alle
+// beoordelingsregels die erna komen.
+export const bouwStabielGedeeld = (vandaag, situatieKenmerken = []) => {
+  const feiten = bouwFeitenBlok(situatieKenmerken);
+  return (feiten ? `${feiten}\n\n` : '')
+    + `${bouwPseudonimiseringNota(vandaag)}\n\n${VERIFICATIEPLICHT}\n\n${ERNST_CRITERIA}`;
+};
