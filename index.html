@@ -10195,20 +10195,31 @@ async function cleanupDocxArtefacten(docxBlob) {
   const getTekst = p => Array.from(p.getElementsByTagNameNS(wNs, 't'))
     .map(t => t.textContent).join('').trim();
 
+  // Teksten vooraf verzamelen: de buur van een alinea is de eerstvolgende MÉT
+  // tekst, niet per se de directe buur. Adobe laat op een paginagrens lege
+  // alinea's achter waar de voettekst stond, en die maakten de zin onherstelbaar
+  // omdat de lus dan een lege buur zag en oversloeg.
+  const _teksten = paraNaRem.map(getTekst);
+
   for (let i = 0; i < paraNaRem.length - 1; i++) {
     const curr = paraNaRem[i];
-    const next = paraNaRem[i + 1];
-    // Sla over als een van beide al verwijderd is
-    if (!curr.parentNode || !next.parentNode) continue;
+    if (!curr.parentNode) continue;
 
-    const currTekst = getTekst(curr);
-    const nextTekst = getTekst(next);
-    if (!currTekst || !nextTekst || currTekst.length < 4) continue;
+    const currTekst = _teksten[i];
+    const _volg = volgendeMetTekst(_teksten, i + 1);
+    if (!_volg) continue;
+    const next = paraNaRem[_volg.index];
+    const nextTekst = _teksten[_volg.index];
+    if (!next.parentNode) continue;
 
-    const eindigtMidZin = !/[.!?:;»\-—]$/.test(currTekst);
-    const begintVervolg = /^[€\d(,a-z]/.test(nextTekst);
-
-    if (eindigtMidZin && begintVervolg) {
+    if (hoortAaneen(currTekst, nextTekst)) {
+      // Lege tussenliggers weg — die zijn de restanten van de verwijderde voettekst.
+      for (const l of _volg.lege) {
+        const leegPara = paraNaRem[l];
+        if (leegPara?.parentNode) {
+          try { body.removeChild(leegPara); } catch { /* al verwijderd */ }
+        }
+      }
       // Voeg spatie-run toe tenzij curr al op spatie eindigt
       if (!currTekst.endsWith(' ')) {
         const spRun = xmlDoc.createElementNS(wNs, 'w:r');
@@ -14831,6 +14842,7 @@ import { bouwSubRapport }                                   from './src/rapport/
 import { bulletPrefix, metBullet }                          from './src/docx/bullet-prefix.js';
 import { bouwVerificatieContext }                           from './src/rapport/verificatie-context.js';
 import { volgendeAlineaActie }                              from './src/docx/alinea-actie.js';
+import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin-samenvoegen.js';
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
@@ -14858,6 +14870,8 @@ window.bulletPrefix           = bulletPrefix;
 window.metBullet              = metBullet;
 window.bouwVerificatieContext = bouwVerificatieContext;
 window.volgendeAlineaActie    = volgendeAlineaActie;
+window.hoortAaneen            = hoortAaneen;
+window.volgendeMetTekst       = volgendeMetTekst;
 window.artikelVerwijzingen    = artikelVerwijzingen;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
