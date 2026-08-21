@@ -17,6 +17,10 @@ De lijst bevat issues uit meerdere analyse-calls (structuur, bevindingen, cross-
 Taak: verwijder semantisch identieke of sterk overlappende issues.
 Merge-criteria (verwijder het issue met de lagere ernst of lagere juridische prioriteit):
 - Zelfde passage + zelfde kernprobleem, ook al verschillen de woorden van de titel.
+  Issues die dezelfde zin aanwijzen zijn gemarkeerd met "← ZELFDE PASSAGE als [n]".
+  Beoordeel bij zo'n paar altijd expliciet: is dit één gebrek in twee bewoordingen,
+  of zijn het twee verschillende gebreken die toevallig in dezelfde zin staan?
+  Eén gebrek → houd het meest informatieve exemplaar. Twee gebreken → bewaar beide.
 - Per-document issue en cross-document issue over hetzelfde concrete feit (bijv. zelfde IBAN, zelfde tegenstrijdigheid, zelfde ontbrekend veld).
 - Twee dimensie-varianten van hetzelfde probleem (bijv. "onvolledig" én "onvolledige zin" over exact dezelfde passage).
 

@@ -28,6 +28,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { filterIssuesOpIban } from './_iban.js';
+import { bouwConsolidatieLijst } from './_dedup-passage.js';
 import { verifieerJWT } from './_auth.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
@@ -696,9 +697,10 @@ export default async function handler(req, res) {
           continue;
         }
         try {
-          const genummerd = allIssues
-            .map((iss, i) => `[${i}] (${iss.ernst}) ${iss.onderwerp}: ${(iss.bevinding || '').slice(0, 150)}`)
-            .join('\n');
+          // Inclusief de passage en een markering welke issues dezelfde zin aanwijzen.
+          // Zonder die twee was het eerste samenvoegcriterium in de prompt onbruikbaar:
+          // het verwees naar een passage die niet in de invoer stond.
+          const genummerd = bouwConsolidatieLijst(allIssues);
           const consolidatieRes = await askClaude(
             sysConsolidatie,
             genummerd,
