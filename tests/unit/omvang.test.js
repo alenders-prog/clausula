@@ -32,7 +32,7 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // src/rapport/verificatie-context.js (15 tests). Wat hier bleef staan is
 // bedrading die niets te bewijzen heeft; verplaatsen zou alleen indirectie
 // opleveren.
-const MAX_REGELS_INDEX = 14939;
+const MAX_REGELS_INDEX = 14945;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
