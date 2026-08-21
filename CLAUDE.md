@@ -133,6 +133,18 @@ de enige manier waarop die code bereikbaar wordt voor een test.
 Die grens mag **alleen omlaag**. Loopt hij vol, verplaats dan eerst iets; verhoog
 je hem toch, dan staat dat in de diff en is het een besluit.
 
+> **De grens is een aanleiding tot een vraag, geen wet.** Werkt hij in een concreet
+> geval averechts — code dichtschrijven om regels te sparen, commentaar schrappen
+> dat de code juist verklaart, of iets verplaatsen zonder dat er een test bij komt
+> die iets bewijst — **meld dat dan eerst**, met het alternatief erbij, en ga daarna
+> door zoals gevraagd. Meestal is het alternatief: de grens bewust verhogen, of het
+> gedrag met een browsertest afdekken in plaats van de code te verhuizen.
+>
+> Extractie is geen doel op zich. Van de fouten die op 19–20 augustus 2026 boven
+> water kwamen — een ongedefinieerde CSS-variabele, een kapot SVG-pad, verouderde
+> golden tests, stille `catch`-blokken — had verplaatsen er vrijwel geen voorkomen.
+> Tests en waarneming wel.
+
 Aansluiten gaat via de bestaande ESM-brug onderaan `index.html` (`<script
 type="module">`), zonder build-stap.
 
