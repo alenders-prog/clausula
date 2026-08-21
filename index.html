@@ -2788,7 +2788,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         <input type="text" id="docZoekInput" placeholder="Zoek in document…" autocomplete="off" spellcheck="false"
           style="border:none;outline:none;font-family:inherit;font-size:.77rem;color:var(--ink);background:transparent;width:100%;min-width:0;"
           oninput="zoekInDocument(this.value)"
-          onkeydown="if(event.key==='Escape'){this.value='';zoekInDocument('')}else if(event.key==='Enter'){event.shiftKey?zoekVorig():zoekVolgend()}">
+          onkeydown="if(event.key==='Escape'){wisDocZoek()}else if(event.key==='Enter'){event.shiftKey?zoekVorig():zoekVolgend()}">
+        <button id="docZoekWis" onclick="wisDocZoek()" title="Zoekopdracht wissen (Esc)"
+          style="display:none;border:none;background:none;cursor:pointer;padding:0 2px;line-height:1;
+                 font-size:.95rem;color:var(--ink-faint);flex-shrink:0;">&times;</button>
         <span class="doc-zoek-info" id="docZoekInfo" style="font-size:.72rem;color:var(--ink-soft);flex-shrink:0;white-space:nowrap;min-width:50px;text-align:right;"></span>
         <div class="doc-zoek-nav" style="display:flex;gap:2px;flex-shrink:0;">
           <button id="docZoekVorig" onclick="zoekVorig()" disabled title="Vorige (Shift+Enter)" style="border:1px solid var(--line);border-radius:4px;width:20px;height:20px;background:none;cursor:pointer;font-size:.7rem;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;">▲</button>
@@ -4850,14 +4853,30 @@ async function renderPdfPaginas(panel, pdf, gen) {
 let _zoekAnkers = [];
 let _zoekIdx    = 0;
 
+// Leegt de zoekbalk en zet de markeringen terug. Wordt aangeroepen door het
+// kruisje, door Escape, en door zoekEnScrollNaarPassage — daar is het geen
+// gemaksfunctie maar een voorwaarde: renderDocPanel geeft de zoekbalk voorrang
+// boven de meegegeven passage, dus met tekst in de balk springt een aangeklikt
+// issue nergens heen.
+function wisDocZoek() {
+  const inp = document.getElementById('docZoekInput');
+  if (!inp) return;
+  if (!inp.value) { _updateDocZoekInfo(); return; }
+  inp.value = '';
+  zoekInDocument('');
+}
+
 function _updateDocZoekInfo() {
   const infoEl  = document.getElementById('docZoekInfo');
   const btnPrev = document.getElementById('docZoekVorig');
   const btnNext = document.getElementById('docZoekVolgend');
+  const btnWis  = document.getElementById('docZoekWis');
   const zoek    = document.getElementById('docZoekInput')?.value || '';
   const heeft   = _zoekAnkers.length > 0;
   if (btnPrev) btnPrev.disabled = !heeft;
   if (btnNext) btnNext.disabled = !heeft;
+  // Kruisje alleen tonen als er iets te wissen valt.
+  if (btnWis) btnWis.style.display = zoek ? 'flex' : 'none';
   if (!infoEl) return;
   if (!zoek.trim()) { infoEl.textContent = ''; return; }
   infoEl.textContent = heeft ? `${_zoekIdx + 1} / ${_zoekAnkers.length}` : 'Niet gevonden';
@@ -6451,6 +6470,10 @@ function toonPassageBanner(passage) {
 // Geeft true terug als de passage gevonden is met goede kwaliteit (niet via sliding window).
 async function zoekEnScrollNaarPassage(passage) {
   toonPassageBanner('');
+  // Zoekbalk eerst leegmaken. renderDocPanel geeft de balk voorrang boven de
+  // meegegeven passage, dus met een openstaande zoekopdracht sprong een aangeklikt
+  // issue nergens heen — zonder dat er iets misging dat je kon zien.
+  wisDocZoek();
 
   // Bereken positie in _document_tekst (dezelfde tekst die Claude heeft geanalyseerd).
   // Dit geeft een fractie (0–1) die als hint dient voor highlightInPdf zodat bij meerdere
