@@ -3,8 +3,8 @@
     "doc_type": "convenant",
     "beschrijving": "Convenant met tegenstrijdig huwelijksvermogensregime na 01-01-2018",
     "bekende_fouten": [
-      "huwelijk na 01-01-2018 maar convenant noemt beperkte gemeenschap",
-      "naam man in convenant wijkt af van naam op bankafschrift"
+      "personalia mengen roepnaam en geboortenaam: \"Sander Alexander Schreven\"",
+      "bankrekening staat op de geboortenaam \"Alexander Schreven\", afwijkend van de introductie"
     ],
     "situatie_kenmerken": [
       "huwelijk",
@@ -18,14 +18,20 @@
   "verwachte_issues": {
     "moeten_gevonden_worden": [
       {
-        "categorie": "conflicten",
+        "categorie": [
+          "conflicten",
+          "juridisch",
+          "volledigheid"
+        ],
         "sleutelwoorden": [
+          "roepnaam",
+          "geboortenaam",
+          "voornaam",
           "tenaamstelling",
-          "naam op de rekening",
-          "afwijkende naam",
+          "naamsvermelding",
           "sander"
         ],
-        "toelichting": "naam man wijkt af van de tenaamstelling van de bankrekening"
+        "toelichting": "De personalia noemen de man \"Sander Alexander Schreven\" — een roepnaam door de geboortenaam heen. In een vaststellingsovereenkomst hoort de officiele naam te staan, met de roepnaam apart geintroduceerd (\"hierna ook te noemen Sander\"). De bankrekening staat wel op de geboortenaam, wat het verschil zichtbaar maakt."
       }
     ],
     "mogen_NIET_gevonden_worden": [
