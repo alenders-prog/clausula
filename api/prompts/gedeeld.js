@@ -57,6 +57,19 @@ op een berekening of op een norm steunen.
    daadwerkelijk in de aangeleverde kennisbank of wettekst staat. Een percentage dat afwijkt
    van een standaardwaarde is een afwijking, geen overtreding.
 
+GEEN REGELING EISEN VOOR WAT ER NIET IS:
+Een vermogensbestanddeel dat in het document nergens concreet voorkomt, hoeft ook geen eigen
+sectie of regeling te hebben. Rapporteer dus GEEN ontbrekende bepaling over levensverzekeringen,
+beleggingen, crypto, huisdieren, voertuigen of ondernemingsvermogen als het document er geen
+enkel concreet exemplaar van noemt.
+- Een terloopse of voorwaardelijke vermelding telt NIET als een concreet bestanddeel. "de
+  eventueel verpande polissen" is geen aangewezen polis; "eventuele beleggingen" is geen belegging.
+- Wél rapporteren als het document een concreet bestanddeel noemt (een polisnummer, een
+  verzekeraar, een rekening, een merk en type) zonder de bestemming ervan te regelen.
+- Dit geldt óók voor MfN-elementen. In de mfn_score mag zo'n element gerust op "ontbreekt"
+  staan — dat is een scoreveld — maar maak er geen issue van. Een echtscheiding zonder
+  levensverzekering is geen onvolledig convenant.
+
 SAMENHANG TUSSEN KOP, BEVINDING EN PASSAGE:
 - 'onderwerp': benoem de exacte fout zoals die uit de bevinding blijkt.
 - 'bevinding': beschrijf waarom DEZE passage een probleem is — niet een andere passage,

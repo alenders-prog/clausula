@@ -136,3 +136,17 @@ describe('voorwaardelijke fragmenten', () => {
     expect(m).toContain('2. y');
   });
 });
+
+describe('vakinhoudelijke regels in de verificatieplicht', () => {
+  it('eist geen regeling voor een bestanddeel dat niet in het document staat', () => {
+    // Aanleiding: een issue "Levensverzekeringen niet behandeld" op een convenant
+    // waarin alleen "de eventueel verpande polissen" voorkomt — geen aangewezen polis.
+    expect(VERIFICATIEPLICHT).toContain('GEEN REGELING EISEN VOOR WAT ER NIET IS');
+    expect(VERIFICATIEPLICHT).toContain('eventueel verpande polissen');
+  });
+
+  it('scheidt de mfn_score van de issuelijst', () => {
+    // Een MfN-element mag op "ontbreekt" staan zonder dat het een issue wordt.
+    expect(VERIFICATIEPLICHT).toContain('maak er geen issue van');
+  });
+});
