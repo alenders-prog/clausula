@@ -18,7 +18,9 @@ export const ERNST_CRITERIA =
 `Ernst-criteria (verplicht toepassen — wees terughoudend met 'hoog'):
 - hoog: reserveer dit uitsluitend voor evidente wettelijke overtreding of volstrekte onuitvoerbaarheid; het document kan zo NIET worden gepasseerd of vastgelegd (bijv. verplichte WVPS-afstand volledig afwezig zonder vervangende regeling, nihilbeding kinderalimentatie voor minderjarigen zonder draagkrachtberekening).
 - midden: inhoudelijk punt dat aanpassing verdient maar de kern van de afspraak intact laat (bijv. indexering ontbreekt, datum niet ingevuld, partijnaam inconsistent, onduidelijke clausule). Dit is het standaardniveau voor de meeste echte issues.
-- laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.`;
+- laag: aandachtspunt, verbetersuggestie of stijlkwestie zonder materieel rechtsgevolg (bijv. vage verwijzing, alternatieve formulering, spellingsfout). Gebruik dit ruimhartig voor nuttige maar niet-urgente opmerkingen.
+NOOIT 'hoog' voor een onderwerp dat volgens een expliciete verwijzing in een ander document van
+het dossier is geregeld. Dat is hooguit een aandachtspunt over de verwijzing zelf, geen gebrek.`;
 
 export const VERIFICATIEPLICHT =
 `VERIFICATIEPLICHT BIJ AFWEZIGHEIDSCLAIMS:
@@ -58,6 +60,30 @@ op een berekening of op een norm steunen.
 3. NORMCLAIMS: beweer alleen dat een grens of norm wordt overschreden als die grens
    daadwerkelijk in de aangeleverde kennisbank of wettekst staat. Een percentage dat afwijkt
    van een standaardwaarde is een afwijking, geen overtreding.
+
+VERWIJZING NAAR EEN ANDER DOCUMENT IN HETZELFDE DOSSIER:
+Een dossier bestaat uit meerdere documenten die naar elkaar verwijzen. Verwijst het document
+dat je beoordeelt voor een onderwerp expliciet naar een ander document van hetzelfde dossier
+— "alle afspraken betreffende de kinderen zijn vastgelegd in het bijgevoegde ouderschapsplan",
+"zie het convenant voor de vermogensverdeling" — dan is dat een correcte en gangbare opzet.
+- Rapporteer dan GEEN ontbrekende regeling voor dat onderwerp. Niet als volledigheid-issue,
+  niet als juridisch issue, en al helemaal niet als 'hoog'. Het staat ergens anders, en dat
+  andere document wordt apart geanalyseerd.
+- Dit geldt voor élk onderwerp, niet alleen voor kinderafspraken: alimentatie, pensioen,
+  woning, verdeling — wat met een expliciete verwijzing elders is belegd, hoort hier niet
+  herhaald te worden.
+- Een verwijzing hóéft niet woordelijk het onderwerp te noemen. "Alle afspraken betreffende
+  de kinderen" dekt de kinderalimentatie, de zorgregeling en het gezag.
+- Alleen als er GEEN enkele verwijzing staat én het onderwerp in dit documenttype thuishoort,
+  is er iets te melden.
+
+DE PASSAGE MOET DE FOUT UIT DE TITEL BEVATTEN:
+Het citaat in 'passage' moet de zin zijn waarin het gebrek uit 'onderwerp' zich voordoet.
+- Gaat de titel over kinderalimentatie, dan mag de passage geen zin over partneralimentatie zijn.
+- Kun je geen zin aanwijzen die de fout uit de titel bevat, dan klopt de titel niet, of het
+  issue niet. Herformuleer het naar wat de aangewezen zin wél laat zien, of laat het weg.
+- Een passage die over een aanpalend onderwerp gaat is geen bewijs. Hij maakt het issue juist
+  ongeloofwaardig, want de lezer springt ernaartoe en ziet iets anders staan dan beloofd.
 
 GEEN REGELING EISEN VOOR WAT ER NIET IS:
 Een vermogensbestanddeel dat in het document nergens concreet voorkomt, hoeft ook geen eigen

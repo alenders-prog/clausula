@@ -190,3 +190,37 @@ describe('vaststaande dossierfeiten', () => {
     expect(blok).not.toContain('bestaat_niet');
   });
 });
+
+describe('verwijzing naar een ander document in het dossier', () => {
+  it('verbiedt een ontbrekend-issue als het onderwerp elders is belegd', () => {
+    // Aanleiding: "Kinderalimentatie niet geregeld in convenant" (HOOG), terwijl het
+    // convenant in 1.1 zegt dat alle kinderafspraken in het ouderschapsplan staan.
+    expect(VERIFICATIEPLICHT).toContain('VERWIJZING NAAR EEN ANDER DOCUMENT IN HETZELFDE DOSSIER');
+    expect(VERIFICATIEPLICHT).toContain('al helemaal niet als \'hoog\'');
+  });
+
+  it('geldt voor elk onderwerp, niet alleen kinderafspraken', () => {
+    expect(VERIFICATIEPLICHT).toContain('Dit geldt voor élk onderwerp');
+  });
+
+  it('accepteert een verwijzing die het onderwerp niet woordelijk noemt', () => {
+    expect(VERIFICATIEPLICHT).toContain('hóéft niet woordelijk het onderwerp te noemen');
+  });
+
+  it('sluit hoog uit in de ernst-criteria zelf', () => {
+    // De regel moet ook staan waar de ernst wordt bepaald, niet alleen in de plicht.
+    expect(ERNST_CRITERIA).toContain("NOOIT 'hoog' voor een onderwerp dat volgens een expliciete verwijzing");
+  });
+});
+
+describe('passage moet de fout uit de titel bevatten', () => {
+  it('verbiedt een passage over een aanpalend onderwerp', () => {
+    // Aanleiding: titel over kinderalimentatie, passage over partneralimentatie.
+    expect(VERIFICATIEPLICHT).toContain('DE PASSAGE MOET DE FOUT UIT DE TITEL BEVATTEN');
+    expect(VERIFICATIEPLICHT).toContain('geen zin over partneralimentatie zijn');
+  });
+
+  it('schrijft voor wat te doen als er geen passende zin is', () => {
+    expect(VERIFICATIEPLICHT).toContain('Herformuleer het naar wat de aangewezen zin wél laat zien');
+  });
+});
