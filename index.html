@@ -13676,8 +13676,7 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
       body: JSON.stringify(_assistMaakRequestBody(tekstAnon, rawModus)),
     });
 
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const data = await leesAntwoord(resp);
 
     _assistVerwijderThinking();
     if (isClausule) {
@@ -13912,8 +13911,7 @@ Sluit de toelichting af met: "*Dit is een aanbeveling — eindverantwoordelijkhe
       body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
     });
 
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const data = await leesAntwoord(resp);
 
     _assistVerwijderThinking();
     const antwoordHerstel = _assistHerstelNamen(data.antwoord);
@@ -14107,8 +14105,7 @@ async function _assistGenInhoudelsTekst() {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
     });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const data = await leesAntwoord(resp);
 
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), [], 'geen', null, null);
@@ -14281,8 +14278,7 @@ ${schrijfstijlInstr}${namenInstr}`;
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
     });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const data = await leesAntwoord(resp);
 
     _assistVerwijderThinking();
     const bufId = `cb_mail_${Date.now()}`;
@@ -14576,8 +14572,7 @@ ${schrijfstijlInstr}${namenInstr}`;
       body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
     });
 
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const data = await leesAntwoord(resp);
 
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), data.bronnen, 'geen', null, 'mail');
@@ -14791,6 +14786,7 @@ import { volgendeAlineaActie }                              from './src/docx/ali
 import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin-samenvoegen.js';
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 import { injecteerNummering }                               from './src/docx/nummering.js';
+import { leesAntwoord }                                     from './src/assistent/api-antwoord.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -14823,6 +14819,7 @@ window.artikelVerwijzingen    = artikelVerwijzingen;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;
+window.leesAntwoord           = leesAntwoord;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>

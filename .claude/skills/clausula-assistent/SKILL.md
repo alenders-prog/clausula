@@ -49,6 +49,37 @@ Gebruikt voor: clausule-generatie, mail, klanttekst, herschrijven.
 
 ---
 
+## Tijdsbudget — de functie moet altijd zélf antwoorden
+
+`vercel.json` geeft `api/ai-assistent.js` 60 seconden; het Hobby-plan staat niet meer
+toe. De zoekloop kan tot vijf Claude-aanroepen doen plus web-zoekopdrachten, en daarna
+komt de gestructureerde call er nog overheen. Op 23 augustus 2026 liepen daardoor drie
+van de vier aanroepen in een kwartier in `Vercel Runtime Timeout Error: Task timed out
+after 60 seconds`.
+
+Dat is niet alleen traag maar onzichtbaar: bij een time-out stuurt Vercel een **platte
+foutpagina** terug, geen JSON. De client deed `await resp.json()` en toonde de gebruiker
+`Unexpected token 'A', "An error o"... is not valid JSON` — de binnenkant van de parser
+in plaats van de reden.
+
+**Twee maatregelen, allebei nodig:**
+
+1. **Server** — `FUNCTIE_BUDGET_MS` (55s) en `AFRONDING_MS` (25s) in `api/ai-assistent.js`.
+   De zoekloop stopt zodra er nog maar 25 seconden over zijn; elke `callClaude` krijgt een
+   absolute deadline mee en breekt af via `AbortSignal.timeout`. Liever een antwoord met
+   minder bronnen dan een afgekapte functie. De rondetijden gaan naar `console.log` — zonder
+   die meting is niet te zien of de tijd in Claude of in de zoekopdracht zit.
+2. **Client** — `leesAntwoord()` uit `src/assistent/api-antwoord.js`, gebruikt door alle
+   acht aanroepen (5× `index.html`, 2× `assistent-mobiel.html`, 1× `assistent-core.js`).
+   Leest via `resp.text()` en vertaalt platform- en applicatiefouten naar één begrijpelijke
+   zin. **Nooit `resp.json()` rechtstreeks op deze endpoint.**
+
+> Verhogen van `maxDuration` is geen uitweg: 60s is het maximum op het Hobby-plan.
+> Wil je écht meer ruimte, dan is streaming (zoals `api/analyseer.js` doet) de route —
+> dat houdt de verbinding open en valt niet onder dezelfde limiet.
+
+---
+
 ## Kennisbank-injectie (rawModus)
 
 Vóór elke rawModus-aanroep zoekt de server zelf in `legal_chunks`:

@@ -14,9 +14,11 @@
   <script type="module">
     import { bouwAnonMap, anonimiseerTekst } from '/src/naam-anonimiseer.js';
     import { piiAnonimiseer }               from '/src/pii-anonimiseer.js';
+    import { leesAntwoord }                 from '/src/assistent/api-antwoord.js';
     window.bouwAnonMap      = bouwAnonMap;
     window.anonimiseerTekst = anonimiseerTekst;
     window.piiAnonimiseer   = piiAnonimiseer;
+    window.leesAntwoord     = leesAntwoord;
   </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1185,8 +1187,7 @@
         }),
       });
 
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      const data = await leesAntwoord(resp);
 
       verwijderDenken();
       voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || [], data);
@@ -1250,8 +1251,7 @@
           stijl:          'juridisch_volledig',
         }),
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+      const data = await leesAntwoord(resp);
       verwijderDenken();
       voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || [], data);
       conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [] });

@@ -372,24 +372,54 @@ const SYSTEEM_CACHED = [
   { type: 'text', text: SYSTEEM, cache_control: { type: 'ephemeral' } },
 ];
 
+// ── Tijdsbudget ───────────────────────────────────────────────────────────────
+// vercel.json geeft deze functie 60 seconden. Wordt die overschreden, dan kapt
+// Vercel de functie af en stuurt een platte foutpagina terug — geen JSON, dus de
+// client kon er niets zinnigs mee. Daarom bewaken we de tijd nu zelf en geven we
+// altijd een eigen antwoord terug, desnoods een kortere.
+//
+// De zoekloop mag maximaal zes Claude-aanroepen doen; met een trage zoekopdracht
+// ertussen komt dat er makkelijk overheen.
+// Gemeten op 23 augustus 2026: drie van de vier aanroepen in een kwartier liepen
+// in "Vercel Runtime Timeout Error: Task timed out after 60 seconds".
+const FUNCTIE_BUDGET_MS = 55_000;   // 5s marge op de 60s van Vercel
+const AFRONDING_MS      = 25_000;   // gereserveerd voor de gestructureerde call
+
 // ── Helper: Claude aanroepen ──────────────────────────────────────────────────
-async function callClaude(apiKey, body, retries = 2) {
+// `deadline` is een absoluut tijdstip (Date.now()-basis); de call wordt afgebroken
+// zodra dat gepasseerd is, zodat het budget nooit bij één trage aanroep opgaat.
+async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
   const payload = JSON.stringify({ model: 'claude-sonnet-4-6', ...body });
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta':    'prompt-caching-2024-07-31',
-      },
-      body: payload,
-    });
+    const resterend = deadline - Date.now();
+    if (resterend <= 0) throw new Error('Tijdslimiet bereikt vóór het antwoord van Claude');
+
+    const afbreken = AbortSignal.timeout(resterend);
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type':      'application/json',
+          'x-api-key':         apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta':    'prompt-caching-2024-07-31',
+        },
+        body:   payload,
+        signal: afbreken,
+      });
+    } catch (err) {
+      if (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+        throw new Error('Claude antwoordde niet binnen de beschikbare tijd');
+      throw err;
+    }
+
     if (res.ok) return res.json();
     const isRetryable = res.status === 429 || res.status === 529;
-    if (isRetryable && attempt < retries) {
-      await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); // 2s, 4s
+    // Alleen opnieuw proberen als er ná de wachttijd nog tijd over is.
+    const wacht = 2000 * (attempt + 1); // 2s, 4s
+    if (isRetryable && attempt < retries && Date.now() + wacht < deadline) {
+      await new Promise(r => setTimeout(r, wacht));
       continue;
     }
     throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
@@ -451,6 +481,8 @@ async function voerToolsUit(content, supabase, braveKey, bronnenAcc) {
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST' });
+
+  const eindtijd = Date.now() + FUNCTIE_BUDGET_MS;
 
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
   if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
@@ -567,7 +599,7 @@ export default async function handler(req, res) {
         temperature: 0.5,
         system:      SYSTEEM_CACHED, // Fix 3: volledig SYSTEEM-prompt ipv minimale string
         messages:    msgs,
-      });
+      }, 2, eindtijd);
       const tekst = rawData.content.find(b => b.type === 'text')?.text || '';
       return res.status(200).json({
         intent: 'klanttekst', antwoord: tekst, bronnen: [],
@@ -617,22 +649,36 @@ export default async function handler(req, res) {
 
   try {
     for (let i = 0; i < MAX_ZOEK; i++) {
+      // Zoeken is optioneel, antwoorden niet. Blijft er te weinig tijd over voor de
+      // gestructureerde call, dan stoppen we met zoeken en antwoorden we met wat er
+      // tot nu toe gevonden is — beter een antwoord met minder bronnen dan geen.
+      if (Date.now() + AFRONDING_MS > eindtijd) {
+        console.warn(`[ai-assistent] zoekloop afgebroken na ${i} ronde(s) — tijdsbudget`);
+        break;
+      }
+
       const data = await callClaude(anthropicKey, {
         max_tokens:  1500,
         temperature: 0.3,
         system:      SYSTEEM_CACHED,
         tools:       ZOEK_TOOLS,
         messages:    zoekMessages,
-      });
+      }, 2, eindtijd - AFRONDING_MS);
 
       if (data.stop_reason !== 'tool_use') break; // Geen zoekactie meer nodig
 
       zoekMessages.push({ role: 'assistant', content: data.content });
+      const t0Tools = Date.now();
       const toolResults = await voerToolsUit(data.content, supabase, braveKey, bronnenZoek);
       zoekMessages.push({ role: 'user', content: toolResults });
+      // Zonder deze meting is niet te zien of de tijd in Claude of in de zoekopdracht
+      // gaat zitten — en dat verschil bepaalt waar een volgende ingreep hoort.
+      console.log(`[ai-assistent] zoekronde ${i + 1}: tools ${Date.now() - t0Tools}ms, `
+        + `totaal ${Date.now() - (eindtijd - FUNCTIE_BUDGET_MS)}ms`);
     }
 
     // ── Fase 2: Gestructureerde output ───────────────────────────
+    const t0Struct = Date.now();
     const structData = await callClaude(anthropicKey, {
       max_tokens:  4000,
       temperature: 0.3,
@@ -640,7 +686,9 @@ export default async function handler(req, res) {
       tools:       [ASSISTENT_TOOL],
       tool_choice: { type: 'tool', name: 'assistent_antwoord' },
       messages:    zoekMessages,
-    });
+    }, 2, eindtijd);
+    console.log(`[ai-assistent] gestructureerde call ${Date.now() - t0Struct}ms, `
+      + `totaal ${Date.now() - (eindtijd - FUNCTIE_BUDGET_MS)}ms`);
 
     const toolBlock = structData.content.find(
       b => b.type === 'tool_use' && b.name === 'assistent_antwoord',

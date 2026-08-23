@@ -250,8 +250,7 @@
       body: JSON.stringify(body),
     });
 
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    const data = await leesAntwoord(resp);
     return data;
   }
 
