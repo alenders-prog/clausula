@@ -965,55 +965,40 @@
     span.textContent = tekst;
   }
 
-  // Voorvertoning terwijl het antwoord binnenkomt. Het definitieve bericht wordt
-  // daarna door voegAssistentBericht opgebouwd, met bronnen en signalen.
-  // Moet gelijk lopen met STREAM_ONDERDELEN in api/ai-assistent.js.
-  const STREAM_ONDERDELEN = [
-    { veld: 'bronnen',       label: 'Bronnen' },
-    { veld: 'aannames',      label: 'Aannames' },
-    { veld: 'signalen',      label: 'Signalen' },
-    { veld: 'vervolgacties', label: 'Vervolgacties' },
-  ];
-
-  function maakStreamBubbel() {
-    const wrap = document.createElement('div');
-    // `assist` erbij: die klasse draagt de opmaak van een assistent-bericht. Zonder
-    // viel de voorvertoning terug op de basisstijl — zichtbaar anders dan het
-    // bericht dat er een seconde later voor in de plaats komt.
-    wrap.className = 'mob-bubble-wrap assist';
-    const bubble = document.createElement('div');
-    bubble.className = 'mob-bubble assist';
-    const tekstEl = document.createElement('div');
-    const restEl  = document.createElement('div');
-    restEl.className = 'mob-stream-rest';
-    bubble.append(tekstEl, restEl);
-    wrap.appendChild(bubble);
-    msgsEl.appendChild(wrap);
-
-    let ruw = '';
+  // Het streamende antwoord bouwt zichzelf op met voegAssistentBericht — dezelfde
+  // functie die het eindbericht tekent. Daarom is de opmaak onderweg per definitie
+  // gelijk aan die aan het eind. Een aparte voorvertoning was een tweede renderer,
+  // en die zag er net anders uit.
+  function maakStreamBericht() {
+    let wrap = null;
+    let ruw  = '';
+    const data = { bronnen: [], aannames: [], signalen: [], vervolgacties: [] };
     const binnen = new Set();
 
-    const tekenRest = () => {
-      if (!ruw) { restEl.innerHTML = ''; return; }
-      restEl.innerHTML = '<span class="mob-stream-lbl">Nog bezig met</span>'
-        + STREAM_ONDERDELEN.map(o =>
-            `<span class="mob-stream-chip${binnen.has(o.veld) ? ' klaar' : ''}">${o.label}</span>`).join('');
+    const herteken = () => {
+      wrap = voegAssistentBericht(ruw, data.bronnen, [], {
+        aannames:      data.aannames,
+        signalen:      data.signalen,
+        vervolgacties: data.vervolgacties,
+      }, {
+        doelWrap: wrap,
+        bezigMet: STREAM_ONDERDELEN.map(o => ({ label: o.label, klaar: binnen.has(o.veld) })),
+      });
     };
 
     return {
       groei(stuk) {
         if (!ruw) verwijderDenken();
         ruw += stuk;
-        // Over de hele tekst herstellen: een pseudoniem kan over twee stukjes lopen.
-        tekstEl.innerHTML = renderMarkdown(_mobHerstelNamen(ruw));
-        tekenRest();
-        scrollNaar();
+        herteken();
       },
-      onderdeel(velden) {
-        velden.forEach(v => binnen.add(v));
-        tekenRest();
+      sectie(veld, waarde) {
+        if (!(veld in data)) return;
+        data[veld] = Array.isArray(waarde) ? waarde : [];
+        binnen.add(veld);
+        herteken();
       },
-      weg() { wrap.remove(); },
+      weg() { wrap?.remove(); },
     };
   }
 
@@ -1077,9 +1062,16 @@
     return wrap;
   }
 
+  // opts.doelWrap — teken opnieuw in een bestaand bericht in plaats van er een aan te
+  // maken. Zo bouwt het streamende antwoord zichzelf op met dezelfde functie, en is de
+  // opmaak onderweg per definitie gelijk aan die aan het eind.
+  // opts.bezigMet — onderdelen die nog onderweg zijn, als voortgangsregel onderaan.
   function voegAssistentBericht(tekst, bronnen, vragen = [], data = {}, opts = {}) {
-    msgsEl.querySelectorAll('.mob-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
-    const wrap = document.createElement('div');
+    if (!opts.doelWrap) {
+      msgsEl.querySelectorAll('.mob-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
+    }
+    const wrap = opts.doelWrap || document.createElement('div');
+    wrap.innerHTML = '';
     wrap.className = 'mob-bubble-wrap assist';
 
     // ── Bubble: hoofdtekst + secties binnen de kaart ──────────────
@@ -1225,8 +1217,18 @@
       });
     }
 
-    msgsEl.appendChild(wrap);
+    if (opts.bezigMet?.length) {
+      const rest = document.createElement('div');
+      rest.className = 'mob-stream-rest';
+      rest.innerHTML = '<span class="mob-stream-lbl">Nog bezig met</span>'
+        + opts.bezigMet.map(o =>
+            `<span class="mob-stream-chip${o.klaar ? ' klaar' : ''}">${escH(o.label)}</span>`).join('');
+      bubble.appendChild(rest);
+    }
+
+    if (!opts.doelWrap) msgsEl.appendChild(wrap);
     scrollNaar();
+    return wrap;
   }
 
   function voegSysteemMelding(tekst) {
@@ -1345,15 +1347,15 @@
 
       let data;
       if (resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
-        const bubbel = maakStreamBubbel();
+        const bericht = maakStreamBericht();
         try {
           data = await leesStroom(resp, {
-            onFase:      zetDenkLabel,
-            onDelta:     s => bubbel.groei(s),
-            onOnderdeel: v => bubbel.onderdeel(v),
+            onFase:   zetDenkLabel,
+            onDelta:  s => bericht.groei(s),
+            onSectie: (veld, waarde) => bericht.sectie(veld, waarde),
           });
         } finally {
-          bubbel.weg();
+          bericht.weg();
         }
       } else {
         data = await leesAntwoord(resp);   // server viel terug op JSON

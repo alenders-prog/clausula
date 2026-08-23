@@ -9,7 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
-import { maakVeldVolger, maakVeldenVolger } from '../src/assistent/deelbare-json.js';
+import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
+import { maakSectieVolger } from '../src/assistent/gedeeltelijk-json.js';
 import { zoekChunks } from '../src/kennisbank/zoek.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
@@ -198,7 +199,10 @@ const ASSISTENT_TOOL = {
         type: 'array',
         items: {
           type: 'object',
-          required: ['verwijzing'],
+          // Stond op ['verwijzing'] — een veld dat in properties niet bestaat. Het
+          // model vulde bronnen desondanks, dus Anthropic dwingt dit niet af; maar
+          // een strengere validator zou élke bron afkeuren.
+          required: ['citation'],
           properties: {
             citation:   { type: 'string', description: 'Wetsartikel of norm, bijv. "art. 1:400 lid 2 BW"' },
             peildatum:  { type: 'string', description: 'Alleen indien de regel per datum verschilt' },
@@ -408,6 +412,14 @@ const STREAM_ONDERDELEN = [
   { veld: 'signalen',      label: 'Signalen' },
   { veld: 'vervolgacties', label: 'Vervolgacties' },
 ];
+
+// Het model levert een bron als { citation, peildatum } of met een url; de UI
+// verwacht een `type`. Deze omzetting stond alleen aan het eind van de handler —
+// waardoor een bron die onderweg werd meegestuurd als kapotte weblink verscheen.
+// Nu op één plek, zodat streamende en definitieve bronnen dezelfde vorm hebben.
+const naarBronUI = (b) => (b?.url
+  ? { type: 'web', titel: b.citation || '', url: b.url }
+  : { type: 'wet', citation: b?.citation || '', peildatum: b?.peildatum });
 
 const FUNCTIE_BUDGET_MS = 55_000;   // 5s marge op de 60s van Vercel
 const AFRONDING_MS      = 25_000;   // gereserveerd voor de gestructureerde call
@@ -839,17 +851,27 @@ export default async function handler(req, res) {
     let output;
     if (stroom) {
       // Het antwoord is ongeveer een derde van wat het model schrijft; de rest gaat
-      // naar bronnen, aannames en signalen. Zonder deze melding valt er een stilte
-      // van twintig seconden waarin er niets op het scherm verandert, en verschijnt
-      // alles daarna in één klap.
+      // naar bronnen, aannames en signalen. Die gaan mee zodra ze compleet zijn, zodat
+      // de mediator ze kan lezen terwijl de rest nog binnenkomt — in dezelfde opmaak
+      // als het eindresultaat, want de client rendert ze met dezelfde functie.
+      //
+      // `maakSectieVolger` geeft alleen volledige waarden door. Een half signaal of
+      // een bron zonder citatie wordt niet verstuurd: dat leest als een afgeronde
+      // bevinding terwijl het er geen is.
       const volgAntwoord = maakVeldVolger('antwoord');
-      const volgOnderdelen = maakVeldenVolger(STREAM_ONDERDELEN.map(o => o.veld));
+      const volgSecties  = maakSectieVolger(STREAM_ONDERDELEN.map(o => o.veld));
 
       const { input } = await callClaudeStream(anthropicKey, fase2, deelJson => {
         const stuk = volgAntwoord(deelJson);
         if (stuk) stuurSSE({ type: 'delta', tekst: stuk });
-        const nieuw = volgOnderdelen(deelJson);
-        if (nieuw.length) stuurSSE({ type: 'onderdeel', velden: nieuw });
+        const secties = volgSecties(deelJson);
+        for (const [veld, waarde] of Object.entries(secties)) {
+          stuurSSE({
+            type: 'sectie',
+            veld,
+            waarde: veld === 'bronnen' && Array.isArray(waarde) ? waarde.map(naarBronUI) : waarde,
+          });
+        }
       }, eindtijd);
       output = input;
     } else {
@@ -890,12 +912,9 @@ export default async function handler(req, res) {
     const extraBronnen = bronnenZoek.filter(b => !geciteerdSet.has(citKey(b)));
     const alleBronnen  = [...(output.bronnen || []), ...extraBronnen].slice(0, 8);
 
-    // Formaat voor bestaande UI — type='wet' voor citaten, type='web' voor links
-    const bronnenUI = alleBronnen.map(b =>
-      b.url
-        ? { type: 'web', titel: b.citation || '', url: b.url }
-        : { type: 'wet', citation: b.citation || '', peildatum: b.peildatum },
-    );
+    // Formaat voor bestaande UI — type='wet' voor citaten, type='web' voor links.
+    // Zelfde omzetting als bij de streamende bronnen; zie naarBronUI.
+    const bronnenUI = alleBronnen.map(naarBronUI);
 
     // ── Backward-compat: vragen + clausuleRelevant ────────────────
     const vragen = output.verduidelijkingsvraag

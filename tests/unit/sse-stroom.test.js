@@ -104,27 +104,28 @@ describe('leesStroom', () => {
   });
 });
 
-describe('onderdeel-berichten', () => {
-  it('meldt welke onderdelen zijn begonnen', async () => {
-    const onderdelen = [];
+describe('sectie-berichten', () => {
+  it('geeft elke sectie door zodra hij binnen is', async () => {
+    const secties = [];
     await leesStroom(
       stroomVan([
         sse({ type: 'delta', tekst: 'Antwoord' }),
-        sse({ type: 'onderdeel', velden: ['bronnen'] }),
-        sse({ type: 'onderdeel', velden: ['aannames', 'signalen'] }),
+        sse({ type: 'sectie', veld: 'bronnen', waarde: [{ citation: 'art. 3:170 BW' }] }),
+        sse({ type: 'sectie', veld: 'bronnen', waarde: [{ citation: 'art. 3:170 BW' }, { citation: 'art. 1:88 BW' }] }),
         sse({ type: 'klaar', data: {} }),
       ]),
-      { onOnderdeel: v => onderdelen.push(...v) },
+      { onSectie: (veld, waarde) => secties.push([veld, waarde.length]) },
     );
-    expect(onderdelen).toEqual(['bronnen', 'aannames', 'signalen']);
+    // Twee keer bronnen: de tweede keer met het extra element erbij.
+    expect(secties).toEqual([['bronnen', 1], ['bronnen', 2]]);
   });
 
-  it('negeert een onderdeel-bericht zonder velden', async () => {
-    const onderdelen = [];
+  it('negeert een sectie-bericht zonder veldnaam', async () => {
+    const secties = [];
     await leesStroom(
-      stroomVan([sse({ type: 'onderdeel', velden: [] }), sse({ type: 'klaar', data: {} })]),
-      { onOnderdeel: v => onderdelen.push(...v) },
+      stroomVan([sse({ type: 'sectie', waarde: [] }), sse({ type: 'klaar', data: {} })]),
+      { onSectie: v => secties.push(v) },
     );
-    expect(onderdelen).toEqual([]);
+    expect(secties).toEqual([]);
   });
 });

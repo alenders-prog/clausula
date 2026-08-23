@@ -13043,13 +13043,13 @@ function _assistZetThinkingLabel(tekst) {
   const span = document.querySelector('#assistThinking .assist-thinking span');
   if (span) span.textContent = tekst;
 }
-
-// Toont het antwoord terwijl het binnenkomt. Dit is nadrukkelijk een voorvertoning:
-// zodra de stroom klaar is verdwijnt deze bubbel en bouwt _assistVoegAssistBerichtToe
-// het echte bericht op, met bronnen, chips en vervolgacties. Zo blijft er één plek
-// waar een assistent-bericht gerenderd wordt.
-// Labels van de onderdelen die ná het antwoord binnenkomen. Moet gelijk lopen met
-// STREAM_ONDERDELEN in api/ai-assistent.js — die bepaalt wat de server meldt.
+// Het streamende antwoord bouwt zichzelf op met _assistVoegAssistBerichtToe — de
+// functie die ook het eindbericht tekent. Daarom is de opmaak onderweg per definitie
+// gelijk aan die aan het eind; een aparte voorvertoning was een tweede renderer die
+// er net iets anders uitzag.
+//
+// De onderdelen die ná het antwoord binnenkomen. Moet gelijk lopen met
+// STREAM_ONDERDELEN in api/ai-assistent.js — die bepaalt wat de server stuurt.
 const _STREAM_ONDERDELEN = [
   { veld: 'bronnen',       label: 'Bronnen' },
   { veld: 'aannames',      label: 'Aannames' },
@@ -13057,59 +13057,62 @@ const _STREAM_ONDERDELEN = [
   { veld: 'vervolgacties', label: 'Vervolgacties' },
 ];
 
-function _assistMaakStreamBubbel() {
-  const msgs = document.getElementById('assistMsgs');
-  const div  = document.createElement('div');
-  div.id        = 'assistStream';
-  div.className = 'assist-msg assist-msg-assist';
-  // De .assist-bubble-laag is niet cosmetisch: alle typografie van een
-  // assistent-bericht hangt eraan. Zonder deze wikkel viel de voorvertoning terug
-  // op de basisstijl van het paneel — zichtbaar groter dan het bericht dat er een
-  // seconde later voor in de plaats kwam.
-  div.innerHTML = '<div class="assist-bubble"><div class="assist-stream-tekst"></div>'
-    + '<div class="assist-stream-rest"></div></div>';
-  const tekstEl = div.querySelector('.assist-stream-tekst');
-  const restEl  = div.querySelector('.assist-stream-rest');
-  msgs.appendChild(div);
-
-  let ruw = '';
+function _assistMaakStreamBericht() {
+  let div  = null;
+  let ruw  = '';
+  const data = { bronnen: [], aannames: [], signalen: [], vervolgacties: [] };
   const binnen = new Set();
 
-  const _tekenRest = () => {
-    // Pas tonen als het antwoord staat; anders staat er een voortgangsregel onder
-    // een lege bubbel.
-    if (!ruw) { restEl.innerHTML = ''; return; }
-    const chips = _STREAM_ONDERDELEN.map(o => binnen.has(o.veld)
-      ? `<span class="assist-stream-chip klaar">${o.label}</span>`
-      : `<span class="assist-stream-chip">${o.label}</span>`).join('');
-    restEl.innerHTML = `<span class="assist-stream-lbl">Nog bezig met</span>${chips}`;
+  const herteken = () => {
+    div = _assistVoegAssistBerichtToe(
+      _assistHerstelNamen(ruw), data.bronnen, 'geen', null, null, [],
+      {
+        aannames:      data.aannames,
+        signalen:      data.signalen,
+        onbekenden:    [],
+        vervolgacties: data.vervolgacties,
+        opties:        [],
+        // Geen kopieerknop zolang er nog tekst bij komt.
+        skipKopieer:   true,
+        doelDiv:       div,
+        bezigMet:      _STREAM_ONDERDELEN.map(o => ({ label: o.label, klaar: binnen.has(o.veld) })),
+      },
+    );
   };
 
   return {
     groei(stuk) {
       if (!ruw) _assistVerwijderThinking();   // eerste tekst: denkbubbel weg
       ruw += stuk;
-      // Namen elke keer over de hele tekst herstellen: een pseudoniem kan over twee
-      // stukjes verdeeld binnenkomen, dus per stukje vervangen werkt niet.
-      tekstEl.innerHTML = _assistMd(_assistHerstelNamen(ruw));
-      _tekenRest();
-      const bij = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 120;
-      if (bij) msgs.scrollTop = msgs.scrollHeight;
+      herteken();
     },
-    onderdeel(velden) {
-      velden.forEach(v => binnen.add(v));
-      _tekenRest();
+    sectie(veld, waarde) {
+      if (!(veld in data)) return;
+      data[veld] = Array.isArray(waarde) ? waarde : [];
+      binnen.add(veld);
+      herteken();
     },
-    weg() { div.remove(); },
+    weg() { div?.remove(); },
   };
 }
 
+// `extra.doelDiv` — teken opnieuw in een bestaand bericht in plaats van er een aan
+// te maken. Zo bouwt het streamende antwoord zichzélf op: dezelfde functie, dus per
+// definitie dezelfde opmaak als het eindresultaat. Een aparte voorvertoning zou een
+// tweede renderer zijn die er net iets anders uitziet — dat was hij ook.
+// `extra.bezigMet` — labels van onderdelen die nog onderweg zijn; die komen als
+// voortgangsregel onderaan te staan.
+// Geeft het element terug, zodat de aanroeper het kan hergebruiken.
 function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausuleTekstRuw, type, vragen = [], extra = {}) {
-  const { aannames = [], signalen = [], onbekenden = [], vervolgacties = [], opties = [], skipKopieer = false } = extra;
+  const { aannames = [], signalen = [], onbekenden = [], vervolgacties = [], opties = [],
+          skipKopieer = false, doelDiv = null, bezigMet = null } = extra;
   const msgs = document.getElementById('assistMsgs');
-  // Deactiveer vraag-blokken van eerdere berichten
-  msgs.querySelectorAll('.assist-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
-  const div  = document.createElement('div');
+  // Alleen bij een nieuw bericht: bij het hertekenen van een lopend antwoord zijn de
+  // vraag-blokken al gedeactiveerd, en zou dit ook het bericht zelf raken.
+  if (!doelDiv) {
+    msgs.querySelectorAll('.assist-vraag-blok:not(.inactief)').forEach(b => b.classList.add('inactief'));
+  }
+  const div  = doelDiv || document.createElement('div');
   div.className = 'assist-msg assist-msg-assist';
 
   // Bronnen HTML
@@ -13436,6 +13439,14 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
     }
   }
 
+  // Voortgangsregel tijdens het streamen. Chips die aanvinken zodra hun onderdeel
+  // binnen is; zonder deze regel valt er een stilte waarin er niets verandert.
+  const bezigHtml = bezigMet?.length
+    ? `<div class="assist-stream-rest"><span class="assist-stream-lbl">Nog bezig met</span>`
+      + bezigMet.map(o => `<span class="assist-stream-chip${o.klaar ? ' klaar' : ''}">${escH(o.label)}</span>`).join('')
+      + '</div>'
+    : '';
+
   div.innerHTML = `<div class="assist-bubble">
     ${inhoudsHtml !== null ? inhoudsHtml : _assistMd(tekst)}
     ${toelichtingHtml}
@@ -13446,9 +13457,14 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
     ${bronnenHtml}
     ${knoppenHtml}
     ${clausuleHtmlTonen}
+    ${bezigHtml}
   </div>`;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  // Bij hertekenen staat het element er al; opnieuw appenden zou het naar onderen
+  // verplaatsen en de scrollpositie laten springen.
+  const bijBeneden = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 120;
+  if (!doelDiv) { msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight; }
+  else if (bijBeneden) { msgs.scrollTop = msgs.scrollHeight; }
+  return div;
 }
 
 function _assistVervolgActie(actie, btn) {
@@ -13800,15 +13816,15 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
 
     let data;
     if (wilStroom && resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
-      const bubbel = _assistMaakStreamBubbel();
+      const bericht = _assistMaakStreamBericht();
       try {
         data = await leesStroom(resp, {
-          onFase:      t => _assistZetThinkingLabel(t),
-          onDelta:     s => bubbel.groei(s),
-          onOnderdeel: v => bubbel.onderdeel(v),
+          onFase:   t => _assistZetThinkingLabel(t),
+          onDelta:  s => bericht.groei(s),
+          onSectie: (veld, waarde) => bericht.sectie(veld, waarde),
         });
       } finally {
-        bubbel.weg();   // ook bij een fout: geen half bericht laten staan
+        bericht.weg();  // ook bij een fout: geen half bericht laten staan
       }
     } else {
       // Geen stroom (rawModus, of de server viel terug op JSON) — pad ongewijzigd.
