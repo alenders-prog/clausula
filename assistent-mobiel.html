@@ -965,6 +965,15 @@
     span.textContent = tekst;
   }
 
+  // Moet gelijk lopen met STREAM_ONDERDELEN in api/ai-assistent.js — die bepaalt
+  // welke onderdelen de server onderweg meldt.
+  const STREAM_ONDERDELEN = [
+    { veld: 'bronnen',       label: 'Bronnen' },
+    { veld: 'aannames',      label: 'Aannames' },
+    { veld: 'signalen',      label: 'Signalen' },
+        { veld: 'vervolgacties', label: 'Vervolgacties' },
+  ];
+
   // Het streamende antwoord bouwt zichzelf op met voegAssistentBericht — dezelfde
   // functie die het eindbericht tekent. Daarom is de opmaak onderweg per definitie
   // gelijk aan die aan het eind. Een aparte voorvertoning was een tweede renderer,
@@ -972,14 +981,20 @@
   function maakStreamBericht() {
     let wrap = null;
     let ruw  = '';
-    const data = { bronnen: [], aannames: [], signalen: [], vervolgacties: [] };
+    // Alle velden die de server onderweg kan sturen. Bij een optie-antwoord staat de
+    // inhoud in `opties` en bevat `antwoord` alleen een korte inleiding.
+    const data = {
+      bronnen: [], aannames: [], signalen: [], vervolgacties: [], opties: [], onbekenden: [],
+    };
     const binnen = new Set();
 
     const herteken = () => {
       wrap = voegAssistentBericht(ruw, data.bronnen, [], {
         aannames:      data.aannames,
         signalen:      data.signalen,
+        onbekenden:    data.onbekenden,
         vervolgacties: data.vervolgacties,
+        opties:        data.opties,
       }, {
         doelWrap: wrap,
         bezigMet: STREAM_ONDERDELEN.map(o => ({ label: o.label, klaar: binnen.has(o.veld) })),
@@ -996,6 +1011,7 @@
         if (!(veld in data)) return;
         data[veld] = Array.isArray(waarde) ? waarde : [];
         binnen.add(veld);
+        if (!ruw) verwijderDenken();   // opties komen soms vóór de inleidende tekst
         herteken();
       },
       weg() { wrap?.remove(); },

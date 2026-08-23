@@ -140,3 +140,52 @@ describe('vercel.json', () => {
     expect(endpoints.length).toBeLessThanOrEqual(12);
   });
 });
+
+describe('STREAM_ONDERDELEN staat op drie plekken', () => {
+  // De server bepaalt welke onderdelen hij onderweg meldt; beide clients tonen
+  // daarvoor een chip. Lopen die lijsten uiteen, dan blijft er een chip grijs staan
+  // of ontbreekt er een.
+  //
+  // Aanleiding (23 augustus 2026): bij het herschrijven van de mobiele voorvertoning
+  // knipte ik de declaratie in assistent-mobiel.html per ongeluk mee weg, terwijl de
+  // naam een paar regels lager nog gebruikt werd. Dat is geen syntaxfout — de pagina
+  // laadt gewoon — dus de parse-controle zag er niets van. Op productie kreeg de
+  // mediator "STREAM_ONDERDELEN is not defined" te zien.
+  /** Leest `const NAAM = [ … ];` uit een bestand, zonder regex-escaping-gedoe. */
+  const haalLijst = (pad, naam) => {
+    const bron = lees(pad);
+    const start = bron.indexOf(`const ${naam} = [`);
+    if (start === -1) return null;
+    // Haakjes tellen in plaats van naar "\n];" zoeken: in assistent-mobiel.html staat
+    // de declaratie ingesprongen, en dan klopt zo'n vaste zoekterm niet.
+    const open = bron.indexOf('[', start);
+    let diep = 0;
+    for (let i = open; i < bron.length; i++) {
+      if (bron[i] === '[') diep++;
+      else if (bron[i] === ']' && --diep === 0) {
+        // eslint-disable-next-line no-new-func
+        return new Function(`return ${bron.slice(open, i + 1)}`)();
+      }
+    }
+    return null;
+  };
+
+  const BRONNEN = [
+    ['api/ai-assistent.js',    'STREAM_ONDERDELEN'],
+    ['index.html',             '_STREAM_ONDERDELEN'],
+    ['assistent-mobiel.html',  'STREAM_ONDERDELEN'],
+  ];
+
+  it('is in alle drie de bestanden gedeclareerd', () => {
+    const ontbreekt = BRONNEN.filter(([pad, naam]) => haalLijst(pad, naam) === null)
+      .map(([pad, naam]) => `${naam} in ${pad}`);
+    expect(ontbreekt, `niet gevonden: ${ontbreekt.join(', ')}`).toEqual([]);
+  });
+
+  it('bevat overal dezelfde velden en labels', () => {
+    const [eerste, ...rest] = BRONNEN.map(([pad, naam]) => ({ pad, lijst: haalLijst(pad, naam) }));
+    for (const ander of rest) {
+      expect(ander.lijst, `${ander.pad} wijkt af van ${eerste.pad}`).toEqual(eerste.lijst);
+    }
+  });
+});

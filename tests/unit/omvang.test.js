@@ -67,8 +67,18 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // een andere manier uitdijt, maar de JS-grens is degene die iets zegt.
 //
 // Verdeling op dit moment: 12.085 JavaScript · 2.157 CSS · 840 HTML.
-const MAX_REGELS_INDEX = 15099;
-const MAX_REGELS_JS     = 12102;
+// 23-08-2026 (vijfde keer): 15099 → 15174 (+75 totaal, +75 script), voor het streamen
+// van het rawModus-pad: clausule, mail, klanttekst en samenvatting. Dat is één
+// stroom-bouwer (`_assistMaakTekstStroom`), één leeshulp (`_assistRawStroom`), de
+// clausule-indeling die ook met half binnengekomen tekst overweg kan, en de bedrading
+// van vijf aanroepen.
+//
+// Waar de tekst uit rawModus vandaan komt en hoe hij geknipt wordt staat wél in src/:
+// src/assistent/clausule-delen.js (14 tests). Wat hier ligt is het aansturen van de
+// renderer — en die renderer is bewust één functie gebleven, zodat de opmaak onderweg
+// niet kan afwijken van die aan het eind.
+const MAX_REGELS_INDEX = 15174;
+const MAX_REGELS_JS     = 12177;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

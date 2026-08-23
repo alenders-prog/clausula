@@ -13060,7 +13060,12 @@ const _STREAM_ONDERDELEN = [
 function _assistMaakStreamBericht() {
   let div  = null;
   let ruw  = '';
-  const data = { bronnen: [], aannames: [], signalen: [], vervolgacties: [] };
+  // Alle velden die de server onderweg kan sturen. Bij een optie-antwoord staat de
+  // inhoud in `opties` en bevat `antwoord` alleen een korte inleiding — zonder dat
+  // veld hier zag je bij "Opties weergeven" vrijwel niets tot het klaar was.
+  const data = {
+    bronnen: [], aannames: [], signalen: [], vervolgacties: [], opties: [], onbekenden: [],
+  };
   const binnen = new Set();
 
   const herteken = () => {
@@ -13069,9 +13074,9 @@ function _assistMaakStreamBericht() {
       {
         aannames:      data.aannames,
         signalen:      data.signalen,
-        onbekenden:    [],
+        onbekenden:    data.onbekenden,
         vervolgacties: data.vervolgacties,
-        opties:        [],
+        opties:        data.opties,
         // Geen kopieerknop zolang er nog tekst bij komt.
         skipKopieer:   true,
         doelDiv:       div,
@@ -13090,7 +13095,58 @@ function _assistMaakStreamBericht() {
       if (!(veld in data)) return;
       data[veld] = Array.isArray(waarde) ? waarde : [];
       binnen.add(veld);
+      // Bij opties zonder inleidende tekst is dit het eerste dat verschijnt; dan moet
+      // de denkbubbel ook hier weg.
+      if (!ruw) _assistVerwijderThinking();
       herteken();
+    },
+    weg() { div?.remove(); },
+  };
+}
+
+// Leest een rawModus-antwoord: streamend als de server dat aanbiedt, anders in één
+// keer. De terugval blijft bestaan zodat een oudere server of een tussenliggende
+// proxy die SSE niet doorlaat het antwoord nog steeds oplevert.
+async function _assistRawStroom(resp, maakBericht) {
+  if (!(resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')))
+    return leesAntwoord(resp);
+  const bericht = maakBericht();
+  try {
+    return await leesStroom(resp, {
+      onFase:  t => _assistZetThinkingLabel(t),
+      onDelta: s => bericht.groei(s),
+    });
+  } finally {
+    bericht.weg();   // ook bij een fout: geen half bericht laten staan
+  }
+}
+
+// rawModus levert vrije tekst: laat die groeien in het bericht dat er straks blijft
+// staan. Eenvoudiger dan het adviespad — geen half binnengekomen JSON.
+//
+// `clausule: true` schakelt de clausule-indeling in. Die wordt bij het tonen
+// herschikt: de minimale tekst hoort bovenaan, maar het model schrijft die pas
+// ongeveer halverwege. De renderer krijgt daarom de tekst tot nu toe mét `bezigMet`,
+// en zet de uitgebreide clausule meteen in het vak waar hij blijft staan —
+// opengeklapt tot de minimale tekst er is. Zou hij bovenaan groeien, dan klapte na
+// zo'n vijfentwintig seconden alles om, en dat leest als een veranderd antwoord.
+function _assistMaakTekstStroom({ type = null, clausule = false } = {}) {
+  let div = null;
+  let ruw = '';
+  return {
+    groei(stuk) {
+      if (!ruw) _assistVerwijderThinking();
+      ruw += stuk;
+      div = _assistVoegAssistBerichtToe(
+        _assistHerstelNamen(ruw), [], 'geen', clausule ? ruw : null, type, [],
+        {
+          skipKopieer: true,
+          doelDiv:     div,
+          bezigMet: [clausule
+            ? { label: 'Toelichting', klaar: /-{3,}\s*TOELICHTING/i.test(ruw) }
+            : { label: 'Tekst', klaar: false }],
+        },
+      );
     },
     weg() { div?.remove(); },
   };
@@ -13356,13 +13412,16 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
   let toelichtingHtml = '';
   if (inhoudsHtml === null && _clausuleTekstRuw) {
     const _delen = window.splitsClausuleAntwoord(tekst);
-    if (!_delen.gevonden) {
+    // Tijdens het streamen is een ontbrekende scheiding normaal: die komt pas
+    // ongeveer halverwege. Daarbuiten is het een signaal.
+    const _streamt = !!bezigMet;
+    if (!_delen.gevonden && !_streamt) {
       // Zonder deze melding zie je alleen dat het er raar uitziet, niet waaróm. Op
       // 23 augustus 2026 was de oorzaak één spatie in `--- TOELICHTING---`.
       console.warn('[clausule] geen TOELICHTING-scheiding in het antwoord — '
         + 'minimale tekst, inklapbare secties en de issue-keuze blijven uit.');
     }
-    if (_delen.gevonden) {
+    if (_delen.gevonden || _streamt) {
       const _clausuleDeel = _delen.clausule;
 
       let _minSectieHtml   = '';
@@ -13406,28 +13465,37 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
         if (_hdrEl) _hdrEl.textContent = _clausuleTitel;
       }
 
-      const _uitgebreidHtml = _minTekst ? `<div class="assist-meta-item">
+      // Het vak waarin de uitgebreide clausule terechtkomt. Tijdens het streamen
+      // groeit de tekst hier meteen in, opengeklapt — dan staat hij vanaf het eerste
+      // teken op zijn definitieve plek. Zou hij bovenaan groeien, dan zag je zo'n
+      // vijfentwintig seconden de uitgebreide versie staan waarna alles omklapte
+      // zodra de minimale tekst binnenkwam; dat leest als een veranderd antwoord.
+      const _uitgebreidOpen = _streamt && !_minTekst;
+      const _uitgebreidHtml = (_minTekst || _streamt) && _clausuleDeel ? `<div class="assist-meta-item">
         <button class="assist-meta-hdr" onclick="${TOGGLE_FN}" style="background:rgba(0,0,0,.04);color:var(--ink-soft)">
-          <em class="meta-arrow">▸</em> Uitgebreide versie
+          <em class="meta-arrow"${_uitgebreidOpen ? ' style="transform:rotate(90deg)"' : ''}>▸</em> Uitgebreide versie
         </button>
-        <div class="assist-meta-body">${_meerwaardeTekst ? _assistMd(_meerwaardeTekst) + '<div style="height:1px;background:var(--line);margin:10px 0"></div>' : ''}${_assistMd(_clausuleDeel)}</div>
+        <div class="assist-meta-body${_uitgebreidOpen ? ' open' : ''}">${_meerwaardeTekst ? _assistMd(_meerwaardeTekst) + '<div style="height:1px;background:var(--line);margin:10px 0"></div>' : ''}${_assistMd(_clausuleDeel)}</div>
       </div>` : '';
 
       toelichtingHtml = `<div class="assist-meta-blok" style="margin-top:0">${_minSectieHtml}${_overigeItems.join('')}${_uitgebreidHtml}</div>`;
-      inhoudsHtml = _titlHtml + _assistMd(_minTekst || _clausuleDeel);
+      inhoudsHtml = _titlHtml + (_minTekst ? _assistMd(_minTekst) : '');
 
-      // Knoppen: kopieer + issue-keuze minimaal vs uitgebreid
-      const _docRef   = clausuleRelevant && clausuleRelevant !== 'geen' ? clausuleRelevant : 'convenant';
-      const bufIdMin  = `cb_${ts}_min`;
-      const bufIdVol  = `cb_${ts}_vol`;
-      _assistClausuleBuffer.set(bufIdMin, _minTekst || _clausuleDeel);
-      _assistClausuleBuffer.set(bufIdVol, _clausuleDeel);
-      knoppenHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;">
-        <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufIdMin}',this)">${_KOPIEER_ICO} Kopieer minimaal</button>
-        <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufIdVol}',this)">${_KOPIEER_ICO} Kopieer uitgebreid</button>
-        <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufIdMin}','${_docRef}')">${plusIco} Issue — minimaal</button>
-        <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufIdVol}','${_docRef}')">${plusIco} Issue — uitgebreid</button>
-      </div>`;
+      // Knoppen: kopieer + issue-keuze minimaal vs uitgebreid. Niet tijdens het
+      // streamen — dan valt er nog niets te kopiëren of toe te voegen.
+      if (!_streamt) {
+        const _docRef   = clausuleRelevant && clausuleRelevant !== 'geen' ? clausuleRelevant : 'convenant';
+        const bufIdMin  = `cb_${ts}_min`;
+        const bufIdVol  = `cb_${ts}_vol`;
+        _assistClausuleBuffer.set(bufIdMin, _minTekst || _clausuleDeel);
+        _assistClausuleBuffer.set(bufIdVol, _clausuleDeel);
+        knoppenHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;">
+          <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufIdMin}',this)">${_KOPIEER_ICO} Kopieer minimaal</button>
+          <button class="assist-copy-btn" onclick="_assistKopieerBuf('${bufIdVol}',this)">${_KOPIEER_ICO} Kopieer uitgebreid</button>
+          <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufIdMin}','${_docRef}')">${plusIco} Issue — minimaal</button>
+          <button class="assist-concept-btn" onclick="_assistVoegToeAlsIssue('${bufIdVol}','${_docRef}')">${plusIco} Issue — uitgebreid</button>
+        </div>`;
+      }
     }
   }
 
@@ -13799,9 +13867,8 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
 
     // Streamen alleen op het adviespad. rawModus (clausule, mail, klanttekst) levert
     // vrije tekst zonder tool-schema; daar valt geen veld uit te volgen.
-    const wilStroom = !rawModus;
     const body = _assistMaakRequestBody(tekstAnon, rawModus);
-    if (wilStroom) body.stream = true;
+    body.stream = true;
 
     const resp = await fetch('/api/ai-assistent', {
       method:  'POST',
@@ -13809,26 +13876,31 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
       body: JSON.stringify(body),
     });
 
+    // De clausulekop moet er staan vóór de tekst begint te groeien; anders schuift
+    // hij er halverwege nog bij.
+    if (isClausule) _assistVoegClausuleHeader(_assist.lastClausuleDocType || 'beide');
+
     let data;
-    if (wilStroom && resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
-      const bericht = _assistMaakStreamBericht();
+    if (resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
+      const bericht = isClausule ? _assistMaakTekstStroom({ clausule: true })
+        : rawModus  ? _assistMaakTekstStroom()
+        : _assistMaakStreamBericht();
       try {
         data = await leesStroom(resp, {
           onFase:   t => _assistZetThinkingLabel(t),
           onDelta:  s => bericht.groei(s),
-          onSectie: (veld, waarde) => bericht.sectie(veld, waarde),
+          onSectie: (veld, waarde) => bericht.sectie?.(veld, waarde),
         });
       } finally {
         bericht.weg();  // ook bij een fout: geen half bericht laten staan
       }
     } else {
-      // Geen stroom (rawModus, of de server viel terug op JSON) — pad ongewijzigd.
+      // De server viel terug op JSON — pad ongewijzigd.
       data = await leesAntwoord(resp);
     }
 
     _assistVerwijderThinking();
     if (isClausule) {
-      _assistVoegClausuleHeader(_assist.lastClausuleDocType || 'beide');
       _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), [], 'geen', data.antwoord, null, [], {
         aannames: [], signalen: [], onbekenden: [], opties: [], vervolgacties: [],
       });
@@ -14056,15 +14128,18 @@ Sluit de toelichting af met: "*Dit is een aanbeveling — eindverantwoordelijkhe
     const resp = await fetch('/api/ai-assistent', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
+      body: JSON.stringify({ ..._assistMaakRequestBody(instructie, true), stream: true }),
     });
 
-    const data = await leesAntwoord(resp);
+    // De kop hoort er te staan vóór de tekst begint te groeien; anders schuift hij
+    // er halverwege nog bij.
+    _assist.lastClausuleDocType = docType;
+    _assistVoegClausuleHeader(docType);
+
+    const data = await _assistRawStroom(resp, () => _assistMaakTekstStroom({ clausule: true }));
 
     _assistVerwijderThinking();
     const antwoordHerstel = _assistHerstelNamen(data.antwoord);
-    _assist.lastClausuleDocType = docType;
-    _assistVoegClausuleHeader(docType);
     const _vervolgZonderStijl = (data.vervolgacties || []).filter(a => a !== 'andere_stijl');
     _assistVoegAssistBerichtToe(antwoordHerstel, data.bronnen, 'geen', data.antwoord, null, [], {
       aannames: [], signalen: [], onbekenden: [], opties: [], vervolgacties: _vervolgZonderStijl,
@@ -14251,9 +14326,9 @@ async function _assistGenInhoudelsTekst() {
     const resp = await fetch('/api/ai-assistent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
+      body: JSON.stringify({ ..._assistMaakRequestBody(instructie, true), stream: true }),
     });
-    const data = await leesAntwoord(resp);
+    const data = await _assistRawStroom(resp, () => _assistMaakTekstStroom());
 
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), [], 'geen', null, null);
@@ -14424,9 +14499,9 @@ ${schrijfstijlInstr}${namenInstr}`;
     const resp = await fetch('/api/ai-assistent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
+      body: JSON.stringify({ ..._assistMaakRequestBody(instructie, true), stream: true }),
     });
-    const data = await leesAntwoord(resp);
+    const data = await _assistRawStroom(resp, () => _assistMaakTekstStroom({ type: 'mail_only' }));
 
     _assistVerwijderThinking();
     const bufId = `cb_mail_${Date.now()}`;
@@ -14717,10 +14792,10 @@ ${schrijfstijlInstr}${namenInstr}`;
     const resp = await fetch('/api/ai-assistent', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(_assistMaakRequestBody(instructie, true)),
+      body: JSON.stringify({ ..._assistMaakRequestBody(instructie, true), stream: true }),
     });
 
-    const data = await leesAntwoord(resp);
+    const data = await _assistRawStroom(resp, () => _assistMaakTekstStroom({ type: 'mail' }));
 
     _assistVerwijderThinking();
     _assistVoegAssistBerichtToe(_assistHerstelNamen(data.antwoord), data.bronnen, 'geen', null, 'mail');

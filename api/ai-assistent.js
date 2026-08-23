@@ -413,6 +413,15 @@ const STREAM_ONDERDELEN = [
   { veld: 'vervolgacties', label: 'Vervolgacties' },
 ];
 
+// Wát er gestreamd wordt is iets anders dan waar een voortgangschip voor verschijnt.
+// Alles wat het model produceert gaat onderweg mee — anders zag je bij een
+// optie-antwoord vrijwel niets, want dan staat de inhoud in `opties` en bevat
+// `antwoord` alleen een korte inleiding.
+const STREAM_VELDEN = [
+  ...STREAM_ONDERDELEN.map(o => o.veld),
+  'opties', 'onbekenden', 'verduidelijkingsvraag',
+];
+
 // Het model levert een bron als { citation, peildatum } of met een url; de UI
 // verwacht een `type`. Deze omzetting stond alleen aan het eind van de handler —
 // waardoor een bron die onderweg werd meegestuurd als kapotte weblink verscheen.
@@ -475,7 +484,12 @@ async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
 // het model veel tekst produceert. Zonder streamen ziet de mediator niets tot alles
 // binnen is. Met streamen staat de eerste zin er na een paar seconden — `antwoord`
 // is veld twee in het schema, dus het komt vroeg langs.
-async function callClaudeStream(apiKey, body, onJson, deadline = Infinity) {
+//
+// Twee soorten antwoord komen hier langs. Het adviespad levert een tool-aanroep, dus
+// JSON in stukjes (`input_json_delta`) — daarvoor is `onJson`. rawModus levert vrije
+// tekst (`text_delta`) — daarvoor is `onTekst`. Eén lezer, want het SSE-formaat en de
+// afbreek-afhandeling zijn identiek; alleen het soort brokje verschilt.
+async function callClaudeStream(apiKey, body, onJson, deadline = Infinity, onTekst = null) {
   const resterend = deadline - Date.now();
   if (resterend <= 0) throw new Error('Tijdslimiet bereikt vóór het antwoord van Claude');
 
@@ -503,6 +517,7 @@ async function callClaudeStream(apiKey, body, onJson, deadline = Infinity) {
   const decoder = new TextDecoder();
   let buffer = '';
   let json   = '';
+  let tekst  = '';
   let naam   = '';
 
   for (;;) {
@@ -525,10 +540,19 @@ async function callClaudeStream(apiKey, body, onJson, deadline = Infinity) {
         else if (ev.type === 'content_block_delta' && ev.delta?.type === 'input_json_delta') {
           json += ev.delta.partial_json || '';
           onJson?.(json);
+        } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+          const stuk = ev.delta.text || '';
+          tekst += stuk;
+          if (stuk) onTekst?.(stuk, tekst);
         } else if (ev.type === 'error')
           throw new Error(`Claude stream: ${ev.error?.message || 'onbekende fout'}`);
       }
     }
+  }
+
+  if (onTekst) {
+    if (!tekst) throw new Error('Claude gaf geen tekst terug');
+    return { naam, tekst };
   }
 
   if (!json) throw new Error('assistent_antwoord niet aangeroepen door het model');
@@ -661,6 +685,33 @@ export default async function handler(req, res) {
     } catch (_) { /* ga door met client-resolvedFields als fallback */ }
   }
 
+  // ── Streamen (alleen het adviespad) ─────────────────────────────
+  // Zodra de headers eruit zijn kan er geen res.status(500).json meer volgen; een
+  // fout moet dan als SSE-bericht mee. stuurSSE en meldFout dekken beide gevallen af,
+  // zodat de rest van de code niet hoeft te weten in welke modus hij draait.
+  const stroom = stream === true;
+  let sseOpen = false;
+
+  function stuurSSE(obj) {
+    if (!sseOpen) return;
+    try { res.write(`data: ${JSON.stringify(obj)}\n\n`); } catch { sseOpen = false; }
+  }
+
+  function meldFout(melding, statuscode = 500) {
+    if (sseOpen) { stuurSSE({ type: 'fout', melding }); return res.end(); }
+    return res.status(statuscode).json({ error: melding });
+  }
+
+  if (stroom) {
+    res.setHeader('Content-Type',      'text/event-stream');
+    res.setHeader('Cache-Control',     'no-cache');
+    res.setHeader('Connection',        'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');   // zonder dit buffert de proxy alles alsnog
+    res.flushHeaders?.();
+    sseOpen = true;
+    stuurSSE({ type: 'fase', tekst: 'Kennisbank raadplegen…' });
+  }
+
   // ── rawModus: directe Claude-call zonder tool-schema (klanttekst, mail) ──────
   if (rawModus) {
     // Fix 4: bouw contextblokken zodat dossier + bekende gegevens altijd aanwezig zijn
@@ -702,48 +753,40 @@ export default async function handler(req, res) {
     for (const b of conversatie) msgs.push({ role: b.role, content: b.content });
     msgs.push({ role: 'user', content: rawVraag });
     try {
-      const rawData = await callClaude(anthropicKey, {
+      const rawBody = {
         max_tokens:  4000,
         temperature: 0.5,
         system:      SYSTEEM_CACHED, // Fix 3: volledig SYSTEEM-prompt ipv minimale string
         messages:    msgs,
-      }, 2, eindtijd);
-      const tekst = rawData.content.find(b => b.type === 'text')?.text || '';
-      return res.status(200).json({
+      };
+
+      // Een clausule duurt in de praktijk ruim vijftig seconden en levert zo'n 6.500
+      // tekens op — de langste stilte in de app. Hier is streamen eenvoudiger dan op
+      // het adviespad: vrije tekst, geen half binnengekomen JSON.
+      let tekst;
+      if (stroom) {
+        stuurSSE({ type: 'fase', tekst: 'Tekst opstellen…' });
+        const t0Raw = Date.now();
+        ({ tekst } = await callClaudeStream(
+          anthropicKey, rawBody, null, eindtijd,
+          stuk => stuurSSE({ type: 'delta', tekst: stuk }),
+        ));
+        console.log(`[ai-assistent] rawModus streamend ${Date.now() - t0Raw}ms, ${tekst.length} tekens`);
+      } else {
+        const rawData = await callClaude(anthropicKey, rawBody, 2, eindtijd);
+        tekst = rawData.content.find(b => b.type === 'text')?.text || '';
+      }
+
+      const rawAntwoord = {
         intent: 'klanttekst', antwoord: tekst, bronnen: [],
         aannames: [], signalen: [], onbekenden: [], vervolgacties: [],
         vragen: [], clausuleRelevant: 'geen',
-      });
+      };
+      if (stroom) { stuurSSE({ type: 'klaar', data: rawAntwoord }); return res.end(); }
+      return res.status(200).json(rawAntwoord);
     } catch (err) {
-      return res.status(500).json({ error: err.message });
+      return meldFout(err.message);
     }
-  }
-
-  // ── Streamen (alleen het adviespad) ─────────────────────────────
-  // Zodra de headers eruit zijn kan er geen res.status(500).json meer volgen; een
-  // fout moet dan als SSE-bericht mee. stuurSSE en meldFout dekken beide gevallen af,
-  // zodat de rest van de code niet hoeft te weten in welke modus hij draait.
-  const stroom = stream === true;
-  let sseOpen = false;
-
-  function stuurSSE(obj) {
-    if (!sseOpen) return;
-    try { res.write(`data: ${JSON.stringify(obj)}\n\n`); } catch { sseOpen = false; }
-  }
-
-  function meldFout(melding, statuscode = 500) {
-    if (sseOpen) { stuurSSE({ type: 'fout', melding }); return res.end(); }
-    return res.status(statuscode).json({ error: melding });
-  }
-
-  if (stroom) {
-    res.setHeader('Content-Type',      'text/event-stream');
-    res.setHeader('Cache-Control',     'no-cache');
-    res.setHeader('Connection',        'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');   // zonder dit buffert de proxy alles alsnog
-    res.flushHeaders?.();
-    sseOpen = true;
-    stuurSSE({ type: 'fase', tekst: 'Kennisbank raadplegen…' });
   }
 
   // ── Context opbouwen ────────────────────────────────────────────
@@ -859,7 +902,7 @@ export default async function handler(req, res) {
       // een bron zonder citatie wordt niet verstuurd: dat leest als een afgeronde
       // bevinding terwijl het er geen is.
       const volgAntwoord = maakVeldVolger('antwoord');
-      const volgSecties  = maakSectieVolger(STREAM_ONDERDELEN.map(o => o.veld));
+      const volgSecties  = maakSectieVolger(STREAM_VELDEN);
 
       const { input } = await callClaudeStream(anthropicKey, fase2, deelJson => {
         const stuk = volgAntwoord(deelJson);
