@@ -13351,45 +13351,37 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
   // Oude clausule-knop alleen tonen als er geen vervolgacties zijn (backward compat)
   const clausuleHtmlTonen = vervolgacties.length === 0 ? clausuleHtml : '';
 
-  // Toelichting voor mediator: splits op ---TOELICHTING--- separator
+  // Toelichting voor mediator, gesplitst door src/assistent/clausule-delen.js.
   // Volgorde: Minimale vereisten (open) → Valkuilen → Toekomstige discussiepunten → Uitgebreide versie (allen dicht)
   let toelichtingHtml = '';
   if (inhoudsHtml === null && _clausuleTekstRuw) {
-    const _toelSep = tekst.indexOf('\n---TOELICHTING---');
-    if (_toelSep !== -1) {
-      const _clausuleDeel    = tekst.slice(0, _toelSep).trim();
-      const _toelichtingDeel = tekst.slice(_toelSep + '\n---TOELICHTING---'.length).trim();
+    const _delen = window.splitsClausuleAntwoord(tekst);
+    if (!_delen.gevonden) {
+      // Zonder deze melding zie je alleen dat het er raar uitziet, niet waaróm. Op
+      // 23 augustus 2026 was de oorzaak één spatie in `--- TOELICHTING---`.
+      console.warn('[clausule] geen TOELICHTING-scheiding in het antwoord — '
+        + 'minimale tekst, inklapbare secties en de issue-keuze blijven uit.');
+    }
+    if (_delen.gevonden) {
+      const _clausuleDeel = _delen.clausule;
 
-      const _secties = _toelichtingDeel.split(/\n(?=\*\*)/);
       let _minSectieHtml   = '';
       let _minTekst        = '';  // extracteerbare minimale clausuletekst
       let _meerwaardeTekst = '';  // waarom uitgebreide versie meerwaarde heeft
       const _overigeItems  = [];
 
-      _secties.filter(s => s.trim()).forEach(sectie => {
-        const _hm  = sectie.match(/^\*\*(.*?)\*\*\n?/);
-        const _hdr = _hm ? _hm[1] : 'Toelichting';
-        const _body = (_hm ? sectie.slice(_hm[0].length) : sectie).trim();
-
-        if (_hdr.toLowerCase().includes('minimale')) {
-          // Splits body: vóór marker = juridische onderbouwing, na marker = minimale tekst + meerwaarde-uitleg
-          const _mIdx = _body.indexOf('---MINIMALE TEKST---');
-          if (_mIdx !== -1) {
-            const _juridischBody = _body.slice(0, _mIdx).trim();
-            const _rest = _body.slice(_mIdx + '---MINIMALE TEKST---'.length).trim();
-            const _minEnd = _rest.indexOf('\n\n');
-            _minTekst = _minEnd !== -1 ? _rest.slice(0, _minEnd).trim() : _rest.trim();
-            _meerwaardeTekst = _minEnd !== -1 ? _rest.slice(_minEnd).trim() : '';
-            if (_juridischBody) {
-              _minSectieHtml = `<div class="assist-meta-item">
+      window.splitsToelichting(_delen.toelichting).forEach(({ kop: _hdr, body: _body }) => {
+        if (window.isMinimaleVereistenKop(_hdr)) {
+          const _min = window.splitsMinimaleVereisten(_body);
+          _minTekst        = _min.minimaleTekst || _body;
+          _meerwaardeTekst = _min.meerwaarde;
+          if (_min.minimaleTekst && _min.onderbouwing) {
+            _minSectieHtml = `<div class="assist-meta-item">
                 <button class="assist-meta-hdr" onclick="${TOGGLE_FN}" style="background:rgba(30,58,95,.08);color:var(--nav-bg)">
                   <em class="meta-arrow" style="transform:rotate(90deg)">▸</em> Juridische onderbouwing
                 </button>
-                <div class="assist-meta-body open">${_assistMd(_juridischBody)}</div>
+                <div class="assist-meta-body open">${_assistMd(_min.onderbouwing)}</div>
               </div>`;
-            }
-          } else {
-            _minTekst = _body;
           }
         } else {
           _overigeItems.push(`<div class="assist-meta-item">
@@ -13670,7 +13662,10 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
     .trim()
     .slice(0, 2000);
 
-  const clausuleTekst = volledigeTekst.split('\n---TOELICHTING---')[0].trim();
+  // Dezelfde herkenning als bij het renderen. Stond hier eerder als letterlijke
+  // `split('\n---TOELICHTING---')`; die faalde op `--- TOELICHTING---` en dan gingen
+  // de valkuilen en discussiepunten mee het dossier in.
+  const clausuleTekst = window.splitsClausuleAntwoord(volledigeTekst).clausule;
   const clausuleKaal  = clausuleTekst.replace(/^#{1,4}\s+.+\n?/m, '').replace(/\*\*(.+?)\*\*/g, '$1').trim();
 
   const nieuweIssue = {
@@ -14942,6 +14937,8 @@ import { injecteerNummering }                               from './src/docx/num
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
 import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
+import { splitsClausuleAntwoord, splitsToelichting,
+         splitsMinimaleVereisten, isMinimaleVereistenKop }   from './src/assistent/clausule-delen.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -14979,6 +14976,10 @@ window.leesStroom             = leesStroom;
 window.splitsAnalyse          = splitsAnalyse;
 window.leesVoorstel           = leesVoorstel;
 window.beoordeelAfronding     = beoordeelAfronding;
+window.splitsClausuleAntwoord = splitsClausuleAntwoord;
+window.splitsToelichting      = splitsToelichting;
+window.splitsMinimaleVereisten = splitsMinimaleVereisten;
+window.isMinimaleVereistenKop = isMinimaleVereistenKop;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>

@@ -115,6 +115,44 @@ Drie oorzaken, alle drie aangepakt:
 >
 ---
 
+## Clausule-antwoord: scheidingstekens tolerant lezen
+
+Het clausule-antwoord (rawModus) bestaat uit drie delen, gescheiden door markeringen
+die het model zelf schrijft:
+
+    <clausuletekst>
+    ---TOELICHTING---
+    **Minimale vereisten**
+    <onderbouwing>
+    ---MINIMALE TEKST--- <de korte clausule>
+    <waarom de uitgebreide versie meerwaarde heeft>
+    **Valkuilen** … **Toekomstige discussiepunten** …
+
+De UI maakt daar dit van: minimale tekst bovenaan, onderbouwing open, valkuilen en
+discussiepunten dicht, uitgebreide versie dicht, en vier knoppen (kopieer/issue ×
+minimaal/uitgebreid).
+
+> **Lees die markeringen nooit letterlijk.** Tot 23 augustus 2026 stond er
+> `tekst.indexOf('\n---TOELICHTING---')`. Het model schreef `--- TOELICHTING---` —
+> één spatie — en de hele constructie viel stil: alles kwam uitgeklapt, de minimale
+> tekst verscheen niet, en er bleven twee knoppen over. Het gaat soms goed en soms
+> niet, en als het misgaat zegt niets iets.
+>
+> Erger was de tweede plek: `_assistVoegToeAlsIssue` knipte met dezelfde letterlijke
+> match de clausule uit de toelichting. Faalde die, dan gingen de valkuilen en
+> discussiepunten mee het dossier in.
+
+Beide plekken gaan nu via `src/assistent/clausule-delen.js` (14 tests, met de echte
+tekst uit het geval dat aanleiding was). Herkenning op patroon: meer streepjes,
+spaties eromheen, andere hoofdletters — allemaal dezelfde bedoeling.
+`---MINIMALE TEKST---` staat bovendien geregeld mét de zin erachter op dezelfde
+regel, dus die markering is bewust niet aan een regelbegin gebonden.
+
+Ontbreekt de scheiding helemaal, dan meldt de client dat in de console. Zonder die
+melding zie je alleen dat het er raar uitziet, niet waaróm.
+
+---
+
 ## Kennisbank-zoekopdracht — semantisch, met terugval
 
 Beide plekken die `legal_chunks` raadplegen (de tool `zoek_juridisch` en de
@@ -302,7 +340,7 @@ Scheidt de clausuletekst van de toelichting voor de mediator.
 *Dit is een aanbeveling — eindverantwoordelijkheid ligt bij de mediator of advocaat.*
 ```
 
-Gebruik: `volledigeTekst.split('\n---TOELICHTING---')[0]` om alleen de clausuletekst te krijgen (bijv. voor `passage`-veld).
+Gebruik: `splitsClausuleAntwoord(volledigeTekst).clausule` uit `src/assistent/clausule-delen.js` om alleen de clausuletekst te krijgen (bijv. voor `passage`-veld). **Niet** `split('\n---TOELICHTING---')` — zie de sectie over tolerant lezen hierboven.
 
 ### `---VOORSTEL---`
 
@@ -347,7 +385,7 @@ passage: clausuleTekst
   .slice(0, 600),
 ```
 
-`clausuleTekst` = `volledigeTekst.split('\n---TOELICHTING---')[0].trim()` — de clausule zónder toelichting.
+`clausuleTekst` = `splitsClausuleAntwoord(volledigeTekst).clausule` — de clausule zónder toelichting. Stond hier als letterlijke `split()`; die faalde op één spatie en liet de valkuilen mee het dossier in gaan.
 
 ### Live refresh issuelijst
 

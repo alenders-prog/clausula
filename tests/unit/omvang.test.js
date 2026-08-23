@@ -67,8 +67,8 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // een andere manier uitdijt, maar de JS-grens is degene die iets zegt.
 //
 // Verdeling op dit moment: 12.085 JavaScript · 2.157 CSS · 840 HTML.
-const MAX_REGELS_INDEX = 15098;
-const MAX_REGELS_JS     = 12101;
+const MAX_REGELS_INDEX = 15099;
+const MAX_REGELS_JS     = 12102;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
