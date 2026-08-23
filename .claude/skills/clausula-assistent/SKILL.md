@@ -232,6 +232,12 @@ het staat op plaats twee in het schema, dus het komt vroeg langs. Wat nog niet b
 > `res.status(500).json()` meer volgen. Gebruik `meldFout()` — die kiest zelf tussen een
 > SSE-foutbericht en een JSON-respons.
 
+> **Mobiel heeft twee verzendpaden.** `stuurBericht()` achter de verstuurknop en
+> `stuurActie()` achter de actiebalk. Beide gaan door het adviespad — mobiel kent geen
+> rawModus — dus beide moeten streamen. Op 23 augustus 2026 was alleen `stuurActie`
+> omgezet, waardoor juist het meest gebruikte pad alles in één keer toonde.
+> `tests/unit/api-aanroepen.test.js` bewaakt dit nu.
+
 > **De stroom-bubbel is een voorvertoning.** Zodra `klaar` binnen is verdwijnt hij en
 > bouwt `_assistVoegAssistBerichtToe` (desktop) of `voegAssistentBericht` (mobiel) het
 > echte bericht op, met bronnen, signalen en vervolgacties. Er blijft dus één plek waar

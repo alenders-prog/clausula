@@ -88,6 +88,24 @@ describe('client-aanroepen naar /api/', () => {
     expect(overtredingen, `\n${overtredingen.join('\n')}\n`).toEqual([]);
   });
 
+  it('laat elke assistent-aanroep op mobiel streamen', () => {
+    // De mobiele assistent heeft geen rawModus-paden — alle aanroepen gaan door het
+    // adviespad, en dat streamt. Op 23 augustus 2026 was er één van de twee vergeten:
+    // `stuurActie` (de actiebalk) streamde wél, `stuurBericht` (de verstuurknop, dus
+    // veruit het meest gebruikte pad) niet. Op desktop viel dat niet op, want daar
+    // gaat het om een ander bestand.
+    //
+    // Geldt alleen voor mobiel: index.html heeft wél rawModus-aanroepen (clausule,
+    // mail, klanttekst) en die leveren vrije tekst zonder veld om te volgen.
+    expect(lees('assistent-mobiel.html')).not.toMatch(/rawModus/);
+
+    const zonderStroom = apiAanroepen(lees('assistent-mobiel.html'))
+      .filter(a => a.endpoint === 'ai-assistent' && !/stream:\s*true/.test(a.venster))
+      .map(a => `assistent-mobiel.html:${a.regelnr}`);
+
+    expect(zonderStroom, `aanroep(en) zonder stream: ${zonderStroom.join(', ')}`).toEqual([]);
+  });
+
   it('vindt de aanroepen überhaupt — anders bewaakt de test hierboven niets', () => {
     // Zonder deze controle zou een gewijzigde schrijfwijze van fetch() de test
     // stilzwijgend leegmaken, en zou hij blijven slagen zonder iets te doen.

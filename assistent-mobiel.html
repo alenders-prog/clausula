@@ -1276,10 +1276,25 @@
           dossierContext: dossierContext || undefined,
           dossierId:      dossierId     || undefined,
           stijl:          'juridisch_volledig',
+          stream:         true,
         }),
       });
 
-      const data = await leesAntwoord(resp);
+      let data;
+      if (resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
+        const bericht = maakStreamBericht();
+        try {
+          data = await leesStroom(resp, {
+            onFase:   zetDenkLabel,
+            onDelta:  s => bericht.groei(s),
+            onSectie: (veld, waarde) => bericht.sectie(veld, waarde),
+          });
+        } finally {
+          bericht.weg();
+        }
+      } else {
+        data = await leesAntwoord(resp);   // server viel terug op JSON
+      }
 
       verwijderDenken();
       voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || [], data);
