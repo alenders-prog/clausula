@@ -325,16 +325,28 @@ aanroep, dan gaat de lijst ongewijzigd door.
 ### OOXML auto-nummering in tekst zichtbaar voor Claude
 
 **Technische achtergrond (niet aanpassen zonder `index.html` te lezen):**
-Word-documenten (m.n. gegenereerd via Adobe PDF→DOCX) gebruiken soms `<w:numPr>` auto-nummering in plaats van getypte nummers. `mammoth.extractRawText` verwijdert deze nummering → Claude ziet "Partneralimentatie" i.p.v. "2.2 Partneralimentatie" → valse "ontbreekt"-issues en onverifieerbare kruisverwijzingen.
+Word-documenten gebruiken `<w:numPr>` auto-nummering in plaats van getypte nummers. `mammoth.extractRawText` verwijdert deze nummering → Claude ziet "Partneralimentatie" i.p.v. "2.2 Partneralimentatie" → valse "ontbreekt"-issues en onverifieerbare kruisverwijzingen.
 
-**Fix** (geïmplementeerd in `cleanupDocxArtefacten` in `index.html`):
-De functie leest `word/numbering.xml`, lost `<w:numPr>`-verwijzingen op en schrijft berekende nummerlabels (bijv. `"2.3\t"`) als expliciete `<w:r><w:t>`-runs in de DOCX terug — vóórdat `mammoth.extractRawText` de tekst extraheert. Hierdoor ziet Claude:
+**Fix** (`injecteerNummering` in `src/docx/nummering.js`, aangeroepen vanuit `bewerkDocx` in `index.html`):
+Leest `word/numbering.xml`, lost `<w:numPr>`-verwijzingen op en schrijft berekende nummerlabels (bijv. `"2.3\t"`) als expliciete `<w:r><w:t>`-runs in de DOCX terug — vóórdat `mammoth.extractRawText` de tekst extraheert. Daarna gaat de `<w:numPr>` weg, anders nummert de viewer er nog eens overheen ("10. 10. Vakanties"). Hierdoor ziet Claude:
 - "2.3\tPartneralimentatie" i.p.v. "Partneralimentatie"
 - Kan "zie artikel 2.2.3" verifiëren omdat sectie 2.2.3 zichtbaar is in de tekst
 
-> **Valkuil**: `cleanupDocxArtefacten` wordt aangeroepen bij upload (achtergrond-conversie van PDF) én bij heranalyse. Als je de DOCX-blob uit de cache haalt (`docxPerBestandsnaam`) sla je de cleanup over — zie `api/analyseer.js` voor hoe de cache wordt gevuld met schone blobs.
+> **Kernregel**: `bewerkDocx(blob)` draait op **élke** DOCX — ook een die de gebruiker
+> zelf uploadt. `bewerkDocx(blob, { artefacten: true })` voegt daar de Adobe-opruiming
+> aan toe en hoort **alleen** na een PDF→DOCX-conversie. Die opruiming (voetteksten weg,
+> gebroken zinnen plakken, lege alinea's opruimen) is geschreven tegen Adobe's
+> eigenaardigheden en richt op een handgeschreven Word-bestand juist schade aan.
 
-Formaatondersteuning: `decimal`, `lowerLetter`, `upperLetter`, `lowerRoman`, `upperRoman`. Bullets worden overgeslagen (geen nummerlabel). `lvlText`-templates als `%1.%2.` worden correct opgelost.
+> **Valkuil**: tot 23 augustus 2026 draaide de nummering-injectie alléén na een
+> Adobe-conversie. Een als DOCX geüpload ouderschapsplan leverde daardoor drie
+> verschillende teksten op: Word toonde "1. Ouderlijk gezag", Claude las "Ouderlijk
+> gezag", en de viewer rekende zelf "(A) Ouderlijk gezag" uit. Passages werden niet
+> teruggevonden omdat Claude en de viewer nooit dezelfde tekst zagen. Elk pad dat een
+> DOCX in `docxPerBestandsnaam` zet moet daarom door `bewerkDocx` — en elk pad dat een
+> DOCX toont of exporteert moet de blob uit die cache verkiezen boven het ruwe bestand.
+
+Formaatondersteuning: `decimal`, `lowerLetter`, `upperLetter`, `lowerRoman`, `upperRoman`, `none`. Bullets worden overgeslagen (geen nummerlabel). `lvlText`-templates als `%1.%2.` worden opgelost, en een `<w:lvlOverride>` (ander formaat of afwijkende start) wint van het abstracte niveau. Getest in `tests/unit/nummering.test.js` tegen echte OOXML.
 
 ---
 

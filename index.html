@@ -3771,6 +3771,7 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
 
     let tekst;
     const isPdf      = item.bestand?.name?.toLowerCase().endsWith('.pdf') ?? false;
+    const isDocx     = item.bestand?.name?.toLowerCase().endsWith('.docx') ?? false;
     const isHoofdDoc = HOOFD_TYPES.has(item.type);
     const cachedTekst = (pad && tekstPerPad.has(pad)) ? tekstPerPad.get(pad) : null;
 
@@ -3785,12 +3786,18 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
       tekst = cachedTekst;
       // Probeer ook het DOCX-blob te laden als dat nog niet in geheugen zit.
       // Alleen cachen voor concept-review; visuele weergave blijft altijd PDF.js.
+      if (isDocx && isHoofdDoc && !docxPerBestandsnaam.has(item.bestand.name)) {
+        // Origineel Word-bestand: alleen de nummering vastleggen, geen Adobe-opruiming.
+        bewerkDocx(item.bestand)
+          .then(blob => { docxPerBestandsnaam.set(item.bestand.name, blob); })
+          .catch(err => console.warn('[stil/docx] nummering-injectie overgeslagen:', err?.message || err));
+      }
       if (isPdf && isHoofdDoc && !docxPerBestandsnaam.has(item.bestand.name)) {
         adobeConverteerPdf(item.bestand, () => {}).then(async blob => {
           // Verwijder pagina-voettekst artefacten vóór opslaan zodat de download-flow
-          // de cache altijd al opgeschoond aantreft en cleanupDocxArtefacten niet nogmaals
+          // de cache altijd al opgeschoond aantreft en de opruiming niet nogmaals
           // hoeft te draaien (vermijdt dubbele voettekst in export).
-          blob = await cleanupDocxArtefacten(blob);
+          blob = await bewerkDocx(blob, { artefacten: true });
           docxPerBestandsnaam.set(item.bestand.name, blob);
           // Geen renderDocPanel() hier — het panel toont al de PDF.js-canvas en
           // re-renderen veroorzaakt een flicker + dubbele font-warnings zonder enig
@@ -3801,7 +3808,10 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
       if (isPdf && isHoofdDoc) {
         // Hoofddocumenten (convenant, ouderschapsplan): Adobe PDF→DOCX (incl. OCR)
         try {
-          const docxBlob = await adobeConverteerPdf(item.bestand, msg => onProgress(`${prefix}${msg}`));
+          let docxBlob = await adobeConverteerPdf(item.bestand, msg => onProgress(`${prefix}${msg}`));
+          // Opschonen vóór zowel opslag als tekst-extractie. Anders leest Claude uit
+          // een ander document dan de viewer toont en worden passages niet gevonden.
+          docxBlob = await bewerkDocx(docxBlob, { artefacten: true });
           docxPerBestandsnaam.set(item.bestand.name, docxBlob);
           // Document-panel opnieuw renderen zodra DOCX beschikbaar is (ook als panel al zichtbaar was)
           docPanelGereed = false;
@@ -3814,6 +3824,16 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
           onProgress(`${prefix}Fallback: tekst uitlezen…`);
           tekst = await extractText(item.bestand, msg => onProgress(`${prefix}${msg}`));
         }
+      } else if (isDocx && isHoofdDoc) {
+        // Origineel Word-bestand. Geen Adobe-opruiming — er valt niets op te ruimen —
+        // maar wél de nummering vastleggen, zodat Claude "1. Ouderlijk gezag" leest
+        // en de viewer hetzelfde toont.
+        onProgress(`${prefix}Tekst uitlezen…`);
+        const docxBlob = await bewerkDocx(item.bestand);
+        docxPerBestandsnaam.set(item.bestand.name, docxBlob);
+        docPanelGereed = false;
+        const result = await mammoth.extractRawText({ arrayBuffer: await docxBlob.arrayBuffer() });
+        tekst = result.value;
       } else {
         // Contextdocumenten (HV, bijlage, etc.) en DOCX-bestanden: PDF.js / mammoth
         onProgress(`${prefix}Tekst uitlezen…`);
@@ -4744,7 +4764,10 @@ async function renderDocPanel(searchText) {
       } else if (naam.endsWith('.docx')) {
         // DOCX: docx-preview voor visueel correcte A4-weergave (zelfde als Word).
         // Mammoth wordt alleen nog gebruikt als fallback als docx-preview niet geladen is.
-        const buf  = await bestand.arrayBuffer();
+        // Bewerkte versie voorrang: die heeft de lijstnummers als tekst en géén numPr,
+        // zodat de viewer dezelfde nummering toont als Word — en als Claude gelezen heeft.
+        const bron = docxPerBestandsnaam.get(bestand.name) || bestand;
+        const buf  = await bron.arrayBuffer();
         if (gen !== renderGeneratie) return;
         const blob = new Blob([buf], {
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -9174,9 +9197,9 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
     if (pdfBestand) {
       const naam = pdfBestand.name?.toLowerCase() || '';
       if (naam.endsWith('.docx')) {
-        // Bestand is al een DOCX → direct gebruiken
-        dbg('direct DOCX-bestand → renderDocxMetTrackChanges');
-        docxBlob = pdfBestand;
+        // Bestand is al een DOCX → de bewerkte versie uit de analyse, anders het origineel
+        docxBlob = docxPerBestandsnaam.get(pdfBestand.name) || pdfBestand;
+        dbg(`direct DOCX-bestand (${docxPerBestandsnaam.has(pdfBestand.name) ? 'bewerkt' : 'origineel'}) → renderDocxMetTrackChanges`);
       } else if (naam.endsWith('.pdf')) {
         // Probeer gecachte Adobe-conversie
         docxBlob = docxPerBestandsnaam.get(pdfBestand.name) || null;
@@ -10086,7 +10109,22 @@ function _geaccepteerdeWijzigingen() {
 // en paginanummers ("9/15") als gewone bodytekst in de gegenereerde DOCX.
 // Deze functie verwijdert die artefacten zodat het conceptdocument er netjes
 // uitziet en LlamaParse ze niet meeanalyseert bij de heranalyse.
-async function cleanupDocxArtefacten(docxBlob) {
+// Bewerkt een DOCX in twee stappen, met verschillende geldigheid:
+//
+//   nummering-injectie  — voor ÉLKE DOCX, ongeacht herkomst. Schrijft de
+//     lijstnummers als gewone tekst weg en haalt de numPr weg. mammoth laat
+//     auto-nummering namelijk vallen: Claude zag "Partneralimentatie" waar
+//     "2.2 Partneralimentatie" staat en kon verwijzingen niet nalopen. En de
+//     viewer rekent de nummering soms verkeerd uit — op 21 augustus 2026 toonde
+//     docx-preview "(A) Ouderlijk gezag" waar het document decimaal nummert.
+//     Door de numPr te verwijderen komt dat label uit onze eigen berekening.
+//
+//   artefactopruiming   — ALLEEN na een Adobe PDF→DOCX-conversie. Voetteksten
+//     verwijderen, gebroken zinnen herstellen, lege alinea's opruimen: allemaal
+//     geschreven tegen Adobe's eigenaardigheden. Op een handgeschreven Word-bestand
+//     doen die heuristieken juist schade — een bewuste witregel wordt dan een
+//     paginaovergang, een korte regel wordt aan de vorige geplakt.
+async function bewerkDocx(docxBlob, { artefacten = false } = {}) {
   if (!window.JSZip) return docxBlob;
   const zip = new window.JSZip();
   await zip.loadAsync(docxBlob);
@@ -10099,263 +10137,165 @@ async function cleanupDocxArtefacten(docxBlob) {
   const body   = xmlDoc.getElementsByTagNameNS(wNs, 'body')[0];
   if (!body) return docxBlob;
 
-  // ── Verwijder tussenpagina-sectie-einden ─────────────────────────────────────
-  // Adobe plaatst per originele PDF-pagina een <w:sectPr> in <w:pPr> → elke
-  // sectie begint op een nieuwe pagina → lege pagina's in het DOCX-resultaat.
-  // De document-niveau <w:sectPr> (directe child van <w:body>) wordt NIET geraakt:
-  // getElementsByTagNameNS op body vindt alleen <w:pPr>-descendants.
-  let sectPrVerwijderd = 0;
-  for (const pPrEl of Array.from(body.getElementsByTagNameNS(wNs, 'pPr'))) {
-    for (const sectPr of Array.from(pPrEl.getElementsByTagNameNS(wNs, 'sectPr'))) {
-      pPrEl.removeChild(sectPr);
-      sectPrVerwijderd++;
-    }
-  }
-  if (sectPrVerwijderd > 0) {
-    console.log(`[cleanup] ${sectPrVerwijderd} tussenpagina-sectie-einde(n) verwijderd`);
-  }
-
-  const paras = Array.from(body.childNodes).filter(n =>
-    n.nodeType === 1 && n.localName === 'p');
-
-  // Patronen die als artefact gelden
-  const isArtefact = (tekst) => {
-    const t = tekst.trim().toLowerCase().replace(/\s+/g, ' ');
-    if (!t) return false;
-    // Paraaf-voetregels (in diverse varianten)
-    if (/\bparaaf\s+(man|vrouw)\b/.test(t)) return true;
-    // Paginanummers "N/M" (bv. "9/15") of losstaand getal ≤ 3 cijfers
-    if (/^\d{1,3}\/\d{1,3}$/.test(t)) return true;
-    return false;
-  };
-
-  // Herstel sectienummers: als een heading-alinea geen getal vooraf heeft,
-  // maar de vorige niet-lege alinea WEL een losse "N." bevat → voeg samen.
-  // (Adobe splitst soms "5." als aparte alinea vóór de koptekst)
-  const alleParas = Array.from(body.getElementsByTagNameNS(wNs, 'p'));
-  let teVerwijderen = new Set();
-
-  for (let i = 0; i < alleParas.length; i++) {
-    const para = alleParas[i];
-    const tekst = Array.from(para.getElementsByTagNameNS(wNs, 't'))
-      .map(t => t.textContent).join('');
-
-    if (isArtefact(tekst)) {
-      teVerwijderen.add(para);
-      continue;
-    }
-
-    // Herstel gesplitst sectienummer: "5." als lege alinea direct voor heading
-    // Patroon: korte alinea die alleen "N." of "N" bevat, gevolgd door heading
-    if (/^\d{1,2}\.?\s*$/.test(tekst.trim()) && i + 1 < alleParas.length) {
-      const volgende = alleParas[i + 1];
-      const styleEl  = volgende.getElementsByTagNameNS(wNs, 'pStyle')[0];
-      const isHeading = styleEl && /heading|kop|titel/i.test(styleEl.getAttribute('w:val') || '');
-      if (isHeading) {
-        // Prepend het cijfer aan de volgende heading
-        const num    = tekst.trim().replace(/\.$/, '');
-        const rPr   = volgende.getElementsByTagNameNS(wNs, 'rPr')[0] || null;
-        const newRun = xmlDoc.createElementNS(wNs, 'w:r');
-        if (rPr) newRun.appendChild(rPr.cloneNode(true));
-        const newT  = xmlDoc.createElementNS(wNs, 'w:t');
-        newT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
-        newT.textContent = num + '. ';
-        newRun.appendChild(newT);
-        // Voeg toe vóór het eerste run in de volgende heading
-        const eersteRun = volgende.getElementsByTagNameNS(wNs, 'r')[0];
-        const pPrEl     = volgende.getElementsByTagNameNS(wNs, 'pPr')[0];
-        if (eersteRun) {
-          volgende.insertBefore(newRun, eersteRun);
-        } else if (pPrEl) {
-          volgende.insertBefore(newRun, pPrEl.nextSibling);
-        } else {
-          volgende.appendChild(newRun);
-        }
-        teVerwijderen.add(para);   // verwijder de losstaande "5." alinea
+  // Alles hieronder tot de nummering is Adobe-specifiek: het herstelt schade die
+  // de PDF→DOCX-conversie aanricht. Op een origineel Word-bestand is die schade er
+  // niet en richten de heuristieken juist schade aan.
+  if (artefacten) {
+    // ── Verwijder tussenpagina-sectie-einden ─────────────────────────────────────
+    // Adobe plaatst per originele PDF-pagina een <w:sectPr> in <w:pPr> → elke
+    // sectie begint op een nieuwe pagina → lege pagina's in het DOCX-resultaat.
+    // De document-niveau <w:sectPr> (directe child van <w:body>) wordt NIET geraakt:
+    // getElementsByTagNameNS op body vindt alleen <w:pPr>-descendants.
+    let sectPrVerwijderd = 0;
+    for (const pPrEl of Array.from(body.getElementsByTagNameNS(wNs, 'pPr'))) {
+      for (const sectPr of Array.from(pPrEl.getElementsByTagNameNS(wNs, 'sectPr'))) {
+        pPrEl.removeChild(sectPr);
+        sectPrVerwijderd++;
       }
     }
-  }
+    if (sectPrVerwijderd > 0) {
+      console.log(`[cleanup] ${sectPrVerwijderd} tussenpagina-sectie-einde(n) verwijderd`);
+    }
 
-  for (const p of teVerwijderen) {
-    // Geen foutpad maar besturingsstroom: de node kan al losgekoppeld zijn.
-        try { body.removeChild(p); } catch { /* al verwijderd */ }
-  }
+    const paras = Array.from(body.childNodes).filter(n =>
+      n.nodeType === 1 && n.localName === 'p');
 
-  // ── Herstel doorlopende zinnen na artefact-verwijdering ──────────────────────
-  // Adobe plaatst voetteksten (paraaf man / paraaf vrouw) als gewone body-alinea's
-  // MÍDden in een bullet-punt of doorlopende zin. Na verwijdering blijven twee
-  // losse alinea's over met dezelfde content erin — de viewer en Claude zien dan
-  // een kapotte zin/bullet.
-  // Heuristic: als alinea P eindigt midden in een zin (geen leesteken) EN de
-  // volgende alinea Q begint als zinvervolg (€, cijfer, kleine letter, haakje,
-  // komma) → voeg Q samen met P: kopieer de runs van Q naar P, verwijder Q.
-  const paraNaRem = Array.from(body.childNodes).filter(
-    n => n.nodeType === 1 && n.localName === 'p'
-  );
-  const getTekst = p => Array.from(p.getElementsByTagNameNS(wNs, 't'))
-    .map(t => t.textContent).join('').trim();
+    // Patronen die als artefact gelden
+    const isArtefact = (tekst) => {
+      const t = tekst.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!t) return false;
+      // Paraaf-voetregels (in diverse varianten)
+      if (/\bparaaf\s+(man|vrouw)\b/.test(t)) return true;
+      // Paginanummers "N/M" (bv. "9/15") of losstaand getal ≤ 3 cijfers
+      if (/^\d{1,3}\/\d{1,3}$/.test(t)) return true;
+      return false;
+    };
 
-  // Teksten vooraf verzamelen: de buur van een alinea is de eerstvolgende MÉT
-  // tekst, niet per se de directe buur. Adobe laat op een paginagrens lege
-  // alinea's achter waar de voettekst stond, en die maakten de zin onherstelbaar
-  // omdat de lus dan een lege buur zag en oversloeg.
-  const _teksten = paraNaRem.map(getTekst);
+    // Herstel sectienummers: als een heading-alinea geen getal vooraf heeft,
+    // maar de vorige niet-lege alinea WEL een losse "N." bevat → voeg samen.
+    // (Adobe splitst soms "5." als aparte alinea vóór de koptekst)
+    const alleParas = Array.from(body.getElementsByTagNameNS(wNs, 'p'));
+    let teVerwijderen = new Set();
 
-  for (let i = 0; i < paraNaRem.length - 1; i++) {
-    const curr = paraNaRem[i];
-    if (!curr.parentNode) continue;
+    for (let i = 0; i < alleParas.length; i++) {
+      const para = alleParas[i];
+      const tekst = Array.from(para.getElementsByTagNameNS(wNs, 't'))
+        .map(t => t.textContent).join('');
 
-    const currTekst = _teksten[i];
-    const _volg = volgendeMetTekst(_teksten, i + 1);
-    if (!_volg) continue;
-    const next = paraNaRem[_volg.index];
-    const nextTekst = _teksten[_volg.index];
-    if (!next.parentNode) continue;
+      if (isArtefact(tekst)) {
+        teVerwijderen.add(para);
+        continue;
+      }
 
-    if (hoortAaneen(currTekst, nextTekst)) {
-      // Lege tussenliggers weg — die zijn de restanten van de verwijderde voettekst.
-      for (const l of _volg.lege) {
-        const leegPara = paraNaRem[l];
-        if (leegPara?.parentNode) {
-          try { body.removeChild(leegPara); } catch { /* al verwijderd */ }
+      // Herstel gesplitst sectienummer: "5." als lege alinea direct voor heading
+      // Patroon: korte alinea die alleen "N." of "N" bevat, gevolgd door heading
+      if (/^\d{1,2}\.?\s*$/.test(tekst.trim()) && i + 1 < alleParas.length) {
+        const volgende = alleParas[i + 1];
+        const styleEl  = volgende.getElementsByTagNameNS(wNs, 'pStyle')[0];
+        const isHeading = styleEl && /heading|kop|titel/i.test(styleEl.getAttribute('w:val') || '');
+        if (isHeading) {
+          // Prepend het cijfer aan de volgende heading
+          const num    = tekst.trim().replace(/\.$/, '');
+          const rPr   = volgende.getElementsByTagNameNS(wNs, 'rPr')[0] || null;
+          const newRun = xmlDoc.createElementNS(wNs, 'w:r');
+          if (rPr) newRun.appendChild(rPr.cloneNode(true));
+          const newT  = xmlDoc.createElementNS(wNs, 'w:t');
+          newT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
+          newT.textContent = num + '. ';
+          newRun.appendChild(newT);
+          // Voeg toe vóór het eerste run in de volgende heading
+          const eersteRun = volgende.getElementsByTagNameNS(wNs, 'r')[0];
+          const pPrEl     = volgende.getElementsByTagNameNS(wNs, 'pPr')[0];
+          if (eersteRun) {
+            volgende.insertBefore(newRun, eersteRun);
+          } else if (pPrEl) {
+            volgende.insertBefore(newRun, pPrEl.nextSibling);
+          } else {
+            volgende.appendChild(newRun);
+          }
+          teVerwijderen.add(para);   // verwijder de losstaande "5." alinea
         }
       }
-      // Voeg spatie-run toe tenzij curr al op spatie eindigt
-      if (!currTekst.endsWith(' ')) {
-        const spRun = xmlDoc.createElementNS(wNs, 'w:r');
-        const spT   = xmlDoc.createElementNS(wNs, 'w:t');
-        spT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
-        spT.textContent = ' ';
-        spRun.appendChild(spT);
-        curr.appendChild(spRun);
+    }
+
+    for (const p of teVerwijderen) {
+      // Geen foutpad maar besturingsstroom: de node kan al losgekoppeld zijn.
+          try { body.removeChild(p); } catch { /* al verwijderd */ }
+    }
+
+    // ── Herstel doorlopende zinnen na artefact-verwijdering ──────────────────────
+    // Adobe plaatst voetteksten (paraaf man / paraaf vrouw) als gewone body-alinea's
+    // MÍDden in een bullet-punt of doorlopende zin. Na verwijdering blijven twee
+    // losse alinea's over met dezelfde content erin — de viewer en Claude zien dan
+    // een kapotte zin/bullet.
+    // Heuristic: als alinea P eindigt midden in een zin (geen leesteken) EN de
+    // volgende alinea Q begint als zinvervolg (€, cijfer, kleine letter, haakje,
+    // komma) → voeg Q samen met P: kopieer de runs van Q naar P, verwijder Q.
+    const paraNaRem = Array.from(body.childNodes).filter(
+      n => n.nodeType === 1 && n.localName === 'p'
+    );
+    const getTekst = p => Array.from(p.getElementsByTagNameNS(wNs, 't'))
+      .map(t => t.textContent).join('').trim();
+
+    // Teksten vooraf verzamelen: de buur van een alinea is de eerstvolgende MÉT
+    // tekst, niet per se de directe buur. Adobe laat op een paginagrens lege
+    // alinea's achter waar de voettekst stond, en die maakten de zin onherstelbaar
+    // omdat de lus dan een lege buur zag en oversloeg.
+    const _teksten = paraNaRem.map(getTekst);
+
+    for (let i = 0; i < paraNaRem.length - 1; i++) {
+      const curr = paraNaRem[i];
+      if (!curr.parentNode) continue;
+
+      const currTekst = _teksten[i];
+      const _volg = volgendeMetTekst(_teksten, i + 1);
+      if (!_volg) continue;
+      const next = paraNaRem[_volg.index];
+      const nextTekst = _teksten[_volg.index];
+      if (!next.parentNode) continue;
+
+      if (hoortAaneen(currTekst, nextTekst)) {
+        // Lege tussenliggers weg — die zijn de restanten van de verwijderde voettekst.
+        for (const l of _volg.lege) {
+          const leegPara = paraNaRem[l];
+          if (leegPara?.parentNode) {
+            try { body.removeChild(leegPara); } catch { /* al verwijderd */ }
+          }
+        }
+        // Voeg spatie-run toe tenzij curr al op spatie eindigt
+        if (!currTekst.endsWith(' ')) {
+          const spRun = xmlDoc.createElementNS(wNs, 'w:r');
+          const spT   = xmlDoc.createElementNS(wNs, 'w:t');
+          spT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
+          spT.textContent = ' ';
+          spRun.appendChild(spT);
+          curr.appendChild(spRun);
+        }
+        // Verplaats alle non-pPr kinderen van next naar curr
+        Array.from(next.childNodes).forEach(child => {
+          if (child.localName !== 'pPr') curr.appendChild(child.cloneNode(true));
+        });
+        // Verwijder next; parentNode-check zorgt dat volgende iteratie dit overslaat
+        try { body.removeChild(next); } catch { /* al verwijderd — zie hierboven */ }
+        console.log(`[cleanup] zinvervolg samengevoegd: "${currTekst.slice(-30)}…"`);
       }
-      // Verplaats alle non-pPr kinderen van next naar curr
-      Array.from(next.childNodes).forEach(child => {
-        if (child.localName !== 'pPr') curr.appendChild(child.cloneNode(true));
-      });
-      // Verwijder next; parentNode-check zorgt dat volgende iteratie dit overslaat
-      try { body.removeChild(next); } catch { /* al verwijderd — zie hierboven */ }
-      console.log(`[cleanup] zinvervolg samengevoegd: "${currTekst.slice(-30)}…"`);
     }
   }
 
-  // ── Herstel OOXML auto-nummering → expliciete tekstprefix ───────────────────
-  // Adobe PDF→DOCX converteert getypte sectienummers soms naar <w:numPr>
-  // auto-nummering. mammoth.extractRawText verliest die nummers → Claude ziet
-  // "Partneralimentatie" i.p.v. "2.2 Partneralimentatie" en kan verwijzingen
-  // als "zie artikel 2.2.3" niet meer verifiëren.
-  // Oplossing: lees word/numbering.xml, bereken het label per alinea, schrijf het
-  // als een extra <w:t>-run in de DOCX — zodat extractRawText het meeneemt.
+  // ── Nummering als tekst vastleggen ─────────────────────────────────────────
+  // mammoth.extractRawText laat <w:numPr>-auto-nummering vallen: Claude las
+  // "Partneralimentatie" waar "2.2 Partneralimentatie" staat en kon een verwijzing
+  // als "zie artikel 2.2.3" niet nalopen. Het label gaat daarom als gewone tekst de
+  // DOCX in — zie src/docx/nummering.js voor de omrekening.
   try {
     const numXmlStr = await zip.file('word/numbering.xml')?.async('string');
     if (numXmlStr) {
-      const numDoc       = new DOMParser().parseFromString(numXmlStr, 'application/xml');
-      const absNumMap    = new Map(); // abstractNumId → element
-      const numIdMap     = new Map(); // numId → abstractNum element
-
-      for (const an of numDoc.getElementsByTagNameNS(wNs, 'abstractNum'))
-        absNumMap.set(an.getAttributeNS(wNs, 'abstractNumId'), an);
-
-      for (const num of numDoc.getElementsByTagNameNS(wNs, 'num')) {
-        const nId  = num.getAttributeNS(wNs, 'numId');
-        const aRef = num.getElementsByTagNameNS(wNs, 'abstractNumId')[0]
-                        ?.getAttributeNS(wNs, 'val');
-        if (aRef && absNumMap.has(aRef)) numIdMap.set(nId, absNumMap.get(aRef));
-      }
-
-      if (numIdMap.size > 0) {
-        // Kleine helper: Arabisch getal → Romeins
-        const toRoman = n => {
-          const v = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
-          const s = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
-          let r = '';
-          v.forEach((val, i) => { while (n >= val) { r += s[i]; n -= val; } });
-          return r;
-        };
-        const fmtNr = (fmt, val) => {
-          if (fmt === 'lowerLetter') return String.fromCharCode(96 + val);
-          if (fmt === 'upperLetter') return String.fromCharCode(64 + val);
-          if (fmt === 'lowerRoman')  return toRoman(val).toLowerCase();
-          if (fmt === 'upperRoman')  return toRoman(val);
-          if (fmt === 'bullet')      return null; // bullets niet als nummer
-          return String(val);
-        };
-
-        const counters = new Map(); // `numId-ilvl` → huidige teller
-
-        for (const para of body.getElementsByTagNameNS(wNs, 'p')) {
-          const numPr  = para.getElementsByTagNameNS(wNs, 'numPr')[0];
-          if (!numPr) continue;
-          const numId  = numPr.getElementsByTagNameNS(wNs, 'numId')[0]
-                              ?.getAttributeNS(wNs, 'val');
-          const ilvl   = parseInt(numPr.getElementsByTagNameNS(wNs, 'ilvl')[0]
-                              ?.getAttributeNS(wNs, 'val') ?? '0', 10);
-          if (!numId || !numIdMap.has(numId)) continue;
-
-          const absNum = numIdMap.get(numId);
-          // Zoek het <w:lvl> voor dit ilvl
-          let lvlEl = null;
-          for (const l of absNum.getElementsByTagNameNS(wNs, 'lvl')) {
-            if (parseInt(l.getAttributeNS(wNs, 'ilvl') ?? '0', 10) === ilvl) {
-              lvlEl = l; break;
-            }
-          }
-          if (!lvlEl) continue;
-
-          const numFmt = lvlEl.getElementsByTagNameNS(wNs, 'numFmt')[0]
-                              ?.getAttributeNS(wNs, 'val') ?? 'decimal';
-          if (numFmt === 'bullet') continue;
-
-          const lvlText = lvlEl.getElementsByTagNameNS(wNs, 'lvlText')[0]
-                               ?.getAttributeNS(wNs, 'val') ?? `%${ilvl + 1}.`;
-          const startVal = parseInt(
-            lvlEl.getElementsByTagNameNS(wNs, 'start')[0]
-                 ?.getAttributeNS(wNs, 'val') ?? '1', 10);
-
-          // Teller ophogen; diepere niveaus resetten
-          const key = `${numId}-${ilvl}`;
-          if (!counters.has(key)) counters.set(key, startVal);
-          else counters.set(key, counters.get(key) + 1);
-          for (const [k] of counters)
-            if (k.startsWith(numId + '-') && parseInt(k.split('-')[1], 10) > ilvl)
-              counters.delete(k);
-
-          // Bouw het label op basis van de lvlText-template (bijv. "%1.%2." → "3.8.")
-          const lvlEls = Array.from(absNum.getElementsByTagNameNS(wNs, 'lvl'));
-          const label  = lvlText.replace(/%(\d+)/g, (_, n) => {
-            const tIlvl = parseInt(n, 10) - 1;
-            const tFmt  = (() => {
-              const tLvl = lvlEls.find(l =>
-                parseInt(l.getAttributeNS(wNs, 'ilvl') ?? '0', 10) === tIlvl);
-              return tLvl?.getElementsByTagNameNS(wNs, 'numFmt')[0]
-                         ?.getAttributeNS(wNs, 'val') ?? 'decimal';
-            })();
-            return fmtNr(tFmt, counters.get(`${numId}-${tIlvl}`) ?? 1) ?? '';
-          });
-
-          if (!label.trim()) continue;
-
-          // Schrijf label als extra <w:r><w:t>-run vóór bestaande content
-          const newRun = xmlDoc.createElementNS(wNs, 'w:r');
-          const newT   = xmlDoc.createElementNS(wNs, 'w:t');
-          newT.setAttributeNS(xmlNs, 'xml:space', 'preserve');
-          newT.textContent = label + '\t';
-          newRun.appendChild(newT);
-          const pPr      = para.getElementsByTagNameNS(wNs, 'pPr')[0];
-          const firstRun = para.getElementsByTagNameNS(wNs, 'r')[0];
-          if (firstRun) para.insertBefore(newRun, firstRun);
-          else if (pPr)  para.insertBefore(newRun, pPr.nextSibling);
-          else           para.appendChild(newRun);
-
-          // Verwijder numPr zodat docx-preview de auto-nummering niet OOK rendert.
-          // Zonder deze stap toont de concept-viewer "10. 10. Vakanties" omdat zowel
-          // de geïnjecteerde tekstprefix als de w:numPr-auto-nummering worden gerenderd.
-          numPr.parentNode?.removeChild(numPr);
-        }
-      }
+      const numDoc = parser.parseFromString(numXmlStr, 'application/xml');
+      const n = window.injecteerNummering(xmlDoc, numDoc, wNs, xmlNs);
+      if (n) console.log(`[docx] ${n} lijstnummers als tekst vastgelegd`);
     }
   } catch (numErr) {
-    console.warn('[cleanup] nummering-resolve overgeslagen:', numErr.message);
+    console.warn('[docx] nummering-injectie overgeslagen:', numErr.message);
   }
 
   zip.file('word/document.xml', new XMLSerializer().serializeToString(xmlDoc));
@@ -10463,12 +10403,18 @@ async function _bouwExportDocx(meldBtn, schoon = false) {
   const idbSleutel = app.screeningId && _conceptDocType ? _docxIdb.sleutel(app.screeningId, _conceptDocType) : null;
 
   let origDocx = pdfBestand ? docxPerBestandsnaam.get(pdfBestand.name) : null;
+  if (!origDocx && pdfBestand?.name?.toLowerCase().endsWith('.docx')) {
+    // Origineel Word-bestand dat de analyse niet in de cache heeft gezet (bijv. na
+    // herladen). Alleen nummering vastleggen — Adobe komt hier niet aan te pas.
+    origDocx = await bewerkDocx(pdfBestand);
+    docxPerBestandsnaam.set(pdfBestand.name, origDocx);
+  }
   if (!origDocx && pdfBestand) {
     if (meldBtn) meldBtn('⏳ PDF converteren…');
     origDocx = await adobeConverteerPdf(pdfBestand, msg => { if (meldBtn) meldBtn(`⏳ ${msg}`); });
     // Verwijder paginavoetteksten en -nummers die Adobe als bodytekst invoegt
     if (meldBtn) meldBtn('⏳ Document opschonen…');
-    origDocx = await cleanupDocxArtefacten(origDocx);
+    origDocx = await bewerkDocx(origDocx, { artefacten: true });
     docxPerBestandsnaam.set(pdfBestand.name, origDocx);
     // Sla op in IDB zodat volgende sessies geen Adobe-conversie hoeven te doen
     if (idbSleutel) _docxIdb.sla(idbSleutel, origDocx);
@@ -14844,6 +14790,7 @@ import { bouwVerificatieContext }                           from './src/rapport/
 import { volgendeAlineaActie }                              from './src/docx/alinea-actie.js';
 import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin-samenvoegen.js';
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
+import { injecteerNummering }                               from './src/docx/nummering.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -14875,6 +14822,7 @@ window.volgendeMetTekst       = volgendeMetTekst;
 window.artikelVerwijzingen    = artikelVerwijzingen;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
+window.injecteerNummering     = injecteerNummering;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>

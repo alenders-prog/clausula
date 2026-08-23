@@ -261,8 +261,10 @@ if (!txtVoor.trim() && txtNa.trim() && zoekNorm.length < oudNorm.length) {
 De schone variant mag **nooit** `<w:del>`/`<w:ins>` bevatten — Claude ziet die anders als
 letterlijke tekst bij heranalyse.
 
-`cleanupDocxArtefacten()` verwijdert Adobe-voettekst-artefacten ("paraaf man: paraaf vrouw:",
-paginanummers "n/m") vóórdat de DOCX naar Claude wordt gestuurd.
+`bewerkDocx(blob, { artefacten: true })` verwijdert Adobe-voettekst-artefacten ("paraaf man:
+paraaf vrouw:", paginanummers "n/m") vóórdat de DOCX naar Claude wordt gestuurd. Alleen ná een
+PDF→DOCX-conversie — bij een origineel Word-bestand geldt `bewerkDocx(blob)` zonder vlag, dat
+alleen de lijstnummering als tekst vastlegt. Zie de skill `screening-categorien`.
 
 ---
 

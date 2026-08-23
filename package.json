@@ -23,6 +23,7 @@
   "devDependencies": {
     "@playwright/test": "^1.62.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "@xmldom/xmldom": "^0.8.13",
     "vitest": "^4.1.10"
   }
 }
