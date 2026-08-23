@@ -46,6 +46,36 @@ if (weesTags.length) {
 }
 if (!dubbel.length && !weesTags.length) console.log('schrijfwijzen: consistent ✓');
 
+// ── Bereikbaarheid: gaat elke chunk ooit mee naar een analyse? ───────────────
+// api/analyseer.js bouwt zijn zoektags uit situatie_kenmerken, de documenttypes, en
+// een vast lijstje bij huwelijkse voorwaarden. Een chunk waarvan géén enkele tag in
+// die verzameling voorkomt, wordt bij geen enkele classificatie opgehaald. Hij staat
+// in de database, kost niets, en doet niets — en dat is nergens aan te zien, want
+// een analyse zonder die kennis ziet er even compleet uit.
+//
+// Gemeten op 23 augustus 2026: acht van de vierennegentig chunks, waaronder het
+// complete IPR-blok. Zie supabase/kennisbank-bereikbaarheid.sql.
+const BEREIKBAAR_ZONDER_KENMERK = new Set([
+  // documenttypes (effectiefHoofd.map(d => d.type))
+  'convenant', 'ouderschapsplan', 'huwelijkse_voorwaarden',
+  // het vaste lijstje dat erbij komt zodra er huwelijkse voorwaarden zijn
+  'verrekenbeding', 'koude_uitsluiting', 'uitsluitingsclausule',
+  // afgeleid uit de nationaliteiten, zie src/rapport/internationaal.js
+  'internationaal',
+]);
+const bereikbaar = new Set([...keys, ...BEREIKBAAR_ZONDER_KENMERK]);
+const onbereikbaar = (rijen ?? []).filter(r => !(r.topic_tags ?? []).some(t => bereikbaar.has(t)));
+
+if (onbereikbaar.length) {
+  console.warn(`\n⚠  ${onbereikbaar.length} chunk(s) bereiken géén enkele analyse:`);
+  onbereikbaar.forEach(r =>
+    console.warn(`     ${(r.citation ?? '').slice(0, 56).padEnd(58)}[${(r.topic_tags ?? []).join(', ')}]`));
+  console.warn('   Geef ze een tag die in situatie_kenmerken staat, of voeg een kenmerk toe.');
+  console.warn('   Zie supabase/kennisbank-bereikbaarheid.sql voor het patroon.');
+} else {
+  console.log('bereikbaarheid: elke chunk kan in een analyse terechtkomen ✓');
+}
+
 // De vaste standaardclausule die analyseer.js apart ophaalt
 const { data: std } = await db.from('legal_chunks')
   .select('citation')

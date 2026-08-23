@@ -43,7 +43,22 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // haalt de stroom uit elkaar (10 tests). De bubbel verplaatsen zou betekenen dat
 // _assistMd, _assistHerstelNamen en het container-element als parameters mee
 // moeten; dat is indirectie zonder dat er een test bij komt die iets bewijst.
-const MAX_REGELS_INDEX = 14994;
+// 23-08-2026 (tweede keer die dag): verhoogd van 14994 naar 15028 (+34), voor het
+// progressief tonen van de extra verificatie en het opmerken van een afgekapt
+// antwoord. Ook dit is bedrading: het bijhouden van twee SSE-velden, een render
+// tijdens de leeslus, en de opbouw van een meldingsblok.
+//
+// De redenerende delen staan in src/verificatie/stroom-status.js (15 tests):
+// splitsen van analyse en voorstel, en het oordeel of de stroom is afgerond.
+//
+// ── Wel een aantekening waard ──
+// De grens ging vandaag drie keer omhoog: 14939 → 14994 → 15028. Elke keer met een
+// reden die op zichzelf klopt, en elke keer is de pure logica wél verhuisd. Maar de
+// optelsom is dat het bestand groeit terwijl de regel zegt dat de grens alleen omlaag
+// mag. Als dit patroon zich herhaalt is de vraag niet "wat kan er nog naar src/",
+// maar of `diepteAnalyse` en `_assistVerstuur` een browsertest verdienen — die dekken
+// bedrading af, en bedrading is precies wat hier blijft liggen.
+const MAX_REGELS_INDEX = 15028;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

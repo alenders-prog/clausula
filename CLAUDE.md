@@ -115,6 +115,12 @@ Let op: niet élk streepje is fout — `art-1:94-bw`, `pre-2012` en `hr-2006` ho
 Het gaat om tags die een tegenhanger met underscore hebben. De controle signaleert
 precies dat onderscheid.
 
+De controle meldt sinds 23 augustus 2026 ook **onbereikbare chunks**: die waarvan geen
+enkele tag in `situatie_kenmerken` voorkomt. Acht chunks stonden zo buiten élke analyse,
+waaronder het complete IPR-blok. Zie `supabase/kennisbank-bereikbaarheid.sql` voor het
+patroon om ze binnen te halen — en let op dat zo'n `update` nauw geformuleerd blijft:
+een bredere variant raakte ook vier chunks die al goed stonden.
+
 Een PostToolUse-hook draait deze controle automatisch bij het bewerken van bestanden
 met `legal_chunk`, `wettekst` of `kennisbank` in de naam. Wijzigingen die je
 rechtstreeks in het dashboard doet laten geen bestand achter, dus die vangt de hook

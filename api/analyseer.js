@@ -51,6 +51,7 @@ import {
   bouwAnderDocsNota, bouwRoepnamenNota, bouwJuridischeChecks,
   bouwHvChecks, bouwIprChecks, bouwMfnInstructie,
 } from './_prompts/fragmenten.js';
+import { afgeleideKenmerken } from '../src/rapport/internationaal.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -388,8 +389,12 @@ export default async function handler(req, res) {
     const heeftHV = documenten.some(d => d.type === 'huwelijkse_voorwaarden');
 
     // ── Supabase-queries ──────────────────────────────────────────────
+    // Afgeleide kenmerken erbij: het model benoemt `internationaal` niet, maar de
+    // nationaliteiten staan wél in de classificatie. Zonder deze regel bleven vijf
+    // IPR-chunks bij élke analyse liggen — zie src/rapport/internationaal.js.
     const wetsQueryTags = [...new Set([
       ...situatieKenmerken,
+      ...afgeleideKenmerken(classificatie),
       ...effectiefHoofd.map(d => d.type),
       ...(heeftHV ? ['huwelijkse_voorwaarden', 'verrekenbeding', 'koude_uitsluiting', 'uitsluitingsclausule'] : []),
     ])];

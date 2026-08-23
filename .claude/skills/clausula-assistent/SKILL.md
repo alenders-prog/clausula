@@ -69,7 +69,7 @@ in plaats van de reden.
    absolute deadline mee en breekt af via `AbortSignal.timeout`. Liever een antwoord met
    minder bronnen dan een afgekapte functie. De rondetijden gaan naar `console.log` — zonder
    die meting is niet te zien of de tijd in Claude of in de zoekopdracht zit.
-2. **Client** — `leesAntwoord()` uit `src/assistent/api-antwoord.js`, gebruikt door alle
+2. **Client** — `leesAntwoord()` uit `src/api-antwoord.js`, gebruikt door alle
    acht aanroepen (5× `index.html`, 2× `assistent-mobiel.html`, 1× `assistent-core.js`).
    Leest via `resp.text()` en vertaalt platform- en applicatiefouten naar één begrijpelijke
    zin. **Nooit `resp.json()` rechtstreeks op deze endpoint.**

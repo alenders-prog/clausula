@@ -5,7 +5,11 @@
     "api/claude-edge.js":  { "maxDuration": 120 },
     "api/ai-assistent.js": { "maxDuration": 60  },
     "api/adobe-start.js": { "maxDuration": 60  },
-    "api/adobe-result.js": { "maxDuration": 30  }
+    "api/adobe-result.js": { "maxDuration": 30  },
+    "api/uitnodigen.js":   { "maxDuration": 30  },
+    "api/registreer.js":   { "maxDuration": 20  },
+    "api/naam-encrypt.js": { "maxDuration": 15  },
+    "api/naam-decrypt.js": { "maxDuration": 15  }
   },
   "headers": [
     {

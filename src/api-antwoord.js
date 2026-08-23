@@ -1,6 +1,9 @@
 /**
- * src/assistent/api-antwoord.js
- * Leest het antwoord van /api/ai-assistent uit — ook als dat geen JSON is.
+ * src/api-antwoord.js
+ * Leest het antwoord van een /api/-aanroep uit — ook als dat geen JSON is.
+ *
+ * Gebruikt door élke client-aanroep die langer dan een seconde kan duren: de
+ * assistent, het uitnodigen van een collega, en het aanmaken van een kantoor.
  *
  * Aanleiding (23 augustus 2026): de assistent toonde regelmatig
  *

@@ -5993,6 +5993,12 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
     let buf      = '';
     let _raw     = '';
 
+    // Anthropic meldt zelf hoe het antwoord eindigde. Zonder deze twee is een
+    // afgekapte stroom niet te onderscheiden van een afgeronde: de leeslus stopt
+    // in beide gevallen met done:true.
+    let _stopReason = null;
+    let _kreegStop  = false;
+
     const _verwerkRegels = (ls) => {
       for (const l of ls) {
         if (!l.startsWith('data: ')) continue;
@@ -6003,10 +6009,23 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
         if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
           _raw += evt.delta.text ?? '';
         }
+        if (evt.type === 'message_delta' && evt.delta?.stop_reason) _stopReason = evt.delta.stop_reason;
+        if (evt.type === 'message_stop') _kreegStop = true;
         if (evt.type === 'error') {
           _raw += `\n[Fout: ${evt.error?.message ?? JSON.stringify(evt.error)}]`;
         }
       }
+    };
+
+    // Tonen tijdens het streamen. De tekst kwam al binnen terwijl Claude schreef,
+    // maar werd pas ná de lus gerenderd — de mediator keek dus een halve minuut
+    // naar een laadbalk terwijl het antwoord er al grotendeels was.
+    let _laatstGetoond = 0;
+    const _toonVoortgang = () => {
+      const { analyse } = window.splitsAnalyse(_raw);
+      if (analyse.length === _laatstGetoond) return;
+      _laatstGetoond = analyse.length;
+      body.innerHTML = _diepteMarkdown(analyse);
     };
 
     while (true) {
@@ -6016,27 +6035,39 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
       const ls = buf.split('\n');
       buf = ls.pop() ?? '';
       _verwerkRegels(ls);
+      _toonVoortgang();
     }
     if (buf.trim()) _verwerkRegels(buf.split('\n'));
 
-    // Volledig ontvangen → voorstel parsen, analyse los renderen
-    let _voorstel = null;
-    let _analyse = _raw;
-    const _voorstelIdx = _raw.indexOf('\n---VOORSTEL---\n');
-    if (_voorstelIdx !== -1) {
-      _analyse = _raw.slice(0, _voorstelIdx).trim();
-      try { _voorstel = JSON.parse(_raw.slice(_voorstelIdx + 16).trim()); }
-          catch (e) { console.warn("[stil/verificatie] voorstel-JSON onleesbaar:", e.message); }
-    }
-    if (_raw) {
+    const { analyse: _analyse, voorstelRuw: _voorstelRuw } = window.splitsAnalyse(_raw);
+    const _voorstel = window.leesVoorstel(_voorstelRuw);
+    if (_voorstelRuw && !_voorstel)
+      console.warn('[verificatie] voorstel-JSON onleesbaar of afgekapt:', _voorstelRuw.slice(0, 120));
+
+    // Alleen een afgerond antwoord bewaren. Een halve analyse opslaan betekent dat
+    // hij bij het heropenen uit de cache komt en er dan wél compleet uitziet.
+    const { compleet: _compleet, melding: _melding } =
+      window.beoordeelAfronding({ stopReason: _stopReason, kreegStop: _kreegStop, heeftVoorstel: !!_voorstel });
+
+    if (_raw && _compleet) {
       issue.diepteResultaat = _raw;
       if (_voorstel) issue.diepteVoorstel = _voorstel;
       autoSlaOp();
       if (typeof _activeerAnalysePanelFn === 'function') _activeerAnalysePanelFn(app.rapport);
+    } else if (_raw) {
+      console.warn(`[verificatie] onvolledig (stop_reason=${_stopReason}, message_stop=${_kreegStop}) — niet opgeslagen`);
     }
+
+    const _meldingHtml = _melding
+      ? `<p class="da-p" style="margin-bottom:12px;padding:9px 11px;border-radius:7px;`
+        + `background:${_compleet ? 'var(--bg-soft)' : '#FFF4E5'};`
+        + `border-left:3px solid ${_compleet ? 'var(--line)' : '#E07200'};font-size:.83rem">`
+        + `${escH(_melding)}</p>`
+      : '';
+
     body.innerHTML = _analyse
-      ? _diepteMarkdown(_analyse) + _aanpasHtml
-      : '<p class="da-p" style="color:var(--ink-soft)">Geen analyse ontvangen.</p>' + _aanpasHtml;
+      ? _meldingHtml + _diepteMarkdown(_analyse) + _aanpasHtml
+      : _meldingHtml + '<p class="da-p" style="color:var(--ink-soft)">Geen analyse ontvangen.</p>' + _aanpasHtml;
     const _ftL = document.getElementById('diepteModalFooter');
     if (_ftL) { _ftL.innerHTML = _aanpasFooterHtml; _ftL.classList.add('actief'); }
     _pasVoorstelToe(_voorstel);
@@ -7097,8 +7128,7 @@ document.getElementById('maakUitnodigingBtn').addEventListener('click', async ()
       },
       body: JSON.stringify({ email: emailVal, rol, zietAlle }),
     });
-    const json = await resp.json();
-    if (!resp.ok) throw new Error(json.error || 'Versturen mislukt');
+    const json = await leesAntwoord(resp);
 
     res_div.textContent = `✓ Uitnodiging verstuurd naar ${emailVal}`;
     res_div.style.cssText = 'display:block;margin-top:10px;padding:10px 12px;border-radius:8px;' +
@@ -14839,8 +14869,9 @@ import { volgendeAlineaActie }                              from './src/docx/ali
 import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin-samenvoegen.js';
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 import { injecteerNummering }                               from './src/docx/nummering.js';
-import { leesAntwoord }                                     from './src/assistent/api-antwoord.js';
+import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
+import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -14875,6 +14906,9 @@ window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;
 window.leesAntwoord           = leesAntwoord;
 window.leesStroom             = leesStroom;
+window.splitsAnalyse          = splitsAnalyse;
+window.leesVoorstel           = leesVoorstel;
+window.beoordeelAfronding     = beoordeelAfronding;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>

@@ -109,6 +109,14 @@
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script type="module">
+  // Module-scope is geen global scope: zonder de toewijzing aan window bestaat
+  // leesAntwoord alleen hier, en gooit het blok hieronder een ReferenceError.
+  // Een module laadt uitgesteld; dat mag, want hij wordt pas bij het versturen
+  // van het formulier aangeroepen.
+  import { leesAntwoord } from '/src/api-antwoord.js';
+  window.leesAntwoord = leesAntwoord;
+</script>
 <script>
 'use strict';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -220,8 +228,10 @@ async function registreer() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ kantoorNaam, registratieCode }),
       });
-      const orgData = await orgRes.json();
-      if (!orgRes.ok) throw new Error(orgData.error || 'Kantoor aanmaken mislukt.');
+      // Niet resp.json(): loopt de functie over zijn tijdslimiet, dan stuurt Vercel
+      // een platte foutpagina terug en toont de parser "Unexpected token 'A'" aan
+      // iemand die zich net probeert aan te melden.
+      const orgData = await leesAntwoord(orgRes);
       token = orgData.uitnodiging_token;
       if (!token) throw new Error('Kantoor aanmaken mislukt: geen token ontvangen.');
     }

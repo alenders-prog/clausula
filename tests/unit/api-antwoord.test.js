@@ -1,5 +1,5 @@
 /**
- * Unit tests — src/assistent/api-antwoord.js
+ * Unit tests — src/api-antwoord.js
  *
  * De bodies hieronder zijn wat Vercel daadwerkelijk terugstuurt als een serverless
  * functie zijn tijdslimiet overschrijdt of crasht. Precies die tekst kwam op
@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { duidFout, platformCode, leesAntwoord } from '../../src/assistent/api-antwoord.js';
+import { duidFout, platformCode, leesAntwoord } from '../../src/api-antwoord.js';
 
 const TIMEOUT_BODY = 'An error occurred with your deployment\n\n'
   + 'FUNCTION_INVOCATION_TIMEOUT\n\nfra1::x7k2m-1755950000000-abc123def456';
