@@ -2,11 +2,12 @@
  * src/assistent/sse-stroom.js
  * Leest de SSE-stroom van /api/ai-assistent uit.
  *
- * De server stuurt drie soorten regels:
- *   {"type":"fase",  "tekst":"Kennisbank raadplegen…"}  — voortgang, vervangt het label
- *   {"type":"delta", "tekst":"…"}                       — een stuk van het antwoord
- *   {"type":"klaar", "data":{…}}                        — het volledige object
- *   {"type":"fout",  "melding":"…"}                     — de server gaf het op
+ * De server stuurt deze regels:
+ *   {"type":"fase",      "tekst":"Kennisbank raadplegen…"} — voortgang vóór het antwoord
+ *   {"type":"delta",     "tekst":"…"}                      — een stuk van het antwoord
+ *   {"type":"onderdeel", "velden":["bronnen"]}             — dit onderdeel is begonnen
+ *   {"type":"klaar",     "data":{…}}                       — het volledige object
+ *   {"type":"fout",      "melding":"…"}                    — de server gaf het op
  *
  * Waarom apart van api-antwoord.js: dat bestand vangt af dat er géén antwoord komt.
  * Dit bestand verwerkt een antwoord dat in stukjes komt. Ze staan los omdat ook de
@@ -34,10 +35,11 @@ export function splitsBerichten(buffer) {
  * Leest de stroom en geeft het eindobject terug.
  *
  * @param {Response} resp
- * @param {{onDelta?:(stuk:string)=>void, onFase?:(tekst:string)=>void}} haken
+ * @param {{onDelta?:(stuk:string)=>void, onFase?:(tekst:string)=>void,
+ *          onOnderdeel?:(velden:string[])=>void}} haken
  */
 export async function leesStroom(resp, haken = {}) {
-  const { onDelta, onFase } = haken;
+  const { onDelta, onFase, onOnderdeel } = haken;
   const lezer = resp.body?.getReader();
   if (!lezer) throw new Error('De verbinding met de assistent gaf geen leesbare stroom.');
 
@@ -60,6 +62,7 @@ export async function leesStroom(resp, haken = {}) {
 
       if (bericht.type === 'delta' && bericht.tekst) onDelta?.(bericht.tekst);
       else if (bericht.type === 'fase') onFase?.(bericht.tekst || '');
+      else if (bericht.type === 'onderdeel' && bericht.velden?.length) onOnderdeel?.(bericht.velden);
       else if (bericht.type === 'klaar') eind = bericht.data;
       else if (bericht.type === 'fout') throw new Error(bericht.melding || 'De assistent gaf een fout.');
     }

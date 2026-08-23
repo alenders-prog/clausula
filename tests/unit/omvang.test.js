@@ -51,17 +51,34 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // De redenerende delen staan in src/verificatie/stroom-status.js (15 tests):
 // splitsen van analyse en voorstel, en het oordeel of de stroom is afgerond.
 //
-// ── Wel een aantekening waard ──
-// De grens ging vandaag drie keer omhoog: 14939 → 14994 → 15028. Elke keer met een
-// reden die op zichzelf klopt, en elke keer is de pure logica wél verhuisd. Maar de
-// optelsom is dat het bestand groeit terwijl de regel zegt dat de grens alleen omlaag
-// mag. Als dit patroon zich herhaalt is de vraag niet "wat kan er nog naar src/",
-// maar of `diepteAnalyse` en `_assistVerstuur` een browsertest verdienen — die dekken
-// bedrading af, en bedrading is precies wat hier blijft liggen.
-const MAX_REGELS_INDEX = 15028;
+// 23-08-2026 (vierde keer): 15028 → 15082 (+54), voor de opmaak van het streamende
+// antwoord: de .assist-bubble-wikkel die de voorvertoning miste, en de voortgangsregel
+// die toont welk onderdeel nog onderweg is.
+//
+// ── Waarom er nu twee grenzen zijn ──
+// Bij deze verhoging viel op dat 20 van de 54 regels CSS waren. De regel in CLAUDE.md
+// gaat over logica — "nieuwe logica met een eigen redenering hoort in src/, met een
+// unittest" — maar deze bewaker telde álles: stijl, opmaak en script door elkaar. Een
+// stijlblok dat groeit is niet waar de rem voor bedoeld is, en er ís ook geen plek om
+// CSS naartoe te verplaatsen: er is geen build-stap.
+//
+// Vandaar de tweede grens hieronder, op alleen de regels binnen <script>. Die meet wat
+// de regel bedoelt. De totale grens blijft staan als vangnet tegen een bestand dat op
+// een andere manier uitdijt, maar de JS-grens is degene die iets zegt.
+//
+// Verdeling op dit moment: 12.085 JavaScript · 2.157 CSS · 840 HTML.
+const MAX_REGELS_INDEX = 15082;
+const MAX_REGELS_JS     = 12085;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
+}
+
+/** Regels binnen <script>-blokken; `src=`-verwijzingen tellen niet mee. */
+function scriptRegels(pad) {
+  const bron = readFileSync(join(WORTEL, pad), 'utf8');
+  return [...bron.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+    .reduce((n, m) => n + m[1].split('\n').length, 0);
 }
 
 describe('omvang van de monoliet', () => {
@@ -82,5 +99,17 @@ describe('omvang van de monoliet', () => {
       MAX_REGELS_INDEX - n,
       `index.html is ${n} regels; verlaag MAX_REGELS_INDEX naar die waarde.`,
     ).toBeLessThan(250);
+  });
+
+  it(`het script in index.html blijft binnen ${MAX_REGELS_JS} regels`, () => {
+    // Dit is de grens die de regel uit CLAUDE.md daadwerkelijk uitdrukt. CSS en
+    // HTML tellen niet mee: daar valt niets aan te extraheren, en groei daarin
+    // zegt niets over toetsbaarheid.
+    const n = scriptRegels('index.html');
+    expect(
+      n,
+      `index.html bevat ${n} regels script (grens ${MAX_REGELS_JS}). Nieuwe logica met `
+      + 'een eigen redenering hoort in src/ met een unittest — zie CLAUDE.md.',
+    ).toBeLessThanOrEqual(MAX_REGELS_JS);
   });
 });

@@ -213,6 +213,28 @@
     .mob-bubble code { font-family:'IBM Plex Mono',monospace; font-size:.78em; background:rgba(0,0,0,.05); padding:1px 4px; border-radius:3px; }
     .mob-bubble hr { border: none; border-top: 1px solid var(--line); margin: 8px 0; }
 
+    /* Voortgang tijdens het streamen — zie de toelichting in index.html */
+    .mob-stream-rest:empty { display: none; }
+    .mob-stream-rest {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+      margin-top: 10px; padding-top: 8px;
+      border-top: 1px dashed var(--line);
+    }
+    .mob-stream-lbl { font-size: .68rem; color: var(--ink-soft); margin-right: 2px; }
+    .mob-stream-lbl::after { content: '…'; animation: mob-puls 1.4s ease-in-out infinite; }
+    .mob-stream-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 1px 8px; border: 1px solid var(--line); border-radius: 12px;
+      font-size: .68rem; color: var(--ink-soft); background: var(--paper);
+      opacity: .55; transition: opacity .25s, color .25s, border-color .25s;
+    }
+    .mob-stream-chip.klaar { opacity: 1; color: var(--ink-mid); border-color: var(--ink-soft); }
+    .mob-stream-chip.klaar::before { content: '✓'; font-size: .62rem; color: #1E8449; }
+    @keyframes mob-puls { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
+    @media (prefers-reduced-motion: reduce) {
+      .mob-stream-lbl::after { animation: none; }
+    }
+
     /* Thinking indicator */
     .mob-thinking {
       align-self: flex-start;
@@ -945,22 +967,51 @@
 
   // Voorvertoning terwijl het antwoord binnenkomt. Het definitieve bericht wordt
   // daarna door voegAssistentBericht opgebouwd, met bronnen en signalen.
+  // Moet gelijk lopen met STREAM_ONDERDELEN in api/ai-assistent.js.
+  const STREAM_ONDERDELEN = [
+    { veld: 'bronnen',       label: 'Bronnen' },
+    { veld: 'aannames',      label: 'Aannames' },
+    { veld: 'signalen',      label: 'Signalen' },
+    { veld: 'vervolgacties', label: 'Vervolgacties' },
+  ];
+
   function maakStreamBubbel() {
     const wrap = document.createElement('div');
-    wrap.className = 'mob-bubble-wrap';
+    // `assist` erbij: die klasse draagt de opmaak van een assistent-bericht. Zonder
+    // viel de voorvertoning terug op de basisstijl — zichtbaar anders dan het
+    // bericht dat er een seconde later voor in de plaats komt.
+    wrap.className = 'mob-bubble-wrap assist';
     const bubble = document.createElement('div');
-    bubble.className = 'mob-bubble';
+    bubble.className = 'mob-bubble assist';
+    const tekstEl = document.createElement('div');
+    const restEl  = document.createElement('div');
+    restEl.className = 'mob-stream-rest';
+    bubble.append(tekstEl, restEl);
     wrap.appendChild(bubble);
     msgsEl.appendChild(wrap);
 
     let ruw = '';
+    const binnen = new Set();
+
+    const tekenRest = () => {
+      if (!ruw) { restEl.innerHTML = ''; return; }
+      restEl.innerHTML = '<span class="mob-stream-lbl">Nog bezig met</span>'
+        + STREAM_ONDERDELEN.map(o =>
+            `<span class="mob-stream-chip${binnen.has(o.veld) ? ' klaar' : ''}">${o.label}</span>`).join('');
+    };
+
     return {
       groei(stuk) {
         if (!ruw) verwijderDenken();
         ruw += stuk;
         // Over de hele tekst herstellen: een pseudoniem kan over twee stukjes lopen.
-        bubble.innerHTML = renderMarkdown(_mobHerstelNamen(ruw));
+        tekstEl.innerHTML = renderMarkdown(_mobHerstelNamen(ruw));
+        tekenRest();
         scrollNaar();
+      },
+      onderdeel(velden) {
+        velden.forEach(v => binnen.add(v));
+        tekenRest();
       },
       weg() { wrap.remove(); },
     };
@@ -1296,7 +1347,11 @@
       if (resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
         const bubbel = maakStreamBubbel();
         try {
-          data = await leesStroom(resp, { onFase: zetDenkLabel, onDelta: s => bubbel.groei(s) });
+          data = await leesStroom(resp, {
+            onFase:      zetDenkLabel,
+            onDelta:     s => bubbel.groei(s),
+            onOnderdeel: v => bubbel.onderdeel(v),
+          });
         } finally {
           bubbel.weg();
         }

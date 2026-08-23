@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
-import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
+import { maakVeldVolger, maakVeldenVolger } from '../src/assistent/deelbare-json.js';
 import { zoekChunks } from '../src/kennisbank/zoek.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
@@ -398,6 +398,17 @@ Schrijf zelf geen antwoord op de vraag. Dat gebeurt in een volgende stap.`;
 // ertussen komt dat er makkelijk overheen.
 // Gemeten op 23 augustus 2026: drie van de vier aanroepen in een kwartier liepen
 // in "Vercel Runtime Timeout Error: Task timed out after 60 seconds".
+// De onderdelen die ná het antwoord binnenkomen, in de volgorde van het schema.
+// De client toont hiermee wat er nog onderweg is. Alleen velden die het model in
+// de praktijk altijd invult: `opties` en `verduidelijkingsvraag` blijven bij de
+// meeste vragen leeg, en een blijvend grijs vinkje is verwarrender dan geen vinkje.
+const STREAM_ONDERDELEN = [
+  { veld: 'bronnen',       label: 'Bronnen' },
+  { veld: 'aannames',      label: 'Aannames' },
+  { veld: 'signalen',      label: 'Signalen' },
+  { veld: 'vervolgacties', label: 'Vervolgacties' },
+];
+
 const FUNCTIE_BUDGET_MS = 55_000;   // 5s marge op de 60s van Vercel
 const AFRONDING_MS      = 25_000;   // gereserveerd voor de gestructureerde call
 const RONDE_MS          =  8_000;   // wat een zoekronde in de praktijk kost (gemeten: 4–6s)
@@ -827,10 +838,18 @@ export default async function handler(req, res) {
 
     let output;
     if (stroom) {
+      // Het antwoord is ongeveer een derde van wat het model schrijft; de rest gaat
+      // naar bronnen, aannames en signalen. Zonder deze melding valt er een stilte
+      // van twintig seconden waarin er niets op het scherm verandert, en verschijnt
+      // alles daarna in één klap.
       const volgAntwoord = maakVeldVolger('antwoord');
+      const volgOnderdelen = maakVeldenVolger(STREAM_ONDERDELEN.map(o => o.veld));
+
       const { input } = await callClaudeStream(anthropicKey, fase2, deelJson => {
         const stuk = volgAntwoord(deelJson);
         if (stuk) stuurSSE({ type: 'delta', tekst: stuk });
+        const nieuw = volgOnderdelen(deelJson);
+        if (nieuw.length) stuurSSE({ type: 'onderdeel', velden: nieuw });
       }, eindtijd);
       output = input;
     } else {

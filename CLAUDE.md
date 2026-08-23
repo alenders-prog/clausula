@@ -163,7 +163,10 @@ De reden is toetsbaarheid, niet netheid: alles wat in `src/` staat heeft tests,
 niets van de 286 functies in `index.html` heeft die. Dat is geen toeval — het is
 de enige manier waarop die code bereikbaar wordt voor een test.
 
-`tests/unit/omvang.test.js` bewaakt dit met een bovengrens op het aantal regels.
+`tests/unit/omvang.test.js` bewaakt dit met twee grenzen: op het totaal, en — sinds
+23 augustus 2026 — op alleen de regels binnen `<script>`. Die tweede is degene die
+iets zegt: CSS en HTML kunnen nergens heen (er is geen build-stap), en groei daarin
+zegt niets over toetsbaarheid.
 Die grens mag **alleen omlaag**. Loopt hij vol, verplaats dan eerst iets; verhoog
 je hem toch, dan staat dat in de diff en is het een besluit.
 

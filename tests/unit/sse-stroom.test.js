@@ -103,3 +103,28 @@ describe('leesStroom', () => {
     await expect(leesStroom({ body: null })).rejects.toThrow(/leesbare stroom/);
   });
 });
+
+describe('onderdeel-berichten', () => {
+  it('meldt welke onderdelen zijn begonnen', async () => {
+    const onderdelen = [];
+    await leesStroom(
+      stroomVan([
+        sse({ type: 'delta', tekst: 'Antwoord' }),
+        sse({ type: 'onderdeel', velden: ['bronnen'] }),
+        sse({ type: 'onderdeel', velden: ['aannames', 'signalen'] }),
+        sse({ type: 'klaar', data: {} }),
+      ]),
+      { onOnderdeel: v => onderdelen.push(...v) },
+    );
+    expect(onderdelen).toEqual(['bronnen', 'aannames', 'signalen']);
+  });
+
+  it('negeert een onderdeel-bericht zonder velden', async () => {
+    const onderdelen = [];
+    await leesStroom(
+      stroomVan([sse({ type: 'onderdeel', velden: [] }), sse({ type: 'klaar', data: {} })]),
+      { onOnderdeel: v => onderdelen.push(...v) },
+    );
+    expect(onderdelen).toEqual([]);
+  });
+});

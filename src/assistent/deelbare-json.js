@@ -68,6 +68,34 @@ export function leesTekstVeld(json, veld) {
 }
 
 /**
+ * Welke van de opgegeven velden al in de binnenkomende JSON zijn begonnen.
+ *
+ * Waarom een simpele zoektocht naar `"veld"` volstaat: dit draait op de invoer van
+ * één bekende tool, `assistent_antwoord`. Geen enkele geneste sleutel in dat schema
+ * heet hetzelfde als een veld op het hoogste niveau — een bron heeft `citation` en
+ * `url`, een signaal `ernst` en `tekst`. Zou het schema dat ooit doorbreken, dan
+ * meldt deze functie een veld te vroeg; erger wordt het niet, want het eindbericht
+ * bepaalt wat er werkelijk gerenderd wordt.
+ */
+export function gezieneVelden(json, velden = []) {
+  const bron = String(json ?? '');
+  return velden.filter(v => bron.includes(`"${v}"`));
+}
+
+/**
+ * Meldt per aanroep welke velden er nieuw bij zijn gekomen. Zo hoeft de aanroeper
+ * alleen te versturen wat verandert.
+ */
+export function maakVeldenVolger(velden = []) {
+  const gezien = new Set();
+  return function nieuweVelden(json) {
+    const nu = gezieneVelden(json, velden).filter(v => !gezien.has(v));
+    nu.forEach(v => gezien.add(v));
+    return nu;
+  };
+}
+
+/**
  * Houdt bij hoeveel er al doorgegeven is, zodat de aanroeper alleen het nieuwe
  * stuk hoeft te renderen in plaats van de tekst steeds opnieuw op te bouwen.
  */

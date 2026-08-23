@@ -1947,6 +1947,25 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .assist-bron.web,.assist-bron.wet{cursor:pointer;text-decoration:none;}
 .assist-bron.web:hover,.assist-bron.wet:hover{border-color:var(--nav-bg);color:var(--nav-bg);}
 
+/* Voortgang tijdens het streamen — het antwoord is ongeveer een derde van wat het
+   model schrijft; de rest gaat naar bronnen, aannames en signalen. Zonder deze regel
+   valt er een stilte van twintig seconden waarin er niets verandert. */
+.assist-stream-rest:empty{display:none;}
+.assist-stream-rest{display:flex;flex-wrap:wrap;align-items:center;gap:4px;
+  margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);}
+.assist-stream-lbl{font-size:.68rem;color:var(--ink-soft);margin-right:2px;}
+.assist-stream-lbl::after{content:'…';animation:assistPuls 1.4s ease-in-out infinite;}
+.assist-stream-chip{display:inline-flex;align-items:center;gap:4px;
+  padding:1px 8px;border:1px solid var(--line);border-radius:12px;
+  font-size:.68rem;color:var(--ink-soft);background:var(--paper);
+  opacity:.55;transition:opacity .25s,color .25s,border-color .25s;}
+.assist-stream-chip.klaar{opacity:1;color:var(--ink-mid);border-color:var(--ink-soft);}
+.assist-stream-chip.klaar::before{content:'✓';font-size:.62rem;color:#1E8449;}
+@keyframes assistPuls{0%,100%{opacity:.3}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){
+  .assist-stream-lbl::after{animation:none;}
+}
+
 /* Clausule-knop */
 .assist-clausule-btn{display:inline-flex;align-items:center;gap:6px;
   margin-top:10px;padding:7px 13px;border-radius:7px;
@@ -13029,23 +13048,57 @@ function _assistZetThinkingLabel(tekst) {
 // zodra de stroom klaar is verdwijnt deze bubbel en bouwt _assistVoegAssistBerichtToe
 // het echte bericht op, met bronnen, chips en vervolgacties. Zo blijft er één plek
 // waar een assistent-bericht gerenderd wordt.
+// Labels van de onderdelen die ná het antwoord binnenkomen. Moet gelijk lopen met
+// STREAM_ONDERDELEN in api/ai-assistent.js — die bepaalt wat de server meldt.
+const _STREAM_ONDERDELEN = [
+  { veld: 'bronnen',       label: 'Bronnen' },
+  { veld: 'aannames',      label: 'Aannames' },
+  { veld: 'signalen',      label: 'Signalen' },
+  { veld: 'vervolgacties', label: 'Vervolgacties' },
+];
+
 function _assistMaakStreamBubbel() {
   const msgs = document.getElementById('assistMsgs');
   const div  = document.createElement('div');
   div.id        = 'assistStream';
   div.className = 'assist-msg assist-msg-assist';
+  // De .assist-bubble-laag is niet cosmetisch: alle typografie van een
+  // assistent-bericht hangt eraan. Zonder deze wikkel viel de voorvertoning terug
+  // op de basisstijl van het paneel — zichtbaar groter dan het bericht dat er een
+  // seconde later voor in de plaats kwam.
+  div.innerHTML = '<div class="assist-bubble"><div class="assist-stream-tekst"></div>'
+    + '<div class="assist-stream-rest"></div></div>';
+  const tekstEl = div.querySelector('.assist-stream-tekst');
+  const restEl  = div.querySelector('.assist-stream-rest');
   msgs.appendChild(div);
 
   let ruw = '';
+  const binnen = new Set();
+
+  const _tekenRest = () => {
+    // Pas tonen als het antwoord staat; anders staat er een voortgangsregel onder
+    // een lege bubbel.
+    if (!ruw) { restEl.innerHTML = ''; return; }
+    const chips = _STREAM_ONDERDELEN.map(o => binnen.has(o.veld)
+      ? `<span class="assist-stream-chip klaar">${o.label}</span>`
+      : `<span class="assist-stream-chip">${o.label}</span>`).join('');
+    restEl.innerHTML = `<span class="assist-stream-lbl">Nog bezig met</span>${chips}`;
+  };
+
   return {
     groei(stuk) {
       if (!ruw) _assistVerwijderThinking();   // eerste tekst: denkbubbel weg
       ruw += stuk;
       // Namen elke keer over de hele tekst herstellen: een pseudoniem kan over twee
       // stukjes verdeeld binnenkomen, dus per stukje vervangen werkt niet.
-      div.innerHTML = _assistMd(_assistHerstelNamen(ruw));
+      tekstEl.innerHTML = _assistMd(_assistHerstelNamen(ruw));
+      _tekenRest();
       const bij = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 120;
       if (bij) msgs.scrollTop = msgs.scrollHeight;
+    },
+    onderdeel(velden) {
+      velden.forEach(v => binnen.add(v));
+      _tekenRest();
     },
     weg() { div.remove(); },
   };
@@ -13750,8 +13803,9 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
       const bubbel = _assistMaakStreamBubbel();
       try {
         data = await leesStroom(resp, {
-          onFase:  t => _assistZetThinkingLabel(t),
-          onDelta: s => bubbel.groei(s),
+          onFase:      t => _assistZetThinkingLabel(t),
+          onDelta:     s => bubbel.groei(s),
+          onOnderdeel: v => bubbel.onderdeel(v),
         });
       } finally {
         bubbel.weg();   // ook bij een fout: geen half bericht laten staan
