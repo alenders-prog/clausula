@@ -25,7 +25,11 @@ klopt, de vindbaarheid niet. Het script pakt standaard alleen chunks zonder
 `embedding_bij`; heb je bestaande tekst aangepast, zet dan `embedding_bij` op `null`
 voor die rijen, of draai `--alles`.
 
-Eenmalig vooraf: `supabase/kennisbank-semantisch.sql` in de SQL-editor.
+Eenmalig vooraf: `supabase/kennisbank-semantisch.sql` in de SQL-editor, daarna
+`node scripts/kennisbank-semantisch-check.mjs` om te zien of alles er echt staat.
+Die controle bestaat omdat de eerste poging half doorkwam: `embedding` was
+aangemaakt, `embedding_bij` niet, en de zoekfunctie ontbrak — terwijl de app
+gewoon doordraaide op de terugval, dus van buitenaf zag het er goed uit.
 
 > **Waarom semantisch zoeken?** Zie het technisch document, §8 Design beslissingen.
 > Kort: de assistent zocht op alléén het eerste woord van de zoekopdracht; zes van

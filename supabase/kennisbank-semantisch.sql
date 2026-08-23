@@ -21,6 +21,10 @@
 --     semantisch (voyage-law-2)  34      en nul vragen zonder treffer
 --
 -- ── In deze volgorde uitvoeren in de Supabase SQL-editor ──────────────────────
+--
+-- Het hele bestand mag in één keer, en mag opnieuw: elke stap is idempotent
+-- (`if not exists` / `or replace`). Loopt er iets mis, corrigeer dan en draai het
+-- bestand opnieuw in zijn geheel — de stappen die al gelukt waren doen niets.
 
 -- ── Stap 1: pgvector aanzetten ───────────────────────────────────────────────
 create extension if not exists vector;
@@ -39,6 +43,10 @@ alter table legal_chunks
 -- ── Stap 3: index ────────────────────────────────────────────────────────────
 -- HNSW op cosinus-afstand. Bij 94 chunks is dit nog niet nodig voor de snelheid,
 -- maar de index moet er staan vóór de kennisbank groeit — niet erna.
+--
+-- Geeft dit "access method hnsw does not exist", dan is pgvector ouder dan 0.5.
+-- Sla deze stap dan over: zonder index werkt alles, alleen wordt er lineair
+-- gezocht. Bij honderd chunks merk je daar niets van.
 create index if not exists legal_chunks_embedding_idx
   on legal_chunks using hnsw (embedding vector_cosine_ops);
 
@@ -53,8 +61,12 @@ create or replace function zoek_legal_chunks(
   drempel         float   default 0.35,
   filter_tags     text[]  default null
 )
+-- Let op: `id` is een uuid, niet een bigint. De types hieronder moeten exact
+-- overeenkomen met die van legal_chunks, anders weigert Postgres de functie met
+-- "return type mismatch in function declared to return record" — een melding die
+-- naar de functie wijst en niet naar de kolom die niet klopt.
 returns table (
-  id         bigint,
+  id         uuid,
   citation   text,
   content    text,
   topic_tags text[],
@@ -63,15 +75,18 @@ returns table (
 language sql
 stable
 as $$
+  -- Expliciet casten. De declaratie hierboven moet exact overeenkomen met wat deze
+  -- select teruggeeft; een kolom die varchar blijkt in plaats van text laat Postgres
+  -- de hele functie weigeren. Met een cast kan dat niet meer botsen.
   select
     lc.id,
-    lc.citation,
-    lc.content,
-    lc.topic_tags,
-    1 - (lc.embedding <=> query_embedding) as score
+    lc.citation::text,
+    lc.content::text,
+    lc.topic_tags::text[],
+    (1 - (lc.embedding <=> query_embedding))::float as score
   from legal_chunks lc
   where lc.embedding is not null
-    and (filter_tags is null or lc.topic_tags && filter_tags)
+    and (filter_tags is null or lc.topic_tags::text[] && filter_tags)
     and 1 - (lc.embedding <=> query_embedding) >= drempel
   order by lc.embedding <=> query_embedding
   limit aantal;
