@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { verifieerJWT } from './_auth.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
+import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
@@ -297,21 +298,19 @@ const ASSISTENT_TOOL = {
         description: 'Alleen bij intent=opties. Maximaal 3.',
       },
 
-      mailconcept: {
-        type: 'string',
-        description: 'Alleen bij intent=opties én als de mediator om een mail/klanttekst vraagt. In de stem van de mediator, opties neutraal voorleggend, eindigend met uitnodiging om te bespreken. Geen wetsartikelen.',
-      },
-
-      clausule: {
-        type: 'object',
-        required: ['stijl', 'tekst'],
-        properties: {
-          stijl:       { type: 'string', enum: ['strikt', 'juridisch_volledig', 'begrijpelijke_taal'] },
-          tekst:       { type: 'string' },
-          toelichting: { type: 'string', description: 'Max 3 zinnen aan de mediator: formuleringskeuzes en afwijking van wettelijk uitgangspunt.' },
-        },
-        description: 'Alleen bij intent=clausule.',
-      },
+      // Hier stonden `mailconcept` en `clausule`. Ze zijn verwijderd op 23 augustus 2026.
+      //
+      // Gemeten op de vraag "gezamenlijke koopwoning, heeft de vertrekkende partij nog
+      // zeggenschap": het model schreef bij intent=casus een volledige clausule van 4.350
+      // tekens mee — ruim 1.200 tokens, ongeveer 25 seconden. Geen enkele client las dat
+      // veld ooit uit; nul verwijzingen in index.html, assistent-core.js en
+      // assistent-mobiel.html. Hetzelfde gold voor mailconcept.
+      //
+      // Een echte clausule of mail komt langs een ander pad: rawModus=true, waar de tekst
+      // als vrije tekst in `antwoord` terugkomt. Dat pad is niet geraakt.
+      //
+      // Let op bij herinvoeren: `clausuleRelevant` (regel ~742) keek naar output.clausule
+      // als één van drie signalen. De andere twee — intent en vervolgacties — dragen het nu.
 
     },
   },
@@ -372,6 +371,22 @@ const SYSTEEM_CACHED = [
   { type: 'text', text: SYSTEEM, cache_control: { type: 'ephemeral' } },
 ];
 
+// ── Systeem-prompt voor de zoekloop ──────────────────────────────────────────
+// De zoekloop hoeft één ding te beslissen: moet er iets opgezocht worden? Kreeg hij
+// de volledige SYSTEEM-prompt mee, dan las het model daar "antwoord altijd eerst
+// inhoudelijk" en deed dat ook — een compleet antwoord van 1.500 tokens dat daarna
+// werd weggegooid omdat de loop bij stop_reason≠tool_use afbreekt. Gemeten op
+// 23 augustus 2026: 34,6 seconden voor tekst die nergens terechtkwam.
+const ZOEK_SYSTEEM = `Je ondersteunt een Nederlandse familierechtmediator (MfN). Je hebt één taak:
+bepalen of er voor de vraag hieronder wetsartikelen, richtlijnen of jurisprudentie opgezocht
+moeten worden.
+
+- Moet er iets opgezocht worden: roep zoek_juridisch aan (en zoek_web alleen voor recente
+  jurisprudentie of actuele richtlijnen die niet in de kennisbank staan).
+- Is alles wat je nodig hebt al binnen: antwoord met precies één woord: gereed.
+
+Schrijf zelf geen antwoord op de vraag. Dat gebeurt in een volgende stap.`;
+
 // ── Tijdsbudget ───────────────────────────────────────────────────────────────
 // vercel.json geeft deze functie 60 seconden. Wordt die overschreden, dan kapt
 // Vercel de functie af en stuurt een platte foutpagina terug — geen JSON, dus de
@@ -384,6 +399,7 @@ const SYSTEEM_CACHED = [
 // in "Vercel Runtime Timeout Error: Task timed out after 60 seconds".
 const FUNCTIE_BUDGET_MS = 55_000;   // 5s marge op de 60s van Vercel
 const AFRONDING_MS      = 25_000;   // gereserveerd voor de gestructureerde call
+const RONDE_MS          =  8_000;   // wat een zoekronde in de praktijk kost (gemeten: 4–6s)
 
 // ── Helper: Claude aanroepen ──────────────────────────────────────────────────
 // `deadline` is een absoluut tijdstip (Date.now()-basis); de call wordt afgebroken
@@ -423,6 +439,80 @@ async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
       continue;
     }
     throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  }
+}
+
+// ── Helper: Claude streamend aanroepen ────────────────────────────────────────
+// Geeft hetzelfde eindresultaat als callClaude, maar roept `onJson` aan zodra er
+// een stuk van de tool-invoer binnen is. Het antwoord komt terug als tool-aanroep,
+// dus als één JSON-object; Anthropic levert dat in stukjes via input_json_delta.
+//
+// Waarom dit de moeite is: de gestructureerde call duurt tientallen seconden omdat
+// het model veel tekst produceert. Zonder streamen ziet de mediator niets tot alles
+// binnen is. Met streamen staat de eerste zin er na een paar seconden — `antwoord`
+// is veld twee in het schema, dus het komt vroeg langs.
+async function callClaudeStream(apiKey, body, onJson, deadline = Infinity) {
+  const resterend = deadline - Date.now();
+  if (resterend <= 0) throw new Error('Tijdslimiet bereikt vóór het antwoord van Claude');
+
+  let res;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta':    'prompt-caching-2024-07-31',
+      },
+      body:   JSON.stringify({ model: 'claude-sonnet-4-6', stream: true, ...body }),
+      signal: AbortSignal.timeout(resterend),
+    });
+  } catch (err) {
+    if (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+      throw new Error('Claude antwoordde niet binnen de beschikbare tijd');
+    throw err;
+  }
+  if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+
+  const lezer   = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let json   = '';
+  let naam   = '';
+
+  for (;;) {
+    const { done, value } = await lezer.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let grens;
+    while ((grens = buffer.indexOf('\n\n')) !== -1) {
+      const blok = buffer.slice(0, grens);
+      buffer = buffer.slice(grens + 2);
+
+      for (const regel of blok.split('\n')) {
+        if (!regel.startsWith('data:')) continue;
+        let ev;
+        try { ev = JSON.parse(regel.slice(5).trim()); } catch { continue; }
+
+        if (ev.type === 'content_block_start' && ev.content_block?.type === 'tool_use')
+          naam = ev.content_block.name;
+        else if (ev.type === 'content_block_delta' && ev.delta?.type === 'input_json_delta') {
+          json += ev.delta.partial_json || '';
+          onJson?.(json);
+        } else if (ev.type === 'error')
+          throw new Error(`Claude stream: ${ev.error?.message || 'onbekende fout'}`);
+      }
+    }
+  }
+
+  if (!json) throw new Error('assistent_antwoord niet aangeroepen door het model');
+  try {
+    return { naam, input: JSON.parse(json) };
+  } catch {
+    // Afgekapt midden in de JSON — meestal een deadline die net te krap was.
+    throw new Error('Het antwoord kwam onvolledig binnen van Claude');
   }
 }
 
@@ -495,6 +585,7 @@ export default async function handler(req, res) {
     dossierId       = null,
     stijl           = 'juridisch_volledig',
     rawModus        = false, // true = lange vrije tekst (klanttekst/mail), geen tool-schema
+    stream          = false, // true = antwoord als SSE, zin voor zin (alleen het adviespad)
   } = req.body || {};
 
   if (!vraag?.trim()) return res.status(400).json({ error: 'Vraag ontbreekt' });
@@ -611,6 +702,33 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── Streamen (alleen het adviespad) ─────────────────────────────
+  // Zodra de headers eruit zijn kan er geen res.status(500).json meer volgen; een
+  // fout moet dan als SSE-bericht mee. stuurSSE en meldFout dekken beide gevallen af,
+  // zodat de rest van de code niet hoeft te weten in welke modus hij draait.
+  const stroom = stream === true;
+  let sseOpen = false;
+
+  function stuurSSE(obj) {
+    if (!sseOpen) return;
+    try { res.write(`data: ${JSON.stringify(obj)}\n\n`); } catch { sseOpen = false; }
+  }
+
+  function meldFout(melding, statuscode = 500) {
+    if (sseOpen) { stuurSSE({ type: 'fout', melding }); return res.end(); }
+    return res.status(statuscode).json({ error: melding });
+  }
+
+  if (stroom) {
+    res.setHeader('Content-Type',      'text/event-stream');
+    res.setHeader('Cache-Control',     'no-cache');
+    res.setHeader('Connection',        'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');   // zonder dit buffert de proxy alles alsnog
+    res.flushHeaders?.();
+    sseOpen = true;
+    stuurSSE({ type: 'fase', tekst: 'Kennisbank raadplegen…' });
+  }
+
   // ── Context opbouwen ────────────────────────────────────────────
   const prefixBlokken = [];
 
@@ -649,25 +767,48 @@ export default async function handler(req, res) {
 
   try {
     for (let i = 0; i < MAX_ZOEK; i++) {
-      // Zoeken is optioneel, antwoorden niet. Blijft er te weinig tijd over voor de
-      // gestructureerde call, dan stoppen we met zoeken en antwoorden we met wat er
-      // tot nu toe gevonden is — beter een antwoord met minder bronnen dan geen.
-      if (Date.now() + AFRONDING_MS > eindtijd) {
-        console.warn(`[ai-assistent] zoekloop afgebroken na ${i} ronde(s) — tijdsbudget`);
+      // Zoeken is optioneel, antwoorden niet. Er moet ruimte zijn voor een hele ronde
+      // én voor de afronding — anders begint er een ronde die halverwege wordt
+      // afgekapt, en dan is de tijd besteed zonder dat er iets is opgehaald.
+      if (Date.now() + RONDE_MS + AFRONDING_MS > eindtijd) {
+        console.warn(`[ai-assistent] zoekloop gestopt na ${i} ronde(s) — tijdsbudget`);
         break;
       }
 
-      const data = await callClaude(anthropicKey, {
-        max_tokens:  1500,
-        temperature: 0.3,
-        system:      SYSTEEM_CACHED,
-        tools:       ZOEK_TOOLS,
-        messages:    zoekMessages,
-      }, 2, eindtijd - AFRONDING_MS);
+      // max_tokens laag: een tool-aanroep past er ruim in, een uitgeschreven antwoord
+      // niet. Loopt het model er toch tegenaan, dan kost dat vier seconden in plaats
+      // van vijfendertig.
+      let data;
+      try {
+        data = await callClaude(anthropicKey, {
+          max_tokens:  400,
+          temperature: 0.3,
+          system:      ZOEK_SYSTEEM,
+          tools:       ZOEK_TOOLS,
+          messages:    zoekMessages,
+        }, 2, eindtijd - AFRONDING_MS);
+      } catch (zoekErr) {
+        // Een mislukte zoekronde is geen mislukt antwoord. Ga door met de bronnen die
+        // er al zijn — zonder deze vangst sloopte één afgekapte ronde het hele verzoek.
+        console.warn(`[ai-assistent] zoekronde ${i + 1} overgeslagen: ${zoekErr.message}`);
+        break;
+      }
 
       if (data.stop_reason !== 'tool_use') break; // Geen zoekactie meer nodig
 
       zoekMessages.push({ role: 'assistant', content: data.content });
+
+      // De zoekloop duurt ~20 seconden en gebruikt vrijwel altijd al zijn rondes.
+      // Laat zien wát er gezocht wordt: een mediator kan meelezen en ziet dat er
+      // gewerkt wordt, in plaats van naar een spinner te kijken.
+      if (stroom) {
+        const termen = data.content
+          .filter(b => b.type === 'tool_use')
+          .map(b => b.input?.zoektermen || b.input?.zoekvraag || '')
+          .filter(Boolean);
+        if (termen.length) stuurSSE({ type: 'fase', tekst: `Zoekt: ${termen[0]}` });
+      }
+
       const t0Tools = Date.now();
       const toolResults = await voerToolsUit(data.content, supabase, braveKey, bronnenZoek);
       zoekMessages.push({ role: 'user', content: toolResults });
@@ -678,24 +819,37 @@ export default async function handler(req, res) {
     }
 
     // ── Fase 2: Gestructureerde output ───────────────────────────
+    if (stroom) stuurSSE({ type: 'fase', tekst: 'Antwoord opstellen…' });
+
     const t0Struct = Date.now();
-    const structData = await callClaude(anthropicKey, {
+    const fase2 = {
       max_tokens:  4000,
       temperature: 0.3,
       system:      SYSTEEM_CACHED,
       tools:       [ASSISTENT_TOOL],
       tool_choice: { type: 'tool', name: 'assistent_antwoord' },
       messages:    zoekMessages,
-    }, 2, eindtijd);
+    };
+
+    let output;
+    if (stroom) {
+      const volgAntwoord = maakVeldVolger('antwoord');
+      const { input } = await callClaudeStream(anthropicKey, fase2, deelJson => {
+        const stuk = volgAntwoord(deelJson);
+        if (stuk) stuurSSE({ type: 'delta', tekst: stuk });
+      }, eindtijd);
+      output = input;
+    } else {
+      const structData = await callClaude(anthropicKey, fase2, 2, eindtijd);
+      const toolBlock = structData.content.find(
+        b => b.type === 'tool_use' && b.name === 'assistent_antwoord',
+      );
+      if (!toolBlock) throw new Error('assistent_antwoord niet aangeroepen door het model');
+      output = toolBlock.input;
+    }
+
     console.log(`[ai-assistent] gestructureerde call ${Date.now() - t0Struct}ms, `
       + `totaal ${Date.now() - (eindtijd - FUNCTIE_BUDGET_MS)}ms`);
-
-    const toolBlock = structData.content.find(
-      b => b.type === 'tool_use' && b.name === 'assistent_antwoord',
-    );
-    if (!toolBlock) throw new Error('assistent_antwoord niet aangeroepen door het model');
-
-    const output = toolBlock.input;
 
     // ── Laag 2: consistentievalidatie (code, niet prompt) ────────
     valideerConsistentie(output, rijkeFields);
@@ -739,11 +893,11 @@ export default async function handler(req, res) {
         }]
       : [];
 
-    const clausuleRelevant = output.intent === 'clausule' || output.clausule
+    const clausuleRelevant = output.intent === 'clausule'
       ? 'convenant'
       : output.vervolgacties?.includes('clausule_opstellen') ? 'convenant' : 'geen';
 
-    return res.status(200).json({
+    const antwoordObj = {
       // Nieuw schema
       intent:                output.intent                || 'kennisvraag',
       antwoord:              output.antwoord              || '',
@@ -754,15 +908,21 @@ export default async function handler(req, res) {
       verduidelijkingsvraag: output.verduidelijkingsvraag || null,
       vervolgacties:         output.vervolgacties         || [],
       opties:                output.opties                || [],
-      mailconcept:           output.mailconcept           || null,
-      clausule:              output.clausule              || null,
       // Backward-compat (UI stap 2 vervangt dit)
       vragen,
       clausuleRelevant,
-    });
+    };
+
+    if (stroom) {
+      // Het antwoord is al streamend doorgegeven; dit bericht levert de rest —
+      // bronnen, signalen, aannames — en de definitieve, gevalideerde tekst.
+      stuurSSE({ type: 'klaar', data: antwoordObj });
+      return res.end();
+    }
+    return res.status(200).json(antwoordObj);
 
   } catch (err) {
     console.error('[ai-assistent]', err.message);
-    return res.status(500).json({ error: err.message });
+    return meldFout(err.message);
   }
 }

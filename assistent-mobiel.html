@@ -15,10 +15,12 @@
     import { bouwAnonMap, anonimiseerTekst } from '/src/naam-anonimiseer.js';
     import { piiAnonimiseer }               from '/src/pii-anonimiseer.js';
     import { leesAntwoord }                 from '/src/assistent/api-antwoord.js';
+    import { leesStroom }                   from '/src/assistent/sse-stroom.js';
     window.bouwAnonMap      = bouwAnonMap;
     window.anonimiseerTekst = anonimiseerTekst;
     window.piiAnonimiseer   = piiAnonimiseer;
     window.leesAntwoord     = leesAntwoord;
+    window.leesStroom       = leesStroom;
   </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -927,6 +929,43 @@
     thinkingEl = null;
   }
 
+  // De server meldt tijdens de zoekloop wat hij opzoekt; die loop duurt zo'n twintig
+  // seconden en dat is te lang om alleen drie stipjes te tonen.
+  function zetDenkLabel(tekst) {
+    if (!thinkingEl) return;
+    let span = thinkingEl.querySelector('.mob-denk-label');
+    if (!span) {
+      span = document.createElement('span');
+      span.className = 'mob-denk-label';
+      span.style.cssText = 'margin-left:8px;font-size:.78rem;color:var(--ink-soft)';
+      thinkingEl.appendChild(span);
+    }
+    span.textContent = tekst;
+  }
+
+  // Voorvertoning terwijl het antwoord binnenkomt. Het definitieve bericht wordt
+  // daarna door voegAssistentBericht opgebouwd, met bronnen en signalen.
+  function maakStreamBubbel() {
+    const wrap = document.createElement('div');
+    wrap.className = 'mob-bubble-wrap';
+    const bubble = document.createElement('div');
+    bubble.className = 'mob-bubble';
+    wrap.appendChild(bubble);
+    msgsEl.appendChild(wrap);
+
+    let ruw = '';
+    return {
+      groei(stuk) {
+        if (!ruw) verwijderDenken();
+        ruw += stuk;
+        // Over de hele tekst herstellen: een pseudoniem kan over twee stukjes lopen.
+        bubble.innerHTML = renderMarkdown(_mobHerstelNamen(ruw));
+        scrollNaar();
+      },
+      weg() { wrap.remove(); },
+    };
+  }
+
   function selecteerKeuze(btn, vraagLabel, keuze) {
     const blok = btn.closest('.mob-vraag-blok');
     if (blok) {
@@ -1249,9 +1288,21 @@
           dossierContext: dossierContext || undefined,
           dossierId:      dossierId     || undefined,
           stijl:          'juridisch_volledig',
+          stream:         true,
         }),
       });
-      const data = await leesAntwoord(resp);
+
+      let data;
+      if (resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
+        const bubbel = maakStreamBubbel();
+        try {
+          data = await leesStroom(resp, { onFase: zetDenkLabel, onDelta: s => bubbel.groei(s) });
+        } finally {
+          bubbel.weg();
+        }
+      } else {
+        data = await leesAntwoord(resp);   // server viel terug op JSON
+      }
       verwijderDenken();
       voegAssistentBericht(data.antwoord, data.bronnen || [], data.vragen || [], data);
       conversatie.push({ role: 'assistant', content: data.antwoord, bronnen: data.bronnen || [] });

@@ -32,7 +32,18 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // src/rapport/verificatie-context.js (15 tests). Wat hier bleef staan is
 // bedrading die niets te bewijzen heeft; verplaatsen zou alleen indirectie
 // opleveren.
-const MAX_REGELS_INDEX = 14939;
+//
+// 23-08-2026: bewust verhoogd van 14939 naar 14994 (+55), voor het streamende
+// antwoord van de assistent. Wat erbij kwam is uitsluitend DOM-bedrading: een
+// labelwissel in de denkbubbel, het opbouwen van de voorvertoning, en de
+// vertakking tussen stroom en JSON in de fetch.
+//
+// De redenerende delen staan wél in src/ — src/assistent/deelbare-json.js leest
+// een veld uit JSON die nog binnenkomt (14 tests), src/assistent/sse-stroom.js
+// haalt de stroom uit elkaar (10 tests). De bubbel verplaatsen zou betekenen dat
+// _assistMd, _assistHerstelNamen en het container-element als parameters mee
+// moeten; dat is indirectie zonder dat er een test bij komt die iets bewijst.
+const MAX_REGELS_INDEX = 14994;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

@@ -75,8 +75,92 @@ in plaats van de reden.
    zin. **Nooit `resp.json()` rechtstreeks op deze endpoint.**
 
 > Verhogen van `maxDuration` is geen uitweg: 60s is het maximum op het Hobby-plan.
-> Wil je écht meer ruimte, dan is streaming (zoals `api/analyseer.js` doet) de route —
-> dat houdt de verbinding open en valt niet onder dezelfde limiet.
+
+---
+
+## Waar de tijd heen gaat (gemeten 23 augustus 2026)
+
+Op de vraag *"getrouwd, gezamenlijke koopwoning, gaan scheiden, woning komt nog in de
+verkoop, heeft de vertrekkende partij nog zeggenschap"* — geen zware vraag:
+
+| | vóór | na |
+|---|---|---|
+| zoekloop | 39,3s | ~20s (3 rondes) |
+| gestructureerd antwoord | 61,0s | ~28s |
+| **totaal** | **100,3s** | **~53s** |
+| uitvoer-tokens | 2.822 | ~1.400 |
+| eerste letter zichtbaar | pas aan het eind | ~30s |
+
+**Het is geen denktijd, het is typewerk.** Sonnet produceert hier ~46 tokens per seconde;
+2.822 tokens ís een minuut. Wie de assistent sneller wil maken moet dus kijken naar wat
+er geproduceerd wordt, niet naar hoe "moeilijk" de vraag is.
+
+Drie oorzaken, alle drie aangepakt:
+
+1. **De zoekloop schreef een volledig antwoord dat werd weggegooid.** Hij kreeg dezelfde
+   12.000 tekens `SYSTEEM` mee als de antwoordfase, las daar "antwoord altijd eerst
+   inhoudelijk", en deed dat — 1.500 tokens die de loop bij `stop_reason≠tool_use` liet
+   vallen. 34,6 seconden voor niets. Nu draait de loop op `ZOEK_SYSTEEM` met
+   `max_tokens: 400`.
+2. **`clausule` en `mailconcept` zijn uit `ASSISTENT_TOOL` verwijderd.** Bij intent=casus
+   schreef het model een clausule van 4.350 tekens mee. Geen enkele client las die velden
+   ooit — nul verwijzingen in `index.html`, `assistent-core.js`, `assistent-mobiel.html`.
+   Een echte clausule komt via `rawModus=true`, als vrije tekst in `antwoord`.
+3. **Het antwoord streamt.** Zie hieronder.
+
+> **Nog open**: `MAX_ZOEK` staat op 5 en de loop gebruikte in de metingen zijn hele
+> allowance. Elke ronde kost ~5 seconden en is puur wachttijd vóór de eerste letter.
+> Verlagen naar 2–3 scheelt 10–15 seconden, maar levert minder bronnen op. Dat is een
+> kwaliteitsafweging, geen technische.
+>
+> **Ook open**: `voerToolsUit` zoekt met `ilike('content', '%' + woorden[0] + '%')` — dus
+> alléén op het eerste woord van `zoektermen`. "zeggenschap gezamenlijke koopwoning
+> echtscheiding" zoekt op `%zeggenschap%` en gaf 0 chunks, waarna het model bleef
+> proberen. Dat verklaart een deel van de rondes.
+
+---
+
+## Streamen (`stream: true`)
+
+Het adviespad kan het antwoord zin voor zin doorgeven. Alleen daar: `rawModus` levert
+vrije tekst zonder tool-schema en heeft geen veld om te volgen.
+
+**De client vraagt erom** met `stream: true` in de body, en controleert het antwoord op
+`content-type: text/event-stream`. Staat dat er niet, dan valt hij terug op
+`leesAntwoord()` — zo blijft een oudere of terugvallende server werken.
+
+**De server** stuurt vier soorten berichten:
+
+| bericht | betekenis |
+|---|---|
+| `{type:'fase', tekst}` | voortgang; vervangt het label in de denkbubbel |
+| `{type:'delta', tekst}` | een stuk van het `antwoord`-veld |
+| `{type:'klaar', data}` | het volledige, gevalideerde object |
+| `{type:'fout', melding}` | de server gaf het op |
+
+**Hoe de deltas ontstaan**: het antwoord komt terug als tool-aanroep, dus als één
+JSON-object dat Anthropic in stukjes levert (`input_json_delta`). Halverwege is dat geen
+geldige JSON. `src/assistent/deelbare-json.js` leest er tóch het veld `antwoord` uit —
+het staat op plaats twee in het schema, dus het komt vroeg langs. Wat nog niet binnen is
+(een halve escape, een afgebroken `\u`-reeks) wordt overgeslagen tot het volgende stuk.
+
+> **Valkuil bij het renderen**: herstel pseudoniemen over de héle tekst tot nu toe, niet
+> per stukje. Een pseudoniem kan over twee deltas verdeeld binnenkomen.
+
+> **Valkuil bij het aanpassen**: zodra de SSE-headers eruit zijn kan er geen
+> `res.status(500).json()` meer volgen. Gebruik `meldFout()` — die kiest zelf tussen een
+> SSE-foutbericht en een JSON-respons.
+
+> **De stroom-bubbel is een voorvertoning.** Zodra `klaar` binnen is verdwijnt hij en
+> bouwt `_assistVoegAssistBerichtToe` (desktop) of `voegAssistentBericht` (mobiel) het
+> echte bericht op, met bronnen, signalen en vervolgacties. Er blijft dus één plek waar
+> een assistent-bericht gerenderd wordt.
+
+> **Zoeken mag mislukken, antwoorden niet.** Een zoekronde die in zijn deadline loopt
+> `break`t de loop; hij mag het verzoek niet slopen. Op 23 augustus 2026 deed hij dat wél:
+> ronde 5 begon met nog 5 seconden op de klok en de afgekapte call gooide een fout die
+> tot de buitenste `catch` doorliep. Vandaar `RONDE_MS` — er moet ruimte zijn voor een
+> hele ronde plus de afronding voordat er een nieuwe begint.
 
 ---
 

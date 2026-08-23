@@ -12988,6 +12988,39 @@ function _assistVerwijderThinking() {
   document.getElementById('assistThinking')?.remove();
 }
 
+// Vervangt het label in de denkbubbel zonder hem opnieuw op te bouwen — de server
+// meldt tijdens de zoekloop wat hij opzoekt, en die loop duurt zo'n twintig seconden.
+function _assistZetThinkingLabel(tekst) {
+  const span = document.querySelector('#assistThinking .assist-thinking span');
+  if (span) span.textContent = tekst;
+}
+
+// Toont het antwoord terwijl het binnenkomt. Dit is nadrukkelijk een voorvertoning:
+// zodra de stroom klaar is verdwijnt deze bubbel en bouwt _assistVoegAssistBerichtToe
+// het echte bericht op, met bronnen, chips en vervolgacties. Zo blijft er één plek
+// waar een assistent-bericht gerenderd wordt.
+function _assistMaakStreamBubbel() {
+  const msgs = document.getElementById('assistMsgs');
+  const div  = document.createElement('div');
+  div.id        = 'assistStream';
+  div.className = 'assist-msg assist-msg-assist';
+  msgs.appendChild(div);
+
+  let ruw = '';
+  return {
+    groei(stuk) {
+      if (!ruw) _assistVerwijderThinking();   // eerste tekst: denkbubbel weg
+      ruw += stuk;
+      // Namen elke keer over de hele tekst herstellen: een pseudoniem kan over twee
+      // stukjes verdeeld binnenkomen, dus per stukje vervangen werkt niet.
+      div.innerHTML = _assistMd(_assistHerstelNamen(ruw));
+      const bij = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 120;
+      if (bij) msgs.scrollTop = msgs.scrollHeight;
+    },
+    weg() { div.remove(); },
+  };
+}
+
 function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausuleTekstRuw, type, vragen = [], extra = {}) {
   const { aannames = [], signalen = [], onbekenden = [], vervolgacties = [], opties = [], skipKopieer = false } = extra;
   const msgs = document.getElementById('assistMsgs');
@@ -13670,13 +13703,33 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
     const token = db.auth.session?.()?.access_token
       || (await db.auth.getSession())?.data?.session?.access_token || '';
 
+    // Streamen alleen op het adviespad. rawModus (clausule, mail, klanttekst) levert
+    // vrije tekst zonder tool-schema; daar valt geen veld uit te volgen.
+    const wilStroom = !rawModus;
+    const body = _assistMaakRequestBody(tekstAnon, rawModus);
+    if (wilStroom) body.stream = true;
+
     const resp = await fetch('/api/ai-assistent', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(_assistMaakRequestBody(tekstAnon, rawModus)),
+      body: JSON.stringify(body),
     });
 
-    const data = await leesAntwoord(resp);
+    let data;
+    if (wilStroom && resp.ok && resp.headers.get('content-type')?.includes('text/event-stream')) {
+      const bubbel = _assistMaakStreamBubbel();
+      try {
+        data = await leesStroom(resp, {
+          onFase:  t => _assistZetThinkingLabel(t),
+          onDelta: s => bubbel.groei(s),
+        });
+      } finally {
+        bubbel.weg();   // ook bij een fout: geen half bericht laten staan
+      }
+    } else {
+      // Geen stroom (rawModus, of de server viel terug op JSON) — pad ongewijzigd.
+      data = await leesAntwoord(resp);
+    }
 
     _assistVerwijderThinking();
     if (isClausule) {
@@ -14787,6 +14840,7 @@ import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 import { injecteerNummering }                               from './src/docx/nummering.js';
 import { leesAntwoord }                                     from './src/assistent/api-antwoord.js';
+import { leesStroom }                                       from './src/assistent/sse-stroom.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -14820,6 +14874,7 @@ window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;
 window.leesAntwoord           = leesAntwoord;
+window.leesStroom             = leesStroom;
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>
