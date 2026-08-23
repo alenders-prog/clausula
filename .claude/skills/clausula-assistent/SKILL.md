@@ -113,10 +113,53 @@ Drie oorzaken, alle drie aangepakt:
 > Verlagen naar 2–3 scheelt 10–15 seconden, maar levert minder bronnen op. Dat is een
 > kwaliteitsafweging, geen technische.
 >
-> **Ook open**: `voerToolsUit` zoekt met `ilike('content', '%' + woorden[0] + '%')` — dus
-> alléén op het eerste woord van `zoektermen`. "zeggenschap gezamenlijke koopwoning
-> echtscheiding" zoekt op `%zeggenschap%` en gaf 0 chunks, waarna het model bleef
-> proberen. Dat verklaart een deel van de rondes.
+---
+
+## Kennisbank-zoekopdracht — semantisch, met terugval
+
+Beide plekken die `legal_chunks` raadplegen (de tool `zoek_juridisch` en de
+kennisbank-pre-injectie voor rawModus) gaan sinds 23 augustus 2026 via
+`zoekChunks()` uit `src/kennisbank/zoek.js`.
+
+**Wat er stond**: `ilike('content', '%' + woorden[0] + '%')` — alléén het eerste woord
+van de zoekopdracht, zonder sortering. De pre-injectie was nog grover: één trefwoord
+van vijf letters of langer dat niet in een stopwoordenlijst stond.
+
+**Gemeten over twaalf realistische vragen** (94 chunks), relevante chunks in de top 5:
+
+| methode | score | vragen zonder enige treffer |
+|---|---|---|
+| eerste woord (oud) | 11 | **6 van 12** |
+| alle woorden + relevantiescore | 22 | 1 van 12 |
+| **semantisch (voyage-law-2)** | **34** | **0 van 12** |
+
+**Waarom beter woordzoeken niet volstaat**: op "heeft de vertrekkende partij nog
+zeggenschap over de woning" hoort art. 3:170 BW het antwoord te zijn, maar het woord
+"zeggenschap" staat niet in die chunk. Woordzoeken gaf vier procedurele artikelen
+(art. 815 Rv, 826 Rv) omdat "echtscheiding" toevallig in hún titel staat.
+
+> **De terugval is bedoeld, niet tijdelijk.** Zonder `VOYAGE_API_KEY`, of zolang
+> `supabase/kennisbank-semantisch.sql` niet gedraaid is, zakt `zoekChunks()` terug op
+> alle-woorden-met-score. Dat is nog altijd twee keer zo goed als de oude situatie.
+> `methode` in het resultaat zegt welke route gelopen is, en dat staat ook in de logs:
+> `[kennisbank] "…" → N chunks (semantisch|woorden)`.
+
+> **Bij nul treffers zegt de tool nu waaróm.** Semantisch zoeken dat niets vindt
+> betekent dat het onderwerp echt niet in de kennisbank staat — herformuleren helpt
+> dan niet. Zonder die toevoeging bleef het model varianten proberen, en dat kostte
+> zoekrondes van vijf seconden.
+
+> **Na elke wijziging aan `legal_chunks`: `node scripts/kennisbank-embed.mjs`.**
+> Een chunk met gewijzigde tekst maar oude embedding wordt gevonden op zijn oude
+> inhoud. Zie CLAUDE.md.
+
+**Dit geldt niet voor `api/analyseer.js`.** Die selecteert niet, maar stuurt vrijwel
+alles mee: `topic_tags` tegen `situatie_kenmerken`, gerangschikt op tag-overlap, tot
+`MAX_WETTEKSTEN = 80` — in de praktijk ~67 van de 94 chunks. Waar je bijna alles
+meestuurt, doet de rangschikking er weinig toe. Twee kanttekeningen staan in het
+technisch document §9: acht chunks dragen geen enkele tag die in `situatie_kenmerken`
+voorkomt en bereiken de analyse dus nooit, en zodra de kennisbank boven de 80 groeit
+gaat die rangschikking wél kiezen.
 
 ---
 

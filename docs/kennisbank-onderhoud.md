@@ -4,6 +4,36 @@ Dit document beschrijft wat wanneer bijgewerkt moet worden in de `legal_chunks`-
 
 ---
 
+## ⚠️ Na élke wijziging aan `legal_chunks` — twee scripts draaien
+
+Ook na een wijziging rechtstreeks in het Supabase-dashboard.
+
+```bash
+node scripts/kennisbank-check.mjs    # tags: underscore vs streepje
+node scripts/kennisbank-embed.mjs    # embeddings bijwerken voor semantisch zoeken
+```
+
+Beide falen stil als je ze vergeet, en dat is precies het probleem.
+
+**`kennisbank-check.mjs`** vangt tags in twee schrijfwijzen. Een chunk getagd met
+`koude-uitsluiting` in plaats van `koude_uitsluiting` matcht nooit tegen
+`situatie_kenmerken.key`, staat in de database, en verschijnt nergens.
+
+**`kennisbank-embed.mjs`** leest gewijzigde chunks opnieuw in als embedding. Sla je
+dit over, dan wordt een aangepaste chunk gevonden op zijn **oude** inhoud — de tekst
+klopt, de vindbaarheid niet. Het script pakt standaard alleen chunks zonder
+`embedding_bij`; heb je bestaande tekst aangepast, zet dan `embedding_bij` op `null`
+voor die rijen, of draai `--alles`.
+
+Eenmalig vooraf: `supabase/kennisbank-semantisch.sql` in de SQL-editor.
+
+> **Waarom semantisch zoeken?** Zie het technisch document, §8 Design beslissingen.
+> Kort: de assistent zocht op alléén het eerste woord van de zoekopdracht; zes van
+> twaalf realistische vragen leverden nul relevante chunks op. Semantisch zoeken
+> haalde dat naar nul-van-twaalf-missers.
+
+---
+
 ## Overzicht: wat staat er in de kennisbank?
 
 De kennisbank bevat wetteksten en richtlijnen die Claude gebruikt bij de analyse van echtscheidingsdocumenten. Alles staat in `legal_chunks_seed.sql`.

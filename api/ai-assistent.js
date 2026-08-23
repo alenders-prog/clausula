@@ -10,6 +10,7 @@ import { verifieerJWT } from './_auth.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
 import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
+import { zoekChunks } from '../src/kennisbank/zoek.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
@@ -525,18 +526,21 @@ async function voerToolsUit(content, supabase, braveKey, bronnenAcc) {
 
     if (block.name === 'zoek_juridisch') {
       const { zoektermen, tags } = block.input;
-      const woorden = zoektermen.trim().split(/\s+/).filter(Boolean);
-      let q = supabase.from('legal_chunks').select('citation, content, topic_tags').limit(5);
-      if (woorden.length) q = q.ilike('content', `%${woorden[0]}%`);
-      if (tags?.length)   q = q.overlaps('topic_tags', tags);
-      const { data: chunks, error } = await q;
-      if (error) {
-        tekst = `Database-fout: ${error.message}`;
-      } else if (chunks?.length) {
+      const { chunks, methode } = await zoekChunks(supabase, zoektermen, tags, {
+        apiKey: process.env.VOYAGE_API_KEY,
+      });
+      console.log(`[kennisbank] "${(zoektermen || '').slice(0, 50)}" → ${chunks.length} chunks (${methode})`);
+      if (chunks.length) {
         tekst = chunks.map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n');
         bronnenAcc.push(...chunks.map(c => ({ citation: c.citation })));
       } else {
-        tekst = 'Geen resultaten in de kennisbank.';
+        // Expliciet, zodat het model niet blijft herformuleren: bij semantisch
+        // zoeken betekent leeg dat het onderwerp écht niet in de kennisbank staat.
+        tekst = methode === 'semantisch'
+          ? 'Geen resultaten in de kennisbank. Dit onderwerp staat er niet in — '
+            + 'herformuleren helpt niet. Gebruik zoek_web of je eigen kennis, en '
+            + 'markeer wetsverwijzingen als "(trainingskennis — verifieer bij twijfel)".'
+          : 'Geen resultaten in de kennisbank.';
       }
 
     } else if (block.name === 'zoek_web') {
@@ -652,27 +656,17 @@ export default async function handler(req, res) {
     // ── Kennisbank-lookup voor clausule / klanttekst ─────────────────────────
     let kbInjectie = '';
     try {
-      const stopw = new Set([
-        'stel','schrijf','maak','formuleer','voor','een','het','de','dat','van',
-        'bij','over','met','aan','naar','toe','als','clausule','artikel','partijen',
-        'partij','mediator','convenant','stijl','strikt','juridisch','volledig',
-        'begrijpelijk','taal','varianten','enkelvoudig','meerdere','genereer',
-      ]);
-      const trefwoord = vraag.trim().toLowerCase()
-        .replace(/[^\w\s]/g, ' ')
-        .split(/\s+/)
-        .find(w => w.length >= 5 && !stopw.has(w)) || '';
-      if (trefwoord) {
-        const { data: chunks } = await supabase
-          .from('legal_chunks')
-          .select('citation,content')
-          .ilike('content', `%${trefwoord}%`)
-          .limit(5);
-        if (chunks?.length) {
-          kbInjectie = '\n\n[JURIDISCHE KENNISBANK — gebruik als primaire bron voor wetsverwijzingen; noem alleen artikelen die hier daadwerkelijk in staan]\n' +
-            chunks.map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n') +
-            '\n[/JURIDISCHE KENNISBANK]';
-        }
+      // Zocht tot 23 augustus 2026 op één enkel trefwoord — het eerste woord van
+      // vijf tekens of langer dat niet in een stopwoordenlijst stond. Bij "schrijf
+      // een clausule over de verdeling van de overwaarde" werd dat "verdeling", en
+      // kreeg het model vijf willekeurige chunks waarin dat woord voorkwam.
+      const { chunks } = await zoekChunks(supabase, vraag, null, {
+        apiKey: process.env.VOYAGE_API_KEY,
+      });
+      if (chunks.length) {
+        kbInjectie = '\n\n[JURIDISCHE KENNISBANK — gebruik als primaire bron voor wetsverwijzingen; noem alleen artikelen die hier daadwerkelijk in staan]\n' +
+          chunks.map(c => `**${c.citation}**\n${c.content}`).join('\n\n---\n\n') +
+          '\n[/JURIDISCHE KENNISBANK]';
       }
     } catch (_) { /* kennisbank niet beschikbaar, ga door zonder */ }
     // ─────────────────────────────────────────────────────────────────────────

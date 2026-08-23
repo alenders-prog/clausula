@@ -626,6 +626,20 @@ sequenceDiagram
           <div class="dc-body">Echte namen en IBAN-nummers verlaten de browser nooit onverwerkt. Claude-output bevat uitsluitend pseudoniemen die direct na ontvangst worden hersteld.</div>
         </div>
         <div class="decision-card">
+          <div class="dc-title">Voyage AI als extra verwerker</div>
+          <div class="dc-choice">Zoekopdrachten voor semantisch zoeken (23-08-2026)</div>
+          <div class="dc-body">
+            Semantisch zoeken in de kennisbank (§8) stuurt de <em>zoekopdracht</em> naar Voyage AI om er een embedding van te maken. Twee gevallen, met verschillend risico:
+            <ul style="margin:6px 0 6px 18px">
+              <li><strong>De zoekloop</strong> stuurt door Claude geformuleerde juridische zoektermen ("art. 3:170 BW beheer gemeenschappelijk goed"). Geen persoonsgegevens.</li>
+              <li><strong>De pre-injectie bij clausule- en mailgeneratie</strong> stuurt de <em>volledige vraag van de mediator</em>. Die is gepseudonimiseerd — namen en IBAN's zijn vervangen — maar kan wel casusdetails bevatten.</li>
+            </ul>
+            De chunks zelf gaan éénmalig naar Voyage bij het inlezen (<code>scripts/kennisbank-embed.mjs</code>); dat zijn wetteksten, geen dossiergegevens.
+            <br><br>
+            <strong>Actiepunt:</strong> Voyage AI komt hiermee op de lijst van verwerkers waarmee een verwerkersovereenkomst nodig is, naast Anthropic, Supabase, Vercel en Adobe. Zolang die niet rond is, kan de pre-injectie desgewenst op woordzoeken blijven — <code>zoekChunks()</code> valt daar automatisch op terug als <code>VOYAGE_API_KEY</code> niet is gezet in de Vercel-omgeving.
+          </div>
+        </div>
+        <div class="decision-card">
           <div class="dc-title">Namen-versleuteling in Supabase</div>
           <div class="dc-choice">AES-256-GCM, server-side sleutel</div>
           <div class="dc-body"><code>namen_map</code> (de vertaalkaart pseudoniem→echt) wordt versleuteld opgeslagen. De sleutel (<code>NAAM_ENCRYPTION_KEY</code>) staat uitsluitend in de Vercel-omgeving.</div>
@@ -723,6 +737,27 @@ sequenceDiagram
           <div class="dc-body">Geen build-stap, directe Vercel-deploy, minimale afhankelijkheden. Trade-off: minder DX bij schaalbaarheid, maar voor een single-team product ruimschoots voldoende.</div>
         </div>
         <div class="decision-card">
+          <div class="dc-title">Semantisch zoeken in de kennisbank</div>
+          <div class="dc-choice">Embeddings (voyage-law-2) boven woordzoeken</div>
+          <div class="dc-body">
+            De assistent doorzocht <code>legal_chunks</code> met <code>ilike('content', '%' + eerste_woord + '%')</code> — alléén het eerste woord van de zoekopdracht, zonder sortering. Gemeten over twaalf realistische vragen (23-08-2026, 94 chunks), aantal relevante chunks in de top 5:
+            <table style="margin:8px 0;font-size:.85em">
+              <tr><td>eerste woord (oud)</td><td style="text-align:right">11</td><td>6 van 12 vragen zonder enige treffer</td></tr>
+              <tr><td>alle woorden + relevantiescore</td><td style="text-align:right">22</td><td>1 van 12 zonder treffer</td></tr>
+              <tr><td><strong>semantisch (voyage-law-2)</strong></td><td style="text-align:right"><strong>34</strong></td><td><strong>0 van 12 zonder treffer</strong></td></tr>
+            </table>
+            <strong>Waarom beter woordzoeken niet volstaat:</strong> op <em>"heeft de vertrekkende partij nog zeggenschap over de woning"</em> hoort art. 3:170 BW het antwoord te zijn, maar het woord "zeggenschap" komt in die chunk niet voor. Woordzoeken gaf vier procedurele artikelen (art. 815 Rv, 826 Rv) omdat "echtscheiding" toevallig in hún titel staat. Semantisch zoeken gaf art. 1:88 BW, art. 3:170 BW en de bijbehorende jurisprudentie, in die volgorde.
+            <br><br>
+            <strong>Neveneffect op snelheid:</strong> slechte treffers waren een hoofdoorzaak van de drie tot vijf zoekrondes per vraag (elk ~5s). De embedding-aanroep kost ~150&nbsp;ms en verdient zich daarmee terug.
+            <br><br>
+            <strong>Terugval:</strong> valt Voyage weg of is <code>supabase/kennisbank-semantisch.sql</code> nog niet gedraaid, dan zakt <code>zoekChunks()</code> automatisch terug op alle-woorden-met-score. Dat is nog altijd twee keer zo goed als de oude situatie; een assistent zonder kennisbank is erger dan een die hem half raakt.
+            <br><br>
+            <strong>Waarom niet Postgres full-text search:</strong> lost de woordenschat-mismatch niet op — het blijft woordvergelijking, alleen met stemming. In de meting gaf de <code>websearch</code>-modus bovendien nul treffers omdat die álle termen eist.
+            <br><br>
+            <strong>Herzien wanneer:</strong> de kennisbank sterk groeit (dan wordt ook de rangschikking in de analyse een selectiemiddel, zie §9), Voyage van prijs of model wijzigt, of een verwerkersovereenkomst met Voyage niet rond komt (zie §7).
+          </div>
+        </div>
+        <div class="decision-card">
           <div class="dc-title">Tool-use voor JSON-output</div>
           <div class="dc-choice">Verplichte tool-aanroep</div>
           <div class="dc-body">Claude's tool-use geeft gevalideerde JSON zonder parse-fouten. Alternatief (JSON in tekstblok) vereist fragiele regex-extractie en faalt bij lange outputs.</div>
@@ -776,6 +811,8 @@ sequenceDiagram
           <tr><td>Passage-matching na naam-expansie door Claude</td><td>Claude schrijft volledige naam; document gebruikt voornaam → verkeerde locatie highlighted</td><td>Fallback-algoritme slaat leidende eigennamen over (Fallback 1b in zoekEnScrollNaarPassage)</td></tr>
           <tr><td>IBAN-rekeningnummer toont <code>[TEL]</code> in bevindingstekst</td><td>Het rekeningnummer-deel van een IBAN wordt bij pseudonimisering vervangen door <code>[TEL]</code>. De terugvertaling is niet geïmplementeerd — de <code>namen_map</code> bevat geen IBAN-mapping. De bevindingstekst toont daardoor <code>NL68INGB[TEL]</code> i.p.v. het echte rekeningnummer.</td><td>Passage-zoekfunctie heeft Fallback 1c die <code>[TEL]</code>-patronen in IBAN-context wegstript voor de highlight-zoekopdracht. De bevindingstekst zelf is niet gecorrigeerd — IBAN-herstel staat op backlog.</td></tr>
           <tr><td>Cross-doc issue getoond in verkeerd documenttabblad</td><td>Cross-doc issues worden door de server toegewezen aan het <code>bestandsnaam</code>-slot van één van de twee documenten. De passage van het issue kan echter in het <em>andere</em> document staan. Bij klik op de kaart zoekt de app automatisch in het andere tabblad als de passage niet in het huidige document wordt gevonden.</td><td>Automatische tabwisseling bij klik (geïmplementeerd 2026-07). Blijvende beperking: de badge "Cross-doc" verschijnt in één document-sectie, terwijl het issue de relatie tussen beide documenten beschrijft.</td></tr>
+          <tr><td>Kennisbank-chunks die de analyse nooit bereiken</td><td>De analyse selecteert wetteksten door <code>topic_tags</code> te matchen tegen <code>situatie_kenmerken.key</code>. Gemeten 23-08-2026: <strong>8 van de 94 chunks dragen geen enkele tag die in <code>situatie_kenmerken</code> voorkomt</strong> en gaan dus bij géén enkele classificatie mee. Het betreft het hele IPR-blok (welk huwelijksvermogensrecht geldt bij echtgenoten uit verschillende landen) en drie chunks over nominale leer versus beleggingsleer. Ze staan in de database, worden nooit opgehaald, en er verschijnt nergens een melding.</td><td>Ofwel een <code>situatie_kenmerk</code> toevoegen (bijv. <code>internationaal</code>, <code>vergoedingsrecht</code>) en de classificatie erop laten letten, ofwel deze chunks hertaggen op een bestaande kenmerk-key. Een controle hierop hoort in <code>scripts/kennisbank-check.mjs</code>, naast de bestaande underscore-controle.</td></tr>
+          <tr><td>Rangschikking wordt selectiemiddel bij een groeiende kennisbank</td><td><code>MAX_WETTEKSTEN = 80</code> in <code>api/analyseer.js</code> is nu een vangnet: bij 94 chunks gaan er in de praktijk ~67 mee, dus vrijwel alles wat op tags matcht. Groeit de kennisbank, dan gaat de tag-overlap-score daadwerkelijk kiezen — en dan geldt voor de analyse dezelfde vraag als voor de assistent: is tag-overlap een goede rangschikking? (zie §8, semantisch zoeken)</td><td>De code waarschuwt al in de logs welke chunks zijn afgevallen (<code>[analyseer] N wettekst(en) niet meegestuurd</code>). Bij structurele afvallers: semantische rangschikking overwegen, of de tag-taxonomie verfijnen.</td></tr>
           <tr><td>Analyseduur</td><td>2–4 minuten per documentpaar (twee parallelle Claude-calls + cross-doc)</td><td>SSE-streaming voor progressieve weergave; latency acceptabel voor doelgroep</td></tr>
           <tr><td>Tokenlimieten Claude</td><td>Zeer lange documenten (>~80 pagina's) kunnen max_tokens raken</td><td>max_tokens-event → UI toont waarschuwing; dimensie als "klaar" gemarkeerd met lege issues</td></tr>
           <tr><td>Geen offline-modus</td><td>Volledige afhankelijkheid van Anthropic, Supabase en Vercel</td><td>Foutafhandeling met gebruiksvriendelijke meldingen</td></tr>

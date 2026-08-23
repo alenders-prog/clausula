@@ -91,7 +91,18 @@ alles lijkt te werken terwijl je wijziging nergens staat.
 ## Kennisbank (`legal_chunks`) wijzigen
 
 **Na elke wijziging of toevoeging van chunks — ook via het Supabase-dashboard —
-`node scripts/kennisbank-check.mjs` draaien.**
+twee scripts draaien:**
+
+```bash
+node scripts/kennisbank-check.mjs    # tags: underscore vs streepje
+node scripts/kennisbank-embed.mjs    # embeddings voor semantisch zoeken
+```
+
+Het tweede is er sinds 23 augustus 2026. De assistent zoekt semantisch in de
+kennisbank; een chunk waarvan de tekst is aangepast maar de embedding niet, wordt
+gevonden op zijn **oude** inhoud. De tekst klopt dan wel, de vindbaarheid niet, en
+dat is nergens aan te zien. Waarom semantisch: technisch document §8 — zes van twaalf
+realistische vragen gaven met het oude woordzoeken nul relevante chunks.
 
 De selectie in `api/analyseer.js` matcht `topic_tags` tegen `situatie_kenmerken.key`,
 en die keys gebruiken **underscores**. Een chunk die je tagt met `koude-uitsluiting`
