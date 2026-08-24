@@ -103,13 +103,21 @@ async function main() {
     return 1;
   }
 
-  const nieuw    = chunks.filter(c => !c.embedding_bij);
-  const gewijzigd = chunks.filter(c => c.embedding_bij && c.embedding_hash !== hashVan(c));
-  const teDoen   = alles ? chunks : [...nieuw, ...gewijzigd];
+  // Drie soorten werk, apart geteld. "Onbekend" is de chunk die al een embedding
+  // heeft maar nog geen hash — die kan alleen bestaan vlak na de migratie die de
+  // kolom toevoegde. Hem "gewijzigd" noemen zou onwaar zijn: we wéten het niet, en
+  // op de eerste run zou de melding "90 gewijzigd" onnodig laten schrikken.
+  const nieuw     = chunks.filter(c => !c.embedding_bij);
+  const onbekend  = chunks.filter(c => c.embedding_bij && !c.embedding_hash);
+  const gewijzigd = chunks.filter(c => c.embedding_bij && c.embedding_hash
+                                       && c.embedding_hash !== hashVan(c));
+  const teDoen    = alles ? chunks : [...nieuw, ...onbekend, ...gewijzigd];
 
-  const telling = alles
-    ? ' (--alles)'
-    : ` (${nieuw.length} nieuw, ${gewijzigd.length} gewijzigd)`;
+  const delen = [];
+  if (nieuw.length)     delen.push(`${nieuw.length} nieuw`);
+  if (onbekend.length)  delen.push(`${onbekend.length} zonder hash`);
+  if (gewijzigd.length) delen.push(`${gewijzigd.length} gewijzigd`);
+  const telling = alles ? ' (--alles)' : delen.length ? ` (${delen.join(', ')})` : '';
   console.log(`kennisbank: ${chunks.length} chunks | in te lezen: ${teDoen.length}${telling}`);
 
   if (gewijzigd.length) {
