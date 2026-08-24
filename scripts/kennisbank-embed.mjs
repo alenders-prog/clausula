@@ -5,21 +5,35 @@
  * kan worden in plaats van op losse woorden.
  *
  * Draaien:
- *   node scripts/kennisbank-embed.mjs            alleen wat nog ontbreekt of gewijzigd is
+ *   node scripts/kennisbank-embed.mjs            alleen wat ontbreekt of gewijzigd is
  *   node scripts/kennisbank-embed.mjs --alles    alles opnieuw (na een modelwissel)
  *
- * Vereist `supabase/kennisbank-semantisch.sql` — die zet pgvector aan en maakt de
- * kolommen. Vereist verder SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY en
- * VOYAGE_API_KEY in `.env`.
+ * Vereist `supabase/kennisbank-semantisch.sql` (pgvector + kolommen) en
+ * `supabase/2026-08-24-embedding-hash.sql` (de kolom `embedding_hash`). Verder
+ * SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY en VOYAGE_API_KEY in `.env`.
  *
  * ── Wanneer opnieuw draaien ──────────────────────────────────────────────────
  * Na élke wijziging aan `legal_chunks`, ook via het Supabase-dashboard. Een chunk
  * waarvan de tekst is aangepast maar de embedding niet, wordt gevonden op zijn
- * oude inhoud — en dat is nergens aan te zien. Dezelfde regel dus als voor
- * `scripts/kennisbank-check.mjs`.
+ * oude inhoud — en dat is nergens aan te zien.
+ *
+ * ── Hoe "gewijzigd" wordt herkend ────────────────────────────────────────────
+ * Tot 24 augustus 2026 koos dit script zijn werk zo:
+ *
+ *     chunks.filter(c => !c.embedding_bij)
+ *
+ * Dat vindt alleen chunks die nog NOOIT zijn ingelezen. Een chunk waarvan de
+ * tekst verandert houdt zijn stempel en werd dus nooit bijgewerkt — precies het
+ * gevaar dat hierboven staat beschreven. Na het herschrijven van drie
+ * alimentatie-chunks meldde het script vrolijk "in te lezen: 0".
+ *
+ * De tabel heeft geen `updated_at`, dus er viel niets te vergelijken. Nu staat
+ * bij elke chunk de hash van de tekst zoals die is ingelezen. Wijkt die af van
+ * de huidige tekst, dan is de embedding verouderd.
  */
 
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const MODEL      = 'voyage-law-2';   // voor juridische tekst getraind; 1024 dimensies
@@ -36,15 +50,15 @@ try {
   }
 } catch { /* geen .env — dan moeten de variabelen al in de omgeving staan */ }
 
-for (const nodig of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VOYAGE_API_KEY']) {
-  if (!process.env[nodig]) {
-    console.error(`✗ ${nodig} ontbreekt. Zie CLAUDE.md → Lokaal draaien.`);
-    process.exit(1);
-  }
+const alles = process.argv.includes('--alles');
+
+/** Precies de tekst die aan Voyage wordt aangeboden — hash en invoer horen gelijk te zijn. */
+function invoerTekst(chunk) {
+  // De citatie meenemen: die bevat het artikelnummer, en daar wordt op gezocht.
+  return `${chunk.citation || ''}\n${chunk.content || ''}`.slice(0, MAX_TEKENS);
 }
 
-const alles = process.argv.includes('--alles');
-const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const hashVan = chunk => createHash('sha256').update(invoerTekst(chunk)).digest('hex');
 
 async function embed(teksten, type) {
   for (let poging = 1; poging <= 3; poging++) {
@@ -65,49 +79,83 @@ async function embed(teksten, type) {
   }
 }
 
-const { data: chunks, error } = await sb
-  .from('legal_chunks')
-  .select('id, citation, content, embedding_bij')
-  .order('id');
-
-if (error) {
-  console.error('✗ Kon de kennisbank niet lezen:', error.message);
-  if (/embedding_bij/.test(error.message))
-    console.error('  Draai eerst supabase/kennisbank-semantisch.sql in de SQL-editor.');
-  process.exit(1);
-}
-
-const teDoen = alles ? chunks : chunks.filter(c => !c.embedding_bij);
-console.log(`kennisbank: ${chunks.length} chunks | in te lezen: ${teDoen.length}`
-  + (alles ? ' (--alles)' : ''));
-
-if (!teDoen.length) {
-  console.log('✓ Alles staat al in de index.');
-  process.exit(0);
-}
-
-let gedaan = 0;
-for (let i = 0; i < teDoen.length; i += GROEP) {
-  const groep = teDoen.slice(i, i + GROEP);
-  // De citatie meenemen: die bevat het artikelnummer, en daar wordt op gezocht.
-  const teksten = groep.map(c => `${c.citation || ''}\n${c.content || ''}`.slice(0, MAX_TEKENS));
-  const vectoren = await embed(teksten, 'document');
-
-  for (let j = 0; j < groep.length; j++) {
-    const { error: sErr } = await sb.from('legal_chunks')
-      .update({ embedding: vectoren[j], embedding_bij: new Date().toISOString() })
-      .eq('id', groep[j].id);
-    if (sErr) {
-      console.error(`✗ Opslaan mislukt voor chunk ${groep[j].id}:`, sErr.message);
-      process.exit(1);
+async function main() {
+  for (const nodig of ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'VOYAGE_API_KEY']) {
+    if (!process.env[nodig]) {
+      console.error(`✗ ${nodig} ontbreekt. Zie CLAUDE.md → Lokaal draaien.`);
+      return 1;
     }
   }
-  gedaan += groep.length;
-  process.stdout.write(`\r  ${gedaan}/${teDoen.length} ingelezen…`);
+
+  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: chunks, error } = await sb
+    .from('legal_chunks')
+    .select('id, citation, content, embedding_bij, embedding_hash')
+    .order('id');
+
+  if (error) {
+    console.error('✗ Kon de kennisbank niet lezen:', error.message);
+    if (/embedding_hash/.test(error.message))
+      console.error('  Draai eerst supabase/2026-08-24-embedding-hash.sql in de SQL-editor.');
+    else if (/embedding_bij/.test(error.message))
+      console.error('  Draai eerst supabase/kennisbank-semantisch.sql in de SQL-editor.');
+    return 1;
+  }
+
+  const nieuw    = chunks.filter(c => !c.embedding_bij);
+  const gewijzigd = chunks.filter(c => c.embedding_bij && c.embedding_hash !== hashVan(c));
+  const teDoen   = alles ? chunks : [...nieuw, ...gewijzigd];
+
+  const telling = alles
+    ? ' (--alles)'
+    : ` (${nieuw.length} nieuw, ${gewijzigd.length} gewijzigd)`;
+  console.log(`kennisbank: ${chunks.length} chunks | in te lezen: ${teDoen.length}${telling}`);
+
+  if (gewijzigd.length) {
+    // Benoemen wélke: bij een stille herinlezing is achteraf niet na te gaan wat er speelde.
+    for (const c of gewijzigd.slice(0, 10)) console.log(`  ~ ${c.citation}`);
+    if (gewijzigd.length > 10) console.log(`  ~ … en nog ${gewijzigd.length - 10}`);
+  }
+
+  if (!teDoen.length) {
+    console.log('✓ Alles staat al in de index, en op de huidige tekst.');
+    return 0;
+  }
+
+  let gedaan = 0;
+  for (let i = 0; i < teDoen.length; i += GROEP) {
+    const groep    = teDoen.slice(i, i + GROEP);
+    const teksten  = groep.map(invoerTekst);
+    const vectoren = await embed(teksten, 'document');
+
+    for (let j = 0; j < groep.length; j++) {
+      const { error: sErr } = await sb.from('legal_chunks')
+        .update({
+          embedding:      vectoren[j],
+          embedding_bij:  new Date().toISOString(),
+          embedding_hash: hashVan(groep[j]),
+        })
+        .eq('id', groep[j].id);
+      if (sErr) {
+        console.error(`\n✗ Opslaan mislukt voor chunk ${groep[j].id}:`, sErr.message);
+        return 1;
+      }
+    }
+    gedaan += groep.length;
+    process.stdout.write(`\r  ${gedaan}/${teDoen.length} ingelezen…`);
+  }
+
+  console.log(`\r✓ ${gedaan} chunks ingelezen met ${MODEL}.            `);
+
+  const { count: zonder } = await sb.from('legal_chunks')
+    .select('*', { count: 'exact', head: true }).is('embedding', null);
+  if (zonder) console.warn(`⚠ ${zonder} chunks hebben nog geen embedding.`);
+  return 0;
 }
 
-console.log(`\r✓ ${gedaan} chunks ingelezen met ${MODEL}.            `);
-
-const { count: zonder } = await sb.from('legal_chunks')
-  .select('*', { count: 'exact', head: true }).is('embedding', null);
-if (zonder) console.warn(`⚠ ${zonder} chunks hebben nog geen embedding.`);
+// Géén process.exit(): dat brak op Windows af met
+// "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), src\\win\\async.c" —
+// het proces werd afgekapt terwijl de HTTP-handles nog aan het sluiten waren.
+// De event loop loopt vanzelf leeg; een exitcode volstaat.
+process.exitCode = await main();

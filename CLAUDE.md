@@ -104,6 +104,22 @@ gevonden op zijn **oude** inhoud. De tekst klopt dan wel, de vindbaarheid niet, 
 dat is nergens aan te zien. Waarom semantisch: technisch document §8 — zes van twaalf
 realistische vragen gaven met het oude woordzoeken nul relevante chunks.
 
+> **Die regel ging tot 24 augustus 2026 niet af.** `kennisbank-embed.mjs` koos zijn
+> werk met `chunks.filter(c => !c.embedding_bij)` — alleen chunks die nog nóóit
+> waren ingelezen. Een chunk waarvan de tekst veranderde hield zijn stempel en werd
+> dus nooit bijgewerkt. Na het herschrijven van drie alimentatie-chunks meldde het
+> script `in te lezen: 0` en de controle `✓ Alles staat klaar`.
+>
+> Er staat nu bij elke chunk een `embedding_hash`: de sha256 van de tekst zoals die
+> is ingelezen. Wijkt die af van de huidige tekst, dan is de embedding verouderd —
+> `kennisbank-embed.mjs` pakt hem op en noemt hem bij naam, en
+> `kennisbank-semantisch-check.mjs` meldt hem ook zónder dat je de embedder draait.
+> De kolom komt uit `supabase/2026-08-24-embedding-hash.sql`.
+>
+> Verander je wat aan de tekst die wordt ingelezen (nu `citation` + newline +
+> `content`, afgekapt op 8000 tekens), pas dat dan in **beide** scripts aan. Lopen ze
+> uiteen, dan meldt de controle alles als verouderd — hinderlijk, maar zichtbaar.
+
 De selectie in `api/analyseer.js` matcht `topic_tags` tegen `situatie_kenmerken.key`,
 en die keys gebruiken **underscores**. Een chunk die je tagt met `koude-uitsluiting`
 in plaats van `koude_uitsluiting` matcht daardoor nooit: hij staat in de database,

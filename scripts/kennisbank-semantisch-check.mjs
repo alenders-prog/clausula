@@ -13,6 +13,7 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 try {
@@ -34,9 +35,11 @@ const meld = (naam, ok, hint) => {
 };
 
 // ── Kolommen ────────────────────────────────────────────────────────────────
-for (const kolom of ['embedding', 'embedding_bij']) {
+for (const kolom of ['embedding', 'embedding_bij', 'embedding_hash']) {
   const { error } = await sb.from('legal_chunks').select(kolom).limit(1);
-  meld(`kolom ${kolom}`, !error, 'draai supabase/kennisbank-semantisch.sql opnieuw (stap 2)');
+  meld(`kolom ${kolom}`, !error, kolom === 'embedding_hash'
+    ? 'draai supabase/2026-08-24-embedding-hash.sql'
+    : 'draai supabase/kennisbank-semantisch.sql opnieuw (stap 2)');
 }
 
 // ── Zoekfunctie ─────────────────────────────────────────────────────────────
@@ -60,6 +63,30 @@ if (!telErr) {
     'draai node scripts/kennisbank-embed.mjs');
 }
 
+// ── Embeddings op verouderde tekst ──────────────────────────────────────────
+// Een chunk waarvan de tekst is aangepast maar de embedding niet, wordt gevonden
+// op zijn OUDE inhoud. Van buiten is daar niets aan te zien: de tekst klopt, het
+// aantal embeddings klopt, en de app draait door. Op 24 augustus 2026 stonden er
+// zo drie herschreven alimentatie-chunks met de embedding van hun vorige versie,
+// terwijl deze controle "Alles staat klaar" meldde.
+//
+// De hash moet dezelfde tekst dekken als scripts/kennisbank-embed.mjs inleest —
+// citatie, newline, inhoud, afgekapt op 8000 tekens. Wijken die twee uiteen, dan
+// meldt deze controle alles als verouderd en valt dat meteen op.
+const { data: rijen, error: hashErr } = await sb
+  .from('legal_chunks').select('citation, content, embedding_hash, embedding_bij');
+
+if (!hashErr) {
+  const hashVan = c => createHash('sha256')
+    .update(`${c.citation || ''}\n${c.content || ''}`.slice(0, 8000))
+    .digest('hex');
+  const oudbakken = rijen.filter(c => c.embedding_bij && c.embedding_hash !== hashVan(c));
+  meld(`embeddings op de huidige tekst: ${rijen.length - oudbakken.length}/${rijen.length}`,
+    oudbakken.length === 0, 'draai node scripts/kennisbank-embed.mjs');
+  for (const c of oudbakken.slice(0, 8)) uit.push(`      ~ verouderd: ${c.citation}`);
+  if (oudbakken.length > 8) uit.push(`      ~ … en nog ${oudbakken.length - 8}`);
+}
+
 // ── Omgeving ────────────────────────────────────────────────────────────────
 meld('VOYAGE_API_KEY lokaal', !!process.env.VOYAGE_API_KEY, 'zet hem in .env');
 
@@ -68,4 +95,6 @@ console.log(uit.join('\n'));
 console.log(alles
   ? '\n✓ Alles staat klaar. Vergeet VOYAGE_API_KEY niet in de Vercel-omgeving.\n'
   : '\n✗ Nog niet compleet — zie de hints hierboven.\n');
-process.exit(alles ? 0 : 1);
+// Géén process.exit(): dat kapte het proces op Windows af terwijl de HTTP-handles
+// nog sloten — "Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)".
+process.exitCode = alles ? 0 : 1;
