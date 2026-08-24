@@ -13490,7 +13490,7 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
 
   // Opties-kaartjes (intent = opties)
   // Namen herstellen zoals bij antwoord/aannames/signalen/onbekenden: Claude krijgt
-  // pseudoniemen en geeft die ook terug. Zonder deze stap staat er "Thomas en Lisette"
+  // pseudoniemen en geeft die ook terug. Zonder deze stap staat er "Robin en Sammy"
   // in de kaartjes terwijl de rest van hetzelfde antwoord de echte namen toont.
   let optiesHtml = '';
   if (opties.length) {
@@ -13826,7 +13826,7 @@ function _assistInputResize(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
-// Vervang pseudoniemen (bijv. "Thomas", "Lisette") door echte roepnamen in antwoordtekst
+// Vervang pseudoniemen (bijv. "Robin", "Sammy") door echte roepnamen in antwoordtekst
 function _assistHerstelNamen(tekst) {
   if (!huidigeNaarEcht || huidigeNaarEcht.size === 0) return tekst;
   let t = tekst;

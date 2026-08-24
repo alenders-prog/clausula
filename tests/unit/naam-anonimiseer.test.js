@@ -8,15 +8,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { bouwAnonMap, anonimiseerTekst } from '../../src/naam-anonimiseer.js';
+import { bouwAnonMap, anonimiseerTekst, NEP_PERSONEN, NEP_KINDEREN } from '../../src/naam-anonimiseer.js';
 
 // ── Hulpfunctie ───────────────────────────────────────────────────────────────
 // Retourneert de eerste nep-voornaam die bouwAnonMap koppelt aan partij A.
 function nepVoornaamA() {
-  return 'Thomas'; // NEP_PERSONEN[0].fn
+  return NEP_PERSONEN[0].fn;
 }
 function nepVoornaamB() {
-  return 'Lisette'; // NEP_PERSONEN[1].fn
+  return NEP_PERSONEN[1].fn;
 }
 
 // ── bouwAnonMap — basisregistratie ────────────────────────────────────────────
@@ -29,7 +29,7 @@ describe('bouwAnonMap — basisregistratie', () => {
 
   it('registreert voornaam als nep-voornaam (niet dubbele nep-naam)', () => {
     const { naarAnon } = bouwAnonMap({ partij_a_naam: 'Martijn Jasperse' });
-    // Voornaam "martijn" → nep.fn (alleen voornaam), NIET "Thomas Bergman"
+    // Voornaam "martijn" → nep.fn (alleen voornaam), NIET de volledige nepnaam
     expect(naarAnon.get('martijn')).toBe(nepVoornaamA());
   });
 
@@ -205,8 +205,9 @@ describe('anonimiseerTekst — naam-vervanging', () => {
   it('langste match gaat voor — geen dubbele nep-naam', () => {
     const { naarAnon } = bouwAnonMap({ partij_a_naam: 'Martijn Jasperse' });
     const r = anonimiseerTekst('Martijn Jasperse tekent het convenant', naarAnon);
-    // Volledige naam → één nep. Mag NIET dubbel zijn ("Thomas Bergman Thomas")
-    expect(r).not.toMatch(/Thomas Bergman Thomas|Bergman Bergman/);
+    // Volledige naam → één nep. Mag NIET dubbel zijn ("Robin Bergman Robin")
+    const { fn, an } = NEP_PERSONEN[0];
+    expect(r).not.toMatch(new RegExp(`${fn} ${an} ${fn}|${an} ${an}`));
   });
 
   it('geen match midden in woord (unicode-woordgrens)', () => {
@@ -273,5 +274,63 @@ describe('bouwAnonMap + anonimiseerTekst — gecombineerde casus', () => {
     const r1 = anonimiseerTekst('Jan Smit betaalt alimentatie.', naarAnon);
     const r2 = anonimiseerTekst('Jan Smit betaalt alimentatie.', naarAnon);
     expect(r1).toBe(r2);
+  });
+});
+
+// ── Nep-namenpools: geen geslachtssignaal ─────────────────────────────────────
+//
+// De pools worden op volgorde uitgedeeld, dus een gendered naam belandt vroeg of
+// laat bij iemand van het andere geslacht. Claude leest dan een tegenstrijdigheid
+// in tekst die wij zelf hebben aangeleverd ("Finn ... over haar"), meldt die, en
+// na het terugzetten van de namen staat er een verwijt dat in het document van de
+// mediator nergens te vinden is. Bij twee vrouwen of twee mannen is een op-index
+// verdeelde gendered pool zelfs gegarandeerd fout.
+//
+// De lijst hieronder is met de hand samengesteld en dus niet uitputtend — hij
+// bevat in elk geval elke naam die hier ooit heeft gestaan. Voegt iemand een
+// duidelijk mannelijke of vrouwelijke naam toe, dan valt die op.
+describe('nep-namenpools dragen geen geslacht', () => {
+  const GENDERED = [
+    // stond hier tot 24-08-2026
+    'Thomas', 'Lisette', 'Florian', 'Nathalie', 'Bastiaan', 'Eveline',
+    'Rutger', 'Simone', 'Jeroen', 'Yvonne',
+    'Finn', 'Lotte', 'Stef', 'Mila', 'Bram', 'Sofie', 'Tim', 'Emma',
+    // gangbare Nederlandse voornamen met een duidelijk signaal
+    'Jan', 'Piet', 'Kees', 'Henk', 'Willem', 'Daan', 'Sven', 'Lucas', 'Ruben',
+    'Anna', 'Maria', 'Sanne', 'Femke', 'Marieke', 'Julia', 'Fleur', 'Saskia',
+  ].map(n => n.toLowerCase());
+
+  const voornamen = [...NEP_PERSONEN.map(p => p.fn), ...NEP_KINDEREN];
+
+  it('geen enkele voornaam staat op de gendered-lijst', () => {
+    const fout = voornamen.filter(n => GENDERED.includes(n.toLowerCase()));
+    expect(
+      fout,
+      `Deze nepvoornamen dragen een geslachtssignaal: ${fout.join(', ')}. `
+      + 'Een naam die een geslacht uitdrukt botst vroeg of laat met "hij"/"zij" in '
+      + 'het document en levert een bevinding op over onze eigen nepnaam.',
+    ).toEqual([]);
+  });
+
+  it('elke voornaam is minstens vier letters', () => {
+    // Kortere namen lopen kans als deel van een ander woord te worden geraakt.
+    expect(voornamen.filter(n => n.length < 4)).toEqual([]);
+  });
+
+  it('de pools overlappen niet — een kind en een ouder krijgen nooit dezelfde naam', () => {
+    const ouders = new Set(NEP_PERSONEN.map(p => p.fn.toLowerCase()));
+    expect(NEP_KINDEREN.filter(k => ouders.has(k.toLowerCase()))).toEqual([]);
+  });
+
+  it('een meisje met een "haar"-verwijzing levert geen naam-tegenspraak op', () => {
+    // Het concrete geval van 24-08-2026: drie kinderen, eerste een meisje.
+    const { naarAnon } = bouwAnonMap({
+      partij_a_naam:  'Jan Willem Huzen',
+      partij_b_naam:  'Nické Meijerink',
+      kinderen_namen: ['Liva Milia Huzen', 'Delon Len Huzen', 'Verel Nicci Huzen'],
+    });
+    const nep = naarAnon.get('liva');
+    expect(nep).toBeTruthy();
+    expect(GENDERED).not.toContain(nep.toLowerCase());
   });
 });

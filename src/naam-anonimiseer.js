@@ -11,6 +11,55 @@
 
 import { ibanRe, ibanSleutel } from './iban-patroon.js';
 
+// ── Nep-namenpools ────────────────────────────────────────────────────────────
+//
+// De voornamen zijn bewust GESLACHTSNEUTRAAL. Dat is geen stijlkeuze maar een
+// reparatie: de pools werden op volgorde uitgedeeld, zonder naar geslacht te
+// kijken. Een meisje werd zo "Finn" en een jongen "Lotte", waarna Claude in de
+// aangeleverde tekst las: "Finn stemt in met de afspraken die over háár zijn
+// gemaakt." Dat is een echte tegenstrijdigheid — in tekst die wij zelf hadden
+// gemaakt. Na het terugzetten van de namen hield de mediator een verwijt over
+// dat over onze nepnaam ging en in zijn document nergens te vinden was.
+//
+// Meegeven welk geslacht bij welke naam hoort zou dat ook oplossen, maar alleen
+// als de classificatie het goed leest — en bij twee vrouwen of twee mannen
+// klopt een op-volgorde-verdeelde pool per definitie niet. Een naam die géén
+// geslacht uitdrukt kan door geen enkel voornaamwoord worden tegengesproken.
+//
+// Eisen aan een naam die je hier toevoegt:
+//   1. geen duidelijk geslachtssignaal (dat is de hele reden van deze lijst);
+//   2. minstens vier letters — korte namen lopen kans als deel van een ander
+//      woord te worden geraakt bij het terugzetten;
+//   3. Nederlands-plausibel — een exotische naam kan Claude op het spoor van
+//      een internationaal element zetten dat er niet is;
+//   4. niet in de andere pool, zodat een kind en een ouder nooit samenvallen.
+// Bewaakt door tests/unit/naam-anonimiseer.test.js.
+//
+// De achternamen dragen geen geslacht en zijn daarom ongewijzigd gebleven.
+//
+// Voornaam en achternaam zijn aparte componenten: voornaam en achternaam van
+// een verkorte naam ("Martijn Jasperse") krijgen elk hun EIGEN component:
+//   "martijn"  → "Robin"    (nep.fn, alleen voornaam)
+//   "jasperse" → "Bergman"  (nep.an, alleen achternaam)
+// Resultaat: "Martijn Jasperse" → "Robin Bergman" (één keer, niet dubbel).
+// Vroeger (string "Robin Bergman"): beide deelvervangingen → "Robin Bergman
+// Robin Bergman" → Claude meldde vals alarm "dubbele naam".
+export const NEP_PERSONEN = [
+  { fn: 'Robin',   an: 'Bergman'  },
+  { fn: 'Sammy',   an: 'Hartwijk' },
+  { fn: 'Chris',   an: 'Oud'      },
+  { fn: 'Dani',    an: 'Wester'   },
+  { fn: 'Jamie',   an: 'Kroon'    },
+  { fn: 'Rowan',   an: 'Dragt'    },
+  { fn: 'Bobbie',  an: 'Bakkenes' },
+  { fn: 'Toni',    an: 'Veldhuis' },
+  { fn: 'Charlie', an: 'Hoekstra' },
+  { fn: 'Frankie', an: 'Stavast'  },
+];
+
+// Kindernamen: alleen voornamen (generiek, niet herkenbaar).
+export const NEP_KINDEREN = ['Juul', 'Indy', 'Bowie', 'Novi', 'Jodi', 'Kimi', 'Nikki', 'Ronnie'];
+
 // ── bouwAnonMap ───────────────────────────────────────────────────────────────
 // Bouwt drie maps:
 //   naarAnon        : lowercase-naam → nep-naam         (voor case-insensitieve vervanging)
@@ -37,27 +86,6 @@ export function bouwAnonMap(classificatie, bronNamen = []) {
     );
   };
 
-  // Nep-namenpool als {fn, an}-objecten: voornaam en achternaam van een verkorte naam
-  // ("Martijn Jasperse") krijgen elk hun EIGEN component:
-  //   "martijn"  → "Thomas"   (nep.fn, alleen voornaam)
-  //   "jasperse" → "Bergman"  (nep.an, alleen achternaam)
-  // Resultaat: "Martijn Jasperse" → "Thomas Bergman" (één keer, niet dubbel).
-  // Vroeger (string "Thomas Bergman"): beide deelvervangingen → "Thomas Bergman Thomas Bergman"
-  // → Claude meldde vals alarm "dubbele naam". Fix: component-mapping per naamsdeel.
-  const NEP_PERSONEN = [
-    { fn: 'Thomas',   an: 'Bergman'  },
-    { fn: 'Lisette',  an: 'Hartwijk' },
-    { fn: 'Florian',  an: 'Oud'      },
-    { fn: 'Nathalie', an: 'Wester'   },
-    { fn: 'Bastiaan', an: 'Kroon'    },
-    { fn: 'Eveline',  an: 'Dragt'    },
-    { fn: 'Rutger',   an: 'Bakkenes' },
-    { fn: 'Simone',   an: 'Veldhuis' },
-    { fn: 'Jeroen',   an: 'Hoekstra' },
-    { fn: 'Yvonne',   an: 'Stavast'  },
-  ];
-  // Kindernamen: alleen voornamen (generiek, niet herkenbaar)
-  const NEP_KINDEREN = ['Finn', 'Lotte', 'Stef', 'Mila', 'Bram', 'Sofie', 'Tim', 'Emma'];
   let _persIdx = 0;
   let _kindIdx = 0;
 
@@ -164,10 +192,10 @@ export function bouwAnonMap(classificatie, bronNamen = []) {
     const _nep = NEP_PERSONEN[nepIdx];
     if (!_nep || typeof _nep !== 'object') continue;
     const _rnLc = _rn.toLowerCase();
-    // Voornaam-alias (bijv. "manon" → "Lisette")
+    // Voornaam-alias (bijv. "manon" → "Sammy")
     if (!naarAnon.has(_rnLc)) naarAnon.set(_rnLc, _nep.fn);
     if (!naarAnon.has(_rnLc + 's')) naarAnon.set(_rnLc + 's', _nep.fn);
-    // Roepnaam + achternaam (bijv. "manon ten brink" → "Lisette Hartwijk")
+    // Roepnaam + achternaam (bijv. "manon ten brink" → "Sammy Hartwijk")
     if (formeleNaam) {
       const _achterdelenFormeel = formeleNaam.trim().split(/\s+/).slice(1);
       if (_achterdelenFormeel.length) {
@@ -190,7 +218,7 @@ export function bouwAnonMap(classificatie, bronNamen = []) {
     naarEcht.set(`${_nep.fn} ${_nep.an}`, _cap);
     // Zet ook naarEchtVolledig voor fn-sleutels op de roepnaam zodat de merge bij opslaan
     // (naarEcht + naarEchtVolledig, volledig wint) de roepnaam niet overschrijft met de formele voornaam.
-    // De fn+an-combinatie ("Lisette Hartwijk") blijft formeel in naarEchtVolledig voor passage-herstel.
+    // De fn+an-combinatie ("Sammy Hartwijk") blijft formeel in naarEchtVolledig voor passage-herstel.
     naarEchtVolledig.set(_nep.fn, _cap);
     naarEchtVolledig.set(_nep.fn + 's', _cap + 's');
 
@@ -299,7 +327,7 @@ export function bouwAnonMap(classificatie, bronNamen = []) {
           }
 
           // naarEcht: losse nep-voornaam (nep.fn) → roepnaam, altijd.
-          // nepVolledig ("Lisette Hartwijk") → roepnaam ALLEEN als de roepnaam lijkt op
+          // nepVolledig ("Sammy Hartwijk") → roepnaam ALLEEN als de roepnaam lijkt op
           // de formele voornaam (bijv. "Peter" ≈ "Peter Adriaan"). Bij sterk afwijkende
           // roepnamen (bijv. "Manon" ≠ "Herma") blijft nepVolledig → "Herma" (formele voornaam,
           // gezet door registreer()), zodat bevindingen correct zeggen "geïntroduceerd als Herma"
