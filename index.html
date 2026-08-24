@@ -6721,6 +6721,11 @@ function openSplitView() {
   if (isNieuw) document.getElementById('bekijkConceptBtn').style.display = 'none';
   document.getElementById('splitOverlay').classList.add('active');
   document.body.style.overflow = 'hidden';
+  // Signaal voor wie hierop wacht. De analyse-wizard sluit hierop: het skelet gaat
+  // open zodra de classificatie klaar is (~5 seconden) en vult zich daarna vanzelf.
+  // Daar hoort de mediator te zijn — niet achter een wizardscherm dat twee minuten
+  // stilstaat terwijl de rest van de analyse loopt.
+  document.dispatchEvent(new CustomEvent('clausula:rapport-open'));
 }
 function closeSplitView() {
   document.getElementById('splitOverlay').classList.remove('active');
@@ -12368,10 +12373,23 @@ async function wizAnalyseStarten() {
   // "Opnieuw analyseren" — terwijl dit een nieuwe analyse is.
   wizNaarStap3(erkend);
 
-  const geslaagd = await startAnalyse();
+  // Sluiten zodra het rapportskelet opengaat, niet als de hele analyse klaar is.
+  // Dat scheelt de mediator ruim anderhalve minuut wachten achter een scherm waar
+  // niets verandert: het skelet vult zich progressief terwijl de dimensies
+  // binnenkomen.
+  let wizardDicht = false;
+  const opRapport = () => { wizardDicht = true; sluitWizard(); };
+  document.addEventListener('clausula:rapport-open', opRapport, { once: true });
 
-  if (geslaagd) {
-    sluitWizard();                 // rapport staat klaar eronder
+  let geslaagd = false;
+  try {
+    geslaagd = await startAnalyse();
+  } finally {
+    document.removeEventListener('clausula:rapport-open', opRapport);
+  }
+
+  if (geslaagd || wizardDicht) {
+    if (!wizardDicht) sluitWizard();
   } else {
     // Mislukt: laat de wizard staan met de melding erin, zodat de mediator terug
     // kan naar stap 2 en het opnieuw kan proberen zonder alles opnieuw te kiezen.

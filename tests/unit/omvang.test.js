@@ -91,8 +91,8 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // losmaken van de klik-handler zodat de wizard erop kan wachten. Geen van die delen
 // heeft een eigen redenering die zich buiten de DOM laat toetsen — wat het wél
 // verdiende is een browsertest, en die staat er (07-wizard-analyse.spec.js).
-const MAX_REGELS_INDEX = 15359;
-const MAX_REGELS_JS     = 12329;
+const MAX_REGELS_INDEX = 15377;
+const MAX_REGELS_JS     = 12347;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

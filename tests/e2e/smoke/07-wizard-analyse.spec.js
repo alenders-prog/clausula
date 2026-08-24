@@ -168,3 +168,37 @@ test('ook in de bewerkingsmodus verdwijnt het uploadscherm tijdens de analyse', 
 
   verwachtGeenPaginafouten(fouten);
 });
+
+test('wizard sluit zodra het rapportskelet opengaat, niet pas als alles klaar is', async ({ page }) => {
+  // Dit was de kern van de klacht. Vroeger stond de mediator na ~5 seconden in het
+  // rapportscherm en zag hij het zich vullen; met de eerste versie van stap 3 bleef
+  // hij twee minuten op "Analyse loopt" staan, want de wizard sloot pas als de hele
+  // analyse klaar was. Het skelet gaat open zodra de classificatie rond is.
+  const fouten = volgPaginafouten(page);
+  await mockSupabaseSession(page);
+  await mockSupabaseRest(page);
+
+  await page.goto('/', { waitUntil: 'commit' });
+  await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wizardMetDocumenten(page);
+
+  // De analyse blijft na het skelet doorlopen; zo staat vast dat de wizard níét op
+  // het einde wacht.
+  await page.evaluate(() => {
+    window.analyseDocument = async (tray, onProgress) => {
+      onProgress('Stap 1 van 3 — Documenten herkennen…');
+      openSplitView();                 // het skelet, zoals na de classificatie
+      await new Promise(() => {});     // de rest van de analyse loopt nog
+    };
+    wizAnalyseStarten();
+  });
+
+  // Wizard is dicht en het rapportscherm staat er, terwijl de analyse nog loopt.
+  await expect(page.locator('#analyseWizard')).not.toHaveClass(/active/);
+  await expect(page.locator('#splitOverlay')).toHaveClass(/active/);
+
+  // En de geleende voortgangselementen staan weer op hun eigen plek.
+  await expect(page.locator('#wizVoortgangSlot #scanning')).toHaveCount(0);
+
+  verwachtGeenPaginafouten(fouten);
+});
