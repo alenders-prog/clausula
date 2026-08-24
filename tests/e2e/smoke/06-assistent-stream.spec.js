@@ -182,3 +182,63 @@ test('clausulekop blijft niet achter als het genereren mislukt', async ({ page }
 
   verwachtGeenPaginafouten(fouten);
 });
+
+test('keuze-knoppen bij een verduidelijkingsvraag zijn aanklikbaar', async ({ page }) => {
+  // Deze knoppen renderden sinds 30 juli 2026 wél, maar deden niets: de vraagtekst
+  // ging via JSON.stringify in een onclick="…"-attribuut, en de dubbele aanhalings-
+  // tekens die JSON.stringify eromheen zet knipten dat attribuut af. Een kapotte knop
+  // ziet er identiek uit aan een werkende — alleen de klik ontbreekt.
+  //
+  // De vraag in dit scenario bevat met opzet een aanhalingsteken én een apostrof.
+  const fouten = volgPaginafouten(page);
+  await mockSupabaseSession(page);
+  await mockSupabaseRest(page);
+
+  const VRAAG_LABEL = 'Woonden zij meteen in Nederland, of eerst in "een ander land"?';
+  const EIND_MET_VRAAG = {
+    ...EIND,
+    antwoord: 'Het toepasselijk recht hangt af van de eerste gezamenlijke woonplaats.',
+    vragen: [{
+      label:  VRAAG_LABEL,
+      keuzes: ['Meteen in Nederland', 'Eerst elders'],
+      veld:   'eerste_woonplaats',
+    }],
+  };
+
+  await page.route('**/api/ai-assistent', route => route.fulfill({
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' },
+    body: `data: ${JSON.stringify({ type: 'delta', tekst: EIND_MET_VRAAG.antwoord })}\n\n`
+        + `data: ${JSON.stringify({ type: 'klaar', data: EIND_MET_VRAAG })}\n\n`,
+  }));
+
+  await page.goto('/', { waitUntil: 'commit' });
+  await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await page.evaluate(() => {
+    window.toggleAssistPanel();
+    if (typeof window._assistLinkNee === 'function') window._assistLinkNee();
+  });
+
+  await page.fill('#assistInput', 'Partijen zijn in 2008 in Azerbeidzjan getrouwd. Welk recht geldt?');
+  await page.click('#assistSend');
+
+  const blok = page.locator('.assist-vraag-blok').last();
+  await expect(blok).toBeVisible();
+
+  // Het label moet ongeschonden door de HTML heen zijn gekomen.
+  await expect(blok.locator('.assist-vraag-label')).toHaveText(VRAAG_LABEL);
+
+  const knop = blok.locator('.assist-keuze-btn', { hasText: 'Meteen in Nederland' });
+  await knop.click();
+
+  // Aangeklikt = gemarkeerd. Was de onclick stuk, dan gebeurt hier niets.
+  await expect(knop).toHaveClass(/geselecteerd/);
+
+  // De handler legt vraag en keuze vast op het blok. Dit is de scherpste assertie
+  // van de hele test: als het label ongeschonden in data-vraag staat, is het door
+  // HTML heen gekomen zonder dat de aanhalingstekens iets hebben afgekapt.
+  await expect(blok).toHaveAttribute('data-keuze', 'Meteen in Nederland');
+  await expect(blok).toHaveAttribute('data-vraag', VRAAG_LABEL);
+
+  verwachtGeenPaginafouten(fouten);
+});

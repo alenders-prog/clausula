@@ -13305,7 +13305,7 @@ function _assistVoegAssistBerichtToe(tekst, bronnen, clausuleRelevant, _clausule
   if (vragen?.length) {
     vraagHtml = vragen.map(v => {
       const btns = v.keuzes.map(k =>
-        `<button class="assist-keuze-btn" onclick="_assistSelecteerKeuze(this,${JSON.stringify(v.label)},${JSON.stringify(k)})">${escH(k)}</button>`
+        `<button class="assist-keuze-btn" onclick="_assistSelecteerKeuze(this)">${escH(k)}</button>`
       ).join('');
       return `<div class="assist-vraag-blok" data-veld="${escH(v.veld || '')}">
         <div class="assist-vraag-label">${escH(v.label)}</div>
@@ -13587,8 +13587,22 @@ function _assistNaAdviesKlanttekst(btn) {
   _assistGenKlanttekst(btn);
 }
 
+// De vraag en de gekozen optie komen uit de DOM, niet uit het onclick-attribuut.
+//
+// Ze stonden daar wél, ingepakt met JSON.stringify — en dat gaat mis zodra de tekst
+// een dubbel aanhalingsteken bevat, wat JSON.stringify er per definitie omheen zet:
+//
+//   onclick="_assistSelecteerKeuze(this,"Wat was de eerste woonplaats?","Nederland")"
+//                                       ^ hier knipt de browser het attribuut af
+//
+// De knop rendert dan gewoon, mét hoverstijl, en doet bij een klik niets. Sinds
+// 30 juli 2026, en pas op 24 augustus opgemerkt omdat een verduidelijkingsvraag
+// zelden voorkomt. De mobiele versie had dit nooit: die zet `btn.onclick = () => …`
+// en laat de tekst dus nooit door HTML heen gaan.
 function _assistSelecteerKeuze(btn, vraagLabel, keuze) {
   const blok = btn.closest('.assist-vraag-blok');
+  vraagLabel = vraagLabel ?? blok?.querySelector('.assist-vraag-label')?.textContent ?? '';
+  keuze      = keuze      ?? btn.textContent.trim();
 
   // Markeer geselecteerde knop visueel
   if (blok) {

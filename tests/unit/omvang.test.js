@@ -77,10 +77,12 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // src/assistent/clausule-delen.js (14 tests). Wat hier ligt is het aansturen van de
 // renderer — en die renderer is bewust één functie gebleven, zodat de opmaak onderweg
 // niet kan afwijken van die aan het eind.
-// 24-08-2026: 15174 → 15192 (+18), voor `_assistVerwijderClausuleHeader` uit een
-// reviewbevinding. DOM-opruiming; er valt niets aan te extraheren.
-const MAX_REGELS_INDEX = 15192;
-const MAX_REGELS_JS     = 12195;
+// 24-08-2026: 15174 → 15206 (+32), voor `_assistVerwijderClausuleHeader` uit een
+// reviewbevinding en voor de toelichting bij `_assistSelecteerKeuze`, die nu vraag en
+// keuze uit de DOM leest in plaats van uit het onclick-attribuut. Beide DOM-werk;
+// er valt niets aan te extraheren.
+const MAX_REGELS_INDEX = 15206;
+const MAX_REGELS_JS     = 12209;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
