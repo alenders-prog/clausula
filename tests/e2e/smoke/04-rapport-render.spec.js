@@ -50,22 +50,14 @@ test('rapport rendert na state-injectie', async ({ page }) => {
 
   expect(result.ok, `toonRapport() gaf fout: ${result.error}`).toBe(true);
 
-  // Issues-lijst moet gevuld zijn (toonRapport schrijft naar #issuesLijst)
-  //
-  // Ruimere wachttijd dan de render nodig heeft. Deze stonden op 8 en 5 seconden,
-  // en bij een koude testserver met twee workers viel die marge weg: op 24 augustus
-  // 2026 faalde deze test één keer in een volle suite en slaagde hij daarna twintig
-  // keer alleen. `retries: 1` in de config verbergt zoiets, en een test die af en toe
-  // rood wordt leert je zijn uitslag te negeren — precies wat je niet wilt.
-  //
-  // De wachttijd is niet wat hier getoetst wordt; dat is of het rapport überhaupt
-  // rendert. Ruimer maken kost dus niets aan zeggingskracht.
+  // Issues-lijst moet gevuld zijn (toonRapport schrijft naar #issuesLijst).
+  // Wachttijd komt uit playwright.config.js — zie daar waarom hij ruim staat.
   const issuesEl = page.locator('#issuesLijst');
-  await expect(issuesEl).toBeVisible({ timeout: 20_000 });
+  await expect(issuesEl).toBeVisible();
 
   // Sticky-chips-balk met filter-chips moet zichtbaar zijn
   const chipsBar = page.locator('.sticky-chips-bar');
-  await expect(chipsBar).toBeVisible({ timeout: 20_000 });
+  await expect(chipsBar).toBeVisible();
 
   verwachtGeenPaginafouten(fouten);
 });

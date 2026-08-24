@@ -4,10 +4,18 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 120_000,
   retries: 1,
-  // Ruime standaard voor assertie-wachttijden. De testserver start koud op en er
-  // draaien twee workers; met de oude waarden van 5-10s viel die marge soms weg en
-  // werd een test af en toe rood zonder dat er iets stuk was. Een test die soms
-  // faalt leert je zijn uitslag te negeren.
+  // Standaard wachttijd voor assertions — de enige plek waar die staat. Geef hem in
+  // een test alleen expliciet mee als je bewust wilt afwijken, zoals de 45 seconden
+  // op #dossierLijst waar de hele pagina nog moet laden.
+  //
+  // Waarom 20 en niet 5: de smoketests stonden op 5-10 seconden en werden af en toe
+  // rood zonder dat er iets stuk was. Zie de toelichting bij `workers` hieronder voor
+  // wat daar op 24 augustus 2026 achter zat. De wachttijd is niet wat een smoketest
+  // toetst — dat is of het scherm überhaupt rendert — dus ruimer maken kost niets aan
+  // zeggingskracht.
+  //
+  // Let op: `waitForSelector` leest deze waarde níét; die heeft zijn eigen standaard.
+  // Daar blijft een expliciete timeout dus wél nodig.
   expect: { timeout: 20_000 },
   // Eén worker. Zeven tests draaien serieel in ~12 seconden, dus parallellisme levert
   // hier niets op — het kostte juist betrouwbaarheid: twee workers laadden tegelijk

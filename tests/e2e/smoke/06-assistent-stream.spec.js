@@ -98,12 +98,12 @@ test('assistent beantwoordt een vraag streamend, zonder runtime-fouten', async (
   // ── 1. Het antwoord verschijnt ──────────────────────────────────────────────
   const bericht = page.locator('#assistMsgs .assist-msg-assist').last();
   await verwachtGeenFoutbericht(bericht);
-  await expect(bericht).toContainText('gezamenlijk eigendom', { timeout: 20_000 });
+  await expect(bericht).toContainText('gezamenlijk eigendom');
   expect(vroegOmStroom, 'client vroeg niet om een stroom').toBe(true);
 
   // ── 2. De secties zijn gerenderd ────────────────────────────────────────────
   // Bronnen komen als chips terug, signalen als inklapbaar blok.
-  await expect(bericht.locator('.assist-bron')).toHaveCount(2, { timeout: 20_000 });
+  await expect(bericht.locator('.assist-bron')).toHaveCount(2);
   await expect(bericht).toContainText('Signalen');
   await expect(bericht).toContainText('Aannames');
 
@@ -140,7 +140,7 @@ test('assistent toont een leesbare melding bij een platte foutpagina', async ({ 
   await page.click('#assistSend');
 
   const bericht = page.locator('#assistMsgs .assist-msg-assist').last();
-  await expect(bericht).toContainText('te lang over', { timeout: 20_000 });
+  await expect(bericht).toContainText('te lang over');
   await expect(bericht).not.toContainText('JSON');
   await expect(bericht).not.toContainText('token');
 

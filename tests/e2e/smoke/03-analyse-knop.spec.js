@@ -45,7 +45,7 @@ test('analyseknop enabled na bestand in tray', async ({ page }) => {
 
   // Analyseknop moet enabled worden (disabled=false zodra dossier + bestand aanwezig)
   const analyseBtn = page.locator('#analyseBtn');
-  await expect(analyseBtn).toBeEnabled({ timeout: 20_000 });
+  await expect(analyseBtn).toBeEnabled();
 
   verwachtGeenPaginafouten(fouten);
 });
