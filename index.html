@@ -1800,6 +1800,14 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .awiz-overlay.awiz-bewerk .awiz-stap1-cta{display:none;}
 .awiz-overlay.awiz-bewerk .awiz-bc{display:none;}
 .awiz-overlay.awiz-bewerk #awiz-stap2 .awiz-stap-hdr{padding-top:0;border-top:1px solid var(--line);margin-top:20px;padding-top:20px;}
+/* Tijdens de analyse telt alleen stap 3.
+   Deze regel staat bewust ná de bewerkingsmodus hierboven. Die forceert stap 1 en 2
+   zichtbaar met !important; een inline display:none verliest daarvan. Bij gelijke
+   specificiteit wint de laatste regel, dus hier hoort hij. Zonder dit bleven in de
+   bewerkingsmodus de uploadzone, de documentenlijst en de knop "Analyse starten"
+   naast de voortgang staan — precies het scherm dat we wilden opruimen. */
+.awiz-overlay.awiz-analyse #awiz-stap1,
+.awiz-overlay.awiz-analyse #awiz-stap2{display:none !important;}
 .awiz-btn-primary{background:var(--coral);color:#fff;padding:10px 24px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
 .awiz-btn-primary:hover{opacity:.9;}
 .awiz-btn-primary:disabled{opacity:.5;cursor:default;}
@@ -12116,7 +12124,7 @@ function sluitWizard() {
   document.getElementById('wbc3')?.classList.remove('active');
   document.getElementById('wizTerugBtn').style.display = '';
 
-  document.getElementById('analyseWizard').classList.remove('active', 'awiz-bewerk');
+  document.getElementById('analyseWizard').classList.remove('active', 'awiz-bewerk', 'awiz-analyse');
   // Titel en subtitel resetten
   document.getElementById('awizPageTitle1').textContent = 'Nieuw dossier aanmaken';
   document.getElementById('awizPageSub1').textContent   = 'Vul de basisgegevens in. U kunt deze later altijd aanpassen.';
@@ -12132,6 +12140,7 @@ function wizTerug() {
   // Vanuit stap 3 (alleen bereikbaar als de analyse mislukte) terug naar de
   // documentenstap, met de geleende voortgangselementen weer op hun plek.
   if (document.getElementById('awiz-stap3').style.display !== 'none') {
+    document.getElementById('analyseWizard').classList.remove('awiz-analyse');
     wizHerstelVoortgang();
     document.getElementById('awiz-stap3').style.display = 'none';
     document.getElementById('awiz-stap2').style.display = '';
@@ -12377,6 +12386,9 @@ async function wizAnalyseStarten() {
 // leesbare samenvatting — niet als lijst met keuzelijsten die je toch niet meer
 // kunt wijzigen.
 function wizNaarStap3(items) {
+  // De klasse doet het echte werk: in de bewerkingsmodus zijn stap 1 en 2 met
+  // !important zichtbaar gemaakt, en daar komt een inline display:none niet langs.
+  document.getElementById('analyseWizard').classList.add('awiz-analyse');
   document.getElementById('awiz-stap1').style.display = 'none';
   document.getElementById('awiz-stap2').style.display = 'none';
   document.getElementById('awiz-stap3').style.display = '';

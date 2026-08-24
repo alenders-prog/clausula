@@ -128,3 +128,43 @@ test('bij een mislukte analyse blijft de wizard staan met de melding erin', asyn
 
   verwachtGeenPaginafouten(fouten);
 });
+
+test('ook in de bewerkingsmodus verdwijnt het uploadscherm tijdens de analyse', async ({ page }) => {
+  // Dit is het geval dat op 24 augustus 2026 alsnog misging. Wie een bestaand dossier
+  // opent om documenten te vervangen, krijgt de wizard in `awiz-bewerk`: die toont
+  // stap 1 én stap 2 tegelijk, en forceert dat met `display:block !important`.
+  //
+  // Een inline `style.display = 'none'` komt daar niet langs. Het resultaat was dat de
+  // uploadzone, de documentenlijst én de knop "Analyse starten" naast de voortgang
+  // bleven staan — precies het scherm dat stap 3 moest opruimen.
+  const fouten = volgPaginafouten(page);
+  await mockSupabaseSession(page);
+  await mockSupabaseRest(page);
+
+  await page.goto('/', { waitUntil: 'commit' });
+  await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wizardMetDocumenten(page);
+
+  // Bewerkingsmodus aanzetten, zoals openWizardVoorBewerken doet.
+  await page.evaluate(() => {
+    document.getElementById('analyseWizard').classList.add('awiz-bewerk');
+    document.getElementById('awiz-stap1').style.display = '';
+  });
+  await expect(page.locator('#awiz-stap2')).toBeVisible();   // uitgangspunt klopt
+
+  await page.evaluate(() => wizNaarStap3(_wizTray));
+
+  await expect(page.locator('#awiz-stap3')).toBeVisible();
+  await expect(page.locator('#awiz-stap1')).toBeHidden();
+  await expect(page.locator('#awiz-stap2')).toBeHidden();
+  // Geen tweede "Analyse starten" meer naast de voortgang.
+  await expect(page.locator('#wizAnalyseBtn')).toBeHidden();
+  await expect(page.locator('#wizDropzone')).toBeHidden();
+
+  // En na sluiten is de bewerkingsmodus weer bruikbaar.
+  await page.evaluate(() => sluitWizard());
+  expect(await page.evaluate(() =>
+    document.getElementById('analyseWizard').classList.contains('awiz-analyse'))).toBe(false);
+
+  verwachtGeenPaginafouten(fouten);
+});
