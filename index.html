@@ -1787,6 +1787,13 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .awiz-sb-txt .awiz-sb-desc{font-size:.75rem;color:var(--ink-soft);line-height:1.4;margin-top:2px;}
 /* CTA stap 1 */
 .awiz-stap1-cta{display:flex;justify-content:flex-end;padding-top:10px;}
+.awiz-stap3-wrap{max-width:1080px;margin:0 auto;}
+.awiz-stap3-docs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px;}
+.awiz-stap3-doc{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;
+  border:1px solid var(--line);border-radius:20px;background:var(--paper);
+  font-size:.78rem;color:var(--ink-mid);}
+.awiz-stap3-doc .awiz-stap3-type{color:var(--ink-soft);font-size:.72rem;}
+.awiz-stap3-voortgang .scanning{margin-top:18px;}
 /* Bewerkingsmodus: beide stappen tegelijk zichtbaar, stap-navigatie verborgen */
 .awiz-overlay.awiz-bewerk #awiz-stap1{display:block !important;}
 .awiz-overlay.awiz-bewerk #awiz-stap2{display:block !important;}
@@ -2663,6 +2670,24 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         </div>
       </div>
     </div><!-- /stap2 -->
+
+    <!-- STAP 3 — de analyse loopt. Bestond niet: de wizard sloot zichzelf en drukte
+         op de knop van het oude tray-scherm, dat daardoor zichtbaar werd met de
+         documentenlijst die je net had bevestigd, een dode knop en de kop
+         "Opnieuw analyseren". Hier staat alleen wat op dit moment nog waar is. -->
+    <div id="awiz-stap3" style="display:none">
+      <div class="awiz-stap-hdr">
+        <div class="awiz-page-title" id="awizPageTitle3">Analyse loopt</div>
+        <div class="awiz-page-sub" id="awizPageSub3">Dit duurt ongeveer twee minuten. U kunt dit scherm open laten staan.</div>
+      </div>
+      <div class="awiz-stap3-wrap">
+        <div class="awiz-stap3-docs" id="wizStap3Docs"></div>
+        <!-- Hierin wordt #scanning en #errorBox verplaatst zolang de wizard open
+             staat, zodat er één voortgangsweergave is in plaats van twee die uit
+             elkaar kunnen lopen. wizTerug() zet ze terug. -->
+        <div class="awiz-stap3-voortgang" id="wizVoortgangSlot"></div>
+      </div>
+    </div><!-- /stap3 -->
 
   </div><!-- /awiz-body -->
 </div><!-- /analyseWizard -->
@@ -10762,8 +10787,17 @@ const analyseBtn = document.getElementById('analyseBtn');
 const scanning   = document.getElementById('scanning');
 const errorBox   = document.getElementById('errorBox');
 
-analyseBtn.addEventListener('click', async () => {
-  if (!app.tray.length) return;
+// De analyse als losse functie in plaats van alleen een klik-handler.
+//
+// De wizard startte hem eerder met `document.getElementById('analyseBtn').click()`.
+// Dat werkt, maar je kunt er niet op wachten en niet zien of het gelukt is — dus
+// sloot de wizard zichzelf meteen en werd het oude tray-scherm zichtbaar, met de
+// documentenlijst die de mediator net had bevestigd. Nu kan de wizard openblijven,
+// zijn derde stap tonen, en pas sluiten als het rapport er is.
+//
+// Geeft terug of de analyse geslaagd is.
+async function startAnalyse() {
+  if (!app.tray.length) return false;
   errorBox.style.display = 'none';
   analyseBtn.disabled    = true;
   scanning.classList.add('active');
@@ -10820,7 +10854,10 @@ analyseBtn.addEventListener('click', async () => {
 
   // Direct automatisch opslaan na succesvolle analyse (buiten try/finally)
   if (geslaagd) await opslaan();
-});
+  return geslaagd;
+}
+
+analyseBtn.addEventListener('click', () => { startAnalyse(); });
 
 // ── Zoekfilter ───────────────────────────────────────
 document.getElementById('dossierZoek').addEventListener('input', function() {
@@ -11935,6 +11972,7 @@ function openWizard() {
   wizardRoepnaamB = null;
   document.getElementById('awiz-stap1').style.display = '';
   document.getElementById('awiz-stap2').style.display  = 'none';
+  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('wbc1').className = 'awiz-bc-step active';
   document.getElementById('wbc2').className = 'awiz-bc-step';
   wizRenderDocs();
@@ -11971,6 +12009,7 @@ function openWizardBestaandDossier() {
   // Direct naar stap 2
   document.getElementById('awiz-stap1').style.display = 'none';
   document.getElementById('awiz-stap2').style.display  = '';
+  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('wbc1').className = 'awiz-bc-step done';
   document.getElementById('wbc2').className = 'awiz-bc-step active';
   document.getElementById('awizPageTitle2').textContent = app.dossierNaam || 'Nieuwe versie';
@@ -12024,6 +12063,7 @@ function openWizardVoorBewerken(dos, screening) {
   // Beide stappen tonen (bewerkingsmodus)
   document.getElementById('awiz-stap1').style.display = '';
   document.getElementById('awiz-stap2').style.display = '';
+  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('awizPageTitle1').textContent = 'Dossier bewerken';
   document.getElementById('awizPageSub1').textContent  = 'Wijzigingen in namen worden direct opgeslagen. Een nieuwe analyse is alleen nodig bij documentwijzigingen.';
   document.getElementById('awizPageTitle2').textContent = 'Geüploade documenten';
@@ -12068,6 +12108,14 @@ function openWizardVoorBewerken(dos, screening) {
 }
 
 function sluitWizard() {
+  // Stap 3 opruimen: geleende elementen terug, panelen en stappenbalk in de
+  // uitgangsstand. Zonder dit staat de wizard bij een volgende analyse meteen op
+  // stap 3, met de documenten van de vorige erin.
+  wizHerstelVoortgang();
+  document.getElementById('awiz-stap3').style.display = 'none';
+  document.getElementById('wbc3')?.classList.remove('active');
+  document.getElementById('wizTerugBtn').style.display = '';
+
   document.getElementById('analyseWizard').classList.remove('active', 'awiz-bewerk');
   // Titel en subtitel resetten
   document.getElementById('awizPageTitle1').textContent = 'Nieuw dossier aanmaken';
@@ -12081,6 +12129,18 @@ function sluitWizard() {
 }
 
 function wizTerug() {
+  // Vanuit stap 3 (alleen bereikbaar als de analyse mislukte) terug naar de
+  // documentenstap, met de geleende voortgangselementen weer op hun plek.
+  if (document.getElementById('awiz-stap3').style.display !== 'none') {
+    wizHerstelVoortgang();
+    document.getElementById('awiz-stap3').style.display = 'none';
+    document.getElementById('awiz-stap2').style.display = '';
+    document.getElementById('wbc3')?.classList.remove('active');
+    document.getElementById('wbc2')?.classList.add('active');
+    app.tray = [];                 // stap 2 vult hem opnieuw bij een nieuwe poging
+    trayRender();
+    return;
+  }
   if (document.getElementById('awiz-stap2').style.display !== 'none') {
     wizNaarStap1();
   } else {
@@ -12133,6 +12193,7 @@ async function wizNaarStap2() {
     _wizDossierNaam = naam;
     document.getElementById('awiz-stap1').style.display = 'none';
     document.getElementById('awiz-stap2').style.display  = '';
+    document.getElementById('awiz-stap3').style.display = 'none';
     document.getElementById('wbc1').className = 'awiz-bc-step done';
     document.getElementById('wbc2').className = 'awiz-bc-step active';
     document.getElementById('awizPageTitle2').textContent = naam;
@@ -12148,6 +12209,7 @@ async function wizNaarStap2() {
 function wizNaarStap1() {
   document.getElementById('awiz-stap1').style.display = '';
   document.getElementById('awiz-stap2').style.display  = 'none';
+  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('wbc1').className = 'awiz-bc-step active';
   document.getElementById('wbc2').className = 'awiz-bc-step';
 }
@@ -12290,8 +12352,87 @@ async function wizAnalyseStarten() {
       fromStorage: item.fromStorage || false });
   }
   trayRender();
-  sluitWizard();
-  document.getElementById('analyseBtn').click();
+
+  // Wizard blijft open en toont zijn derde stap. Vroeger sloot hij hier en klikte
+  // hij op de knop van het oude tray-scherm; dat scherm werd dan zichtbaar met de
+  // documentenlijst die net was bevestigd, een uitgeschakelde knop en de kop
+  // "Opnieuw analyseren" — terwijl dit een nieuwe analyse is.
+  wizNaarStap3(erkend);
+
+  const geslaagd = await startAnalyse();
+
+  if (geslaagd) {
+    sluitWizard();                 // rapport staat klaar eronder
+  } else {
+    // Mislukt: laat de wizard staan met de melding erin, zodat de mediator terug
+    // kan naar stap 2 en het opnieuw kan proberen zonder alles opnieuw te kiezen.
+    document.getElementById('awizPageTitle3').textContent = 'Analyse mislukt';
+    document.getElementById('awizPageSub3').textContent   =
+      'Er ging iets mis. Ga terug om het opnieuw te proberen.';
+    document.getElementById('wizTerugBtn').style.display = '';
+  }
+}
+
+// Stap 3 tonen: alleen wat op dit moment nog waar is. De documenten staan er als
+// leesbare samenvatting — niet als lijst met keuzelijsten die je toch niet meer
+// kunt wijzigen.
+function wizNaarStap3(items) {
+  document.getElementById('awiz-stap1').style.display = 'none';
+  document.getElementById('awiz-stap2').style.display = 'none';
+  document.getElementById('awiz-stap3').style.display = '';
+  document.getElementById('wbc2')?.classList.remove('active');
+  document.getElementById('wbc3')?.classList.add('active');
+
+  document.getElementById('awizPageTitle3').textContent = 'Analyse loopt';
+  document.getElementById('awizPageSub3').textContent   =
+    'Dit duurt ongeveer twee minuten. U kunt dit scherm open laten staan.';
+
+  document.getElementById('wizStap3Docs').innerHTML = (items || []).map(i =>
+    `<span class="awiz-stap3-doc">${escH(i.naam)}` +
+    `<span class="awiz-stap3-type">${escH(DOC_TYPE_LABELS[i.type] || i.type)}</span></span>`
+  ).join('');
+
+  // Voortgang en foutmelding hierheen verplaatsen in plaats van ze na te bouwen:
+  // twee weergaven van hetzelfde lopen vroeg of laat uit elkaar. sluitWizard() en
+  // wizTerug() zetten ze terug.
+  //
+  // De oorspronkelijke plek wordt onthouden in plaats van later afgeleid: #scanning
+  // staat naast #trayDropWrap, niet erin, en zo'n aanname gaat stuk zodra iemand de
+  // opmaak van het uploadscherm aanpast.
+  const slot = document.getElementById('wizVoortgangSlot');
+  const scan = document.getElementById('scanning');
+  const err  = document.getElementById('errorBox');
+  if (scan && !_wizVoortgangThuis) {
+    // Het anker moet een element zijn dat blíjft staan. #errorBox is de directe buur
+    // van #scanning en gaat mee, dus die kan het niet zijn — insertBefore weigert
+    // dan later met "the node before which the new node is to be inserted is not a
+    // child of this node".
+    const laatste = err && err.previousElementSibling === scan ? err : scan;
+    _wizVoortgangThuis = { ouder: scan.parentElement, na: laatste.nextElementSibling };
+  }
+  if (scan) slot.appendChild(scan);
+  if (err)  slot.appendChild(err);
+
+  // Terugknop weg zolang de analyse loopt — teruggaan zou hem niet afbreken.
+  document.getElementById('wizTerugBtn').style.display = 'none';
+}
+
+// Waar #scanning en #errorBox stonden voordat de wizard ze leende.
+let _wizVoortgangThuis = null;
+
+// Zet ze exact terug op hun eigen plek in het uploadscherm.
+function wizHerstelVoortgang() {
+  if (!_wizVoortgangThuis) return;
+  const { ouder, na } = _wizVoortgangThuis;
+  const scan = document.getElementById('scanning');
+  const err  = document.getElementById('errorBox');
+  // Anker kwijt (opmaak gewijzigd)? Dan achteraan; beter dan een uitzondering die
+  // de rest van wizTerug overslaat en het scherm halverwege laat staan.
+  const anker = na && na.parentElement === ouder ? na : null;
+  if (ouder && scan) ouder.insertBefore(scan, anker);
+  if (ouder && err)  ouder.insertBefore(err, anker);
+  scan?.classList.remove('active');
+  _wizVoortgangThuis = null;
 }
 
 // Dropzone & events voor wizard

@@ -81,8 +81,18 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // reviewbevinding en voor de toelichting bij `_assistSelecteerKeuze`, die nu vraag en
 // keuze uit de DOM leest in plaats van uit het onclick-attribuut. Beide DOM-werk;
 // er valt niets aan te extraheren.
-const MAX_REGELS_INDEX = 15206;
-const MAX_REGELS_JS     = 12209;
+// 24-08-2026 (tweede keer): 15206 → 15347 (+141 totaal, +116 script), voor stap 3
+// van de analyse-wizard. Die stap bestond niet: de wizard sloot zichzelf en drukte op
+// de knop van het uploadscherm, dat daardoor tijdens de analyse zichtbaar werd met de
+// documentenlijst die net was bevestigd.
+//
+// Wat erbij kwam is flow en DOM: een paneel tonen, de documenten als samenvatting
+// tekenen, de voortgangselementen lenen en terugzetten, en de analyse als functie
+// losmaken van de klik-handler zodat de wizard erop kan wachten. Geen van die delen
+// heeft een eigen redenering die zich buiten de DOM laat toetsen — wat het wél
+// verdiende is een browsertest, en die staat er (07-wizard-analyse.spec.js).
+const MAX_REGELS_INDEX = 15347;
+const MAX_REGELS_JS     = 12325;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
