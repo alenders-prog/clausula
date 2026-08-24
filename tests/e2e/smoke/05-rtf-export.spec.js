@@ -14,12 +14,14 @@ import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLS = JSON.parse(readFileSync(join(__dirname, '../fixtures/classificatie.json'), 'utf8'));
 const RPT = JSON.parse(readFileSync(join(__dirname, '../fixtures/rapport.json'), 'utf8'));
 
 test('PDF-rapport knop zichtbaar na laden rapport', async ({ page }) => {
+  const fouten = volgPaginafouten(page);
   await mockSupabaseSession(page);
   await mockSupabaseRest(page);
   await page.route('**/storage/v1/**', r => r.fulfill({ status: 404 }));
@@ -46,4 +48,6 @@ test('PDF-rapport knop zichtbaar na laden rapport', async ({ page }) => {
   const pdfBtn = page.locator('#downloadPdfBtn');
   await expect(pdfBtn).toBeVisible({ timeout: 5_000 });
   await expect(pdfBtn).toBeEnabled();
+
+  verwachtGeenPaginafouten(fouten);
 });

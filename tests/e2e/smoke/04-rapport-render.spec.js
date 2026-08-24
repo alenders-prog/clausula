@@ -14,12 +14,14 @@ import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLS = JSON.parse(readFileSync(join(__dirname, '../fixtures/classificatie.json'), 'utf8'));
 const RPT = JSON.parse(readFileSync(join(__dirname, '../fixtures/rapport.json'), 'utf8'));
 
 test('rapport rendert na state-injectie', async ({ page }) => {
+  const fouten = volgPaginafouten(page);
   await mockSupabaseSession(page);
   await mockSupabaseRest(page);
 
@@ -55,4 +57,6 @@ test('rapport rendert na state-injectie', async ({ page }) => {
   // Sticky-chips-balk met filter-chips moet zichtbaar zijn
   const chipsBar = page.locator('.sticky-chips-bar');
   await expect(chipsBar).toBeVisible({ timeout: 5_000 });
+
+  verwachtGeenPaginafouten(fouten);
 });

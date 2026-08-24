@@ -8,8 +8,10 @@
 
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
+import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
 
 test('analyseknop enabled na bestand in tray', async ({ page }) => {
+  const fouten = volgPaginafouten(page);
   await mockSupabaseSession(page);
   await mockSupabaseRest(page);
 
@@ -44,4 +46,6 @@ test('analyseknop enabled na bestand in tray', async ({ page }) => {
   // Analyseknop moet enabled worden (disabled=false zodra dossier + bestand aanwezig)
   const analyseBtn = page.locator('#analyseBtn');
   await expect(analyseBtn).toBeEnabled({ timeout: 8_000 });
+
+  verwachtGeenPaginafouten(fouten);
 });

@@ -185,6 +185,27 @@ je hem toch, dan staat dat in de diff en is het een besluit.
 Aansluiten gaat via de bestaande ESM-brug onderaan `index.html` (`<script
 type="module">`), zonder build-stap.
 
+## Browsertests: waar de unittests ophouden
+
+`npm run test:e2e` — Playwright, zeven smoketests in `tests/e2e/smoke/`.
+
+Ze bestaan voor één klasse fouten die geen enkele andere controle ziet: code die
+zonder syntaxfout laadt en pas bij de eerste klik breekt. Op 23 augustus 2026 haalden
+er twee productie — `bouwVerificatieContext is not defined` en
+`STREAM_ONDERDELEN is not defined`. Beide waren correcte JavaScript; de unittests
+dekten de losse modules, maar niemand liep de flow ooit dóór.
+
+Elke test roept `volgPaginafouten(page)` aan het begin en
+`verwachtGeenPaginafouten(fouten)` aan het eind — zie `tests/e2e/helpers/paginafouten.js`.
+
+> **Let op waar zo'n fout terechtkomt.** `pageerror` vuurt alleen bij een ónafgevangen
+> fout. De assistent vangt alles af in een try/catch en toont het als bericht in de
+> chat, wat van buiten niet van een normaal antwoord te onderscheiden is. Daarvoor is
+> `verwachtGeenFoutbericht(bericht)`, die de inhoud van de bubbel nakijkt.
+
+Nieuwe flow gebouwd? Eén smoketest erbij die hem daadwerkelijk doorloopt. Dat is
+goedkoper dan de melding van een mediator.
+
 ## Skills bijhouden
 
 Skills in `.claude/skills/` leggen non-obvieuze kennis vast die niet direct uit de code

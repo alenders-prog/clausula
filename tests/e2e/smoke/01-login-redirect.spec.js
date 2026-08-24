@@ -8,10 +8,12 @@
 
 import { test, expect } from '@playwright/test';
 import { mockCdnScripts } from '../helpers/mock-supabase.js';
+import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
 
 const SUPABASE_HOST = 'zanxprrymagsuwxddiln.supabase.co';
 
 test('redirect naar login.html bij ontbrekende sessie', async ({ page }) => {
+  const fouten = volgPaginafouten(page);
   // CDN-scripts lokaal serveren zodat de pagina niet op het netwerk wacht
   await mockCdnScripts(page);
 
@@ -29,4 +31,6 @@ test('redirect naar login.html bij ontbrekende sessie', async ({ page }) => {
 
   // App moet doorverwijzen naar login pagina (serve strip .html → /login)
   await expect(page).toHaveURL(/login/, { timeout: 30_000 });
+
+  verwachtGeenPaginafouten(fouten);
 });

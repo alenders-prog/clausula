@@ -8,8 +8,10 @@
 
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
+import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
 
 test('dossier-lijst toont kaarten na inlog', async ({ page }) => {
+  const fouten = volgPaginafouten(page);
   await mockSupabaseSession(page);
   await mockSupabaseRest(page);
 
@@ -26,4 +28,6 @@ test('dossier-lijst toont kaarten na inlog', async ({ page }) => {
   // Topbar toont de praktijknaam (bewijst dat gebruikersprofiel geladen is)
   const firm = page.locator('#topbarFirm');
   await expect(firm).not.toBeEmpty({ timeout: 5_000 });
+
+  verwachtGeenPaginafouten(fouten);
 });
