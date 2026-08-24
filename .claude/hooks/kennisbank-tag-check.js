@@ -10,6 +10,7 @@
 // package.json heeft "type": "module", dus .js is hier ESM — geen require().
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { meld } from './_meld.js';   // platte tekst op stdout bereikt niemand — zie _meld.js
 
 const CONTROLE = fileURLToPath(new URL('../../scripts/kennisbank-check.mjs', import.meta.url));
 
@@ -35,20 +36,23 @@ process.stdin.on('end', () => {
 
   if (r.error) {
     // Geen node, of een time-out: niet blokkeren, wel melden.
-    console.log(`[kennisbank] controle niet gedraaid: ${r.error.message.split('\n')[0]}`);
+    meld(`[kennisbank] controle niet gedraaid: ${r.error.message.split('\n')[0]}`);
     process.exit(0);
   }
 
   const uitvoer = `${r.stdout || ''}\n${r.stderr || ''}`.trim();
 
   if (r.status === null) {
-    console.log('[kennisbank] controle afgebroken (time-out).');
+    meld('[kennisbank] controle afgebroken (time-out).');
   } else if (r.status !== 0) {
     // Exitcode 1 = het script heeft iets gevonden. Exitcode van een crash (geen .env,
     // geen netwerk) valt hier ook onder: in beide gevallen wil je het zien.
-    console.log(uitvoer);
-    console.log('\n[kennisbank] Let op: tags met streepje matchen niet tegen kenmerken met underscore.');
-    console.log('[kennisbank] Na een tekstwijziging óók: node scripts/kennisbank-embed.mjs');
+    meld([
+      uitvoer,
+      '',
+      '[kennisbank] Let op: tags met streepje matchen niet tegen kenmerken met underscore.',
+      '[kennisbank] Na een tekstwijziging óók: node scripts/kennisbank-embed.mjs',
+    ].join('\n'));
   }
   // Alles in orde → niets zeggen. Anders is de hook alleen ruis.
   process.exit(0);

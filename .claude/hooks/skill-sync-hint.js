@@ -6,7 +6,11 @@
  * een korte herinnering die Claude in zijn tool-feedback ziet.
  *
  * Gebruik: automatisch via .claude/settings.json — niet handmatig aanroepen.
+ *
+ * Meldt via _meld.js: platte tekst op stdout bereikt niemand (zie daar).
  */
+
+import { meld } from './_meld.js';
 
 const SKILL_MAP = [
   {
@@ -45,10 +49,10 @@ process.stdin.on('end', () => {
     for (const { pattern, skills, hint } of SKILL_MAP) {
       if (filePath.endsWith(pattern)) {
         const skillList = skills.map(s => `'.claude/skills/${s}/SKILL.md'`).join(', ');
-        process.stdout.write(
+        meld(
           `[skill-sync] Bestand '${pattern}' valt onder skill(s): ${skillList}.\n` +
           `→ ${hint}\n` +
-          `→ Update de skill als deze wijziging non-obvieuze kennis toevoegt of verandert.\n`
+          `→ Update de skill als deze wijziging non-obvieuze kennis toevoegt of verandert.`
         );
         break;
       }

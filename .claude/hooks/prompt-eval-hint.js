@@ -9,6 +9,9 @@
 // Deze hook blokkeert niets; hij zegt alleen wat er nu hoort te gebeuren.
 
 // package.json heeft "type": "module", dus .js is hier ESM — geen require().
+// Melden gaat via _meld.js: platte tekst op stdout bereikt niemand (zie daar).
+import { meld } from './_meld.js';
+
 let invoer = '';
 process.stdin.on('data', d => { invoer += d; });
 process.stdin.on('end', () => {
@@ -22,7 +25,7 @@ process.stdin.on('end', () => {
                 || /_consistentie\.js$/.test(pad);
   if (!isPrompt) process.exit(0);
 
-  console.log([
+  meld([
     '[prompt] Screening-prompt gewijzigd — de eval hoort nu te draaien:',
     '',
     '  npm run test:eval   (TEST_BASE_URL + TEST_JWT_TOKEN + vercel dev, ~4 min, ~$1)',

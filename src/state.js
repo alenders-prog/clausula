@@ -1,4 +1,11 @@
 // src/state.js — Canonieke definitie van de centrale app-state.
+//
+// Geen unittest, en dat is opzet: dit bestand bevat uitsluitend een objectliteral
+// zonder gedrag. Een test zou hooguit herhalen welke sleutels erin staan, en dat
+// bewijst niets — hij zou samen met de code meebewegen bij elke wijziging.
+//
+// Schrijvers staan hieronder per property; die lijst is de enige documentatie
+// van wie wat aanraakt, en dus het waardevolste deel van dit bestand.
 // Wordt in Fase 3 geïmporteerd als ES-module; tijdens Fase 2 is window.app
 // inline gedefinieerd in index.html en staat dit bestand als referentie.
 //
