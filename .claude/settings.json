@@ -10,7 +10,8 @@
           },
           {
             "type": "command",
-            "command": "bash -c 'file=\"$CLAUDE_TOOL_INPUT_FILE_PATH\"; if [[ \"$file\" == */api/*.js || \"$file\" == */src/*.js || \"$file\" == */tests/*.js ]]; then npx vitest related \"$file\" --run --passWithNoTests --reporter=dot 2>&1 | tail -15; fi; exit 0'"
+            "command": "node .claude/hooks/related-tests.js",
+            "statusMessage": "Gerelateerde tests draaien..."
           },
           {
             "type": "command",

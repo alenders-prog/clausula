@@ -6,14 +6,21 @@
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
 
+// Pad relatief aan dít bestand, niet aan de werkmap: de PostToolUse-hook roept het
+// script via execFileSync aan en dan is de werkmap niet gegarandeerd de projectmap.
 const env = Object.fromEntries(
-  readFileSync('.env', 'utf8')
+  readFileSync(new URL('../.env', import.meta.url), 'utf8')
     .split('\n')
     .filter(r => r.includes('=') && !r.trim().startsWith('#'))
     .map(r => { const i = r.indexOf('='); return [r.slice(0, i).trim(), r.slice(i + 1).trim().replace(/^["']|["']$/g, '')]; })
 );
 
 const db = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+// Wat er mis blijkt. Tot 24 augustus 2026 eindigde dit script altijd met exitcode 0,
+// ook als het een tag vond die nergens op matcht: het meldde het gat en gaf groen.
+// Daardoor was het niet als poort te gebruiken — in een hook of in CI zag niemand het.
+const problemen = [];
 
 const { count, error } = await db.from('legal_chunks').select('*', { count: 'exact', head: true });
 if (error) { console.error('Fout:', error.message); process.exit(1); }
@@ -33,6 +40,7 @@ const perNorm = {};
 const dubbel = Object.entries(perNorm).filter(([, v]) => v.length > 1);
 
 if (dubbel.length) {
+  problemen.push(`${dubbel.length} tag(s) met twee schrijfwijzen`);
   console.warn(`\n⚠  ${dubbel.length} tag(s) met twee schrijfwijzen:`);
   dubbel.forEach(([n, v]) => console.warn(`     ${n}: ${v.join('  /  ')}`));
 }
@@ -41,6 +49,7 @@ const { data: kenmerken } = await db.from('situatie_kenmerken').select('key');
 const keys = new Set((kenmerken ?? []).map(k => k.key));
 const weesTags = [...tags].filter(t => t.includes('-') && keys.has(t.replace(/-/g, '_')));
 if (weesTags.length) {
+  problemen.push(`${weesTags.length} tag(s) met streepje die nooit matchen`);
   console.warn(`\n⚠  tag(s) met streepje terwijl het kenmerk een underscore heeft — matcht nooit:`);
   weesTags.forEach(t => console.warn(`     ${t}  →  hoort ${t.replace(/-/g, '_')} te zijn`));
 }
@@ -67,6 +76,7 @@ const bereikbaar = new Set([...keys, ...BEREIKBAAR_ZONDER_KENMERK]);
 const onbereikbaar = (rijen ?? []).filter(r => !(r.topic_tags ?? []).some(t => bereikbaar.has(t)));
 
 if (onbereikbaar.length) {
+  problemen.push(`${onbereikbaar.length} chunk(s) bereiken geen enkele analyse`);
   console.warn(`\n⚠  ${onbereikbaar.length} chunk(s) bereiken géén enkele analyse:`);
   onbereikbaar.forEach(r =>
     console.warn(`     ${(r.citation ?? '').slice(0, 56).padEnd(58)}[${(r.topic_tags ?? []).join(', ')}]`));
@@ -82,6 +92,7 @@ const { data: std } = await db.from('legal_chunks')
   .eq('source_id', '10000000-0000-0000-0000-000000000001')
   .eq('chunk_index', 28).limit(1);
 console.log(`standaardclausule-chunk: ${std?.length ? 'aanwezig — ' + std[0].citation : 'ONTBREEKT'}`);
+if (!std?.length) problemen.push('de standaardclausule-chunk ontbreekt');
 
 const { data: tmpl } = await db.from('document_templates').select('doc_type').limit(1000);
 const per = {};
@@ -90,3 +101,15 @@ console.log(`document_templates: ${JSON.stringify(per)}`);
 
 console.log('\nVoorbeeld van 5 citations:');
 (rijen ?? []).slice(0, 5).forEach(r => console.log('  ' + r.citation));
+
+// ── Uitkomst ────────────────────────────────────────────────────────────────
+// Ook op stdout, niet alleen op stderr. De PostToolUse-hook leest het resultaat via
+// execFileSync en die geeft uitsluitend stdout terug — de ⚠-regels hierboven staan
+// op stderr en waren voor de hook dus onzichtbaar. Hij keek naar '⚠' in een tekst
+// waar dat teken per definitie niet in kon staan.
+if (problemen.length) {
+  console.log(`\nUITKOMST: ${problemen.length} probleem/problemen — ${problemen.join('; ')}`);
+} else {
+  console.log('\nUITKOMST: kennisbank in orde.');
+}
+process.exitCode = problemen.length ? 1 : 0;

@@ -142,6 +142,15 @@ met `legal_chunk`, `wettekst` of `kennisbank` in de naam. Wijzigingen die je
 rechtstreeks in het dashboard doet laten geen bestand achter, dus die vangt de hook
 niet — daarvoor geldt de regel hierboven.
 
+> **Die hook meldde tot 24 augustus 2026 niets.** Hij draaide de controle via
+> `execFileSync` — dat geeft alleen stdout terug — en zocht naar `⚠` in de uitvoer.
+> Alle bevindingen gingen via `console.warn` naar stderr, waar hij er niet bij kon.
+> Hij voerde de controle dus keurig uit en gooide precies de uitkomst weg.
+>
+> `kennisbank-check.mjs` zet sindsdien ook een exitcode (1 bij bevindingen) en sluit
+> af met een `UITKOMST:`-regel op stdout. Daarmee is hij ook in CI als poort te
+> gebruiken. De hook leest beide stromen én die exitcode.
+
 ## Screening-prompts staan in `api/_prompts/`
 
 Sinds 20 augustus 2026 staan de prompts niet meer in `api/analyseer.js` — dat

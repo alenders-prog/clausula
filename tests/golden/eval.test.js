@@ -16,6 +16,20 @@ import { fileURLToPath } from 'url';
 const __dir    = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(__dir, 'fixtures');
 
+// ── .env inlezen ────────────────────────────────────────────────────────────
+// Vitest laadt .env niet vanzelf, en `npm run test:eval` zet de omgeving ook niet.
+// Gevolg: de sleutel stond netjes in .env, de suite sloeg zwijgend over ("3 skipped",
+// exitcode 0), en wie hem draaide na een promptwijziging dacht dat hij had gemeten.
+// Zelfde inleespatroon als de scripts in scripts/ — geen extra afhankelijkheid.
+try {
+  for (const regel of readFileSync(new URL('../../.env', import.meta.url), 'utf8').split('\n')) {
+    if (!regel.includes('=') || regel.trim().startsWith('#')) continue;
+    const i = regel.indexOf('=');
+    const sleutel = regel.slice(0, i).trim();
+    if (!process.env[sleutel]) process.env[sleutel] = regel.slice(i + 1).trim();
+  }
+} catch { /* geen .env — dan moet de omgeving de variabelen leveren (CI) */ }
+
 // Guard: skip als ANTHROPIC_API_KEY niet beschikbaar is
 const heeftApiKey = !!process.env.ANTHROPIC_API_KEY;
 

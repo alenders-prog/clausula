@@ -8,7 +8,10 @@
 // regel in CLAUDE.md.
 
 // package.json heeft "type": "module", dus .js is hier ESM — geen require().
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const CONTROLE = fileURLToPath(new URL('../../scripts/kennisbank-check.mjs', import.meta.url));
 
 let invoer = '';
 process.stdin.on('data', d => { invoer += d; });
@@ -21,21 +24,32 @@ process.stdin.on('end', () => {
 
   if (!/legal_chunk|wettekst|kennisbank/i.test(pad)) process.exit(0);
 
-  let uitvoer = '';
-  try {
-    uitvoer = execFileSync('node', ['scripts/kennisbank-check.mjs'], {
-      encoding: 'utf8', timeout: 60_000, stdio: ['ignore', 'pipe', 'pipe'],
-    });
-  } catch (e) {
-    // Geen .env, geen netwerk, of het script faalt: niet blokkeren, wel melden.
-    console.log(`[kennisbank] controle niet gedraaid: ${e.message.split('\n')[0]}`);
+  // spawnSync, niet execFileSync: die laatste geeft alleen stdout terug, en de
+  // bevindingen van het controlescript gingen via console.warn naar stderr. De hook
+  // zocht dus naar '⚠' in een tekst waar dat teken per definitie niet in kon staan
+  // — hij draaide de controle netjes en gooide precies de uitkomst weg. Gemeten op
+  // 24 augustus 2026; zie ook de exitcode die het script sindsdien zet.
+  const r = spawnSync(process.execPath, [CONTROLE], {
+    encoding: 'utf8', timeout: 60_000, stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  if (r.error) {
+    // Geen node, of een time-out: niet blokkeren, wel melden.
+    console.log(`[kennisbank] controle niet gedraaid: ${r.error.message.split('\n')[0]}`);
     process.exit(0);
   }
 
-  // Alleen iets zeggen als er echt iets mis is — anders is de hook alleen ruis.
-  if (uitvoer.includes('⚠')) {
-    console.log(uitvoer.trim());
+  const uitvoer = `${r.stdout || ''}\n${r.stderr || ''}`.trim();
+
+  if (r.status === null) {
+    console.log('[kennisbank] controle afgebroken (time-out).');
+  } else if (r.status !== 0) {
+    // Exitcode 1 = het script heeft iets gevonden. Exitcode van een crash (geen .env,
+    // geen netwerk) valt hier ook onder: in beide gevallen wil je het zien.
+    console.log(uitvoer);
     console.log('\n[kennisbank] Let op: tags met streepje matchen niet tegen kenmerken met underscore.');
+    console.log('[kennisbank] Na een tekstwijziging óók: node scripts/kennisbank-embed.mjs');
   }
+  // Alles in orde → niets zeggen. Anders is de hook alleen ruis.
   process.exit(0);
 });
