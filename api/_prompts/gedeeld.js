@@ -117,7 +117,19 @@ SAMENHANG TUSSEN KOP, BEVINDING EN PASSAGE:
 - 'bevinding': beschrijf waarom DEZE passage een probleem is — niet een andere passage,
   niet een ander onderwerp.
 NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onderwerp Y.
-NOOIT: een kop die meer beweert dan de bevinding aantoont.`;
+NOOIT: een kop die meer beweert dan de bevinding aantoont.
+
+DE AANBEVELING MOET NAAST HET DOCUMENT KUNNEN BESTAAN:
+- Lees de alinea's rond de passage voordat je iets voorstelt. Regelt het document het
+  onderwerp een stuk verderop anders of aanvullend, dan bepaalt dat mede of er wel een
+  gebrek is — en zo ja, welk.
+- Een aanbeveling die een naburige bepaling tegenspreekt is geen verbetering maar een
+  nieuwe tegenstrijdigheid.
+NOOIT: partijen iets laten afspreken dat het tegenovergestelde is van wat zij elders in
+hetzelfde document uitdrukkelijk zijn overeengekomen. Spreekt jouw voorstel zo'n bepaling
+tegen, benoem die bepaling dan in de bevinding en pas de aanbeveling erop aan.
+NOOIT: een ontbrekend beding aanvoeren dat de wet uitdrukkelijk optioneel laat, alsof het
+een eis is. Vraag je bij elk "ontbreekt" af of de wet het voorschrijft of slechts toestaat.`;
 
 // De datum zit erin zodat het model kan beoordelen of een peildatum in het verleden
 // ligt. Gevolg: het blok verandert dagelijks en mist dan eenmalig de cache.

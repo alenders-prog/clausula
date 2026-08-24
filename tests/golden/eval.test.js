@@ -19,7 +19,43 @@ const FIXTURES = join(__dir, 'fixtures');
 // Guard: skip als ANTHROPIC_API_KEY niet beschikbaar is
 const heeftApiKey = !!process.env.ANTHROPIC_API_KEY;
 
+/**
+ * Vooraf nakijken of TEST_JWT_TOKEN nog geldig is.
+ *
+ * Een Supabase-JWT verloopt binnen een uur. Verlopen? Dan antwoordt de endpoint
+ * met 401 en faalt elke fixture met "verwachte issues gevonden" — een melding
+ * die naar de prompt wijst terwijl er niets is geanalyseerd. Op 24 augustus 2026
+ * bleek de token al sinds de 19e verlopen: vijf dagen lang gaf de verplichte
+ * eval-run na een promptwijziging dus geen enkel signaal, en elke run zónder
+ * geladen .env sloeg zwijgend over.
+ *
+ * Vandaar deze controle vooraf, met de vervaldatum erbij.
+ */
+function tokenStatus() {
+  const t = process.env.TEST_JWT_TOKEN || '';
+  if (!t) return 'TEST_JWT_TOKEN ontbreekt in .env';
+  const deel = t.split('.')[1];
+  if (!deel) return 'TEST_JWT_TOKEN heeft geen JWT-vorm';
+  try {
+    const { exp } = JSON.parse(Buffer.from(deel, 'base64url').toString());
+    if (!exp) return null; // geen exp-claim — laat de aanroep zelf oordelen
+    if (exp * 1000 < Date.now()) {
+      return `TEST_JWT_TOKEN is verlopen op ${new Date(exp * 1000).toISOString()}. `
+        + 'Log in op de app, haal een verse token uit de sessie en zet die in .env — '
+        + 'anders meet deze eval niets.';
+    }
+  } catch {
+    return 'TEST_JWT_TOKEN is niet te lezen als JWT';
+  }
+  return null;
+}
+
 describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
+  beforeAll(() => {
+    const probleem = tokenStatus();
+    if (probleem) throw new Error(`Eval kan niet meten — ${probleem}`);
+  });
+
   const fixtures = readdirSync(FIXTURES)
     .filter(f => f.endsWith('.json') && !f.startsWith('sample-output-'))
     .map(f => ({ naam: f, data: JSON.parse(readFileSync(join(FIXTURES, f), 'utf8')) }));

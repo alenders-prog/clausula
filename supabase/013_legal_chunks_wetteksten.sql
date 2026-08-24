@@ -171,26 +171,42 @@ TOELICHTING: OUD RECHT voor huwelijken gesloten vóór 1-1-2018. Alle goederen e
 );
 
 -- ================================================================
--- CHUNK 6 — Art. 1:157 BW — Partneralimentatie (incl. wijziging 2020)
+-- CHUNK 6 — Art. 1:157 BW — duur partneralimentatie (geldend recht)
+-- Bijgewerkt 24-08-2026: dit blok citeerde de wettekst van vóór 2020 (lid 4 =
+-- twaalf jaren) terwijl de titel "incl. Wet herziening 2020" beloofde. Zie
+-- supabase/2026-08-24-alimentatie-chunks.sql — daar staat waarom, en die
+-- migratie heeft de draaiende kennisbank al bijgewerkt.
 -- ================================================================
 
 INSERT INTO legal_chunks (source_id, chunk_index, citation, content, topic_tags) VALUES (
   '10000000-0000-0000-0000-000000000012', 6,
-  'Art. 1:157 BW — partneralimentatie bij echtscheiding (volledig, incl. Wet herziening 2020)',
-  'LID 1: De rechter kan bij de echtscheidingsbeschikking of bij latere uitspraak aan de echtgenoot die niet voldoende inkomsten tot zijn levensonderhoud heeft, noch zich in redelijkheid kan verwerven, op diens verzoek ten laste van de andere echtgenoot een uitkering tot levensonderhoud toekennen.
+  'Art. 1:157 BW — duur partneralimentatie (geldend recht, verzoeken vanaf 1-1-2020)',
+  'Art. 1:157 BW — DUUR VAN DE PARTNERALIMENTATIE (geldende tekst; van toepassing op echtscheidingsverzoeken die zijn ingediend op of na 1 januari 2020, Wet herziening partneralimentatie, Stb. 2019/283).
 
-LID 2: Bij de vaststelling van de uitkering kan de rechter rekening houden met de behoefte aan een voorziening in het levensonderhoud voor het geval van overlijden van degene die tot de uitkering is gehouden.
+LET OP — DE TOEKENNING STAAT NIET IN DIT ARTIKEL: dat is art. 1:156 BW (de rechter kan aan de echtgenoot die niet voldoende inkomsten tot zijn levensonderhoud heeft, noch zich in redelijkheid kan verwerven, op diens verzoek ten laste van de andere echtgenoot een uitkering toekennen). Art. 1:157 BW regelt uitsluitend hoe lang die verplichting duurt wanneer de rechter zelf geen termijn heeft vastgesteld.
 
-LID 3: De rechter kan op verzoek van één van de echtgenoten de uitkering toekennen onder vaststelling van voorwaarden en van een termijn. Deze vaststelling kan niet ten gevolge hebben dat de uitkering later eindigt dan twaalf jaren na de datum van inschrijving van de beschikking in de registers van de burgerlijke stand.
+LID 1: Indien de rechter geen termijn heeft vastgesteld, eindigt de verplichting tot het verstrekken van levensonderhoud van rechtswege na het verstrijken van een termijn die gelijk is aan de helft van de duur van het huwelijk met een maximum van VIJF jaren.
 
-LID 4: Indien de rechter geen termijn heeft vastgesteld, eindigt de verplichting tot levensonderhoud van rechtswege na het verstrijken van een termijn van twaalf jaren, die aanvangt op de datum van inschrijving van de beschikking in de registers van de burgerlijke stand.
+LID 2: Is op het tijdstip van indiening van het verzoek de duur van het huwelijk langer dan vijftien jaren en is de gerechtigde ten hoogste tien jaren jonger dan de leeftijd bedoeld in art. 7a Algemene Ouderdomswet, dan eindigt de verplichting niet eerder dan op het tijdstip waarop die echtgenoot die leeftijd bereikt.
 
-LID 5: Indien de beëindiging van de uitkering ten gevolge van het verstrijken van de in het vierde lid bedoelde termijn van zo ingrijpende aard is dat ongewijzigde handhaving van die termijn naar maatstaven van redelijkheid en billijkheid van degene die tot de uitkering gerechtigd is niet kan worden gevergd, kan de rechter op diens verzoek alsnog een termijn vaststellen. Het verzoek daartoe dient te worden ingediend voordat drie maanden sinds de beëindiging zijn verstreken.
+LID 3: Is de duur van het huwelijk langer dan vijftien jaren, is de gerechtigde geboren op of voor 1 januari 1970 en is diens leeftijd meer dan tien jaren lager dan de AOW-leeftijd, dan eindigt de verplichting na tien jaren.
 
-LID 6: Indien de duur van het huwelijk niet meer bedraagt dan vijf jaren en uit dit huwelijk geen kinderen zijn geboren, eindigt de verplichting tot levensonderhoud van rechtswege na het verstrijken van een termijn die gelijk is aan de duur van het huwelijk en die aanvangt op de datum van inschrijving van de beschikking in de registers van de burgerlijke stand.
+LID 4: In afwijking van het eerste tot en met derde lid eindigt de verplichting niet eerder dan op het tijdstip waarop de uit het huwelijk geboren kinderen de leeftijd van TWAALF jaren hebben bereikt.
 
-TOELICHTING: Partneralimentatie is NIET dwingend recht — echtgenoten kunnen contractueel afzien van partneralimentatie (contrast met art. 1:400 lid 2 BW voor kinderalimentatie). Maximale duur 12 jaar (lid 4). Bij huwelijk korter dan 5 jaar zonder kinderen geldt de kortere termijn van lid 6 (Wet herziening partneralimentatie 2020). Lid 6 geldt NIET als er kinderen zijn geboren, ook niet als die al meerderjarig zijn.',
-  ARRAY['partneralimentatie', 'alimentatie', 'levensonderhoud', 'echtscheiding']
+LID 5: Bij samenloop van de omstandigheden uit lid 1 tot en met 4 geldt de LANGSTE termijn.
+
+LID 6: De termijn vangt aan op de datum van inschrijving van de echtscheidingsbeschikking in de registers van de burgerlijke stand.
+
+LID 7: Hardheidsclausule — kan ongewijzigde handhaving van de beeindiging naar maatstaven van redelijkheid en billijkheid niet van de gerechtigde worden gevergd, dan kan de rechter op diens verzoek alsnog een termijn vaststellen. Het verzoek wordt ingediend binnen drie maanden na de beeindiging. De rechter bepaalt bij de uitspraak of verlenging daarna mogelijk is.
+
+DE TERMIJN VAN TWAALF JAAR IS OUD RECHT. Die stond in art. 1:157 lid 4 (oud) en geldt uitsluitend voor echtscheidingsverzoeken die voor 1 januari 2020 zijn ingediend. Noem hem nooit bij een recente scheiding: de hoofdregel is sindsdien de helft van de huwelijksduur met een maximum van vijf jaar (lid 1). Ook het oude lid 6 (huwelijk korter dan vijf jaar zonder kinderen) bestaat niet meer in die vorm.
+
+TOELICHTING: partneralimentatie is NIET dwingend recht — echtgenoten kunnen er contractueel van afzien via art. 1:158 BW. Contrast met art. 1:400 lid 2 BW voor kinderalimentatie, dat wel dwingend is.
+
+GEREGISTREERD PARTNERSCHAP: art. 1:80e lid 1 BW verklaart de artikelen 153 tot en met 160 van overeenkomstige toepassing op de ontbinding van een geregistreerd partnerschap. Dit duurregime geldt daar dus onverkort.
+
+CONVENANT: vermeld ingangsdatum, hoogte en einddatum van de partneralimentatie, of leg een nihilbeding vast (art. 1:158 BW). Neemt de overeenkomst zelf geen termijn op, dan is art. 1:157 lid 1 tot en met 5 en lid 7 van overeenkomstige toepassing (art. 1:158 BW, tweede volzin).',
+  ARRAY['partneralimentatie', 'alimentatie', 'levensonderhoud', 'echtscheiding', 'convenant', 'nihilbeding']
 );
 
 -- ================================================================

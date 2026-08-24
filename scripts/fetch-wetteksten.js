@@ -111,10 +111,14 @@ const VOLGENDE_INDEX = {
 
 // ── Stap 1: Officiële wettekst ophalen ───────────────────────────────
 async function haalWettekstOp(bwbId, artikel) {
-  // wetten.overheid.nl: geconsolideerde tekst als HTML
-  // URL-patroon: /<BWBR-ID>/<datum>  (datum leeg → meest recente versie)
-  const vandaag  = new Date().toISOString().slice(0, 10);
-  const url      = `https://wetten.overheid.nl/${bwbId}/${vandaag}/0`;
+  // wetten.overheid.nl: geconsolideerde tekst als HTML.
+  //
+  // Zonder datumsuffix krijg je de meest recente geldende versie. Mét suffix
+  // (/<BWBR-ID>/<datum>/0) antwoordt de site sinds enige tijd met 404 — en dat
+  // werd hieronder afgevangen met een console.warn en `return null`, waarna het
+  // script vrolijk doorliep met nul wetteksten. Op 24-08-2026 bleek zo dat de
+  // hele fetcher al een tijd niets meer ophaalde zonder dat iemand het zag.
+  const url = `https://wetten.overheid.nl/${bwbId}`;
 
   console.log(`  → Ophalen: ${url}`);
   let html;

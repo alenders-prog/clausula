@@ -291,6 +291,39 @@ Voordat je rapporteert dat iets ontbreekt:
 3. Bij aantoonbaar doorlopende sectienummering: ga er altijd vanuit dat hogere nummers bestaan
 4. Rapporteer een afwezigheid uitsluitend als je na actief zoeken bevestigt dat het er absoluut niet in staat
 
+### De aanbeveling moet naast het document kunnen bestaan
+
+Toegevoegd 24 augustus 2026, na een issue *"Partneralimentatie: nihilbeding ontbreekt"*
+dat als aanbeveling een **niet-wijzigingsbeding** voorstelde — terwijl het convenant er
+één alinea verder juist in voorzag dat bij gewijzigde omstandigheden wordt **herberekend**.
+De aanbeveling zou de afspraak van partijen dus ongedaan maken.
+
+De regel staat nu in `VERIFICATIEPLICHT` (`api/_prompts/gedeeld.js`), naast de bestaande
+kop/bevinding/passage-regels: lees de alinea's rond de passage vóór je iets voorstelt, en
+voer nooit een ontbrekend beding op dat de wet uitdrukkelijk **optioneel** laat alsof het
+een eis is.
+
+**Nihilbeding vs. niet-wijzigingsbeding — de verwarring die dit veroorzaakte:**
+
+| Artikel | Wat het is |
+|---|---|
+| art. 1:156 BW | de **toekenning** van partneralimentatie door de rechter (niet 1:157) |
+| art. 1:157 BW | de **duur**: lid 1 = helft van de huwelijksduur, **max vijf jaar** (sinds 1-1-2020) |
+| art. 1:158 BW | de **overeenkomst** zelf — de grondslag van het nihilbeding |
+| art. 1:159 BW | het **niet-wijzigingsbeding**: *optioneel*, "kan worden bedongen", schriftelijk |
+| art. 1:159a BW | de overeenkomst staat verhaal door de gemeente **niet** in de weg |
+| art. 1:80e BW | verklaart artt. 153–160 van toepassing bij geregistreerd partnerschap |
+
+De checklist in `_prompts/fragmenten.js` noemde 1:159 als eis voor een geldig nihilbeding,
+en twee kennisbank-chunks deden hetzelfde. Beide zijn rechtgezet
+(`supabase/2026-08-24-alimentatie-chunks.sql`). **De termijn van twaalf jaar is oud recht** —
+alleen voor verzoeken van vóór 1-1-2020.
+
+Bewaakt door `tests/unit/prompt-wetsartikelen.test.js`: die toetst per regel of een begrip
+aan het juiste artikel hangt, en of de twaalfjaarstermijn niet zonder de aantekening "oud
+recht" wordt genoemd. Een review vangt dit niet — de code klopte, er stond alleen een
+verkeerd nummer in een zin.
+
 ### Verificatieplicht bij berekende en normatieve claims
 
 Toegevoegd 19 augustus 2026, na een issue met de titel *"Zorgkorting-percentages optellen
