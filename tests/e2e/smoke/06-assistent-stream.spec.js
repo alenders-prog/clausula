@@ -146,3 +146,39 @@ test('assistent toont een leesbare melding bij een platte foutpagina', async ({ 
 
   verwachtGeenPaginafouten(fouten);
 });
+
+test('clausulekop blijft niet achter als het genereren mislukt', async ({ page }) => {
+  // De kop wordt vóór de stroom opgehangen zodat hij niet halverwege bijschuift.
+  // Gaat het antwoord daarna mis, dan ruimt de stroom zijn eigen voorvertoning op
+  // maar is de kop een apart element — en bleef die staan. Bij elke nieuwe poging
+  // kwam er zo een lege "Voorgestelde clausule" boven de volgende foutmelding.
+  const fouten = volgPaginafouten(page);
+  await mockSupabaseSession(page);
+  await mockSupabaseRest(page);
+
+  await page.route('**/api/ai-assistent', route => route.fulfill({
+    status: 500,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ error: 'Claude 529: overloaded' }),
+  }));
+
+  await page.goto('/', { waitUntil: 'commit' });
+  await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await page.evaluate(() => {
+    window.toggleAssistPanel();
+    if (typeof window._assistLinkNee === 'function') window._assistLinkNee();
+  });
+
+  // Twee keer proberen: één achtergebleven kop valt nog weg tussen de meldingen,
+  // maar bij herhaling stapelen ze op — en dát is wat de mediator zou zien.
+  for (let poging = 0; poging < 2; poging++) {
+    await page.evaluate(() => window._assistVerstuur(
+      'Stel een clausule op over de verkoop van de woning.', 'Clausule…', true, true));
+    await expect(page.locator('#assistMsgs')).toContainText('fout', { ignoreCase: true });
+  }
+
+  const koppen = await page.locator('#assistMsgs [id^="clausule-hdr-"]').count();
+  expect(koppen, `${koppen} achtergebleven clausulekop(pen) na twee mislukte pogingen`).toBe(0);
+
+  verwachtGeenPaginafouten(fouten);
+});

@@ -13931,6 +13931,7 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
 
   } catch (err) {
     _assistVerwijderThinking();
+    _assistVerwijderClausuleHeader();   // anders blijft er een lege kop achter
     _assistVoegAssistBerichtToe(
       `Er is een fout opgetreden: ${escH(err.message)}. Probeer het opnieuw.`,
       [], 'geen'
@@ -14152,6 +14153,7 @@ Sluit de toelichting af met: "*Dit is een aanbeveling — eindverantwoordelijkhe
 
   } catch (err) {
     _assistVerwijderThinking();
+    _assistVerwijderClausuleHeader();   // anders blijft er een lege kop achter
     _assistVoegAssistBerichtToe(`Fout bij genereren: ${escH(err.message)}`, [], 'geen');
   } finally {
     _assistSetBezig(false);
@@ -14171,6 +14173,22 @@ function _assistVoegClausuleHeader(docType) {
   d.innerHTML = `<div id="${_hdrId}" style="font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);padding:0 2px 2px;">Voorgestelde clausule — ${escH(_docLabelMap[docType] || docType)}</div>
     <div style="font-size:.72rem;color:var(--ink-soft);padding:0 2px 4px;">${escH(_stijlLabel)}</div>`;
   document.getElementById('assistMsgs').appendChild(d);
+}
+
+// Haalt een zojuist geplaatste clausulekop weer weg.
+//
+// De kop wordt vóór de stroom opgehangen zodat hij niet halverwege bijschuift. Gaat
+// het antwoord daarna mis — een time-out, een afgebroken verbinding, een 5xx — dan
+// ruimt de stroom zijn eigen voorvertoning op, maar de kop is een apart element en
+// bleef staan. Bij elke nieuwe poging kwam er dan een lege "Voorgestelde clausule"
+// boven de volgende foutmelding.
+//
+// Let op: `lastClausuleHdrId` staat op de bínnenste div (de renderer gebruikt hem om
+// de titel bij te werken). Wat weg moet is de hele bubbel eromheen.
+function _assistVerwijderClausuleHeader() {
+  if (!_assist.lastClausuleHdrId) return;
+  document.getElementById(_assist.lastClausuleHdrId)?.closest('.assist-msg-assist')?.remove();
+  _assist.lastClausuleHdrId = null;
 }
 
 function _assistVoegKlanttekstKnopToe(basis) {
