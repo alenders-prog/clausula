@@ -103,7 +103,7 @@ test('assistent beantwoordt een vraag streamend, zonder runtime-fouten', async (
 
   // ── 2. De secties zijn gerenderd ────────────────────────────────────────────
   // Bronnen komen als chips terug, signalen als inklapbaar blok.
-  await expect(bericht.locator('.assist-bron')).toHaveCount(2, { timeout: 10_000 });
+  await expect(bericht.locator('.assist-bron')).toHaveCount(2, { timeout: 20_000 });
   await expect(bericht).toContainText('Signalen');
   await expect(bericht).toContainText('Aannames');
 

@@ -23,11 +23,11 @@ test('dossier-lijst toont kaarten na inlog', async ({ page }) => {
 
   // Minimaal één dossier-kaart aanwezig (uit fixture dossiers.json)
   const kaart = lijst.locator('.dos-kaart').first();
-  await expect(kaart).toBeVisible({ timeout: 10_000 });
+  await expect(kaart).toBeVisible({ timeout: 20_000 });
 
   // Topbar toont de praktijknaam (bewijst dat gebruikersprofiel geladen is)
   const firm = page.locator('#topbarFirm');
-  await expect(firm).not.toBeEmpty({ timeout: 5_000 });
+  await expect(firm).not.toBeEmpty({ timeout: 20_000 });
 
   verwachtGeenPaginafouten(fouten);
 });

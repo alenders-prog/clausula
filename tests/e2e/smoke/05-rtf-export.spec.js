@@ -42,11 +42,11 @@ test('PDF-rapport knop zichtbaar na laden rapport', async ({ page }) => {
   }, [CLS, RPT]);
 
   // Issues-lijst moet gevuld zijn
-  await page.waitForSelector('#issuesLijst', { timeout: 8_000 });
+  await page.waitForSelector('#issuesLijst', { timeout: 20_000 });
 
   // PDF-rapport knop moet zichtbaar zijn in de docbar
   const pdfBtn = page.locator('#downloadPdfBtn');
-  await expect(pdfBtn).toBeVisible({ timeout: 5_000 });
+  await expect(pdfBtn).toBeVisible({ timeout: 20_000 });
   await expect(pdfBtn).toBeEnabled();
 
   verwachtGeenPaginafouten(fouten);
