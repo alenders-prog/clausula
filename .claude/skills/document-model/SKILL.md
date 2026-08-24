@@ -279,6 +279,28 @@ if (_isCrossDoc && !isGehighlightd() && huidigeDocumenten.length > 1) {
 }
 ```
 
+### Zoeken in het documentpaneel: de highlighters leveren de ankers
+
+`_zoekAnkers` is de lijst waar de teller (`1 / 12`) en de vorige/volgende-knoppen op
+draaien. **`highlightInPdf()` en `highlightInDocx()` vullen die lijst zelf**, met precies
+één anker per treffer. De aanroepers (`zoekInDocument`, `renderDocPanel`) resetten hem en
+roepen beide highlighters aan — meer niet.
+
+Zelf `querySelectorAll('.hl-match')` doen ná die aanroepen telt alles dubbel:
+
+- `highlightInPdf` markeert élke `.textLayer`-span die een treffer raakt, maar duwt alleen
+  de eerste in `_zoekAnkers` — één treffer kan over drie spans lopen.
+- `highlightInDocx` maakt één `<mark>` per **tekstnode**; een woord dat halverwege vet
+  wordt levert twee marks op. Vandaar `mark.dataset.match` als volgnummer van de treffer,
+  en één anker per uniek nummer.
+- `.docx-inhoud` en `.textLayer` staan bovendien niet alleen in `#documentPanel` — het
+  conceptpaneel heeft er ook een. Document-brede selectors halen die er dus bij.
+
+Op 24-08-2026 gaf de zoekbalk daardoor `9 / 21` op een document met tien treffers, en liep
+vorige/volgende door dezelfde plek heen. Bewaakt door `tests/e2e/smoke/08-doc-zoeken.spec.js`;
+`hintFrac` in `highlightInPdf` zet bovendien `_zoekIdx` op een index in de PDF-ankers, dus
+er mag niets vóór die ankers in de lijst belanden.
+
 Zie de `screening-categorien` skill voor categoriedefinities en ernst-criteria.
 
 ---
@@ -298,5 +320,8 @@ Er zijn drie plaatsen die issue-aantallen tonen — ze gebruiken bewust dezelfde
 - `negeer: true` = permanent verborgen door gebruiker → telt nooit mee in chip of overzichtsring.
 - `afgehandeld: true` = afgehandeld door gebruiker → telt ook niet mee (behandeld als gesloten).
 - De overzichtsring toont aantallen **open issues** (= wat de chip toont), NIET het historische totaal.
+- Roepnaam-kaarten komen er in `_renderProgressief` én `_docResultaten` **per bestandsnaam**
+  bij, uit `_roepnaamIssuesPerBestand` — nooit als één lijst voor alle documenten. Zie de
+  `screening-categorien` skill.
 
 **Bij wijziging van de issue-filter:** pas altijd `_renderProgressief` (index.html) EN de toelichting in dit skill-bestand aan.

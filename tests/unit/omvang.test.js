@@ -91,8 +91,22 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // losmaken van de klik-handler zodat de wizard erop kan wachten. Geen van die delen
 // heeft een eigen redenering die zich buiten de DOM laat toetsen — wat het wél
 // verdiende is een browsertest, en die staat er (07-wizard-analyse.spec.js).
-const MAX_REGELS_INDEX = 15377;
-const MAX_REGELS_JS     = 12347;
+// 24-08-2026 (derde keer): 15377 → 15382 (+5 totaal, +5 script), na twee reparaties
+// die per saldo bijna tegen elkaar wegvielen.
+//
+// Eruit: de roepnaam-issues, die als één lijst aan élk document werden geplakt met
+// een passage uit het verkeerde document. Die toewijzing staat nu in
+// src/rapport/roepnaam-issues.js (11 tests) — precies een transformatie met een
+// eigen redenering, dus daar hoort hij.
+//
+// Erin: één anker per treffer in `highlightInDocx`. Dat is geen redenering die zich
+// buiten de DOM laat toetsen — de functie loopt over live tekstnodes en het bewijs
+// is juist dat twee <mark>-elementen samen één zoekresultaat vormen. Verplaatsen
+// zou de walker als parameter opleveren zonder dat er iets aantoonbaar wordt.
+// Wat het wél verdiende is een browsertest: 08-doc-zoeken.spec.js, vier stuks,
+// waarvan er drie falen zodra de oude verzamelwijze terugkomt.
+const MAX_REGELS_INDEX = 15382;
+const MAX_REGELS_JS     = 12352;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

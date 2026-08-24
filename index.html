@@ -4059,19 +4059,9 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   const { naarAnon, naarEcht, naarEchtVolledig, roepnamen: _roepnamen, waarschuwingen: _roepnaamWaarschuwingen } = bouwAnonMap(classificatie);
   huidigeNaarEchtVolledig = naarEchtVolledig;
   // Converteer roepnaam-waarschuwingen naar synthetic issue-kaarten (geen alert-popup)
-  _roepnaamSyntheticIssues = (_roepnaamWaarschuwingen || []).map(w => {
-    const eersteFn = w.formeelVolledig.trim().split(/\s+/)[0];
-    return {
-      onderwerp:    `Roepnaam "${w.roepnaam}" niet formeel geïntroduceerd`,
-      ernst:        'midden',
-      dimensies:    ['volledigheid'],
-      bevinding:    `"${w.roepnaam}" wijkt sterk af van de geboortennaam "${w.formeelVolledig}". De roepnaam wordt gebruikt in het document maar is niet formeel geïntroduceerd in de persoonsspecificatie.`,
-      aanbeveling:  `Voeg toe aan de persoonsspecificatie: "${w.formeelVolledig}, hierna ook te noemen '${w.roepnaam}'" — of gebruik de geboortennaam "${eersteFn}" consequent in het document.`,
-      passage:      '',
-      afgehandeld:  false,
-      opmerking:    '',
-    };
-  });
+  // De roepnaam-issues worden verderop gebouwd, zodra documentDelen bekend is —
+  // ze horen bij het document waar de roepnaam in staat, niet bij alle.
+  _roepnaamIssuesPerBestand = new Map();
   // Bewaar module-level zodat opslaan() en laadScreening() er bij kunnen
   huidigeNaarAnon = naarAnon;
   huidigeNaarEcht = naarEcht;
@@ -4116,22 +4106,20 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     if (!naarAnon.has(val.toLowerCase())) naarAnon.set(val.toLowerCase(), ph);
   }
 
-  // Vul passage in voor synthetische roepnaam-issues: eerste voorkomen van de roepnaam in originele tekst.
-  (_roepnaamWaarschuwingen || []).forEach((w, i) => {
-    const synIssue = _roepnaamSyntheticIssues[i];
-    if (!synIssue) return;
-    const roepnaamLc = w.roepnaam.toLowerCase();
-    for (const deel of documentDelen) {
-      const tekst = deel?.tekst || '';
-      const idx = tekst.toLowerCase().indexOf(roepnaamLc);
-      if (idx === -1) continue;
-      const start = tekst.lastIndexOf('\n', idx);
-      const end   = tekst.indexOf('\n', idx);
-      const zin   = tekst.slice(start < 0 ? 0 : start + 1, end < 0 ? tekst.length : end).trim();
-      if (zin) synIssue.passage = zin;
-      break;
+  // Roepnaam-issues toewijzen aan het document waar de roepnaam daadwerkelijk in
+  // staat, met de passage uit dát document — zie src/rapport/roepnaam-issues.js.
+  {
+    const _rnDocs = resolvedItems.map((item, i) => ({
+      bestandsnaam: item.bestandsnaam,
+      tekst:        documentDelen[i]?.tekst || '',
+    }));
+    const { perBestand, ongeplaatst } = bouwRoepnaamIssues(_roepnaamWaarschuwingen, _rnDocs);
+    _roepnaamIssuesPerBestand = perBestand;
+    if (ongeplaatst.length) {
+      console.warn('[analyseer] roepnaam niet in enig document gevonden, kaart bij alle documenten:',
+        ongeplaatst.map(w => w.roepnaam).join(', '));
     }
-  });
+  }
 
   // ── Skeleton split-view alvast openen ─────────────────────────────────────
   // Toon de split-view met "Analyseren…" per dimensie vóórdat de server begint.
@@ -4190,7 +4178,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
                 Array.isArray(acc.cross_doc?.issues)  ? acc.cross_doc.issues  : [],
               ])
         ).map(i => ({ ...i, afgehandeld: false, opmerking: '' })),
-        ...(acc.consolidatie ? _roepnaamSyntheticIssues : []),
+        ...(acc.consolidatie ? (_roepnaamIssuesPerBestand.get(bestandsnaam) || []) : []),
       ];
 
       // Zet global zodat issueKaart() en de checkbox-handlers kloppen
@@ -4562,7 +4550,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       checkIssueKwaliteit(item.bestandsnaam, alleIssues);
     }
     // Roepnaam-waarschuwingen als issue-kaart toevoegen (geen alert-popup)
-    alleIssues = [...alleIssues, ..._roepnaamSyntheticIssues];
+    alleIssues = [...alleIssues, ...(_roepnaamIssuesPerBestand.get(item.bestandsnaam) || [])];
     return {
       doc_type:     item.type,
       bestandsnaam: item.bestandsnaam,
@@ -4880,10 +4868,11 @@ async function renderDocPanel(searchText) {
   _zoekAnkers = []; _zoekIdx = 0;
   const _zoekBalkWaarde = document.getElementById('docZoekInput')?.value || '';
   const _effectiefZoek  = _zoekBalkWaarde || searchText || '';
+  // Beide highlighters vullen _zoekAnkers zelf, met één anker per treffer. Hier nog
+  // eens alle gemarkeerde elementen ophalen telde elke treffer dubbel — en een treffer
+  // die over meerdere spans of tekstnodes liep zelfs vaker (zoekbalk toonde 9 / 21).
   highlightInPdf(_effectiefZoek, _passageHintFrac);
   highlightInDocx(_effectiefZoek);
-  _zoekAnkers.push(...Array.from(document.querySelectorAll('.docx-inhoud mark.hl-match')));
-  _zoekAnkers.push(...Array.from(document.querySelectorAll('.textLayer span.hl-match')));
   if (_zoekAnkers.length && _effectiefZoek) _scrollNaarHuidigeMatch();
   _updateDocZoekInfo();
 }
@@ -4985,10 +4974,9 @@ function zoekInDocument(zoek) {
     toonTekstFallback(panel, zoek);
     _zoekAnkers = Array.from(panel.querySelectorAll('mark.hl-match'));
   } else {
+    // Niet zelf ankers verzamelen: beide highlighters doen dat al, één per treffer.
     highlightInPdf(zoek);
     highlightInDocx(zoek);
-    _zoekAnkers.push(...Array.from(document.querySelectorAll('.docx-inhoud mark.hl-match')));
-    _zoekAnkers.push(...Array.from(document.querySelectorAll('.textLayer span.hl-match')));
   }
   if (_zoekAnkers.length) _scrollNaarHuidigeMatch();
   _updateDocZoekInfo();
@@ -5168,7 +5156,6 @@ function highlightInDocx(searchText) {
   if (!zoek) return 0;
 
   let aantalMatches = 0;
-  let eersteEl = null;
 
   for (const content of contents) {
     const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
@@ -5196,13 +5183,16 @@ function highlightInDocx(searchText) {
     if (!matchPosities.length) continue;
 
     // Per tekstnode: welke ranges moeten gemarkeerd worden?
+    // `mi` is het volgnummer van de treffer. Loopt een treffer over twee tekstnodes,
+    // dan levert hij twee <mark>-elementen op — maar het blijft één zoekresultaat.
     const nodeRanges = nodes.map(() => []);
-    for (const { pos, eind } of matchPosities) {
+    for (let mi = 0; mi < matchPosities.length; mi++) {
+      const { pos, eind } = matchPosities[mi];
       for (let i = 0; i < nodes.length; i++) {
         const nStart = nodeStart[i];
         const nEind  = nStart + nodes[i].nodeValue.length;
         if (nEind <= pos || nStart >= eind) continue;
-        nodeRanges[i].push({ hlStart: Math.max(0, pos - nStart), hlEind: Math.min(nodes[i].nodeValue.length, eind - nStart) });
+        nodeRanges[i].push({ hlStart: Math.max(0, pos - nStart), hlEind: Math.min(nodes[i].nodeValue.length, eind - nStart), mi });
       }
     }
 
@@ -5213,18 +5203,28 @@ function highlightInDocx(searchText) {
       const ranges = nodeRanges[i].sort((a, b) => a.hlStart - b.hlStart);
       const frag   = document.createDocumentFragment();
       let cursor   = 0;
-      for (const { hlStart, hlEind } of ranges) {
+      for (const { hlStart, hlEind, mi } of ranges) {
         if (cursor < hlStart) frag.appendChild(document.createTextNode(raw.slice(cursor, hlStart)));
         const mark = document.createElement('mark');
         mark.className = 'hl-match';
+        mark.dataset.match = String(mi);
         mark.textContent = raw.slice(hlStart, hlEind);
         frag.appendChild(mark);
-        if (!eersteEl) eersteEl = mark;
         cursor = hlEind;
       }
       if (cursor < raw.length) frag.appendChild(document.createTextNode(raw.slice(cursor)));
       nodes[i].parentNode.replaceChild(frag, nodes[i]);
     }
+
+    // Eén anker per treffer, in documentvolgorde. Deze functie is de enige die
+    // DOCX-ankers aanlevert; de aanroeper mag er niets bij zoeken, anders telt
+    // de zoekbalk elke treffer opnieuw.
+    const gezien = new Set();
+    content.querySelectorAll('mark.hl-match[data-match]').forEach(m => {
+      if (gezien.has(m.dataset.match)) return;
+      gezien.add(m.dataset.match);
+      _zoekAnkers.push(m);
+    });
     break;
   }
   return aantalMatches;
@@ -8556,7 +8556,10 @@ let _alVerwerktWijzigingIdx = null; // Set van indices waarvan de tekst al via e
 // de ESM-bridge overschrijft ze v\u00f3\u00f3r de eerste gebruikersactie.
 var bouwAnonMap;      // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
 var anonimiseerTekst; // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
-let _roepnaamSyntheticIssues = []; // issue-kaarten voor sterk afwijkende roepnamen (geen alert)
+// Issue-kaarten voor sterk afwijkende roepnamen (geen alert), per bestandsnaam —
+// een kaart hoort alleen bij het document waar die roepnaam in voorkomt.
+let _roepnaamIssuesPerBestand = new Map();
+var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-bridge)
 
 // Maakt een gedeelde PII-tracker aan die genummerde, terugzetbare placeholders beheert.
 // Gedeeld over meerdere anonimiseerTekst-aanroepen zodat indexering consistent blijft.
@@ -15212,6 +15215,7 @@ import { volgendeAlineaActie }                              from './src/docx/ali
 import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin-samenvoegen.js';
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 import { injecteerNummering }                               from './src/docx/nummering.js';
+import { bouwRoepnaamIssues }                              from './src/rapport/roepnaam-issues.js';
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
 import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
@@ -15246,6 +15250,7 @@ window.volgendeAlineaActie    = volgendeAlineaActie;
 window.hoortAaneen            = hoortAaneen;
 window.volgendeMetTekst       = volgendeMetTekst;
 window.artikelVerwijzingen    = artikelVerwijzingen;
+window.bouwRoepnaamIssues     = bouwRoepnaamIssues;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;
