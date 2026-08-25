@@ -105,8 +105,28 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // zou de walker als parameter opleveren zonder dat er iets aantoonbaar wordt.
 // Wat het wél verdiende is een browsertest: 08-doc-zoeken.spec.js, vier stuks,
 // waarvan er drie falen zodra de oude verzamelwijze terugkomt.
-const MAX_REGELS_INDEX = 15382;
-const MAX_REGELS_JS     = 12352;
+// 24-08-2026 (vierde keer): 15382 → 15434 (+52 totaal, +51 script), voor het
+// vervangen van wizard-stap 3 door een looptoestand ín stap 2.
+//
+// Er ging óók code weg: wizNaarStap3 en wizHerstelVoortgang samen 64 regels, plus
+// een !important-CSS-blok en het markupblok van stap 3. Wat ervoor terugkomt is
+// langer omdat het meer toestanden netjes afhandelt — knop, terugknop,
+// keuzelijsten, standvakjes, foutpad — en omdat er uitleg bij staat over waarom
+// het geleende-elementen-mechanisme weg moest. Dat mechanisme brak op één dag twee
+// keer; die uitleg is de goedkoopste manier om te voorkomen dat iemand het
+// terugbouwt.
+//
+// Verplaatsen naar src/ is hier onderzocht en afgewezen: alles wat erin zit is
+// DOM-bedrading (klasse zetten, knop uitschakelen, rij opzoeken). Er is geen kern
+// die zich buiten de DOM laat toetsen; extractie zou een parameterlijst met
+// element-id's opleveren en geen enkele bewering bewijzen.
+//
+// Wat het wél verdiende is een browsertest, en die is meegegroeid:
+// 07-wizard-analyse.spec.js dekt nu vijf gevallen, waaronder het foutpad waar de
+// vorige opzet twee keer op strandde, en het vinkje-op-naam in plaats van op
+// volgorde.
+const MAX_REGELS_INDEX = 15434;
+const MAX_REGELS_JS     = 12403;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

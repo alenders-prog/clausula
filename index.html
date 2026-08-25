@@ -1787,27 +1787,39 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .awiz-sb-txt .awiz-sb-desc{font-size:.75rem;color:var(--ink-soft);line-height:1.4;margin-top:2px;}
 /* CTA stap 1 */
 .awiz-stap1-cta{display:flex;justify-content:flex-end;padding-top:10px;}
-.awiz-stap3-wrap{max-width:1080px;margin:0 auto;}
-.awiz-stap3-docs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px;}
-.awiz-stap3-doc{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;
-  border:1px solid var(--line);border-radius:20px;background:var(--paper);
-  font-size:.78rem;color:var(--ink-mid);}
-.awiz-stap3-doc .awiz-stap3-type{color:var(--ink-soft);font-size:.72rem;}
-.awiz-stap3-voortgang .scanning{margin-top:18px;}
+
+/* ── Looptoestand van stap 2 ───────────────────────────────────────────────
+   Er was hiervoor een apart paneel (stap 3) dat #scanning uit het uploadscherm
+   leende en naderhand terugzette. Dat leverde twee fouten op één dag op, en het
+   beloofde "twee minuten" terwijl het na vijf seconden verdween. De analyse
+   verandert nu de toestand van stap 2 in plaats van er een scherm voor te maken. */
+.laad-spin{display:inline-block;width:13px;height:13px;flex-shrink:0;border-radius:50%;
+  border:2px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;
+  animation:laad-draai .8s linear infinite;}
+@keyframes laad-draai{to{transform:rotate(360deg);}}
+@media (prefers-reduced-motion:reduce){.laad-spin{animation:none;}}
+
+/* Het `hidden`-attribuut verliest van een eigen display-regel: `[hidden]` en
+   `.awiz-time` hebben dezelfde specificiteit, dus de laatste regel wint — en dat is
+   de klasse. Het tijdblok bleef daardoor gewoon staan mét hidden erop. Deze regel
+   maakt `hidden` weer betekenen wat het zegt. */
+.awiz-time[hidden],.awiz-status[hidden]{display:none !important;}
+.awiz-status{flex:1;min-width:0;font-size:.83rem;color:var(--ink-soft);
+  display:flex;align-items:center;gap:8px;}
+.awiz-status.fout{color:var(--terra);}
+.awiz-btn-loopt{opacity:1;}
+.awiz-btn-loopt .laad-spin{margin-right:7px;vertical-align:-2px;}
+
+/* Stand per documentregel: leeg vóór de start, spinner tijdens, vinkje daarna. */
+.awiz-doc-stand{display:inline-flex;align-items:center;justify-content:center;
+  width:18px;height:18px;flex-shrink:0;color:var(--ink-soft);}
+.awiz-doc-stand.klaar{color:var(--sage);}
 /* Bewerkingsmodus: beide stappen tegelijk zichtbaar, stap-navigatie verborgen */
 .awiz-overlay.awiz-bewerk #awiz-stap1{display:block !important;}
 .awiz-overlay.awiz-bewerk #awiz-stap2{display:block !important;}
 .awiz-overlay.awiz-bewerk .awiz-stap1-cta{display:none;}
 .awiz-overlay.awiz-bewerk .awiz-bc{display:none;}
 .awiz-overlay.awiz-bewerk #awiz-stap2 .awiz-stap-hdr{padding-top:0;border-top:1px solid var(--line);margin-top:20px;padding-top:20px;}
-/* Tijdens de analyse telt alleen stap 3.
-   Deze regel staat bewust ná de bewerkingsmodus hierboven. Die forceert stap 1 en 2
-   zichtbaar met !important; een inline display:none verliest daarvan. Bij gelijke
-   specificiteit wint de laatste regel, dus hier hoort hij. Zonder dit bleven in de
-   bewerkingsmodus de uploadzone, de documentenlijst en de knop "Analyse starten"
-   naast de voortgang staan — precies het scherm dat we wilden opruimen. */
-.awiz-overlay.awiz-analyse #awiz-stap1,
-.awiz-overlay.awiz-analyse #awiz-stap2{display:none !important;}
 .awiz-btn-primary{background:var(--coral);color:#fff;padding:10px 24px;border-radius:8px;border:none;font-size:.9rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
 .awiz-btn-primary:hover{opacity:.9;}
 .awiz-btn-primary:disabled{opacity:.5;cursor:default;}
@@ -2474,8 +2486,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
       <div class="awiz-bc-step active" id="wbc1"><div class="awiz-bc-num">1</div>Dossier</div>
       <div class="awiz-bc-line"></div>
       <div class="awiz-bc-step" id="wbc2"><div class="awiz-bc-num">2</div>Documenten</div>
-      <div class="awiz-bc-line"></div>
-      <div class="awiz-bc-step" id="wbc3"><div class="awiz-bc-num">3</div>Analyse</div>
+      <!-- Er stond hier een derde stap "Analyse". Die is er niet meer: de analyse
+           is geen stap in de wizard maar wat er ná stap 2 gebeurt, en het scherm
+           dat erbij hoorde leefde vijf seconden. Een stappenbalk die een stap toont
+           die je nooit bereikt, belooft meer dan er is. -->
     </div>
     <div class="awiz-hdr-sp"></div>
   </div>
@@ -2626,7 +2640,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
           </div>
           <!-- CTA -->
           <div class="awiz-cta">
-            <div class="awiz-time">
+            <div class="awiz-time" id="wizTijdBlok">
               <div class="awiz-time-ico">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
@@ -2635,6 +2649,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
                 <div class="awiz-time-val" id="wizTimeTxt">—</div>
               </div>
             </div>
+            <!-- Neemt de plek van het tijdblok over zodra de analyse loopt: dáár
+                 kijkt de mediator toch al, want daar staat de knop die hij net
+                 indrukte. aria-live zodat een schermlezer de wisselingen meekrijgt. -->
+            <div class="awiz-status" id="wizStatus" role="status" aria-live="polite" hidden></div>
             <div class="awiz-sp"></div>
             <button class="awiz-btn-primary" id="wizAnalyseBtn" onclick="wizAnalyseStarten()" disabled>
               Analyse starten
@@ -2679,23 +2697,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
       </div>
     </div><!-- /stap2 -->
 
-    <!-- STAP 3 — de analyse loopt. Bestond niet: de wizard sloot zichzelf en drukte
-         op de knop van het oude tray-scherm, dat daardoor zichtbaar werd met de
-         documentenlijst die je net had bevestigd, een dode knop en de kop
-         "Opnieuw analyseren". Hier staat alleen wat op dit moment nog waar is. -->
-    <div id="awiz-stap3" style="display:none">
-      <div class="awiz-stap-hdr">
-        <div class="awiz-page-title" id="awizPageTitle3">Analyse loopt</div>
-        <div class="awiz-page-sub" id="awizPageSub3">Dit duurt ongeveer twee minuten. U kunt dit scherm open laten staan.</div>
-      </div>
-      <div class="awiz-stap3-wrap">
-        <div class="awiz-stap3-docs" id="wizStap3Docs"></div>
-        <!-- Hierin wordt #scanning en #errorBox verplaatst zolang de wizard open
-             staat, zodat er één voortgangsweergave is in plaats van twee die uit
-             elkaar kunnen lopen. wizTerug() zet ze terug. -->
-        <div class="awiz-stap3-voortgang" id="wizVoortgangSlot"></div>
-      </div>
-    </div><!-- /stap3 -->
 
   </div><!-- /awiz-body -->
 </div><!-- /analyseWizard -->
@@ -3778,6 +3779,25 @@ function dedupIssues(arrays) {
 }
 
 // ── Document analyseren ───────────────────────────────
+// ── Voortgangssignalen tijdens een analyse ──────────────────────────────────
+//
+// De analyse-wizard toonde dit vroeger door #scanning uit het uploadscherm te
+// LENEN en na afloop terug te zetten. Dat leverde twee fouten op één dag op: een
+// anker dat meeverhuisde, en een !important-gevecht om zichtbaarheid. Een element
+// verplaatsen om het ergens anders te tonen is bijna altijd het verkeerde
+// gereedschap; een signaal is genoeg, en luisteraars kunnen er meer dan één zijn.
+//
+// clausula:analyse-status  → { tekst, pct, label }  algemene voortgangstekst
+// clausula:doc-status      → { bestandsnaam, status } 'bezig' of 'klaar'
+function meldStatus(tekst, pct, label) {
+  document.dispatchEvent(new CustomEvent('clausula:analyse-status',
+    { detail: { tekst, pct, label } }));
+}
+function meldDocStatus(bestandsnaam, status) {
+  document.dispatchEvent(new CustomEvent('clausula:doc-status',
+    { detail: { bestandsnaam, status } }));
+}
+
 async function analyseDocument(trayItems, onProgress = () => {}) {
   // Zorg dat elk item een File-object heeft (download uit Storage als nodig)
   const resolvedItems = [];
@@ -3817,6 +3837,11 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   const documentDelen = [];
   for (let idx = 0; idx < resolvedItems.length; idx++) {
     const item      = resolvedItems[idx];
+    // Per document melden waar we zijn. De analyse-wizard zet hierop een spinner in
+    // de betreffende regel en daarna een vinkje. Op bestandsnaam en niet op volgorde:
+    // een verschil in sortering zou het vinkje bij het verkeerde document zetten, en
+    // dat is het soort fout dat niemand opmerkt.
+    meldDocStatus(item.bestandsnaam, 'bezig');
     const typeLabel = DOC_TYPE_LABELS[item.type] || item.type;
     const prefix    = resolvedItems.length > 1 ? `[${typeLabel} ${idx + 1}/${resolvedItems.length}] ` : '';
     const pad       = item.storageInfo?.pad;
@@ -3907,6 +3932,7 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
       header: `=== ${typeLabel.toUpperCase()}: ${item.bestandsnaam} ===`,
       tekst,
     });
+    meldDocStatus(item.bestandsnaam, 'klaar');
   }
   const documentTekst = documentDelen
     .map(d => `${d.header}\n${d.tekst}`)
@@ -10846,6 +10872,7 @@ async function startAnalyse() {
       (tekst, pct, label) => {
         if (tekst !== null) scanText.textContent = tekst;
         zetVoortgang(label, pct);
+        meldStatus(tekst, pct, label);
       }
     );
     app.screeningId             = null;
@@ -11988,7 +12015,6 @@ function openWizard() {
   wizardRoepnaamB = null;
   document.getElementById('awiz-stap1').style.display = '';
   document.getElementById('awiz-stap2').style.display  = 'none';
-  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('wbc1').className = 'awiz-bc-step active';
   document.getElementById('wbc2').className = 'awiz-bc-step';
   wizRenderDocs();
@@ -12025,7 +12051,6 @@ function openWizardBestaandDossier() {
   // Direct naar stap 2
   document.getElementById('awiz-stap1').style.display = 'none';
   document.getElementById('awiz-stap2').style.display  = '';
-  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('wbc1').className = 'awiz-bc-step done';
   document.getElementById('wbc2').className = 'awiz-bc-step active';
   document.getElementById('awizPageTitle2').textContent = app.dossierNaam || 'Nieuwe versie';
@@ -12079,7 +12104,6 @@ function openWizardVoorBewerken(dos, screening) {
   // Beide stappen tonen (bewerkingsmodus)
   document.getElementById('awiz-stap1').style.display = '';
   document.getElementById('awiz-stap2').style.display = '';
-  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('awizPageTitle1').textContent = 'Dossier bewerken';
   document.getElementById('awizPageSub1').textContent  = 'Wijzigingen in namen worden direct opgeslagen. Een nieuwe analyse is alleen nodig bij documentwijzigingen.';
   document.getElementById('awizPageTitle2').textContent = 'Geüploade documenten';
@@ -12124,15 +12148,12 @@ function openWizardVoorBewerken(dos, screening) {
 }
 
 function sluitWizard() {
-  // Stap 3 opruimen: geleende elementen terug, panelen en stappenbalk in de
-  // uitgangsstand. Zonder dit staat de wizard bij een volgende analyse meteen op
-  // stap 3, met de documenten van de vorige erin.
-  wizHerstelVoortgang();
-  document.getElementById('awiz-stap3').style.display = 'none';
-  document.getElementById('wbc3')?.classList.remove('active');
+  // De looptoestand van stap 2 afzetten. Zonder dit staat de knop bij een volgende
+  // analyse nog op "Analyse gestart" en zijn de keuzelijsten uitgeschakeld.
+  wizAnalyseGestopt();
   document.getElementById('wizTerugBtn').style.display = '';
 
-  document.getElementById('analyseWizard').classList.remove('active', 'awiz-bewerk', 'awiz-analyse');
+  document.getElementById('analyseWizard').classList.remove('active', 'awiz-bewerk');
   // Titel en subtitel resetten
   document.getElementById('awizPageTitle1').textContent = 'Nieuw dossier aanmaken';
   document.getElementById('awizPageSub1').textContent   = 'Vul de basisgegevens in. U kunt deze later altijd aanpassen.';
@@ -12145,15 +12166,10 @@ function sluitWizard() {
 }
 
 function wizTerug() {
-  // Vanuit stap 3 (alleen bereikbaar als de analyse mislukte) terug naar de
-  // documentenstap, met de geleende voortgangselementen weer op hun plek.
-  if (document.getElementById('awiz-stap3').style.display !== 'none') {
-    document.getElementById('analyseWizard').classList.remove('awiz-analyse');
-    wizHerstelVoortgang();
-    document.getElementById('awiz-stap3').style.display = 'none';
-    document.getElementById('awiz-stap2').style.display = '';
-    document.getElementById('wbc3')?.classList.remove('active');
-    document.getElementById('wbc2')?.classList.add('active');
+  // Liep er een analyse? Die toestand eerst afzetten. Teruggaan is alleen mogelijk
+  // nadat de analyse is mislukt — tijdens de rit staat de knop uit.
+  if (_wizLoopt) {
+    wizAnalyseGestopt();
     app.tray = [];                 // stap 2 vult hem opnieuw bij een nieuwe poging
     trayRender();
     return;
@@ -12210,7 +12226,6 @@ async function wizNaarStap2() {
     _wizDossierNaam = naam;
     document.getElementById('awiz-stap1').style.display = 'none';
     document.getElementById('awiz-stap2').style.display  = '';
-    document.getElementById('awiz-stap3').style.display = 'none';
     document.getElementById('wbc1').className = 'awiz-bc-step done';
     document.getElementById('wbc2').className = 'awiz-bc-step active';
     document.getElementById('awizPageTitle2').textContent = naam;
@@ -12226,7 +12241,6 @@ async function wizNaarStap2() {
 function wizNaarStap1() {
   document.getElementById('awiz-stap1').style.display = '';
   document.getElementById('awiz-stap2').style.display  = 'none';
-  document.getElementById('awiz-stap3').style.display = 'none';
   document.getElementById('wbc1').className = 'awiz-bc-step active';
   document.getElementById('wbc2').className = 'awiz-bc-step';
 }
@@ -12295,12 +12309,15 @@ function wizRenderDocs() {
       ? `<span class="awiz-doc-badge ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Herkend</span>
          <select class="awiz-doc-sel ok" data-wid="${item.id}" onchange="wizWijzigType(this)">${opties}</select>`
       : `<select class="awiz-doc-sel warn" data-wid="${item.id}" onchange="wizWijzigType(this)"><option value="">Niet herkend — kies type</option>${opties}</select>`;
-    return `<div class="awiz-doc-row" data-wid="${item.id}">
+    // data-naam: waarop de voortgang per document wordt teruggevonden. Niet op
+    // volgorde — zie _wizOpDocStatus.
+    return `<div class="awiz-doc-row" data-wid="${item.id}" data-naam="${escH(item.naam)}">
       ${wizFileBadge(item.naam)}
       <div class="awiz-doc-info">
         <div class="awiz-doc-naam" title="${escH(item.naam)}">${escH(item.naam)}</div>
         <div class="awiz-doc-grootte">${item.fromStorage ? 'Vorige versie' : wizFmtBytes(item.grootte || 0)}</div>
       </div>
+      <span class="awiz-doc-stand"></span>
       ${badge}
       <button class="awiz-doc-rm" onclick="wizVerwijder('${item.id}')" title="Verwijderen">🗑</button>
     </div>`;
@@ -12374,7 +12391,7 @@ async function wizAnalyseStarten() {
   // hij op de knop van het oude tray-scherm; dat scherm werd dan zichtbaar met de
   // documentenlijst die net was bevestigd, een uitgeschakelde knop en de kop
   // "Opnieuw analyseren" — terwijl dit een nieuwe analyse is.
-  wizNaarStap3(erkend);
+  wizAnalyseLoopt();
 
   // Sluiten zodra het rapportskelet opengaat, niet als de hele analyse klaar is.
   // Dat scheelt de mediator ruim anderhalve minuut wachten achter een scherm waar
@@ -12394,78 +12411,113 @@ async function wizAnalyseStarten() {
   if (geslaagd || wizardDicht) {
     if (!wizardDicht) sluitWizard();
   } else {
-    // Mislukt: laat de wizard staan met de melding erin, zodat de mediator terug
-    // kan naar stap 2 en het opnieuw kan proberen zonder alles opnieuw te kiezen.
-    document.getElementById('awizPageTitle3').textContent = 'Analyse mislukt';
-    document.getElementById('awizPageSub3').textContent   =
-      'Er ging iets mis. Ga terug om het opnieuw te proberen.';
-    document.getElementById('wizTerugBtn').style.display = '';
+    // Mislukt: stap 2 komt terug zoals hij was, met de melding erbij. De mediator
+    // kan het meteen opnieuw proberen zonder zijn documenten opnieuw te kiezen.
+    wizAnalyseGestopt('Er ging iets mis. Controleer de documenten en probeer het opnieuw.');
   }
 }
 
-// Stap 3 tonen: alleen wat op dit moment nog waar is. De documenten staan er als
-// leesbare samenvatting — niet als lijst met keuzelijsten die je toch niet meer
-// kunt wijzigen.
-function wizNaarStap3(items) {
-  // De klasse doet het echte werk: in de bewerkingsmodus zijn stap 1 en 2 met
-  // !important zichtbaar gemaakt, en daar komt een inline display:none niet langs.
-  document.getElementById('analyseWizard').classList.add('awiz-analyse');
-  document.getElementById('awiz-stap1').style.display = 'none';
-  document.getElementById('awiz-stap2').style.display = 'none';
-  document.getElementById('awiz-stap3').style.display = '';
-  document.getElementById('wbc2')?.classList.remove('active');
-  document.getElementById('wbc3')?.classList.add('active');
+// De analyse loopt — stap 2 verandert van toestand in plaats van plaats te maken
+// voor een eigen scherm.
+//
+// Er was een stap 3: een apart paneel met de documenten als chips en een geleend
+// voortgangsblok. Dat leende #scanning en #errorBox uit het uploadscherm en zette
+// ze naderhand terug, en juist dat leverde op één dag twee fouten op — een anker
+// dat meeverhuisde, en een !important-gevecht om zichtbaarheid.
+//
+// Het paneel beloofde bovendien "ongeveer twee minuten", terwijl het na ongeveer
+// vijf seconden verdween: de wizard sluit zodra het rapportskelet opengaat. Een
+// eigen scherm bouwen voor vijf seconden is te veel machinerie, en de belofte hoort
+// thuis op het scherm dat wél twee minuten blijft staan.
+//
+// Wat er in die vijf seconden gebeurt is werk PER DOCUMENT — tekst uitlezen,
+// converteren, OCR. Daarom staat de voortgang in de documentregels zelf.
+function wizAnalyseLoopt() {
+  _wizLoopt = true;
 
-  document.getElementById('awizPageTitle3').textContent = 'Analyse loopt';
-  document.getElementById('awizPageSub3').textContent   =
-    'Dit duurt ongeveer twee minuten. U kunt dit scherm open laten staan.';
-
-  document.getElementById('wizStap3Docs').innerHTML = (items || []).map(i =>
-    `<span class="awiz-stap3-doc">${escH(i.naam)}` +
-    `<span class="awiz-stap3-type">${escH(DOC_TYPE_LABELS[i.type] || i.type)}</span></span>`
-  ).join('');
-
-  // Voortgang en foutmelding hierheen verplaatsen in plaats van ze na te bouwen:
-  // twee weergaven van hetzelfde lopen vroeg of laat uit elkaar. sluitWizard() en
-  // wizTerug() zetten ze terug.
-  //
-  // De oorspronkelijke plek wordt onthouden in plaats van later afgeleid: #scanning
-  // staat naast #trayDropWrap, niet erin, en zo'n aanname gaat stuk zodra iemand de
-  // opmaak van het uploadscherm aanpast.
-  const slot = document.getElementById('wizVoortgangSlot');
-  const scan = document.getElementById('scanning');
-  const err  = document.getElementById('errorBox');
-  if (scan && !_wizVoortgangThuis) {
-    // Het anker moet een element zijn dat blíjft staan. #errorBox is de directe buur
-    // van #scanning en gaat mee, dus die kan het niet zijn — insertBefore weigert
-    // dan later met "the node before which the new node is to be inserted is not a
-    // child of this node".
-    const laatste = err && err.previousElementSibling === scan ? err : scan;
-    _wizVoortgangThuis = { ouder: scan.parentElement, na: laatste.nextElementSibling };
+  // De knop meldt het gevolg van de klik, op de plek waar zojuist geklikt is.
+  const btn = document.getElementById('wizAnalyseBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('awiz-btn-loopt');
+    btn.innerHTML = '<span class="laad-spin" aria-hidden="true"></span>Analyse gestart';
   }
-  if (scan) slot.appendChild(scan);
-  if (err)  slot.appendChild(err);
 
-  // Terugknop weg zolang de analyse loopt — teruggaan zou hem niet afbreken.
-  document.getElementById('wizTerugBtn').style.display = 'none';
+  // Het blokje "Geschatte analysetijd" heeft na de start niets meer te zeggen;
+  // op diezelfde plek komt wat er nú gebeurt.
+  document.getElementById('wizTijdBlok')?.setAttribute('hidden', '');
+  const status = document.getElementById('wizStatus');
+  if (status) {
+    status.hidden = false;
+    status.textContent = 'Bezig met voorbereiden…';
+  }
+
+  // Teruggaan zou de analyse niet afbreken, dus die weg is nu dicht.
+  const terug = document.getElementById('wizTerugBtn');
+  if (terug) terug.disabled = true;
+  document.querySelectorAll('#awiz-stap2 .awiz-doc-rm, #awiz-stap2 .awiz-doc-sel')
+    .forEach(el => { el.disabled = true; });
+
+  document.addEventListener('clausula:analyse-status', _wizOpStatus);
+  document.addEventListener('clausula:doc-status', _wizOpDocStatus);
 }
 
-// Waar #scanning en #errorBox stonden voordat de wizard ze leende.
-let _wizVoortgangThuis = null;
+// Terug naar de bewerkbare toestand. Draait bij een mislukking én bij het sluiten,
+// zodat de wizard nooit half in de looptoestand blijft hangen.
+function wizAnalyseGestopt(melding) {
+  if (!_wizLoopt) return;
+  _wizLoopt = false;
+  document.removeEventListener('clausula:analyse-status', _wizOpStatus);
+  document.removeEventListener('clausula:doc-status', _wizOpDocStatus);
 
-// Zet ze exact terug op hun eigen plek in het uploadscherm.
-function wizHerstelVoortgang() {
-  if (!_wizVoortgangThuis) return;
-  const { ouder, na } = _wizVoortgangThuis;
-  const scan = document.getElementById('scanning');
-  const err  = document.getElementById('errorBox');
-  // Anker kwijt (opmaak gewijzigd)? Dan achteraan; beter dan een uitzondering die
-  // de rest van wizTerug overslaat en het scherm halverwege laat staan.
-  const anker = na && na.parentElement === ouder ? na : null;
-  if (ouder && scan) ouder.insertBefore(scan, anker);
-  if (ouder && err)  ouder.insertBefore(err, anker);
-  scan?.classList.remove('active');
-  _wizVoortgangThuis = null;
+  const btn = document.getElementById('wizAnalyseBtn');
+  if (btn) {
+    btn.disabled = false;
+    btn.classList.remove('awiz-btn-loopt');
+    btn.textContent = 'Analyse starten';
+  }
+  const terug = document.getElementById('wizTerugBtn');
+  if (terug) terug.disabled = false;
+  document.querySelectorAll('#awiz-stap2 .awiz-doc-rm, #awiz-stap2 .awiz-doc-sel')
+    .forEach(el => { el.disabled = false; });
+
+  document.querySelectorAll('#awiz-stap2 .awiz-doc-stand')
+    .forEach(el => { el.className = 'awiz-doc-stand'; el.innerHTML = ''; });
+
+  const status = document.getElementById('wizStatus');
+  if (status) {
+    if (melding) { status.hidden = false; status.textContent = melding; status.classList.add('fout'); }
+    else         { status.hidden = true;  status.classList.remove('fout'); }
+  }
+  if (!melding) document.getElementById('wizTijdBlok')?.removeAttribute('hidden');
+}
+
+let _wizLoopt = false;
+
+function _wizOpStatus(e) {
+  const status = document.getElementById('wizStatus');
+  const tekst  = e.detail?.tekst;
+  if (status && tekst) status.textContent = tekst;
+}
+
+// Spinner in de regel van het document dat aan de beurt is, vinkje als hij klaar is.
+// Op bestandsnaam, niet op volgorde: een verschil in sortering zou het vinkje bij
+// het verkeerde document zetten, en dat merkt niemand op.
+function _wizOpDocStatus(e) {
+  const { bestandsnaam, status } = e.detail || {};
+  if (!bestandsnaam) return;
+  const rij = [...document.querySelectorAll('#awiz-stap2 .awiz-doc-row')]
+    .find(r => r.dataset.naam === bestandsnaam);
+  const vak = rij?.querySelector('.awiz-doc-stand');
+  if (!vak) return;
+  if (status === 'klaar') {
+    vak.className = 'awiz-doc-stand klaar';
+    vak.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+      + ' stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  } else {
+    vak.className = 'awiz-doc-stand bezig';
+    vak.innerHTML = '<span class="laad-spin" aria-hidden="true"></span>';
+  }
 }
 
 // Dropzone & events voor wizard
