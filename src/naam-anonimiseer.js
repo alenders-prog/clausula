@@ -387,14 +387,23 @@ export function bouwAnonMap(classificatie, bronNamen = []) {
 //        genummerde en terugzetbare adres-/postcode-placeholders.
 //        Zonder piiPh worden adressen/postcodes/woonplaatsen NIET geanonimiseerd.
 export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
-  if (!tekst || !naarAnon?.size) return tekst;
+  // Alleen op lege tekst meteen terug. Tot 24 augustus 2026 stond hier ook
+  // `|| !naarAnon?.size`, en dat had een gevolg dat niemand bedoelde: vond de
+  // classificatie geen enkele naam, dan werd de tekst ONGEWIJZIGD teruggegeven —
+  // dus ook zonder dat adres, postcode, BSN, telefoonnummer en e-mailadres waren
+  // vervangen. Die gingen dan onbewerkt naar de Anthropic API. Een lege namenmap
+  // is geen reden om de PII-vervanging over te slaan; het zijn twee losse dingen.
+  if (!tekst) return tekst;
   let t = tekst;
 
   // Namen: langste eerst (voorkomt dat voornaam ná volledige naam matcht).
   // Vervang case-insensitief via regex; naarAnon-keys zijn al lowercase.
   // Gebruik (?<![a-zA-ZÀ-ÿ]) / (?![a-zA-ZÀ-ÿ]) als woordgrens zodat accenten
   // en samengestelde namen correct worden behandeld.
-  const gesorteerd = [...naarAnon.entries()].sort((a, b) => b[0].length - a[0].length);
+  // Geen of lege map: geen namen te vervangen, maar de PII-stappen hieronder draaien wél.
+  const gesorteerd = naarAnon?.size
+    ? [...naarAnon.entries()].sort((a, b) => b[0].length - a[0].length)
+    : [];
   for (const [echtLc, ph] of gesorteerd) {
     try {
       // Escape regex-speciale tekens in de naam
@@ -425,7 +434,14 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
   if (piiPh) {
     // Straatnamen + huisnummer VOOR postcode (postcode-regex mag geen straatdelen opslokken).
     // Vangt samengestelde namen eindigend op gangbare straat-suffixen.
-    t = t.replace(/\b(?:\w+\s+)?\w+(?:straat|laan|weg|plein|park|singel|gracht|kade|dijk|hof|dreef|steeg|boulevard|allee)\s+\d+[a-zA-Z]?\b/gi,
+    // Het optionele woord vóór de straatnaam moet met een HOOFDLETTER beginnen.
+    // Zonder die eis slokte het patroon een willekeurig voorafgaand woord op:
+    // "Bergstraat 12 en Bergstraat 12" leverde "Bergstraat 12" én "en Bergstraat 12"
+    // op, dus twee verschillende placeholders voor hetzelfde adres — waarna een
+    // analyse twee woningen kon zien waar er één staat. "Van Goghstraat 5" en
+    // "Prof Zeemanweg 14" blijven wél heel; lidwoorden als "de" horen niet in de
+    // placeholder en blijven gewoon in de tekst staan.
+    t = t.replace(/\b(?:[A-Z][\w'-]*\s+)?\w+(?:straat|laan|weg|plein|park|singel|gracht|kade|dijk|hof|dreef|steeg|boulevard|allee)\s+\d+[a-zA-Z]?\b/g,
       adres => piiPh('ADRES', adres.trim()));
     // Nederlandse postcodes: 1234AB of 1234 AB
     t = t.replace(/\b(\d{4})\s?([A-Z]{2})\b/g,
@@ -436,6 +452,17 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
     // Woonplaats na "wonende te / woonachtig te / gevestigd te"
     t = t.replace(/\b(woonachtig|wonende?|gevestigd|gedomicilieerd)\s+te\s+(?!\[)([A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,})?)/gi,
       (_, prefix, stad) => `${prefix} te ${piiPh('WOONPLAATS', stad.trim())}`);
+    // Woonplaats direct na een adres-placeholder: "[ADRES_0] te Utrecht", ook zonder "te".
+    // Dit is de gangbaarste vorm in een convenant ("de woning aan de Bergstraat 12 te
+    // Utrecht") en werd tot 24 augustus 2026 door geen van de patronen hierboven geraakt:
+    // die vragen om een postcode ervóór of om "wonende te". De plaatsnaam ging dus mee.
+    // Verankerd aan de placeholder, want een los "te <Hoofdletter>" komt te vaak voor.
+    // Het tussenwoord wordt teruggezet zoals het er stond — een "te" toevoegen die er
+    // niet was verandert de documenttekst zonder reden.
+    t = t.replace(/(\[ADRES_\d+\])(\s+(?:te\s+)?)(?!\[)([A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,})?)/g,
+      (heel, ph, tussen, stad) => (/^(De|Het|Een|Partijen|Deze|Dit)$/.test(stad.split(/\s+/)[0])
+        ? heel                                            // zinsbegin, geen plaatsnaam
+        : `${ph}${tussen}${piiPh('WOONPLAATS', stad.trim())}`));
   }
 
   // Telefoonnummers: 06-xxxxxxxx, 0xx-xxxxxxx, +31-formaten, met spaties/streepjes

@@ -28,8 +28,30 @@ const STOPWOORDEN = new Set([
 ]);
 
 /**
+ * Woordvormen die hetzelfde betekenen, teruggebracht tot één stam.
+ *
+ * Het model wisselt hier vrijelijk tussen: "Kinderalimentatie ontbreekt volledig"
+ * werd in de volgende run "Kinderalimentatie volledig afwezig". Zonder deze lijst
+ * scoorde dat paar 0,50 en werd het als twee verschillende bevindingen gemeld —
+ * ruis die je leert wegkijken. Met de lijst is het 1,00.
+ *
+ * Gemeten op de runs van 24 augustus 2026. Handmatig onderhouden en dus niet
+ * uitputtend: valt je een paar op dat ten onrechte als nieuw wordt gemeld, dan
+ * hoort de variant hier erbij.
+ */
+const STAMMEN = [
+  [/^(ontbreekt|ontbreken|ontbrekende|ontbreking|afwezig|afwezigheid|mist|ontbreek)$/, 'ontbreek'],
+  [/^(geregeld|geregelde|regeling|regelingen|regelt)$/,                                'regel'],
+  [/^(vermeld|vermelding|vermelden|vermeldt)$/,                                        'vermeld'],
+  [/^(uitgewerkt|uitwerking|uitwerken)$/,                                              'uitwerk'],
+  [/^(vastgelegd|vastlegging|vastleggen|vastgesteld)$/,                                'vastleg'],
+  [/^(onvolledig|onvolledige|incompleet|incomplete)$/,                                 'onvolledig'],
+];
+
+/**
  * Betekenisdragende woorden uit een titel, genormaliseerd.
- * Leestekens en hoofdletters verdwijnen, zodat "of" en "/" niet uitmaken.
+ * Leestekens en hoofdletters verdwijnen, zodat "of" en "/" niet uitmaken;
+ * werkwoordsvormen worden tot hun stam teruggebracht.
  */
 export function vingerafdruk(titel) {
   return new Set(
@@ -37,7 +59,8 @@ export function vingerafdruk(titel) {
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .split(/\s+/)
-      .filter(w => w.length > 2 && !STOPWOORDEN.has(w)),
+      .filter(w => w.length > 2 && !STOPWOORDEN.has(w))
+      .map(w => STAMMEN.find(([re]) => re.test(w))?.[1] ?? w),
   );
 }
 
@@ -66,13 +89,16 @@ export function maakBaseline(issues = []) {
  *
  * @param {object|null} baseline  uit maakBaseline(), of null als er nog geen is
  * @param {object[]} issues       de bevindingen van deze run
- * @param {number} drempel        vanaf welke overlap twee titels dezelfde bevinding zijn
+ * @param {number} drempel        vanaf welke overlap twee titels dezelfde bevinding zijn.
+ *                                0,5 is gemeten op de runs van 24-08-2026: daaronder
+ *                                verandert de uitkomst niet meer, daarboven worden
+ *                                synoniemparen als nieuw gemeld.
  * @returns {{
  *   heeftBaseline: boolean, aantalDelta: number, ernstDelta: object,
  *   nieuw: object[], verdwenen: object[], gebleven: number,
  * }}
  */
-export function vergelijk(baseline, issues = [], drempel = 0.6) {
+export function vergelijk(baseline, issues = [], drempel = 0.5) {
   const nu = maakBaseline(issues);
   if (!baseline) {
     return { heeftBaseline: false, aantalDelta: 0, ernstDelta: {}, nieuw: [], verdwenen: [], gebleven: 0 };

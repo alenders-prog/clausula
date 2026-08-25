@@ -12,6 +12,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { leesEnv, haalToken } from '../helpers/test-token.mjs';
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'fs';
 import { vergelijk, verslag } from '../helpers/eval-baseline.mjs';
+import { anonimiseerTekst } from '../../src/naam-anonimiseer.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -65,6 +66,14 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
     it(`${fixture.naam}: verwachte issues gevonden`, async () => {
       // Aanroep van de lokale analyse-endpoint (vercel dev moet draaien op port 3000)
       const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3000';
+
+      // Genummerde placeholders per type, zoals _maakPiiTracker in index.html.
+      const gezien = new Map(); const teller = {};
+      const piiPh = (type, waarde) => {
+        const k = `${type}:${waarde}`;
+        if (!gezien.has(k)) { teller[type] = teller[type] ?? 0; gezien.set(k, `[${type}_${teller[type]++}]`); }
+        return gezien.get(k);
+      };
       const res = await fetch(`${baseUrl}/api/analyseer`, {
         method:  'POST',
         headers: {
@@ -86,7 +95,17 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
           documenten:    [{
             bestandsnaam: fixture.naam,
             type:         fixture.data._meta.doc_type,
-            tekst:        fixture.data.tekst,
+            // Dezelfde PII-bewerking als de browser toepast vóór verzending. Zonder
+            // dit kreeg de eval ruwe fixturetekst met echte adressen en postcodes,
+            // terwijl productie [ADRES_0] en [POSTCODE_0] stuurt. Dat leverde twee
+            // bevindingen op die alleen in de testopstelling konden bestaan — onder
+            // meer "adres niet gepseudonimiseerd conform documentprotocol", een
+            // verwijt aan het document over ónze bewerking.
+            //
+            // Namen worden hier bewust NIET vervangen: de fixtures toetsen juist of
+            // een roepnaam-door-geboortenaam wordt opgemerkt, en die verwachting
+            // hangt aan de echte namen in de tekst.
+            tekst:        anonimiseerTekst(fixture.data.tekst, new Map(), piiPh),
           }],
         }),
       });
@@ -191,9 +210,15 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
     const blok = ['', '─'.repeat(72), 'VERGELIJKING MET DE BASELINE', '─'.repeat(72), '',
       ...VERGELIJKINGEN, '',
       'Klopt wat je ziet? Leg het vast met: npm run eval:baseline', ''].join('\n');
-    // Zowel tonen als wegschrijven: de console scrollt weg bij drie fixtures van
-    // elk drie minuten, en dan is het verslag precies datgene wat je zocht.
-    console.log(blok);
+    // process.stdout.write, geen console.log: in een suite-afterAll slikt de
+    // standaard reporter van vitest console-uitvoer op. Bij de eerste echte run
+    // met dit verslag bleef het scherm daardoor leeg terwijl het diff-bestand wél
+    // was geschreven — de melding was er, alleen niet te zien. Gemeten met beide
+    // vormen naast elkaar; alleen deze komt door.
+    //
+    // Wegschrijven blijft daarnáást staan: de console scrollt weg bij drie
+    // fixtures van elk drie minuten, en dan is het verslag juist wat je zocht.
+    process.stdout.write(`${blok}\n`);
     try { writeFileSync(join(__dir, 'laatste-diff.txt'), blok); } catch { /* niet fataal */ }
   });
 });

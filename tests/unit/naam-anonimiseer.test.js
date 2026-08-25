@@ -334,3 +334,91 @@ describe('nep-namenpools dragen geen geslacht', () => {
     expect(GENDERED).not.toContain(nep.toLowerCase());
   });
 });
+
+// ── PII-vervanging mag niet afhangen van de namenmap ─────────────────────────
+//
+// Tot 24 augustus 2026 begon anonimiseerTekst met
+//     if (!tekst || !naarAnon?.size) return tekst;
+// Vond de classificatie geen enkele naam, dan kwam de tekst er ONGEWIJZIGD uit —
+// dus mét adres, postcode, BSN, telefoonnummer en e-mailadres, en zo ging hij naar
+// de Anthropic API. Een lege namenmap is geen reden om de PII-stap over te slaan;
+// het zijn twee losse dingen die toevallig in één functie zaten.
+describe('anonimiseerTekst — PII los van namen', () => {
+  /** Genummerde placeholders, zoals _maakPiiTracker in index.html ze maakt. */
+  // Zelfde vorm als _maakPiiTracker in index.html: per TYPE genummerd, en
+  // dezelfde waarde krijgt altijd dezelfde placeholder.
+  const tracker = () => {
+    const m = new Map(); const n = {};
+    return (type, waarde) => {
+      const k = `${type}:${waarde}`;
+      if (!m.has(k)) { n[type] = n[type] ?? 0; m.set(k, `[${type}_${n[type]++}]`); }
+      return m.get(k);
+    };
+  };
+  const PII = 'Bergstraat 12 te Utrecht, postcode 3511 AB, BSN 123456789, tel 06-12345678, mail jan@example.com';
+
+  it('vervangt PII ook als er geen enkele naam bekend is', () => {
+    const r = anonimiseerTekst(PII, new Map(), tracker());
+    for (const lek of ['Bergstraat', 'Utrecht', '3511 AB', '123456789', '06-12345678', 'jan@example.com']) {
+      expect(r, `"${lek}" staat nog in de tekst die naar de API gaat`).not.toContain(lek);
+    }
+  });
+
+  it('crasht niet op een ontbrekende namenmap', () => {
+    expect(anonimiseerTekst('BSN 123456789', undefined, tracker())).toBe('BSN [BSN]');
+    expect(anonimiseerTekst('BSN 123456789', null)).toBe('BSN [BSN]');
+  });
+
+  it('laat lege tekst met rust', () => {
+    expect(anonimiseerTekst('', new Map(), tracker())).toBe('');
+    expect(anonimiseerTekst(null, new Map(), tracker())).toBe(null);
+  });
+});
+
+// ── Woonplaats direct na een adres ──────────────────────────────────────────
+//
+// "de woning aan de Bergstraat 12 te Utrecht" is de gangbaarste vorm in een
+// convenant, en werd door geen enkel patroon geraakt: die vroegen om een postcode
+// ervóór of om "wonende te". De plaatsnaam ging dus mee naar de API.
+describe('anonimiseerTekst — woonplaats na een adres', () => {
+  // Zelfde vorm als _maakPiiTracker in index.html: per TYPE genummerd, en
+  // dezelfde waarde krijgt altijd dezelfde placeholder.
+  const tracker = () => {
+    const m = new Map(); const n = {};
+    return (type, waarde) => {
+      const k = `${type}:${waarde}`;
+      if (!m.has(k)) { n[type] = n[type] ?? 0; m.set(k, `[${type}_${n[type]++}]`); }
+      return m.get(k);
+    };
+  };
+
+  it('vervangt de plaats in "<adres> te <Plaats>"', () => {
+    const r = anonimiseerTekst('De woning aan de Bergstraat 12 te Utrecht wordt verkocht.', new Map(), tracker());
+    expect(r).not.toContain('Utrecht');
+    expect(r).toMatch(/\[ADRES_\d+\] te \[WOONPLAATS_\d+\]/);
+  });
+
+  it('vervangt de plaats ook zonder "te", en houdt de tekst verder intact', () => {
+    const r = anonimiseerTekst('Gelegen aan de Dorpsstraat 5 Almelo, kadastraal bekend.', new Map(), tracker());
+    expect(r).not.toContain('Almelo');
+    expect(r).toMatch(/\[ADRES_\d+\] \[WOONPLAATS_\d+\], kadastraal bekend\./);
+  });
+
+  it('ziet een nieuwe zin niet aan voor een plaatsnaam', () => {
+    const r = anonimiseerTekst('De woning aan de Kerkweg 3. De partijen komen overeen.', new Map(), tracker());
+    expect(r).toContain('De partijen komen overeen.');
+    expect(r).not.toMatch(/WOONPLAATS/);
+  });
+
+  it('raakt een plaats die al een placeholder is niet nog een keer aan', () => {
+    const r = anonimiseerTekst('Adres: Bergstraat 12 te Utrecht en Bergstraat 12 te Utrecht.', new Map(), tracker());
+    // Tweemaal hetzelfde adres en dezelfde plaats → tweemaal dezelfde placeholder.
+    // Kregen ze verschillende nummers, dan zou een analyse twee woningen zien
+    // waar er één staat.
+    const plaatsen = [...r.matchAll(/\[WOONPLAATS_(\d+)\]/g)].map(m => m[1]);
+    const adressen = [...r.matchAll(/\[ADRES_(\d+)\]/g)].map(m => m[1]);
+    expect(plaatsen).toHaveLength(2);
+    expect(new Set(plaatsen).size).toBe(1);
+    expect(new Set(adressen).size).toBe(1);
+  });
+});

@@ -19,7 +19,7 @@ describe('vingerafdruk', () => {
 
   it('laat stopwoorden en korte woorden weg', () => {
     expect([...vingerafdruk('De verdeling van het huis is niet geregeld')])
-      .toEqual(['verdeling', 'huis', 'geregeld']);
+      .toEqual(['verdeling', 'huis', 'regel']);   // 'geregeld' → stam
   });
 
   it('gaat om met een lege titel', () => {
