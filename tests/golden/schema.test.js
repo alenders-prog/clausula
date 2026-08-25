@@ -150,7 +150,40 @@ describe('Issue JSON-schema validatie', () => {
         ).toHaveLength(0);
       });
 
-      it(`dedup-kwaliteit van ${bestand}: geen near-duplicate issues (Jaccard ≥ 0.4)`, () => {
+      // Bewust GÉÉN assertie — zelfde reden als bij de eval-baseline in eval.test.js.
+      //
+      // Deze controle eiste tot 25-08-2026 dat geen twee titels boven 0,4 woordoverlap
+      // uitkwamen, met als aanname: sterk gelijkende titels zijn dubbelingen. Die aanname
+      // is gemeten en onjuist. In het eerste echte rapport sloeg hij aan op drie kaarten:
+      //
+      //   Opmaakinconsistentie beleggingssaldo […]: ontbrekende ',-' achter bedrag   (3×)
+      //
+      // Drie kaarten, maar drie VERSCHILLENDE passages, drie verschillende bedragen en
+      // drie afzonderlijke correcties — en elke kaart is in het rapport aanklikbaar naar
+      // zijn eigen vindplaats. Samenvoegen zou twee van de drie plekken onbereikbaar
+      // maken. Het waren geldige bevindingen; de controle zette aan tot het weggooien
+      // ervan.
+      //
+      // Er is gezocht naar een signaal dat wél deugt, over zes rapporten en 119
+      // bevindingen. Geen ervan houdt stand:
+      //
+      //   woordoverlap op de titel      de echte dubbeling scoort 0,20; een paar dat
+      //                                 NIET samenhoort scoort 0,22
+      //   woordoverlap op de bevinding  echte dubbeling 0,23; twee losse tikfouten 0,16
+      //   gemaskeerde bevindingtekst    pakt alleen herhaalde gebreken op verschillende
+      //                                 plekken — precies wat níét samengevoegd mag worden
+      //   dezelfde passage              37 paren delen er één, vrijwel allemaal terecht
+      //                                 (indexering, Tremanormen én ingangsdatum hangen
+      //                                 alle drie aan dezelfde alimentatiezin)
+      //
+      // Wat overblijft is één echte dubbeling op 119 bevindingen: twee kaarten over
+      // 'artikel 3.1.1' in sample-output-convenant.json (index 4 en 14), bijna woordelijk
+      // gelijk, onbereikbaar voor elke tekstmaat. De consolidatieprompt heeft er al een
+      // regel voor die niet vuurt. Eén op 119 rechtvaardigt geen module.
+      //
+      // Blijft over: de meting tonen zodat een uitschieter opvalt, zonder te beweren dat
+      // hij fout is. Een assertie hierop zou een test geven die je leert negeren.
+      it(`dedup-meting van ${bestand}: hoogst overlappende titels`, () => {
         const pad    = join(FIXTURES_DIR, bestand);
         const json   = JSON.parse(readFileSync(pad, 'utf8'));
         const issues = [
@@ -158,10 +191,18 @@ describe('Issue JSON-schema validatie', () => {
           ...((json.documenten || []).flatMap(d => d.issues || [])),
         ];
         const { duplicaten } = passageKwaliteit(issues, bestand);
-        expect(
-          duplicaten.map(([i,j]) => `[${i}] "${(issues[i].onderwerp||'').slice(0,50)}" ≈ [${j}] "${(issues[j].onderwerp||'').slice(0,50)}"`),
-          'Near-duplicate issues gevonden (zouden samengevoegd moeten zijn)'
-        ).toHaveLength(0);
+        if (duplicaten.length) {
+          // process.stdout.write, niet console.log: vitest onderdrukt die laatste.
+          process.stdout.write(
+            `\n  ${bestand} — ${duplicaten.length} paar boven 0,4 woordoverlap:\n`
+            + duplicaten.map(([i,j]) =>
+                `    [${i}] ${(issues[i].onderwerp||'').slice(0,58)}\n`
+              + `    [${j}] ${(issues[j].onderwerp||'').slice(0,58)}\n`).join('')
+            + '    (informatief — zie de toelichting in dit bestand waarom dit niet faalt)\n',
+          );
+        }
+        // De enige harde eis: de vergelijking zelf loopt door op elk rapport.
+        expect(Array.isArray(duplicaten)).toBe(true);
       });
     }
   }
@@ -180,8 +221,21 @@ describe('Fixture-bestanden zijn geldige JSON met verwachte structuur', () => {
       const pad     = join(FIXTURES_DIR, bestand);
       const fixture = JSON.parse(readFileSync(pad, 'utf8'));
 
-      expect(typeof fixture.tekst).toBe('string');
-      expect(fixture.tekst.length).toBeGreaterThan(50);
+      // Twee vormen: één document in `tekst`, of meerdere in `documenten` — die
+      // tweede bestaat sinds 24-08-2026, omdat de cross-document-call pas draait
+      // bij twee of meer hoofddocumenten en dus door geen enkele fixture werd geraakt.
+      if (Array.isArray(fixture.documenten)) {
+        expect(fixture.documenten.length).toBeGreaterThanOrEqual(2);
+        for (const d of fixture.documenten) {
+          expect(typeof d.tekst).toBe('string');
+          expect(d.tekst.length).toBeGreaterThan(50);
+          expect(typeof d.type).toBe('string');
+          expect(typeof d.bestandsnaam).toBe('string');
+        }
+      } else {
+        expect(typeof fixture.tekst).toBe('string');
+        expect(fixture.tekst.length).toBeGreaterThan(50);
+      }
       expect(Array.isArray(fixture.verwachte_issues?.moeten_gevonden_worden)).toBe(true);
       expect(Array.isArray(fixture.verwachte_issues?.mogen_NIET_gevonden_worden)).toBe(true);
     });

@@ -42,7 +42,7 @@ import {
 // Met negen endpoints erbij liep de map prompts/ de deploy stuk op vijftien.
 // Bestanden met _ ervoor worden niet als endpoint geteld — vandaar ook _iban.js,
 // _auth.js en de rest.
-import { bouwStabielGedeeld } from './_prompts/gedeeld.js';
+import { bouwStabielGedeeld, bouwStabielCrossDoc } from './_prompts/gedeeld.js';
 import { bouwSysStructuur }   from './_prompts/structuur.js';
 import { bouwSysBevindingen } from './_prompts/bevindingen.js';
 import { bouwSysCrossDoc }    from './_prompts/cross-doc.js';
@@ -386,6 +386,12 @@ export default async function handler(req, res) {
       .join('\n\n');
 
     const situatieKenmerken = classificatie.situatie_kenmerken ?? [];
+
+    // Huidige datum voor temporele beoordeling (bijv. of een peildatum in het verleden
+    // ligt). Stond binnen analyseDoc, waardoor de cross-document-call — die daarbuiten
+    // staat — er niet bij kon zodra hij de gedeelde regels meekreeg. Eén declaratie per
+    // verzoek is bovendien juister: alle calls horen dezelfde datum te zien.
+    const vandaag = new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const heeftHV = documenten.some(d => d.type === 'huwelijkse_voorwaarden');
 
     // ── Supabase-queries ──────────────────────────────────────────────
@@ -509,8 +515,6 @@ export default async function handler(req, res) {
       if (contextTekst) contextBlokDelen.push(`BIJLAGEN (ter context — niet apart analyseren):\n${contextTekst}`);
       const contextBlok = contextBlokDelen.length ? contextBlokDelen.join('\n\n') : null;
 
-      // Huidige datum voor temporele beoordeling (bijv. of een peildatum in het verleden ligt)
-      const vandaag = new Date().toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
       // Eén gedeeld regelsblok voor alle 3 calls én een heranalyse → één cache-entry
       // in plaats van een aparte per call-type. Inhoud staat in api/_prompts/gedeeld.js:
@@ -604,10 +608,23 @@ export default async function handler(req, res) {
 
       const docTypenLabel = effectiefHoofd.map(d => d.type).join(' en ');
 
-      const sysCrossDoc = bouwSysCrossDoc({ docTypenLabel, wetTekst });;
+      const sysCrossDoc = bouwSysCrossDoc({ docTypenLabel, wetTekst });
 
       sse({ type: 'cross_doc_start', documenten: effectiefHoofd.map(d => d.type) });
-      crossDocPromise = askClaude(sysCrossDoc, docBlokken, crossDocTool, 6000);
+      // De gedeelde regels gaan nu ook hierheen. Tot 24 augustus 2026 kreeg deze
+      // call alléén zijn eigen prompt en de documentteksten — geen verwijzingsregel,
+      // geen samenhangregels, geen pseudonimiseringsnota. Dat leverde bevindingen op
+      // als "convenant vermeldt één woonadres voor alle kinderen" terwijl datzelfde
+      // convenant in de aanhef naar het ouderschapsplan verwijst voor alle
+      // kinderafspraken. De regel die dat had moeten tegenhouden bestond, gebruikte
+      // die zin zelfs als voorbeeld, en bereikte deze call niet.
+      //
+      // Gecachet als apart blok, net als bij de per-documentcalls: hij is identiek
+      // voor elke analyse binnen hetzelfde dossier.
+      crossDocPromise = askClaude(sysCrossDoc, [
+        { text: bouwStabielCrossDoc(vandaag, situatieKenmerken), cache: true },
+        { text: docBlokken },
+      ], crossDocTool, 6000);
     }
 
     // Verwerk max 2 documenten tegelijk (rate-limit bescherming)

@@ -92,7 +92,17 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
             doc_type: fixture.data._meta.doc_type,
             situatie_kenmerken: fixture.data._meta.situatie_kenmerken ?? [],
           },
-          documenten:    [{
+          // Een fixture met `documenten` levert er meer dan één, en dán pas draait de
+          // cross-document-call: die start bij twee of meer hoofddocumenten. Alle
+          // fixtures waren tot 24 augustus 2026 één document, waardoor dat hele pad
+          // buiten de eval viel — en juist daar zat een bevinding die niet klopte.
+          documenten: Array.isArray(fixture.data.documenten)
+            ? fixture.data.documenten.map(d => ({
+                bestandsnaam: d.bestandsnaam,
+                type:         d.type,
+                tekst:        anonimiseerTekst(d.tekst, new Map(), piiPh),
+              }))
+            : [{
             bestandsnaam: fixture.naam,
             type:         fixture.data._meta.doc_type,
             // Dezelfde PII-bewerking als de browser toepast vóór verzending. Zonder
@@ -114,9 +124,13 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
       // dus iets anders (rechten, verkeerde omgeving) — niet "token vergeten".
       expect(res.ok, `analyseer gaf ${res.status} op ${baseUrl} — draait vercel dev?`).toBe(true);
 
-      // Analyseer SSE-stream en verzamel issues
-      const issues = [];
-      let gebruiktConsolidatie = false;
+      // Analyseer SSE-stream en verzamel issues.
+      // Per document apart: de server stuurt één consolidatie-event per document, en
+      // die zijn de definitieve lijst (na deduplicatie, IBAN-filter en
+      // consistentiecontrole). `losseIssues` is de terugval als er geen consolidatie
+      // komt — bijvoorbeeld bij een onderbroken verbinding.
+      const perDoc = new Map();
+      const losseIssues = [];
       const reader = res.body.getReader();
       const dec    = new TextDecoder();
       let buf = '';
@@ -133,16 +147,23 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
             // De server verpakt de issues in `result`, niet direct op het event.
             // 'consolidatie' is de definitieve lijst (na deduplicatie, IBAN-filter en
             // consistentiecontrole); komt die niet, dan vallen we terug op de losse calls.
+            // PER DOCUMENT bewaren, niet in één lijst. De server stuurt één
+            // consolidatie-event per document; hier stond `issues.length = 0`, dus bij
+            // twee documenten wiste het tweede event het eerste. De eval zag dan alleen
+            // het laatste document — en juist bij twee documenten draait de
+            // cross-document-call, dus precies wat je wilde toetsen viel weg.
             if (evt.type === 'consolidatie') {
-              issues.length = 0;
-              issues.push(...(evt.result?.issues || []));
-              gebruiktConsolidatie = true;
-            } else if (!gebruiktConsolidatie && ['structuur', 'juridisch', 'balans'].includes(evt.type)) {
-              issues.push(...(evt.result?.issues || []));
+              perDoc.set(evt.bestandsnaam ?? '(enig document)', evt.result?.issues || []);
+            } else if (['structuur', 'juridisch', 'balans'].includes(evt.type)) {
+              losseIssues.push(...(evt.result?.issues || []));
             }
           } catch { /* skip malformed */ }
         }
       }
+
+      // Alle documenten samen. Bij één document verandert er niets; bij twee staat
+      // hier nu ook het convenant in plaats van alleen het laatst binnengekomen plan.
+      const issues = perDoc.size ? [...perDoc.values()].flat() : losseIssues;
 
       // Volledige uitkomst wegschrijven vóór de assertions. Zonder dit is een falende
       // run alleen te onderzoeken door hem opnieuw te draaien — drie echte analyses,

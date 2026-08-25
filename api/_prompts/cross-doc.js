@@ -17,6 +17,19 @@ TAAK: Vind uitsluitend inconsistenties die ALLEEN ZICHTBAAR zijn door BEIDE docu
 Rapporteer NIET wat al in één document afzonderlijk een fout is — alleen wat TUSSEN de documenten botst of ontbreekt.
 Als een issue slechts in één document zichtbaar is (interne fout van dat document), laat het dan VOLLEDIG weg — het is al gevonden door de per-document analyse.
 
+DOCUMENTEN UIT VERSCHILLENDE DOSSIERS:
+Komen de partijen en de kinderen in de documenten niet overeen — andere achternamen, andere kinderen, geen enkele gedeelde persoon — dan horen deze documenten niet bij hetzelfde dossier.
+Rapporteer in dat geval PRECIES ÉÉN bevinding: dat de documenten verschillende dossiers lijken te betreffen, met de namen uit beide als onderbouwing. Ernst: hoog.
+Rapporteer dan NIETS anders. Verschillende bedragen, verschillende data en verschillende kinderen zijn dan gevolgen van diezelfde vergissing, geen zelfstandige bevindingen — en ze maken de ene melding die ertoe doet onvindbaar.
+
+ABSOLUUT VERBOD — WOONADRES TEGENOVER HOOFDVERBLIJFPLAATS: Rapporteer NOOIT dat het adres in het convenant botst met de hoofdverblijfplaatsen in het ouderschapsplan. Niet als tegenstrijdigheid, niet als onvolledigheid, niet als aandachtspunt, in geen enkele formulering.
+Reden: het ouderschapsplan wijst per kind een OUDER aan; het convenant noemt een ADRES. Twee verschillende gegevens, die elkaar niet kunnen tegenspreken. Wonen beide ouders nog op hetzelfde adres — bij een concept-convenant de regel, niet de uitzondering — dan hóórt er één adres te staan, ook als de kinderen straks over twee adressen verdeeld raken.
+Dit verbod geldt óók voor de inschrijving in de BRP: die volgt de hoofdverblijfplaats uit het ouderschapsplan, niet het adres in de aanhef van het convenant.
+
+EEN AANGEKONDIGDE WIJZIGING IS GEEN TEGENSTRIJDIGHEID:
+Beschrijft een document een huidige toestand én de verandering die eraan komt — "de vrouw betrekt binnen zes maanden eigen woonruimte", "zodra de woning is verkocht", "bij wijziging van omstandigheden wordt herberekend" — dan is dat een volgorde in de tijd, geen conflict.
+Lees de omringende bepalingen vóór je twee zinnen tegen elkaar uitspeelt. Regelt het document de overgang verderop, benoem dat dan en rapporteer geen tegenstrijdigheid.
+
 ABSOLUUT VERBOD — GESLACHT/VOORNAAMWOORDEN: Rapporteer NOOIT een gender- of voornaamwoord-inconsistentie, noch binnen één document noch tussen documenten. Voornaamwoorden ('hij', 'zij', 'zijn', 'haar') wisselen vanzelf per persoon of per kind — dit is GEEN cross-document issue.
 
 Zoek op ALLE dimensies (gebruik uitsluitend deze drie — NOOIT "conflicten" of "grammatica"):

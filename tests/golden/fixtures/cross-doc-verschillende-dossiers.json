@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "doc_type": "convenant",
+    "beschrijving": "Twee documenten die NIET bij elkaar horen — andere partijen, andere kinderen",
+    "bekende_fouten": [
+      "de documenten komen uit twee verschillende dossiers"
+    ],
+    "situatie_kenmerken": [
+      "kinderen_minderjarig",
+      "kinderalimentatie"
+    ],
+    "waarom_deze_fixture": [
+      "De cross-document-call ging ervan uit dat twee documenten uit hetzelfde dossier komen.",
+      "Dat is een aanname, geen toets. Uploadt een mediator per ongeluk documenten van twee",
+      "klanten in één analyse, dan vergelijkt de call ze braaf en levert een stroom",
+      "'tegenstrijdigheden' op — andere namen, andere kinderen, andere bedragen — zonder ooit",
+      "te zeggen wat er werkelijk aan de hand is. Het enige bruikbare signaal is dan juist het",
+      "signaal dat ontbreekt.",
+      "",
+      "Deze fixture eist het omgekeerde: één bevinding die de mismatch benoemt, en géén",
+      "losse bevindingen over de afzonderlijke verschillen die daaruit voortkomen."
+    ]
+  },
+  "documenten": [
+    {
+      "type": "convenant",
+      "bestandsnaam": "convenant-bergman.txt",
+      "tekst": "CONVENANT\n\nDe ondergetekenden:\nRobin Bergman, wonende te 9999 ZZ Testdorp aan Proefstraat 1, hierna: de man;\nSammy Hartwijk, wonende te 9999 ZZ Testdorp aan Proefstraat 1, hierna: de vrouw;\ngezamenlijk te noemen: partijen, nemen het volgende in aanmerking.\n\nPartijen zijn op 21-09-2016 te Proefstad in wettelijke gemeenschap van goederen gehuwd.\n\nUit het huwelijk zijn de volgende nog minderjarige kinderen geboren:\nJuul Bergman geboren te Testdorp op 27-10-2016\nIndy Bergman geboren te Testdorp op 01-06-2018\n\nArtikel 1 — Kinderen\n1.1 Alle afspraken betreffende de kinderen zijn vastgelegd in het aan dit convenant toegevoegde ouderschapsplan.\n1.2 De man betaalt met ingang van de datum van inschrijving een bijdrage van EUR 400,- per kind per maand.\n\nArtikel 2 — Woning\n2.1 De echtelijke woning wordt verkocht. De overwaarde wordt bij helfte gedeeld.\n\nArtikel 3 — Ondertekening\nAldus overeengekomen en ondertekend te Testdorp.\n"
+    },
+    {
+      "type": "ouderschapsplan",
+      "bestandsnaam": "ouderschapsplan-doornbos.txt",
+      "tekst": "OUDERSCHAPSPLAN\n\nDit ouderschapsplan is opgesteld door Chris Doornbos en Dani Elzinga, ouders van:\nNovi Doornbos, geboren te Proefstad op 14-03-2015\nKimi Doornbos, geboren te Proefstad op 02-08-2019\n\nArtikel 1 — Ouderlijk gezag\nHet ouderlijk gezag over de kinderen ligt bij beide ouders.\n\nArtikel 2 — Woon- en verblijfplaats\nNovi heeft het hoofdverblijf bij de vader en zal op zijn adres in de Basisregistratie Personen ingeschreven staan.\nKimi heeft het hoofdverblijf bij de moeder en zal op haar adres in de Basisregistratie Personen ingeschreven staan.\n\nArtikel 3 — Zorgverdeling\nDe ouder waar het kind verblijft is verantwoordelijk voor de dagelijkse zorg.\n\nArtikel 4 — Kinderalimentatie\nChris Doornbos betaalt aan Dani Elzinga een bijdrage van EUR 275,- per kind per maand.\n\nArtikel 5 — Informatie\nOuders informeren elkaar over belangrijke aangelegenheden die de kinderen betreffen.\n"
+    }
+  ],
+  "verwachte_issues": {
+    "moeten_gevonden_worden": [
+      {
+        "categorie": ["juridisch", "volledigheid", "cross_doc"],
+        "sleutelwoorden": [
+          "niet bij hetzelfde dossier",
+          "verschillende dossiers",
+          "ander dossier",
+          "horen niet bij elkaar",
+          "betreffen verschillende"
+        ],
+        "toelichting": "Het convenant gaat over Bergman/Hartwijk met kinderen Juul en Indy; het ouderschapsplan over Doornbos/Elzinga met kinderen Novi en Kimi. Geen enkele partij en geen enkel kind komt overeen. De enige bruikbare bevinding is dat deze documenten niet bij elkaar horen."
+      }
+    ],
+    "mogen_NIET_gevonden_worden": [
+      {
+        "categorie": ["volledigheid", "juridisch", "cross_doc"],
+        "sleutelwoorden": [
+          "kinderen in het convenant komen niet voor",
+          "ouderschapsplan noemt andere kinderen",
+          "namen van de kinderen verschillen"
+        ],
+        "toelichting": "De verschillende kinderen zijn een symptoom van de mismatch, geen zelfstandige bevinding. Gemeten op 25-08-2026: alle drie afwezig."
+      }
+    ],
+    "_bekend_residu": [
+      "Er blijft één afgeleide bevinding staan: 'Kinderalimentatie: tegenstrijdigheid tussen",
+      "ouderschapsplan en convenant', met dimensies conflicten+juridisch. Die komt NIET uit de",
+      "cross-document-call maar uit een per-document-pass, en de dossier-regel in",
+      "_prompts/cross-doc.js kan er dus niet bij.",
+      "",
+      "Bewust niet achterna gejaagd met een tweede promptregel. Twee redenen. Ten eerste kost",
+      "een regel in het gedeelde blok een volledige cache-miss op alle lopende analyses, en is",
+      "vandaag twee keer gemeten dat zo'n regel een neiging geeft en geen slot: de",
+      "hoofdverblijf-regel hield in zes runs vier keer stand, en aanscherpen veranderde daar",
+      "niets aan (2 van 3 vóór, 2 van 3 ná). Ten tweede is de echte afvang deterministisch en",
+      "staat hij vóór de analyse — src/dossier-samenhang.js vraagt doorgaan of afbreken. Wie",
+      "hier toch een rapport ziet, heeft zelf voor doorgaan gekozen en weet het dus al.",
+      "",
+      "Wordt dit residu ooit hinderlijk: de plek is _prompts/bevindingen.js, niet cross-doc.js.",
+      "Neem dan eerst een meting van drie runs, want één run zegt hier niets."
+    ]
+  }
+}

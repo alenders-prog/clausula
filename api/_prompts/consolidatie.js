@@ -10,6 +10,23 @@
  * volledige cache-miss op alle lopende analyses.
  */
 
+// ── Bekend openstaand punt (25-08-2026) ─────────────────────────────────────
+//
+// In sample-output-convenant.json staan twee kaarten over dezelfde verwijzing naar
+// 'artikel 3.1.1', bijna woordelijk gelijk, uit twee verschillende analyse-calls.
+// De regel hieronder ("Twee issues die zeggen dat HETZELFDE ONDERWERP niet geregeld
+// is, zijn ÉÉN issue") had dat moeten vangen en vuurde niet.
+//
+// Niet gerepareerd, en dat is een besluit. Het is één dubbeling op 119 bevindingen
+// uit zes rapporten; alles wat er verder dubbel uitzag bleek dat niet te zijn. De
+// drie kaarten over een ontbrekende ',-' wijzen naar drie verschillende bedragen op
+// drie plekken, elk met een eigen correctie en een eigen aanklikbare passage —
+// samenvoegen zou twee vindplaatsen onbereikbaar maken.
+//
+// De volledige meting (vier kandidaat-signalen, alle vier ondeugdelijk) staat in
+// tests/golden/schema.test.js bij de dedup-meting. Begin daar voor je hier iets
+// verzint; het scheelt een halve dag signalen toetsen die al getoetst zijn.
+//
 // ── Waarom hier geen deterministische deduplicatie onder staat ───────────────
 //
 // De consolidatie merget dubbelingen onbetrouwbaar. Twee kaarten voor één gebrek

@@ -156,3 +156,27 @@ export const bouwStabielGedeeld = (vandaag, situatieKenmerken = []) => {
   return (feiten ? `${feiten}\n\n` : '')
     + `${bouwPseudonimiseringNota(vandaag)}\n\n${VERIFICATIEPLICHT}\n\n${ERNST_CRITERIA}`;
 };
+
+/**
+ * Hetzelfde blok voor de cross-document-call, zónder ERNST_CRITERIA — die staan
+ * al in cross-doc.js zelf, en twee definities naast elkaar maken het slechter.
+ *
+ * Tot 24 augustus 2026 kreeg die call HELEMAAL niets van dit alles: alleen zijn
+ * eigen systeemprompt en de documentteksten. Dat had drie gevolgen die je pas ziet
+ * als je een bevinding naleest:
+ *
+ *  1. De VERWIJZINGSREGEL bereikte hem niet. Die zegt: verwijst een document voor
+ *     een onderwerp naar een ander document van hetzelfde dossier, rapporteer dan
+ *     geen ontbrekende regeling. Het voorbeeld in die regel is woordelijk "alle
+ *     afspraken betreffende de kinderen zijn vastgelegd in het bijgevoegde
+ *     ouderschapsplan" — precies de zin waarover de cross-doc-call struikelde.
+ *  2. De SAMENHANG-regels (kop/bevinding/passage, en dat een aanbeveling naast het
+ *     document moet kunnen bestaan) golden er niet.
+ *  3. De PSEUDONIMISERINGSNOTA ontbrak, terwijl de tekst wél door vervangPii gaat.
+ *     De call zag [ADRES] en [IBAN-1] zonder te weten wat dat zijn.
+ */
+export const bouwStabielCrossDoc = (vandaag, situatieKenmerken = []) => {
+  const feiten = bouwFeitenBlok(situatieKenmerken);
+  return (feiten ? `${feiten}\n\n` : '')
+    + `${bouwPseudonimiseringNota(vandaag)}\n\n${VERIFICATIEPLICHT}`;
+};
