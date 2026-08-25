@@ -155,8 +155,17 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 //
 // src/ui/traag-melder.js en zijn twaalf tests zijn mee verwijderd. Ongebruikte
 // code laten staan is precies wat we deze dag hebben opgeruimd.
-const MAX_REGELS_INDEX = 15433;
-const MAX_REGELS_JS     = 12420;
+// 24-08-2026 (achtste keer): 15433 → 15457 (+24, alle 24 script), voor het
+// aansluiten van kiesUniekFragment op de passage-zoekterugval. Een aangeklikt
+// issue markeerde de verkeerde alinea omdat de laatste terugval het eerste venster
+// van vier woorden nam — "De ouder waar het" — dat twintig regels eerder óók stond.
+//
+// De redenering staat in src/viewer/uniek-fragment.js met dertien tests: kies een
+// fragment dat het document maar één keer bevat. Wat hier bijkwam is de aanroep,
+// een terugval erachter voor gescande documenten, en de uitleg waarom uniekheid
+// een betere maatstaf is dan een stopwoordenlijst.
+const MAX_REGELS_INDEX = 15457;
+const MAX_REGELS_JS     = 12444;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

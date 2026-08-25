@@ -6673,7 +6673,28 @@ async function zoekEnScrollNaarPassage(passage) {
     if (isGehighlightd()) return true;
   }
 
-  // Fallback 2: glijdend venster van 4 woorden langs de volledige passage (lage kwaliteit)
+  // Fallback 2: een fragment dat het document maar ÉÉN keer bevat.
+  //
+  // Hiervoor stond hier een glijdend venster van vier woorden dat van links naar
+  // rechts liep en de eerste treffer nam. Bij een passage die begon met "De ouder
+  // waar het kind 2de kerstdag viert…" was dat meteen raak op "De ouder waar het"
+  // — maar in het artikel over identiteitsbewijzen, twintig regels eerder. De
+  // mediator zag zijn citaat naast een alinea die er niets mee te maken had, en
+  // dat is erger dan niets vinden: het ziet eruit alsof de bevinding niet klopt.
+  //
+  // Uniekheid is een betere maatstaf dan een stopwoordenlijst. "Ouder", "kind" en
+  // "wissel" zijn geen stopwoorden maar zeggen in een ouderschapsplan niets — daar
+  // gaat het hele document over. Zie src/viewer/uniek-fragment.js.
+  const _uniek = kiesUniekFragment(passage, app.rapport?._document_tekst || '');
+  if (_uniek) {
+    _passageHintFrac = vindPassageFractie(passage);
+    await renderDocPanel(_uniek.fragment);
+    _passageHintFrac = null;
+    if (isGehighlightd()) return _uniek.voorkomens === 1;
+  }
+
+  // Fallback 3: alsnog het glijdende venster, voor documenten waarvan de
+  // viewertekst afwijkt van de geanalyseerde tekst (gescand, OCR, andere opmaak).
   for (let i = 0; i + 3 < woorden.length; i++) {
     const fragment = woorden.slice(i, i + 4).join(' ');
     await renderDocPanel(fragment);
@@ -8583,6 +8604,7 @@ var anonimiseerTekst; // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
 let _roepnaamIssuesPerBestand = new Map();
 var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-bridge)
 var lijstZin;           // → src/ui/lijst-zin.js
+var kiesUniekFragment;  // → src/viewer/uniek-fragment.js
 
 // Maakt een gedeelde PII-tracker aan die genummerde, terugzetbare placeholders beheert.
 // Gedeeld over meerdere anonimiseerTekst-aanroepen zodat indexering consistent blijft.
@@ -15266,6 +15288,7 @@ import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport
 import { injecteerNummering }                               from './src/docx/nummering.js';
 import { bouwRoepnaamIssues }                              from './src/rapport/roepnaam-issues.js';
 import { lijstZin }                                        from './src/ui/lijst-zin.js';
+import { kiesUniekFragment }                               from './src/viewer/uniek-fragment.js';
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
 import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
@@ -15302,6 +15325,7 @@ window.volgendeMetTekst       = volgendeMetTekst;
 window.artikelVerwijzingen    = artikelVerwijzingen;
 window.bouwRoepnaamIssues     = bouwRoepnaamIssues;
 window.lijstZin               = lijstZin;
+window.kiesUniekFragment      = kiesUniekFragment;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;
