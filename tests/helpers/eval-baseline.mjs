@@ -18,6 +18,34 @@
  *
  * Daarom een vingerafdruk van betekenisdragende woorden, en een overlapmaat.
  * Twee bevindingen gelden als dezelfde zodra ze genoeg woorden delen.
+ *
+ * ── WAT DEZE VERGELIJKING NIET KAN ──────────────────────────────────────────
+ * Op 24 augustus 2026 gemeten met twee controleruns op IDENTIEKE code:
+ *
+ *     fixture                       A↔B    base↔A   base↔B
+ *     convenant-incompleet           10       15        9
+ *     convenant-tegenstrijdig         9       10        9
+ *     ouderschapsplan-onvolledig      8        9        5
+ *
+ * A en B draaiden op precies dezelfde prompts en verschilden 8 tot 10 bevindingen
+ * per fixture. Zelfs het aantal schommelde: convenant-incompleet gaf 14 issues in
+ * A en 10 in B. De verschillen mét de baseline liggen dus binnen de ruis.
+ *
+ * GEVOLG: gebruik deze diff NIET om te bepalen of een promptwijziging heeft
+ * gewerkt. Daar is hij te grof voor; je leest modelvariatie voor effect, en dat
+ * heb ik die dag ook gedaan — ik dacht dat twee bevindingen waren "verdwenen"
+ * terwijl ze in een herhaling gewoon terugkwamen.
+ *
+ * Waar hij wél voor deugt: een ramp opmerken. Halveert het aantal, verdwijnt een
+ * hele ernstcategorie, of komt er een stapel nieuwe bevindingen bij, dan steekt
+ * dat boven de ruis uit.
+ *
+ * Wat wél meet, en in dezelfde twee runs identiek uitkwam:
+ *   - de harde assertions van de fixtures (sleutelwoord-gebaseerd, dus ongevoelig
+ *     voor herformulering) — die sloegen in beide runs hetzelfde aan;
+ *   - een GERICHTE telling op één signaal, in meerdere runs. "Komt 1:159 nog voor?"
+ *     gaf 0 en 0. "Staat de informatieplicht dubbel?" gaf 2 en 2. Dat zijn
+ *     bruikbare antwoorden; de lijstdiff gaf er geen.
  */
 
 /** Woorden die niets onderscheiden — die zouden elke twee titels op elkaar laten lijken. */

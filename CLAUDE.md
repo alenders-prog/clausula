@@ -192,6 +192,19 @@ daaraan; `api/_consistentie.js` valt onder dezelfde regel.
 > ("of" versus "/"), dus falen daarop zou een flakkerende test geven die je leert
 > negeren. Ze worden vergeleken op woordoverlap; de harde controle blijft dat de
 > verwachte issues gevonden zijn en de bekende valse positieven afwezig.
+>
+> **Lees die diff niet als bewijs dat een promptwijziging werkte.** Op 24 augustus
+> 2026 gemeten met twee controleruns op identieke code: die verschilden 8 tot 10
+> bevindingen per fixture, en het aantal issues schommelde met ±4. De verschillen
+> mét de baseline vallen daar binnen. De diff deugt om een ráms op te merken —
+> een gehalveerd aantal, een verdwenen ernstcategorie — niet om effect toe te
+> schrijven.
+>
+> Wat wél meet: de harde assertions van de fixtures (die staan op sleutelwoorden
+> en zijn dus ongevoelig voor herformulering), en een **gerichte telling op één
+> signaal in meerdere runs**. "Komt art. 1:159 nog voor?" gaf 0 en 0; "staat de
+> informatieplicht dubbel?" gaf 2 en 2. Wil je weten of een wijziging werkte,
+> stel dan zo'n vraag en draai twee keer — niet één keer en dan de lijst lezen.
 
 > **Raak witruimte en spelling niet zonder reden aan.** De gedeelde blokken worden
 > byte-exact door Anthropic gecachet — elke wijziging kost eenmalig een volledige
