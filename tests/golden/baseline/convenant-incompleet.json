@@ -1,0 +1,63 @@
+{
+  "fixture": "convenant-incompleet.json",
+  "aantal": 13,
+  "perErnst": {
+    "hoog": 3,
+    "midden": 8,
+    "laag": 2
+  },
+  "onderwerpen": [
+    {
+      "onderwerp": "Kinderalimentatie ontbreekt volledig",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Ingangsdatum partneralimentatie niet vermeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Hypotheek: ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Verdeling woning: verkooptermijn en procedure niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Bankrekeningen: saldo's en peildatum niet vermeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Schulden niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Fiscale verdeling aanslagen en teruggaven niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Persoonsgegevens onvolledig: adressen en BSN ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Geboortedatums kinderen onvolledig (alleen geboortejaar)",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Huwelijksgemeenschap: considerans over vermogensregime ontbreekt",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Pensioenregeling beschrijft conversie maar noemt art. 5 WVPS niet en vereist instemming pensioenuitvoerder",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Vermogensverdeling: geen peildatum voor omvang en waardebepaling huwelijksgemeenschap",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Adres echtelijke woning niet gepseudonimiseerd conform documentprotocol maar wel concreet vermeld",
+      "ernst": "laag"
+    }
+  ]
+}

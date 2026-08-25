@@ -1,0 +1,59 @@
+{
+  "fixture": "ouderschapsplan-onvolledig.json",
+  "aantal": 12,
+  "perErnst": {
+    "midden": 9,
+    "laag": 2,
+    "hoog": 1
+  },
+  "onderwerpen": [
+    {
+      "onderwerp": "Ingangsdatum kinderalimentatie ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld, overige vakanties ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Informatie- en consultatieverplichting ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "School- en opleidingsbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Omgangsregeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Meerdere verwachte secties volledig afwezig",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Informatieplicht (art. 1:377b BW) ontbreekt",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Geschillenregeling / mediationclausule ontbreekt",
+      "ernst": "midden"
+    }
+  ]
+}

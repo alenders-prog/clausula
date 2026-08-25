@@ -28,10 +28,14 @@ process.stdin.on('end', () => {
   meld([
     '[prompt] Screening-prompt gewijzigd — de eval hoort nu te draaien:',
     '',
-    '  npm run test:eval   (TEST_BASE_URL + TEST_JWT_TOKEN + vercel dev, ~4 min, ~$1)',
+    '  npm run test:eval   (vercel dev op poort 3000, ~4 min, ~$1)',
     '',
-    'Vergelijk met de baseline en meld het resultaat. De volledige issuelijst per',
-    'fixture komt in tests/golden/laatste-run-*.json te staan.',
+    'Hij logt zelf in met TEST_EMAIL/TEST_PASSWORD uit .env en vergelijkt daarna met',
+    'tests/golden/baseline/. Wat erbij kwam en wat verdween staat aan het eind van de',
+    'uitvoer en in tests/golden/laatste-diff.txt; de volledige issuelijst per fixture',
+    'in tests/golden/laatste-run-*.json.',
+    'Klopt de nieuwe uitkomst? Leg hem vast met npm run eval:baseline en neem de diff',
+    'mee in het commitbericht.',
     'Raak witruimte en spelling niet zonder reden aan: de gedeelde blokken worden',
     'byte-exact gecachet, dus elke wijziging kost eenmalig een volledige cache-miss.',
   ].join('\n'));

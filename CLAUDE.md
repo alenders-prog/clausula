@@ -174,6 +174,25 @@ raakte als elke logicawijziging en er dus niets aan te koppelen viel.
 baseline (`docs/auto-test-setup.md`, punt D10). Een PostToolUse-hook herinnert
 daaraan; `api/_consistentie.js` valt onder dezelfde regel.
 
+> **De eval haalt zijn eigen token op.** Staan `TEST_EMAIL` en `TEST_PASSWORD` in
+> `.env`, dan logt hij bij elke run zelf in. Daarvóór hing hij aan een handmatige
+> `TEST_JWT_TOKEN` die binnen een uur verloopt — op 24 augustus 2026 bleek die al
+> vijf dagen dood, en de 401 die dat opleverde zag eruit als een promptregressie.
+>
+> **De baseline bestaat nu ook echt.** `tests/golden/laatste-run-*.json` staat in
+> `.gitignore` en wordt élke run overschreven; er viel dus niets te vergelijken.
+> `tests/golden/baseline/` gaat wél mee in git. Na afloop toont de eval wat erbij
+> kwam en wat verdween, en schrijft dat naar `tests/golden/laatste-diff.txt`.
+>
+> Klopt de nieuwe uitkomst? Leg hem vast met `npm run eval:baseline` en neem de
+> diff mee in het commitbericht. Dat is bewust een aparte opdracht: verschuift de
+> norm, dan is dat een besluit dat in de diff staat — niet een bijproduct.
+>
+> De vergelijking is géén assertie. Titels komen van een taalmodel en variëren
+> ("of" versus "/"), dus falen daarop zou een flakkerende test geven die je leert
+> negeren. Ze worden vergeleken op woordoverlap; de harde controle blijft dat de
+> verwachte issues gevonden zijn en de bekende valse positieven afwezig.
+
 > **Raak witruimte en spelling niet zonder reden aan.** De gedeelde blokken worden
 > byte-exact door Anthropic gecachet — elke wijziging kost eenmalig een volledige
 > cache-miss op alle lopende analyses.

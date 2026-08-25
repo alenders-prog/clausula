@@ -8,9 +8,10 @@
  * Vereist: ANTHROPIC_API_KEY + SUPABASE_* env vars in .env
  */
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { leesEnv, haalToken } from '../helpers/test-token.mjs';
-import { readFileSync, readdirSync, writeFileSync } from 'fs';
+import { readFileSync, readdirSync, writeFileSync, existsSync } from 'fs';
+import { vergelijk, verslag } from '../helpers/eval-baseline.mjs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -38,6 +39,10 @@ const expliciet = process.env.npm_lifecycle_event === 'test:eval'
 
 // Wordt in beforeAll gevuld — één token voor alle fixtures in deze run.
 let TOKEN = '';
+
+// Per fixture het verslag van de vergelijking met de baseline; wordt aan het eind
+// in één blok getoond. Losse regels tussen de testuitvoer door lezen niemand.
+const VERGELIJKINGEN = [];
 
 describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () => {
   beforeAll(async () => {
@@ -130,6 +135,17 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
         );
       } catch { /* schrijven mag de test niet laten vallen */ }
 
+      // Vergelijken met de vastgelegde baseline. Bewust géén assertie: de titels komen
+      // van een taalmodel en variëren, dus falen hierop zou een flakkerende test geven
+      // die je leert negeren. De echte assertie staat hieronder — verwachte issues
+      // gevonden, bekende valse positieven afwezig. Dit is het verslag daarnaast.
+      try {
+        const naam = fixture.naam.replace(/\.json$/, '');
+        const pad  = join(__dir, 'baseline', `${naam}.json`);
+        const oud  = existsSync(pad) ? JSON.parse(readFileSync(pad, 'utf8')) : null;
+        VERGELIJKINGEN.push(verslag(naam, vergelijk(oud, issues)));
+      } catch (e) { VERGELIJKINGEN.push(`▸ ${fixture.naam}\n    vergelijking mislukt: ${e.message}`); }
+
       const { moeten_gevonden_worden, mogen_NIET_gevonden_worden } = fixture.data.verwachte_issues;
 
       // Een verwachting draagt meerdere sleutelwoorden waarvan er ÉÉN moet voorkomen.
@@ -169,4 +185,15 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
       }
     }, 180_000); // 3 min per fixture — met kennisbank duurt een analyse langer
   }
+
+  afterAll(() => {
+    if (!VERGELIJKINGEN.length) return;
+    const blok = ['', '─'.repeat(72), 'VERGELIJKING MET DE BASELINE', '─'.repeat(72), '',
+      ...VERGELIJKINGEN, '',
+      'Klopt wat je ziet? Leg het vast met: npm run eval:baseline', ''].join('\n');
+    // Zowel tonen als wegschrijven: de console scrollt weg bij drie fixtures van
+    // elk drie minuten, en dan is het verslag precies datgene wat je zocht.
+    console.log(blok);
+    try { writeFileSync(join(__dir, 'laatste-diff.txt'), blok); } catch { /* niet fataal */ }
+  });
 });
