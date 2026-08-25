@@ -743,7 +743,7 @@
     if (disc) disc.style.display = 'none';
     dBalk.style.display     = 'none';
     overlay.style.display   = 'flex';
-    overlay.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;text-align:center">Laden…</div>';
+    overlay.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;text-align:center">Bezig met laden…</div>';
 
     try {
       const { data, error } = await db
@@ -1509,7 +1509,7 @@
   const _autoSid   = _urlParams.get('s');
   if (_autoSid && db) {
     // Dossier rechtstreeks gekoppeld via URL — skip "Even instellen", start direct
-    msgsEl.innerHTML = `<div class="mob-sys">Dossier laden…</div>`;
+    msgsEl.innerHTML = `<div class="mob-sys">Bezig met het dossier laden…</div>`;
     selecteerDossier(_autoSid, '…', true);
   } else {
     toonLinkDialog();

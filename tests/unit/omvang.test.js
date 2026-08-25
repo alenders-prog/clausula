@@ -129,8 +129,22 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // laadanimaties zijn er vier geworden; wat er aan uitleg bijkwam woog niet op tegen
 // wat er aan dode en dubbele regels wegging. Het script bleef gelijk — dit was
 // stijlwerk, en dat is precies waarom er twee grenzen zijn.
-const MAX_REGELS_INDEX = 15421;
-const MAX_REGELS_JS     = 12403;
+// 24-08-2026 (zesde keer): 15421 → 15487 (+66 totaal, +53 script), voor de
+// traagregel — de zin die verschijnt wanneer de voortgang stilstaat. Dat was de
+// klacht van die dag ("er lijkt nu niets meer te gebeuren"), en geen van de
+// veertien animaties loste hem op.
+//
+// De redenering staat wél in src/: src/ui/traag-melder.js met twaalf tests, over
+// de vraag wanneer iets als stilstand telt. Het subtiele punt daar is dat een
+// hérhaalde melding niet als voortgang telt — de SSE-lus stuurt bij elk event
+// dezelfde zin, en zou dat de klok terugzetten dan ging de regel nooit af.
+//
+// Wat hier bleef is bedrading: een luisteraar, een interval, en een element tonen
+// of verbergen. Daar valt niets aan te bewijzen buiten de DOM. Afgedekt met
+// 09-traagregel.spec.js (vijf gevallen), waaronder dat de regel een herbouw van
+// het analysepaneel overleeft — hij staat er bewust buiten.
+const MAX_REGELS_INDEX = 15487;
+const MAX_REGELS_JS     = 12456;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
