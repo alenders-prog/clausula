@@ -1540,12 +1540,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .dim-tab-btn.laadt{flex-direction:column;align-items:stretch;gap:4px;min-width:90px;}
 .krl-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:16px;}
 .krl-lbl{font-size:.9rem;color:var(--ink-soft);}
-/* Drie kaartvormen in plaats van een veeg: dit is "inhoud die komt", en een
-   skeleton toont vast de vorm van wat er verschijnt. Zie de vier wachtvormen. */
-.krl-skelet{display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;}
-.krl-skelet i{display:block;height:46px;border-radius:6px;}
-.krl-skelet i:nth-child(2){opacity:.75;}
-.krl-skelet i:nth-child(3){opacity:.5;}
 /* Simpele issue-kaart tijdens progressieve render */
 .prog-kaart{padding:12px 16px;margin-bottom:8px;border-radius:6px;background:var(--bg);border:1px solid var(--line);border-left-width:3px;}
 .prog-kaart-titel{font-weight:600;font-size:.9rem;color:var(--ink);}
@@ -1799,14 +1793,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   display:flex;align-items:center;gap:8px;}
 .awiz-status.fout{color:var(--terra);}
 
-/* De traagregel. Geen eigen animatie: hij verschijnt juist omdát er al iets
-   beweegt zonder dat er iets verandert. */
-.analyse-traag{display:flex;align-items:flex-start;gap:9px;padding:10px 18px;
-  background:var(--seal-bg);border-bottom:1px solid var(--line);
-  font-size:.83rem;color:var(--ink-mid);line-height:1.5;}
-.analyse-traag[hidden]{display:none !important;}
-.analyse-traag::before{content:'';flex-shrink:0;width:7px;height:7px;margin-top:6px;
-  border-radius:50%;background:var(--amber);}
 .awiz-btn-loopt{opacity:1;}
 .awiz-btn-loopt .laad-spin{margin-right:7px;vertical-align:-2px;}
 
@@ -2872,10 +2858,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
       <div class="panel-doc" id="documentPanel"></div>
     </div>
     <div class="panel-analyse-col">
-      <!-- Buiten #analysePanel: dat paneel wordt bij elk SSE-event volledig
-           opnieuw opgebouwd, en een regel die daarin staat zou telkens opnieuw
-           in beeld schuiven. Zie src/ui/traag-melder.js voor wanneer hij komt. -->
-      <div class="analyse-traag" id="analyseTraag" role="status" aria-live="polite" hidden></div>
       <div class="panel-analyse" id="analysePanel"></div>
     </div>
   </div>
@@ -3798,51 +3780,7 @@ function meldDocStatus(bestandsnaam, status) {
     { detail: { bestandsnaam, status } }));
 }
 
-// ── "Er lijkt niets te gebeuren" ────────────────────────────────────────────
-//
-// Dat was de klacht, en het ging niet over de animaties — die draaiden gewoon.
-// Het ging over informatie: de tekst stond al veertig seconden op hetzelfde. Deze
-// regel verschijnt zodra de voortgang stilstaat, en vertelt waar hij op wacht.
-//
-// De meter kijkt naar STILSTAND, niet naar de kloktijd sinds de start: een analyse
-// mag twee minuten duren. Zie src/ui/traag-melder.js — daar staat ook waarom een
-// herhaalde melding niet als voortgang telt.
-let _traagMelder = null;
-let _traagTimer  = null;
 
-// De drempel is een parameter zodat een browsertest hem niet twintig seconden
-// hoeft af te wachten. In de app wordt hij nooit meegegeven.
-function startTraagBewaking(drempelMs = 20_000) {
-  stopTraagBewaking();
-  _traagMelder = maakTraagMelder({ drempelMs });
-  document.addEventListener('clausula:analyse-status', _traagTik);
-  // Eén trage tik volstaat: de regel hoeft niet op de seconde te verschijnen, en
-  // een timer die vaker loopt dan er iets kan veranderen is verspilling.
-  _traagTimer = setInterval(_traagToon, Math.min(2_000, Math.max(100, drempelMs / 4)));
-}
-
-function stopTraagBewaking() {
-  document.removeEventListener('clausula:analyse-status', _traagTik);
-  if (_traagTimer) clearInterval(_traagTimer);
-  _traagTimer  = null;
-  _traagMelder = null;
-  const el = document.getElementById('analyseTraag');
-  if (el) { el.hidden = true; el.textContent = ''; }
-}
-
-function _traagTik(e) {
-  _traagMelder?.tik(e.detail?.tekst, e.detail?.pct ?? null);
-  _traagToon();
-}
-
-function _traagToon() {
-  const el = document.getElementById('analyseTraag');
-  if (!el || !_traagMelder) return;
-  const { traag, stilMs } = _traagMelder.status();
-  if (!traag) { el.hidden = true; el.textContent = ''; return; }
-  el.textContent = traagZin(stilMs, _traagMelder.laatsteMelding()?.tekst);
-  el.hidden = false;
-}
 
 async function analyseDocument(trayItems, onProgress = () => {}) {
   // Zorg dat elk item een File-object heeft (download uit Storage als nodig)
@@ -4415,7 +4353,19 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const issuesHtml = alleI.length > 0
         ? gesorteerdeIdx.map((i, pos) => issueKaart(i, pos + 1)).join('')
         : nogBezig
-          ? `<div class="krl-wrap"><div class="krl-lbl">Bezig met analyseren…</div><div class="krl-skelet"><i class="laad-skelet"></i><i class="laad-skelet"></i><i class="laad-skelet"></i></div></div>`
+          // Benoemen wát er nog draait, niet alleen dát er iets draait. dimLoadt
+          // hierboven weet precies welke dimensies nog moeten binnenkomen, dus dit
+          // is echte informatie en geen afgedraaid lijstje: de zin wordt korter
+          // naarmate de analyse vordert, en dát is de voortgang die je wilt zien.
+          ? (() => {
+              const _bezigDims = Object.entries(dimLoadt).filter(([, v]) => v)
+                .map(([d]) => (DIM_LABELS[d] || d).toLowerCase());
+              const _bezigZin = _bezigDims.length
+                ? `Bezig met ${lijstZin(_bezigDims)}…`
+                : 'Bezig met analyseren…';
+              return `<div class="krl-wrap"><span class="laad-spin groot"></span>`
+                + `<div class="krl-lbl">${escH(_bezigZin)}</div></div>`;
+            })()
           : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
       // app.documenten is leeg tijdens analyse (gevuld na klaar-event) — gebruik
@@ -5957,7 +5907,7 @@ async function diepteAnalyse(idx) {
     return;
   }
 
-  body.innerHTML = '<div class="krl-wrap"><div class="krl-lbl">Bezig met laden…</div><div class="krl-skelet"><i class="laad-skelet"></i><i class="laad-skelet"></i><i class="laad-skelet"></i></div></div>';
+  body.innerHTML = '<div class="krl-wrap"><span class="laad-spin groot"></span><div class="krl-lbl">Bezig met laden…</div></div>';
 
   // ── Kennisbank-lookup ────────────────────────────────────────────────────
   // Strategie (in volgorde):
@@ -8632,8 +8582,7 @@ var anonimiseerTekst; // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
 // een kaart hoort alleen bij het document waar die roepnaam in voorkomt.
 let _roepnaamIssuesPerBestand = new Map();
 var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-bridge)
-var maakTraagMelder;    // → src/ui/traag-melder.js
-var traagZin;           // → src/ui/traag-melder.js
+var lijstZin;           // → src/ui/lijst-zin.js
 
 // Maakt een gedeelde PII-tracker aan die genummerde, terugzetbare placeholders beheert.
 // Gedeeld over meerdere anonimiseerTekst-aanroepen zodat indexering consistent blijft.
@@ -10891,7 +10840,6 @@ async function startAnalyse() {
   errorBox.style.display = 'none';
   analyseBtn.disabled    = true;
   scanning.classList.add('active');
-  startTraagBewaking();
   const scanText     = document.getElementById('scanText');
   const scanVoortgang = document.getElementById('scanVoortgang');
   const scanDocLabel  = document.getElementById('scanDocLabel');
@@ -10939,7 +10887,6 @@ async function startAnalyse() {
     errorBox.textContent   = 'Kon de documenten niet analyseren: ' + err.message;
     errorBox.style.display = 'block';
   } finally {
-    stopTraagBewaking();
     scanning.classList.remove('active');
     scanVoortgang.classList.remove('actief');
     analyseBtn.disabled = !app.tray.length || !app.dossierId;
@@ -15318,7 +15265,7 @@ import { hoortAaneen, volgendeMetTekst }                    from './src/docx/zin
 import { artikelVerwijzingen, voegChunksSamen, trefwoord }   from './src/rapport/kennisbank-selectie.js';
 import { injecteerNummering }                               from './src/docx/nummering.js';
 import { bouwRoepnaamIssues }                              from './src/rapport/roepnaam-issues.js';
-import { maakTraagMelder, traagZin }                       from './src/ui/traag-melder.js';
+import { lijstZin }                                        from './src/ui/lijst-zin.js';
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
 import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
@@ -15354,8 +15301,7 @@ window.hoortAaneen            = hoortAaneen;
 window.volgendeMetTekst       = volgendeMetTekst;
 window.artikelVerwijzingen    = artikelVerwijzingen;
 window.bouwRoepnaamIssues     = bouwRoepnaamIssues;
-window.maakTraagMelder        = maakTraagMelder;
-window.traagZin               = traagZin;
+window.lijstZin               = lijstZin;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;

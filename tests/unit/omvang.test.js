@@ -143,8 +143,20 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // of verbergen. Daar valt niets aan te bewijzen buiten de DOM. Afgedekt met
 // 09-traagregel.spec.js (vijf gevallen), waaronder dat de regel een herbouw van
 // het analysepaneel overleeft — hij staat er bewust buiten.
-const MAX_REGELS_INDEX = 15487;
-const MAX_REGELS_JS     = 12456;
+// 24-08-2026 (zevende keer): 15487 → 15433 en 12456 → 12420. De traagregel is er
+// weer uit. Hij verscheen na twintig seconden met "dit duurt langer dan
+// gebruikelijk", maar op het analysescherm was al gemeld dat het een paar minuten
+// duurt — dus de melding was niet alleen overbodig, hij was onwaar, en hij wekte
+// ongeduld in plaats van het weg te nemen.
+//
+// Wat het probleem echt oploste is een regel eronder: de tekst noemt nu welke
+// dimensies nog draaien en wordt korter naarmate ze binnenkomen. Dan staat er
+// niets meer stil, en is er niets meer te melden over stilstand.
+//
+// src/ui/traag-melder.js en zijn twaalf tests zijn mee verwijderd. Ongebruikte
+// code laten staan is precies wat we deze dag hebben opgeruimd.
+const MAX_REGELS_INDEX = 15433;
+const MAX_REGELS_JS     = 12420;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
