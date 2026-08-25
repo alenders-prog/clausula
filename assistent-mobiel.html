@@ -221,7 +221,9 @@
       border-top: 1px dashed var(--line);
     }
     .mob-stream-lbl { font-size: .68rem; color: var(--ink-soft); margin-right: 2px; }
-    .mob-stream-lbl::after { content: '…'; animation: mob-puls 1.4s ease-in-out infinite; }
+    /* Geen pulserende puntjes meer: de chips ernaast tonen al welk onderdeel
+       nog onderweg is. Twee animaties voor één boodschap. */
+    .mob-stream-lbl::after { content: '…'; }
     .mob-stream-chip {
       display: inline-flex; align-items: center; gap: 4px;
       padding: 1px 8px; border: 1px solid var(--line); border-radius: 12px;
@@ -230,10 +232,6 @@
     }
     .mob-stream-chip.klaar { opacity: 1; color: var(--ink-mid); border-color: var(--ink-soft); }
     .mob-stream-chip.klaar::before { content: '✓'; font-size: .62rem; color: #1E8449; }
-    @keyframes mob-puls { 0%,100% { opacity: .3 } 50% { opacity: 1 } }
-    @media (prefers-reduced-motion: reduce) {
-      .mob-stream-lbl::after { animation: none; }
-    }
 
     /* Thinking indicator */
     .mob-thinking {
@@ -250,14 +248,19 @@
     }
     .mob-dot {
       width: 6px; height: 6px; border-radius: 50%;
-      background: var(--ink-soft);
-      animation: mob-bounce .9s ease-in-out infinite;
+      background: currentColor;
+      animation: laad-stuit .9s ease-in-out infinite;
     }
     .mob-dot:nth-child(2) { animation-delay: .2s; }
     .mob-dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes mob-bounce {
+    /* Dezelfde naam en dezelfde waarden als in index.html — mobiel had hier een
+       eigen kopie onder een andere naam. Wijzigt de vorm daar, wijzig hem hier ook. */
+    @keyframes laad-stuit {
       0%, 80%, 100% { transform: translateY(0); }
       40% { transform: translateY(-5px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mob-dot { animation: none; }
     }
 
     /* Bronnen chips (gedeeld door mob-bronnen-chips en eventuele directe weergave) */

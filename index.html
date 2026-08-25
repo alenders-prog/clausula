@@ -132,13 +132,6 @@ button.secundair:hover{background:#FFF1EA;}
 /* ── Scan-animatie ────────────────────────────────── */
 .scanning{display:none;margin-top:32px;text-align:center;}
 .scanning.active{display:block;}
-.scan-doc{width:64px;height:80px;margin:0 auto 20px;border:1.5px solid var(--line);border-radius:6px;
-  background:var(--paper);position:relative;overflow:hidden;}
-.scan-doc::before,.scan-doc::after{content:'';position:absolute;left:12px;right:12px;height:2px;background:var(--line);}
-.scan-doc::before{top:18px;} .scan-doc::after{top:30px;}
-.scan-line{position:absolute;left:0;right:0;height:2px;background:var(--coral);
-  box-shadow:0 0 8px var(--coral);animation:scan 1.6s ease-in-out infinite;}
-@keyframes scan{0%{top:6px;opacity:0;}10%{opacity:1;}90%{opacity:1;}100%{top:74px;opacity:0;}}
 .scanning p{color:var(--ink-soft);font-size:.95rem;margin:0;}
 .scan-voortgang{margin:10px auto 0;max-width:280px;display:none;}
 .scan-voortgang.actief{display:block;}
@@ -738,8 +731,7 @@ button.primair:hover{background:var(--coral-dark);}
 .cgen-chip.klaar{background:#F0FBF4;color:#1e6e4a;cursor:pointer;border:1px solid #c3e8d4;}
 .cgen-chip.klaar:hover{background:#e0f5ea;}
 .cgen-chip.fout {background:#FDF2F2;color:#c0392b;cursor:pointer;}
-.cgen-spin{display:inline-block;animation:spin .9s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+.cgen-spin{display:inline-block;animation:laad-draai .8s linear infinite;}
 
 /* ── App-header ───────────────────────────────────── */
 .app-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:0;}
@@ -1008,7 +1000,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .filter-chip-grid.compact .a-fiche-stats{border-top:none;padding-top:0;flex:1;}
 .filter-chip-grid.compact .a-fiche-stat strong{font-size:.92rem;}
 .filter-chip-grid.compact .a-fiche-divider{height:20px;}
-@keyframes kop-pulse{0%,100%{opacity:.5}50%{opacity:1}}
 .a-fiche-leeg{opacity:1;}
 .sectie-kop{font-size:.93rem;font-weight:700;color:var(--nav-bg,#1B3050);
   padding-bottom:8px;border-bottom:2px solid #C8A84B;margin:14px 0 12px;}
@@ -1068,54 +1059,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   color:var(--ink) !important;border-color:var(--ink-mid) !important;
   box-shadow:0 1px 4px rgba(26,24,22,.08) !important;}
 .a-sort-chevron{font-size:.6rem;opacity:.5;margin-left:1px;}
-/* ── Zweep-animatie op de rand van loading-filterknopjes ──
-   @property animeert alleen de starthoek van de conic-gradient.
-   Het element staat stil; alleen de kleur loopt langs de rand. ── */
-@property --zweep-a{syntax:'<angle>';initial-value:0deg;inherits:false;}
-@keyframes zweep-kleur{to{--zweep-a:360deg;}}
-.a-filter-ring{position:relative;display:inline-flex;border-radius:22px;}
-.a-filter-ring::before{
-  content:'';position:absolute;inset:-2px;border-radius:22px;padding:2px;
-  --zweep-a:0deg;
-  background:conic-gradient(
-    from var(--zweep-a),
-    var(--line)             0deg 200deg,
-    rgba(200,106,60,.12)  215deg,
-    rgba(200,106,60,.7)   270deg,
-    rgba(200,106,60,.12)  325deg,
-    var(--line)           340deg 360deg
-  );
-  /* Masker: alleen de 2px rand zichtbaar, midden weggemaskerd */
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:destination-out;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  animation:zweep-kleur 2s linear infinite;pointer-events:none;}
-.a-filter-ring>.a-filter-dim{border-color:transparent;box-shadow:none;}
-.a-filter-ring>.a-filter-dim:hover{transform:none;border-color:transparent;box-shadow:none;color:var(--ink-mid);}
-
-/* ── Lopende rand op fiche-chips tijdens analyse ──────────── */
-@keyframes skeleton-sweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
-@property --fiche-zweep{syntax:'<angle>';initial-value:0deg;inherits:false;}
-@keyframes fiche-zweep{to{--fiche-zweep:360deg;}}
-.a-fiche-ring{position:relative;display:flex;border-radius:8px;}
-.a-fiche-ring::before{
-  content:'';position:absolute;inset:-2px;border-radius:9px;padding:2px;z-index:0;
-  background:conic-gradient(
-    from var(--fiche-zweep),
-    transparent            0deg 120deg,
-    rgba(200,106,60,.18) 140deg,
-    rgba(200,106,60,.95) 200deg,
-    rgba(200,106,60,.95) 280deg,
-    rgba(200,106,60,.18) 330deg,
-    transparent          350deg 360deg
-  );
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  -webkit-mask-composite:destination-out;
-  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-  mask-composite:exclude;
-  animation:fiche-zweep 2s linear infinite;pointer-events:none;}
-.a-fiche-ring>.a-fiche-chip{position:relative;z-index:1;border-color:transparent!important;box-shadow:none!important;width:100%;}
 /* Loading: skeleton-getallen */
 .a-fiche-chip--laden .a-fiche-h,
 .a-fiche-chip--laden .a-fiche-m,
@@ -1123,7 +1066,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   color:transparent;
   background:linear-gradient(90deg,var(--line) 30%,#EDE9E3 50%,var(--line) 70%);
   background-size:200% 100%;
-  animation:skeleton-sweep 1.6s ease-in-out infinite;
+  animation:laad-veeg 1.6s ease-in-out infinite;
   border-radius:3px;
   min-width:28px;
   min-height:1.55rem;}
@@ -1333,11 +1276,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   white-space:nowrap;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;}
 #genereerConceptBtn:hover:not(:disabled){background:var(--coral-dark);}
 #genereerConceptBtn:disabled{opacity:.8;cursor:default;}
-@keyframes gcb-spin{to{transform:rotate(360deg);}}
 #genereerConceptBtn.bezig::before{
   content:'';display:inline-block;width:13px;height:13px;flex-shrink:0;
   border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;
-  animation:gcb-spin .7s linear infinite;}
+  animation:laad-draai .8s linear infinite;}
 #conceptBadge{display:none;}
 .opslagstatus{display:none;}
 .split-hergen-btn{padding:9px 14px;border:none;border-radius:8px;
@@ -1571,8 +1513,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .laad-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;
   height:100%;gap:14px;color:var(--ink-soft);font-size:.88rem;}
 .laad-spinner{width:30px;height:30px;border:3px solid var(--line);
-  border-top-color:var(--coral);border-radius:50%;animation:draaien .7s linear infinite;}
-@keyframes draaien{to{transform:rotate(360deg);}}
+  border-top-color:var(--coral);border-radius:50%;animation:laad-draai .8s linear infinite;}
 
 /* ── Analyse-skeleton (SSE voortgang per dimensie) ─── */
 .analyseer-voortgang{padding:24px 0;}
@@ -1596,16 +1537,15 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .dim-tab-btn.actief .dim-tab-badge{background:var(--accent-faint,#e8f0ff);color:var(--accent);}
 .dim-tab-btn.klaar-issues .dim-tab-badge{background:#FEF3C7;color:#92400E;}
 .dim-tab-btn.klaar-ok    .dim-tab-badge{background:#D1FAE5;color:#065F46;}
-/* Tab in laad-staat: kolom-layout zodat KR-balk onder de tekst past */
 .dim-tab-btn.laadt{flex-direction:column;align-items:stretch;gap:4px;min-width:90px;}
-.dim-tab-mini-krl{display:block;height:3px;background:var(--line);border-radius:2px;overflow:hidden;position:relative;}
-.dim-tab-mini-krl span{position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:2px;animation:krl-scan 1.5s ease-in-out infinite;}
-/* Knight Rider laad-animatie */
 .krl-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:16px;}
 .krl-lbl{font-size:.9rem;color:var(--ink-soft);}
-.krl-track{width:200px;height:5px;background:var(--line);border-radius:3px;overflow:hidden;position:relative;}
-.krl-glow{position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:3px;animation:krl-scan 1.5s ease-in-out infinite;}
-@keyframes krl-scan{0%{left:-40%}50%{left:100%}100%{left:-40%}}
+/* Drie kaartvormen in plaats van een veeg: dit is "inhoud die komt", en een
+   skeleton toont vast de vorm van wat er verschijnt. Zie de vier wachtvormen. */
+.krl-skelet{display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;}
+.krl-skelet i{display:block;height:46px;border-radius:6px;}
+.krl-skelet i:nth-child(2){opacity:.75;}
+.krl-skelet i:nth-child(3){opacity:.5;}
 /* Simpele issue-kaart tijdens progressieve render */
 .prog-kaart{padding:12px 16px;margin-bottom:8px;border-radius:6px;background:var(--bg);border:1px solid var(--line);border-left-width:3px;}
 .prog-kaart-titel{font-weight:600;font-size:.9rem;color:var(--ink);}
@@ -1793,11 +1733,62 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
    leende en naderhand terugzette. Dat leverde twee fouten op één dag op, en het
    beloofde "twee minuten" terwijl het na vijf seconden verdween. De analyse
    verandert nu de toestand van stap 2 in plaats van er een scherm voor te maken. */
+/* ══ De vier wachtvormen ═══════════════════════════════════════════════════
+   Er waren er veertien, voor drie betekenissen. Vier daarvan draaiden nooit: hun
+   CSS stond er wel, maar geen enkele regel JavaScript zette die klasse ooit —
+   .a-filter-ring, .a-fiche-ring, .dim-tab-mini-krl en kop-pulse. Van de rest
+   draaide dezelfde cirkelspinner op vier snelheden in vier kleuren.
+
+   Nu: één klasse per betekenis, vaste duur, en één reduced-motion-blok dat ze
+   alle vier dekt in plaats van één van de veertien.
+
+     .laad-spin   onbepaald wachten in een knop of chip
+     .laad-balk   bepaald wachten — alléén waar er écht een percentage is
+     .laad-skelet inhoud die komt; toont de vorm vooruit zodat het scherm niet springt
+     .laad-typt   een antwoord wordt geschreven (chatbubbel; label verplicht)
+
+   Die laatste is een contextvariant van .laad-spin, geen vierde betekenis: in een
+   gesprek leest een cirkel als een knop die iets doet. */
+
 .laad-spin{display:inline-block;width:13px;height:13px;flex-shrink:0;border-radius:50%;
   border:2px solid color-mix(in srgb,currentColor 25%,transparent);border-top-color:currentColor;
   animation:laad-draai .8s linear infinite;}
+.laad-spin.groot{width:30px;height:30px;border-width:3px;}
 @keyframes laad-draai{to{transform:rotate(360deg);}}
-@media (prefers-reduced-motion:reduce){.laad-spin{animation:none;}}
+
+.laad-skelet{color:transparent;border-radius:3px;
+  background:linear-gradient(90deg,var(--line) 25%,var(--bg) 50%,var(--line) 75%);
+  background-size:200% 100%;animation:laad-veeg 1.6s ease-in-out infinite;}
+@keyframes laad-veeg{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.laad-typt{display:inline-flex;align-items:center;gap:5px;}
+.laad-typt i{width:6px;height:6px;border-radius:50%;background:currentColor;
+  animation:laad-stuit .9s ease-in-out infinite;}
+.laad-typt i:nth-child(2){animation-delay:.2s;}
+.laad-typt i:nth-child(3){animation-delay:.4s;}
+@keyframes laad-stuit{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+
+/* Eén blok voor álle bewegende wachtvormen. De balk staat er niet bij: die
+   beweegt niet uit zichzelf, hij volgt de voortgang.
+
+   Let op: hier staan ook de selectors die de keyframe rechtstreeks gebruiken in
+   plaats van de klasse. Vóór 24-08-2026 dekte het enige reduced-motion-blok in
+   dit bestand precies één van de veertien animaties; de andere dertien draaiden
+   door. Voeg je een gebruiker toe, voeg hem hier dan ook toe —
+   tests/unit/laadanimaties.test.js faalt als je dat vergeet. */
+@media (prefers-reduced-motion:reduce){
+  .laad-spin,
+  .laad-skelet,
+  .laad-typt i,
+  .laad-spinner,
+  .cgen-spin,
+  #genereerConceptBtn.bezig::before,
+  .assist-ico-spin,
+  .assist-dot,
+  .a-fiche-chip--laden .a-fiche-h,
+  .a-fiche-chip--laden .a-fiche-m,
+  .a-fiche-chip--laden .a-fiche-l{animation:none;}
+}
 
 /* Het `hidden`-attribuut verliest van een eigen display-regel: `[hidden]` en
    `.awiz-time` hebben dezelfde specificiteit, dus de laatste regel wint — en dat is
@@ -1884,8 +1875,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .assist-topbar-btn:hover{background:var(--bg);border-color:var(--ink-soft);}
 .assist-topbar-btn svg{flex-shrink:0;}
 #assistBtnIco{display:flex;align-items:center;}
-@keyframes assistBtnSpin{to{transform:rotate(360deg);}}
-.assist-ico-spin{animation:assistBtnSpin .8s linear infinite;display:block;}
+.assist-ico-spin{animation:laad-draai .8s linear infinite;display:block;}
 
 /* Overlay backdrop */
 .assist-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.18);
@@ -1981,14 +1971,13 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .assist-stream-rest{display:flex;flex-wrap:wrap;align-items:center;gap:4px;
   margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);}
 .assist-stream-lbl{font-size:.68rem;color:var(--ink-soft);margin-right:2px;}
-.assist-stream-lbl::after{content:'…';animation:assistPuls 1.4s ease-in-out infinite;}
+.assist-stream-lbl::after{content:'…';}
 .assist-stream-chip{display:inline-flex;align-items:center;gap:4px;
   padding:1px 8px;border:1px solid var(--line);border-radius:12px;
   font-size:.68rem;color:var(--ink-soft);background:var(--paper);
   opacity:.55;transition:opacity .25s,color .25s,border-color .25s;}
 .assist-stream-chip.klaar{opacity:1;color:var(--ink-mid);border-color:var(--ink-soft);}
 .assist-stream-chip.klaar::before{content:'✓';font-size:.62rem;color:#1E8449;}
-@keyframes assistPuls{0%,100%{opacity:.3}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){
   .assist-stream-lbl::after{animation:none;}
 }
@@ -2063,11 +2052,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .assist-thinking{display:flex;align-items:center;gap:8px;
   padding:11px 14px;background:var(--bg);border:1px solid var(--line);
   border-radius:3px 12px 12px 12px;font-size:.8rem;color:var(--ink-soft);}
-.assist-dot{width:6px;height:6px;border-radius:50%;background:var(--ink-soft);
-  animation:assist-bounce .9s ease-in-out infinite;}
+.assist-dot{width:6px;height:6px;border-radius:50%;background:currentColor;
+  animation:laad-stuit .9s ease-in-out infinite;}
 .assist-dot:nth-child(2){animation-delay:.2s;}
 .assist-dot:nth-child(3){animation-delay:.4s;}
-@keyframes assist-bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
 
 /* Input area */
 .assist-input-area{padding:12px 14px;border-top:1px solid var(--line);flex-shrink:0;}
@@ -2345,7 +2333,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
           <button class="primary" id="analyseBtn" disabled>Analyseer document</button>
 
           <div class="scanning" id="scanning">
-            <div class="scan-doc"><div class="scan-line"></div></div>
             <p id="scanText">Document analyseren...</p>
             <div class="scan-voortgang" id="scanVoortgang">
               <div class="scan-doc-label" id="scanDocLabel"></div>
@@ -4369,7 +4356,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const issuesHtml = alleI.length > 0
         ? gesorteerdeIdx.map((i, pos) => issueKaart(i, pos + 1)).join('')
         : nogBezig
-          ? `<div class="krl-wrap"><div class="krl-lbl">Analyseren…</div><div class="krl-track"><div class="krl-glow"></div></div></div>`
+          ? `<div class="krl-wrap"><div class="krl-lbl">Analyseren…</div><div class="krl-skelet"><i class="laad-skelet"></i><i class="laad-skelet"></i><i class="laad-skelet"></i></div></div>`
           : `<p class="empty">Geen issues gevonden — het document ziet er goed uit.</p>`;
 
       // app.documenten is leeg tijdens analyse (gevuld na klaar-event) — gebruik
@@ -5911,7 +5898,7 @@ async function diepteAnalyse(idx) {
     return;
   }
 
-  body.innerHTML = '<div class="krl-wrap"><div class="krl-lbl">Analyse wordt geladen…</div><div class="krl-track"><div class="krl-glow"></div></div></div>';
+  body.innerHTML = '<div class="krl-wrap"><div class="krl-lbl">Analyse wordt geladen…</div><div class="krl-skelet"><i class="laad-skelet"></i><i class="laad-skelet"></i><i class="laad-skelet"></i></div></div>';
 
   // ── Kennisbank-lookup ────────────────────────────────────────────────────
   // Strategie (in volgorde):

@@ -125,7 +125,11 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // 07-wizard-analyse.spec.js dekt nu vijf gevallen, waaronder het foutpad waar de
 // vorige opzet twee keer op strandde, en het vinkje-op-naam in plaats van op
 // volgorde.
-const MAX_REGELS_INDEX = 15434;
+// 24-08-2026 (vijfde keer): 15434 → 15421 (−13, alleen CSS). De veertien
+// laadanimaties zijn er vier geworden; wat er aan uitleg bijkwam woog niet op tegen
+// wat er aan dode en dubbele regels wegging. Het script bleef gelijk — dit was
+// stijlwerk, en dat is precies waarom er twee grenzen zijn.
+const MAX_REGELS_INDEX = 15421;
 const MAX_REGELS_JS     = 12403;
 
 function regels(pad) {
