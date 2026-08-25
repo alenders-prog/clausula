@@ -10,6 +10,33 @@
  * volledige cache-miss op alle lopende analyses.
  */
 
+// ── Waarom hier geen deterministische deduplicatie onder staat ───────────────
+//
+// De consolidatie merget dubbelingen onbetrouwbaar. Twee kaarten voor één gebrek
+// bleven staan, ook na twee herformuleringen van de regels hieronder — gemeten
+// op 24 augustus 2026 met twee controleruns: "informatieplicht dubbel" gaf 2 en 2.
+//
+// Het lag voor de hand dat in code te doen: woordoverlap tussen de titels, zoals
+// tests/helpers/eval-baseline.mjs die al berekent. Dat is gemeten en het werkt niet.
+//
+//     echte dubbeling   "Informatie- en consultatieverplichting"
+//                     ≈ "Informatieplicht (art. 1:377b BW)"          0,40
+//     VERSCHILLEND      "Ingangsdatum kinderalimentatie"
+//                     ≈ "Ingangsdatum partneralimentatie"            0,50
+//     VERSCHILLEND      verjaardagen ≈ spaartegoed                   0,33
+//
+// Het valse paar scoort hóger dan het echte. Er is dus geen drempel die ze
+// scheidt: elke instelling die de dubbele informatieplicht samenvoegt, voegt ook
+// kinder- en partneralimentatie samen. Dat kost een echte bevinding uit het
+// rapport van de mediator — onzichtbaar, terwijl een dubbele kaart hooguit
+// hinderlijk is. Bij die afweging is niets doen beter.
+//
+// Wat er wél toe zou doen is het ONDERWERP vergelijken, en dat vraagt betekenis,
+// geen tekenreeksen. Dat is precies de vraag die hieronder aan het model wordt
+// gesteld. Probeer je het opnieuw: meet eerst of je kandidaatparen überhaupt te
+// vinden zijn, en herhaal elke meting minstens twee keer — de ruisvloer van deze
+// eval is 8 tot 10 bevindingen per fixture.
+
 export const SYS_CONSOLIDATIE =
 `Je analyseert een genummerde lijst van juridische issues uit een echtscheidingsdocument.
 De lijst bevat issues uit meerdere analyse-calls (structuur, bevindingen, cross-document) die hetzelfde probleem soms dubbel rapporteren.
