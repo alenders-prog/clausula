@@ -422,3 +422,64 @@ describe('anonimiseerTekst — woonplaats na een adres', () => {
     expect(new Set(adressen).size).toBe(1);
   });
 });
+
+// ── Een nepnaam mag niets betekenen ─────────────────────────────────────────
+//
+// Op 24 augustus 2026 stond `Oud` in de pool met nep-achternamen. Dat is een
+// bestaande Nederlandse achternaam, maar ook een doodgewoon woord — en "oud en
+// nieuw" staat in élk ouderschapsplan onder de feestdagen. Het terugzetten van de
+// namen is hoofdletterongevoelig, dus de zin werd:
+//
+//     "de wissel op oud en nieuw"  →  "de wissel op Lenders en nieuw"
+//
+// De mediator las een bevinding over een regeling "Lenders & Nieuw" die nergens
+// bestond. Dezelfde klasse fout als de gendered namen hierboven: een nepnaam die
+// iets betekent, wordt door de tekst tegengesproken of vernielt hem.
+//
+// De lijst is met de hand samengesteld en dus niet uitputtend. Twijfel je bij een
+// naam, dan is dat zelf het antwoord — kies er een die alleen een naam kan zijn.
+describe('nep-namenpools dragen geen woordbetekenis', () => {
+  const WOORDEN = new Set([
+    // stond hier tot 24-08-2026
+    'oud', 'wester', 'kroon',
+    // veelvoorkomend in scheidingsdocumenten, dus extra riskant
+    'nieuw', 'jong', 'groot', 'klein', 'hoog', 'laag', 'lang', 'kort', 'vast',
+    'huis', 'woning', 'kind', 'kinderen', 'ouder', 'ouders', 'man', 'vrouw',
+    'jaar', 'maand', 'week', 'dag', 'deel', 'helft', 'rest', 'som', 'bedrag',
+    'recht', 'plan', 'akte', 'raad', 'zorg', 'gezag', 'omgang', 'wissel',
+    'bank', 'schuld', 'waarde', 'winst', 'werk', 'loon', 'pensioen',
+  ]);
+
+  const namen = [...NEP_PERSONEN.map(p => p.fn), ...NEP_PERSONEN.map(p => p.an), ...NEP_KINDEREN];
+
+  it('geen enkele nepnaam is een gewoon Nederlands woord', () => {
+    const fout = namen.filter(n => WOORDEN.has(n.toLowerCase()));
+    expect(
+      fout,
+      `Deze nepnamen zijn ook een gewoon woord: ${fout.join(', ')}. Bij het terugzetten `
+      + 'van de namen wordt elk voorkomen vervangen, hoofdletterongevoelig — dus ook '
+      + 'midden in een gewone zin. Kies een naam die alleen een naam kan zijn.',
+    ).toEqual([]);
+  });
+
+  it('"oud en nieuw" blijft heel na anonimiseren en terugzetten', () => {
+    // Het concrete geval. Loopt langs beide richtingen: eerst anonimiseren met de
+    // echte namen erin, dan terugzetten zoals herstelAnonObj dat doet.
+    const { naarAnon, naarEcht } = bouwAnonMap({
+      partij_a_naam: 'Jan Huzen',
+      partij_b_naam: 'Nicky Meijerink',
+      mediator_naam: 'Alexander Lenders',
+    });
+    const zin = 'De wissel op oud en nieuw; het kind blijft tot en met Oud en Nieuw bij de vader.';
+    const geanonimiseerd = anonimiseerTekst(zin, naarAnon);
+
+    let hersteld = geanonimiseerd;
+    for (const [nep, echt] of [...naarEcht.entries()].sort((a, b) => b[0].length - a[0].length)) {
+      hersteld = hersteld.replace(
+        new RegExp(`(?<![a-zA-ZÀ-ÿ])${nep}(?![a-zA-ZÀ-ÿ])`, 'gi'), echt);
+    }
+    expect(hersteld).toContain('oud en nieuw');
+    expect(hersteld).toContain('Oud en Nieuw');
+    expect(hersteld).not.toContain('Lenders en nieuw');
+  });
+});

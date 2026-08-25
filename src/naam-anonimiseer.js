@@ -32,10 +32,22 @@ import { ibanRe, ibanSleutel } from './iban-patroon.js';
 //      woord te worden geraakt bij het terugzetten;
 //   3. Nederlands-plausibel — een exotische naam kan Claude op het spoor van
 //      een internationaal element zetten dat er niet is;
-//   4. niet in de andere pool, zodat een kind en een ouder nooit samenvallen.
+//   4. niet in de andere pool, zodat een kind en een ouder nooit samenvallen;
+//   5. GEEN gewoon Nederlands woord — zie hieronder.
 // Bewaakt door tests/unit/naam-anonimiseer.test.js.
 //
-// De achternamen dragen geen geslacht en zijn daarom ongewijzigd gebleven.
+// De achternamen dragen geen geslacht, maar wél een tweede val, en daar liep het
+// op 24 augustus 2026 mis. In de pool stond `Oud`. Dat is een bestaande
+// achternaam, maar ook een doodgewoon woord — en "oud en nieuw" staat in élk
+// ouderschapsplan onder de feestdagen. Het terugzetten van de namen is
+// hoofdletterongevoelig, dus die zin werd:
+//
+//     "de wissel op oud en nieuw"  →  "de wissel op Lenders en nieuw"
+//
+// De mediator las een bevinding over een regeling "Lenders & Nieuw" die nergens
+// bestond. Oud, Wester en Kroon zijn daarom vervangen door achternamen die geen
+// woord zijn. Een nepnaam mag niets betekenen: geen geslacht, en ook geen
+// woordenboekbetekenis.
 //
 // Voornaam en achternaam zijn aparte componenten: voornaam en achternaam van
 // een verkorte naam ("Martijn Jasperse") krijgen elk hun EIGEN component:
@@ -47,9 +59,9 @@ import { ibanRe, ibanSleutel } from './iban-patroon.js';
 export const NEP_PERSONEN = [
   { fn: 'Robin',   an: 'Bergman'  },
   { fn: 'Sammy',   an: 'Hartwijk' },
-  { fn: 'Chris',   an: 'Oud'      },
-  { fn: 'Dani',    an: 'Wester'   },
-  { fn: 'Jamie',   an: 'Kroon'    },
+  { fn: 'Chris',   an: 'Doornbos' },
+  { fn: 'Dani',    an: 'Elzinga'  },
+  { fn: 'Jamie',   an: 'Nijhuis'  },
   { fn: 'Rowan',   an: 'Dragt'    },
   { fn: 'Bobbie',  an: 'Bakkenes' },
   { fn: 'Toni',    an: 'Veldhuis' },
