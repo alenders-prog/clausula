@@ -31,6 +31,10 @@ Open daarna: http://localhost:3000
      op clausula.nl, voor uitnodigings-e-mails via `api/uitnodigen.js`
    - `ADOBE_CLIENT_ID` — voor PDF→DOCX conversie via Adobe PDF Services
    - `ADOBE_CLIENT_SECRET`
+   - `TEST_EMAIL`, `TEST_PASSWORD` — testaccount voor `npm run test:eval`. Daarmee
+     haalt de eval bij elke run zelf een verse Supabase-token op. Zonder deze twee
+     valt hij terug op `TEST_JWT_TOKEN`, en die verloopt binnen een uur — met een
+     401 die eruitziet als een promptregressie. Zie `tests/helpers/test-token.mjs`.
 3. `vercel dev` starten
 
 Het `.env` bestand staat in `.gitignore` — nooit committen.

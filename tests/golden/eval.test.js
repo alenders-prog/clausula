@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { leesEnv, haalToken } from '../helpers/test-token.mjs';
 import { readFileSync, readdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -16,58 +17,39 @@ import { fileURLToPath } from 'url';
 const __dir    = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(__dir, 'fixtures');
 
-// ── .env inlezen ────────────────────────────────────────────────────────────
 // Vitest laadt .env niet vanzelf, en `npm run test:eval` zet de omgeving ook niet.
 // Gevolg: de sleutel stond netjes in .env, de suite sloeg zwijgend over ("3 skipped",
 // exitcode 0), en wie hem draaide na een promptwijziging dacht dat hij had gemeten.
-// Zelfde inleespatroon als de scripts in scripts/ — geen extra afhankelijkheid.
-try {
-  for (const regel of readFileSync(new URL('../../.env', import.meta.url), 'utf8').split('\n')) {
-    if (!regel.includes('=') || regel.trim().startsWith('#')) continue;
-    const i = regel.indexOf('=');
-    const sleutel = regel.slice(0, i).trim();
-    if (!process.env[sleutel]) process.env[sleutel] = regel.slice(i + 1).trim();
-  }
-} catch { /* geen .env — dan moet de omgeving de variabelen leveren (CI) */ }
+leesEnv();
 
 // Guard: skip als ANTHROPIC_API_KEY niet beschikbaar is
 const heeftApiKey = !!process.env.ANTHROPIC_API_KEY;
 
-/**
- * Vooraf nakijken of TEST_JWT_TOKEN nog geldig is.
- *
- * Een Supabase-JWT verloopt binnen een uur. Verlopen? Dan antwoordt de endpoint
- * met 401 en faalt elke fixture met "verwachte issues gevonden" — een melding
- * die naar de prompt wijst terwijl er niets is geanalyseerd. Op 24 augustus 2026
- * bleek de token al sinds de 19e verlopen: vijf dagen lang gaf de verplichte
- * eval-run na een promptwijziging dus geen enkel signaal, en elke run zónder
- * geladen .env sloeg zwijgend over.
- *
- * Vandaar deze controle vooraf, met de vervaldatum erbij.
- */
-function tokenStatus() {
-  const t = process.env.TEST_JWT_TOKEN || '';
-  if (!t) return 'TEST_JWT_TOKEN ontbreekt in .env';
-  const deel = t.split('.')[1];
-  if (!deel) return 'TEST_JWT_TOKEN heeft geen JWT-vorm';
-  try {
-    const { exp } = JSON.parse(Buffer.from(deel, 'base64url').toString());
-    if (!exp) return null; // geen exp-claim — laat de aanroep zelf oordelen
-    if (exp * 1000 < Date.now()) {
-      return `TEST_JWT_TOKEN is verlopen op ${new Date(exp * 1000).toISOString()}. `
-        + 'Log in op de app, haal een verse token uit de sessie en zet die in .env — '
-        + 'anders meet deze eval niets.';
-    }
-  } catch {
-    return 'TEST_JWT_TOKEN is niet te lezen als JWT';
-  }
-  return null;
-}
+// Alleen draaien als er expliciet om gevraagd is. Vroeger regelde de afwezigheid
+// van ANTHROPIC_API_KEY dat vanzelf — maar sinds deze suite zelf .env inleest is
+// die sleutel er altijd, en zou hij meedraaien in `npx vitest run`: de Stop-hook,
+// CI en elke gewone testronde zouden dan echte, betaalde API-calls doen.
+//
+// npm zet npm_lifecycle_event op de naam van het script, en die waarde bereikt ook
+// de worker waarin dit bestand draait (gemeten). EVAL=1 blijft over als noodweg,
+// bijvoorbeeld om het bestand rechtstreeks met vitest aan te roepen.
+const expliciet = process.env.npm_lifecycle_event === 'test:eval'
+               || process.env.EVAL === '1';
 
-describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
-  beforeAll(() => {
-    const probleem = tokenStatus();
-    if (probleem) throw new Error(`Eval kan niet meten — ${probleem}`);
+// Wordt in beforeAll gevuld — één token voor alle fixtures in deze run.
+let TOKEN = '';
+
+describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () => {
+  beforeAll(async () => {
+    // Staan TEST_EMAIL en TEST_PASSWORD in .env, dan logt de eval zelf in en heeft
+    // hij altijd een verse token. Anders valt hij terug op TEST_JWT_TOKEN — die
+    // binnen een uur verloopt, en waarvan de 401 er precies uitziet als een
+    // promptregressie. Zie tests/helpers/test-token.mjs voor die geschiedenis.
+    try {
+      TOKEN = await haalToken();
+    } catch (e) {
+      throw new Error(`Eval kan niet meten — ${e.message}`);
+    }
   });
 
   const fixtures = readdirSync(FIXTURES)
@@ -82,7 +64,7 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
         method:  'POST',
         headers: {
           'Content-Type':  'application/json',
-          'Authorization': `Bearer ${process.env.TEST_JWT_TOKEN || ''}`,
+          'Authorization': `Bearer ${TOKEN}`,
         },
         // Vorm van de payload volgt api/analyseer.js: de server leest d.type en
         // d.bestandsnaam, niet d.doc_type. Stond hier tot 19-08-2026 anders.
@@ -104,7 +86,9 @@ describe.skipIf(!heeftApiKey)('Semantische eval (echte API)', () => {
         }),
       });
 
-      expect(res.ok, `analyseer gaf ${res.status} — staat TEST_JWT_TOKEN in .env?`).toBe(true);
+      // De token is in beforeAll opgehaald en geldig bevonden; een 401 hier betekent
+      // dus iets anders (rechten, verkeerde omgeving) — niet "token vergeten".
+      expect(res.ok, `analyseer gaf ${res.status} op ${baseUrl} — draait vercel dev?`).toBe(true);
 
       // Analyseer SSE-stream en verzamel issues
       const issues = [];
