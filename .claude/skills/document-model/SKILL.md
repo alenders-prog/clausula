@@ -301,6 +301,64 @@ vorige/volgende door dezelfde plek heen. Bewaakt door `tests/e2e/smoke/08-doc-zo
 `hintFrac` in `highlightInPdf` zet bovendien `_zoekIdx` op een index in de PDF-ankers, dus
 er mag niets vóór die ankers in de lijst belanden.
 
+**De cross-doc-call kreeg tot 24-08-2026 de gedeelde regels NIET.** Hij startte met alleen
+`bouwSysCrossDoc()` + de documentteksten — geen `stabielGedeeld`. Daardoor golden voor hem
+niet: de verwijzingsregel (verwijst document A voor een onderwerp naar document B, rapporteer
+dan geen ontbrekende regeling), de samenhangregels voor kop/bevinding/passage, en de
+pseudonimiseringsnota — terwijl de tekst wél door `vervangPii` gaat.
+
+Dat leverde bevindingen op als *"convenant vermeldt één woonadres voor alle kinderen"*, terwijl
+datzelfde convenant in de aanhef naar het ouderschapsplan verwijst voor álle kinderafspraken.
+De regel die dat had moeten tegenhouden gebruikt die zin letterlijk als voorbeeld.
+
+Hij krijgt nu `bouwStabielCrossDoc(vandaag, situatieKenmerken)` — hetzelfde blok mín
+`ERNST_CRITERIA`, want die staan al in `cross-doc.js` zelf. Let op: `vandaag` is daarvoor uit
+`analyseDoc` naar het verzoek-bereik verplaatst; stond hij daar nog, dan gooit de cross-doc-call
+een `ReferenceError` — en die treedt alleen op bij twee of meer documenten.
+
+**Twee inhoudelijke regels in `cross-doc.js`:**
+- **Hoofdverblijfplaats ≠ woonadres.** Het ouderschapsplan wijst een OUDER aan, het convenant
+  noemt een ADRES. Wonen beide ouders nog op hetzelfde adres — bij een concept de regel — dan
+  hóórt er één adres te staan. Geen tegenstrijdigheid.
+- **Een aangekondigde wijziging is geen tegenstrijdigheid.** "De vrouw betrekt binnen zes maanden
+  eigen woonruimte" naast de huidige toestand is een volgorde in de tijd.
+
+**Eval-dekking:** `tests/golden/fixtures/cross-doc-hoofdverblijf.json` is de enige fixture met
+twee documenten, en dus de enige die dit pad raakt. Hij ving bij zijn eerste run meteen twee
+fouten: de `vandaag`-scope hierboven, en dat de eval bij elk consolidatie-event zijn issuelijst
+wiste — waardoor bij twee documenten alleen het laatste overbleef.
+
+## Horen deze documenten bij hetzelfde dossier?
+
+Tot 25-08-2026 was dat een **aanname**, nergens getoetst. Belandde er een document van een
+andere cliënt in dezelfde analyse, dan vergeleek de cross-doc-call ze braaf en leverde een
+rapport vol verschillen op die geen van alle iets betekenen — terwijl de enige nuttige
+melding, *dít hoort niet bij elkaar*, nergens stond.
+
+`src/dossier-samenhang.js` (19 tests) vergelijkt de namen per document: onderscheidende
+naamdelen uit tekst én bestandsnaam, tussenvoegsels en delen korter dan drie tekens
+weggelaten. Per documentpaar → `ok` / `twijfel` (overlap onder de helft) / `mismatch` (geen
+enkele gedeelde naam). Een document zónder herkenbare naam levert nooit een oordeel op —
+een taxatierapport noemt de partijen vaak niet, en zwijgen is daar het goede antwoord.
+
+Aangeroepen in `index.html` vlak vóór de eerste analyse-call (na `bouwAnonMap`, want dan
+zijn de namen bekend; vóór de PII-placeholders bij `naarAnon` komen). Bij niet-`ok` een
+`confirm()`; kiest de gebruiker afbreken, dan gaat er een `Error` met `afgebroken = true`
+omhoog, die de catch in `startAnalyse` neutraal toont in plaats van "Kon de documenten niet
+analyseren" — dat zou een keuze als storing presenteren.
+
+> **Waarom deterministisch en niet in de prompt.** Dat is gemeten, niet aangenomen. De
+> hoofdverblijf-regel hierboven hield in zes runs vier keer stand en twee keer niet, en
+> aanscherpen naar het "ABSOLUUT VERBOD"-register — dezelfde formulering als de
+> voornaamwoord-regel, die wél lijkt te houden — veranderde daar niets aan: 2 van 3 vóór,
+> 2 van 3 ná. Een promptregel geeft hier een neiging, geen slot.
+>
+> `_prompts/cross-doc.js` heeft daarnaast wél een dossier-mismatch-regel als backstop, en
+> die werkt: precies één cross-doc-bevinding, ernst hoog, met de namen uit beide documenten.
+> Eén afgeleide bevinding blijft staan (een bedragvergelijking uit een *per-document*-pass,
+> waar cross-doc.js niet bij kan) — bewust niet achterna gejaagd; zie `_bekend_residu` in
+> `tests/golden/fixtures/cross-doc-verschillende-dossiers.json`.
+
 Zie de `screening-categorien` skill voor categoriedefinities en ernst-criteria.
 
 ---

@@ -172,8 +172,20 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // is subtiel genoeg om het daar te willen hebben: tussen blokken WEL een spatie,
 // binnen een blok NIET — anders breekt "vor<strong>dering</strong>" in tweeën.
 // Wat hier bijkwam is het bepalen van het blok per node en de aanroep.
-const MAX_REGELS_INDEX = 15472;
-const MAX_REGELS_JS     = 12459;
+// 25-08-2026 (tiende keer): 15472 → 15502 (+30, alle 30 script), voor de toets of
+// twee documenten wel bij hetzelfde dossier horen, met een doorgaan-of-afbreken-vraag.
+//
+// De redenering staat in src/dossier-samenhang.js met negentien tests. Wat hier bijkwam
+// is uitsluitend bedrading die niet naar src/ kán: de aanroep, het bevestigingsvenster,
+// de afbreek-tak en de brugregels. Er is eerst elf regels commentaar geschrapt dat de
+// uitleg uit de module herhaalde; dit is wat er daarna nog overbleef.
+//
+// Waarom de grens hier omhoog gaat en niet de code dichter: de toets zelf staat al in
+// src/ mét tests. De grens bewaakt toetsbaarheid, en die is hier niet in het geding —
+// alleen het aantal regels bedrading, en dat is de prijs van een dialoog in een bestand
+// zonder build-stap.
+const MAX_REGELS_INDEX = 15502;
+const MAX_REGELS_JS     = 12489;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

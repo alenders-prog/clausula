@@ -3939,7 +3939,10 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
     const _problemen = controleerNamenTegenTekst(_opgegevenNamen, documentTekst);
     if (_problemen.length) {
       const { correcties, doorgaan } = await toonNaamControle(_problemen);
-      if (!doorgaan) throw new Error('Analyse afgebroken — controleer de namen bij het dossier.');
+      // afgebroken: true — anders toont de catch in startAnalyse "Kon de documenten niet
+      // analyseren" bij wat de gebruiker zelf koos. Zelfde idioom als de samenhang-toets.
+      if (!doorgaan) throw Object.assign(
+        new Error('Analyse afgebroken — controleer de namen bij het dossier.'), { afgebroken: true });
       if (correcties.size) {
         if (correcties.has('Partij A'))          huidigDossierPartijA = correcties.get('Partij A');
         if (correcties.has('Partij B'))          huidigDossierPartijB = correcties.get('Partij B');
@@ -4081,6 +4084,25 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 
   // Bijlagen-tekst alvast anonimiseren (buiten de per-doc-loop)
   const bijlagenTekstAnon = anonimiseerTekst(bijlagenTekst, naarAnon, _piiPh);
+
+  // ── Horen deze documenten wel bij hetzelfde dossier? ───────────────────────
+  // Waarom deterministisch en niet via de prompt: zie src/dossier-samenhang.js.
+  // Hier vóór de eerste analyse-call, zodat afbreken ook echt iets bespaart. De namen
+  // komen uit naarAnon — die bevat op dit punt alleen namen; de PII-placeholders
+  // worden er verderop pas bij gezet.
+  const _samenhang = toetsDossierSamenhang({
+    documenten: resolvedItems.map((item, i) => ({
+      bestandsnaam: item.bestandsnaam,
+      tekst:        documentDelen[i]?.tekst,
+    })),
+    namen: [...naarAnon.keys()],
+  });
+  if (_samenhang.oordeel !== 'ok') {
+    console.warn('[dossier]', _samenhang.oordeel, '—', _samenhang.melding);
+    if (!confirm(samenhangWaarschuwing(_samenhang))) throw Object.assign(
+      new Error('Analyse afgebroken — de documenten leken niet bij hetzelfde dossier te horen.'),
+      { afgebroken: true });
+  }
 
   // ── Stap 2: Analyse via server (AVG-conform, SSE streaming) ────────────────
   // De browser pseudonimiseert de tekst VOORDAT die naar de server gaat.
@@ -8615,6 +8637,7 @@ let _roepnaamIssuesPerBestand = new Map();
 var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-bridge)
 var lijstZin;           // → src/ui/lijst-zin.js
 var kiesUniekFragment;  // → src/viewer/uniek-fragment.js
+var toetsDossierSamenhang, samenhangWaarschuwing; // → src/dossier-samenhang.js
 var voegTekstDelenSamen; // → src/viewer/dom-tekst.js
 var BLOK_TAGS;          // → src/viewer/dom-tekst.js
 
@@ -10918,7 +10941,11 @@ async function startAnalyse() {
     await toonRapport(classificatie, rapport);
     geslaagd = true;
   } catch (err) {
-    errorBox.textContent   = 'Kon de documenten niet analyseren: ' + err.message;
+    // Een bewuste afbreking is geen storing — "Kon de documenten niet analyseren"
+    // zou de gebruiker vertellen dat er iets kapot is terwijl hij zelf stopte.
+    errorBox.textContent   = err.afgebroken
+      ? err.message
+      : 'Kon de documenten niet analyseren: ' + err.message;
     errorBox.style.display = 'block';
   } finally {
     scanning.classList.remove('active');
@@ -15301,6 +15328,7 @@ import { injecteerNummering }                               from './src/docx/num
 import { bouwRoepnaamIssues }                              from './src/rapport/roepnaam-issues.js';
 import { lijstZin }                                        from './src/ui/lijst-zin.js';
 import { kiesUniekFragment }                               from './src/viewer/uniek-fragment.js';
+import { toetsDossierSamenhang, samenhangWaarschuwing }    from './src/dossier-samenhang.js';
 import { voegTekstDelenSamen, BLOK_TAGS }                  from './src/viewer/dom-tekst.js';
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
@@ -15339,6 +15367,8 @@ window.artikelVerwijzingen    = artikelVerwijzingen;
 window.bouwRoepnaamIssues     = bouwRoepnaamIssues;
 window.lijstZin               = lijstZin;
 window.kiesUniekFragment      = kiesUniekFragment;
+window.toetsDossierSamenhang  = toetsDossierSamenhang;
+window.samenhangWaarschuwing  = samenhangWaarschuwing;
 window.voegTekstDelenSamen    = voegTekstDelenSamen;
 window.BLOK_TAGS              = BLOK_TAGS;
 window.voegChunksSamen        = voegChunksSamen;
