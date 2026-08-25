@@ -1,0 +1,175 @@
+{
+  "_herkomst": "echte screening via app.clausula.nl, 25-08-2026, concept convenant (geanonimiseerd)",
+  "issues": [
+    {
+      "onderwerp": "Naam rekeninghouder [IBAN_0] wijkt af van partijnaam vrouw",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "De vrouw wordt in de considerans geïntroduceerd als 'Grada Berendina Roseboom' en ondertekent als 'Grada Bedrendina Roseboom'. Bij rekeningnummer [IBAN_0] staat echter 'Dieneke Roseboom' als rekeninghouder vermeld. Dit is een andere voornaam dan de in het convenant geïdentificeerde vrouw. Hetzelfde geldt voor de BUNQ-rekeningen, die eveneens op naam van 'Dieneke Roseboom' staan. De tenaamstelling is intern inconsistent en maakt de toedeling van deze rekeningen aan de vrouw aanvechtbaar als 'Dieneke' een andere persoon is.",
+      "aanbeveling": "Controleer of 'Dieneke' een (niet geïntroduceerde) roepnaam of tweede voornaam van de vrouw is. Zo ja, introduceer deze naam expliciet in de considerans (bijv. 'hierna ook te noemen Dieneke'). Zo nee, corrigeer de tenaamstelling naar de officiële naam zoals vermeld op het identiteitsbewijs.",
+      "passage": "Rekeningnummer [IBAN_0] op naam van Dieneke Roseboom, welke op peildatum 30-06-2026 een saldo heeft van € 13,-, wordt bij helfte verdeeld."
+    },
+    {
+      "onderwerp": "Ondertekeningsdatum niet ingevuld",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "In het ondertekeningsblok is de datum opengelaten; er staat alleen 'op [spatie] te Deventer'. Er is geen datum ingevuld. Een convenant zonder ondertekeningsdatum is niet volledig uitvoerbaar en kan problemen geven bij de inschrijving bij de rechtbank.",
+      "aanbeveling": "Vul de datum van ondertekening in vóór of bij het passeren van het convenant.",
+      "passage": "Deze overeenkomst is opgemaakt en ondertekend op\tte Deventer."
+    },
+    {
+      "onderwerp": "Spaarrekening hond Tali ([IBAN_1]) niet opgenomen in verdelingsoverzicht bijlage 1",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "De spaarrekening voor hond Tali ([IBAN_1], € 2.696) wordt in de tekst buiten de 50/50-verdeling gehouden en volledig aan de vrouw toebedeeld. Dit vermogensbestanddeel is echter niet opgenomen in bijlage 1 (het verdelingsoverzicht). Daardoor is het verdelingsoverzicht onvolledig en sluit het niet aan op de tekst van het convenant.",
+      "aanbeveling": "Voeg de spaarrekening [IBAN_1] (€ 2.696, volledig aan de vrouw) toe aan bijlage 1, of vermeld expliciet dat dit bestanddeel buiten het overzicht valt en waarom. Controleer tevens of de overbedelingsberekening (€ 4.890) hiermee klopt.",
+      "passage": "Er is echter een bijzonderheid; partijen zijn overeengekomen dat de spaarrekening voor hun hond Tali met bankrekeningnummer [IBAN_1], met een waarde van € 2.696,-, toebehoort aan de vrouw om de toekomstige kosten voor de hond hiervan te betalen."
+    },
+    {
+      "onderwerp": "Inschrijving echtscheidingsbeschikking als ingangsdatum alimentatie — terminologie onjuist voor geregistreerd partnerschap",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het document betreft een geregistreerd partnerschap. De ingangsdatum van de alimentatie is omschreven als 'het moment dat de scheiding is ingeschreven in de Burgerlijke Stand'. De juiste term voor een geregistreerd partnerschap is 'inschrijving van de ontbindingsbeschikking in de registers van de burgerlijke stand'. De term 'scheiding' is voorbehouden aan een huwelijk. Elders in het document wordt de juiste terminologie wel consequent gehanteerd.",
+      "aanbeveling": "Vervang 'de scheiding is ingeschreven in de Burgerlijke Stand' door 'de ontbinding van het geregistreerd partnerschap is ingeschreven in de registers van de burgerlijke stand'.",
+      "passage": "Betaling van de partneralimentatie gaat in op het moment dat de scheiding is ingeschreven in de Burgerlijke Stand."
+    },
+    {
+      "onderwerp": "Pensioenverwijzing naar 'artikel 3.1.1' — sectienummer niet als koptekst zichtbaar",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het convenant verwijst naar 'artikel 3.1.1' voor de pensioenuitvoerders. Het document hanteert geen zichtbare doorlopende decimale sectienummering (zoals 3.1.1); de secties zijn aangeduid met kopjes in hoofdletters. De pensioenuitvoerders (A.S.R., PME, a.s.r.) staan wel in de direct voorafgaande alinea vermeld, zodat de verwijzing inhoudelijk begrijpelijk is. Het risico op verwarring is beperkt, maar de verwijzing is formeel niet traceerbaar.",
+      "aanbeveling": "Vervang 'de in artikel 3.1.1 vermelde pensioenuitvoerder(s)' door een directe opsomming van de pensioenuitvoerders, of voeg een expliciete sectienummering toe aan de pensioenparagraaf.",
+      "passage": "De vrouw een direct vorderingsrecht zal verkrijgen jegens de in artikel 3.1.1 vermelde pensioenuitvoerder(s) ter grootte van de helft van het ouderdomspensioen van de man"
+    },
+    {
+      "onderwerp": "Werknemerspensioen a.s.r. vermeld met BSN-placeholder als kenmerk",
+      "ernst": "midden",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het kenmerk van het werknemerspensioen bij a.s.r. is ingevuld als '[BSN]', wat een pseudonimiseringsplaceholder is voor een burgerservicenummer. Een BSN is geen pensioenkenmerk; het lijkt erop dat het werkelijke polisnummer of pensioenkenmerk niet is ingevuld en dat de placeholder '[BSN]' hier als invulruimte is blijven staan. Zonder het juiste kenmerk kan de pensioenuitvoerder niet worden aangeschreven voor verevening.",
+      "aanbeveling": "Vervang '[BSN]' door het correcte polisnummer of pensioenkenmerk van het werknemerspensioen bij a.s.r. Controleer of dit kenmerk beschikbaar is via de pensioenopgave van de man.",
+      "passage": "Werknemerspensioen van a.s.r., met kenmerk [BSN]."
+    },
+    {
+      "onderwerp": "Verkoop woning gepland in januari 2027 — geen regeling bij vertraging",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het convenant bepaalt dat de woning in januari 2027 in de verkoop wordt gezet, maar bevat geen regeling voor het geval de woning niet binnen een bepaalde termijn wordt verkocht (bijv. een geschillenregeling over de vraagprijs, een verplichting tot prijsverlaging, of een uiterste datum voor overdracht). De afrekendatum is gekoppeld aan de levering bij de notaris, maar er is geen stok achter de deur als de verkoop stagneert.",
+      "aanbeveling": "Overweeg een bepaling op te nemen over wat er gebeurt als de woning na een bepaalde periode (bijv. 6 of 12 maanden) niet is verkocht: wie beslist dan over prijsverlaging, en is er een uiterste datum waarop partijen alsnog naar de rechter kunnen stappen?",
+      "passage": "De gezamenlijke woning wordt in januari 2027 in de verkoop gezet en overgedragen aan de eerste belangstellende die naar het oordeel van partijen een acceptabel bod uitbrengt."
+    },
+    {
+      "onderwerp": "Inkomensbedragen alimentatiegerechtigde: berekening wijkt € 5 af van vermeld totaal",
+      "ernst": "midden",
+      "dimensies": [
+        "conflicten"
+      ],
+      "bevinding": "Het document stelt dat eigen inkomen (€ 22.302,- bruto/jaar) plus partneralimentatie (€ 579,- bruto/maand = € 6.948,- bruto/jaar) samen € 29.245,- per jaar bedragen. Berekening: € 22.302 + € 6.948 = € 29.250,-. Het vermelde totaal is € 29.245,-. Het verschil bedraagt € 5,-. De som klopt niet met de vermelde uitkomst. Bovendien worden eigen inkomen (bruto jaarbedrag) en alimentatie (bruto maandbedrag) bij elkaar opgeteld zonder toelichting op de omrekening, wat de controleerbaarheid bemoeilijkt.",
+      "aanbeveling": "Controleer de berekening en corrigeer het totaalbedrag naar € 29.250,- (€ 22.302 + 12 × € 579), of pas de onderliggende bedragen aan zodat zij optellen tot het vermelde totaal van € 29.245,-. Voeg een toelichting toe over de omrekening van maand- naar jaarbedrag.",
+      "passage": "Bij de vaststelling van de alimentatie voor de alimentatiegerechtigde is rekening gehouden met huidige inkomsten die € 22.302,- bruto per jaar bedragen. De huidige inkomsten van de alimentatiegerechtigde en de te ontvangen alimentatie bedragen samen € 29.245,- per jaar."
+    },
+    {
+      "onderwerp": "Opmaakinconsistentie beleggingssaldo Peaks [REKENING_0]: ontbrekende ',-' achter bedrag",
+      "ernst": "laag",
+      "dimensies": [
+        "grammatica"
+      ],
+      "bevinding": "Het bedrag '€ 5.569' mist de standaard Nederlandse opmaak-afsluiting ',-'. Elders in het document worden bedragen consequent opgemaakt als '€ 5.569,-'. Dit is een opmaakinconsistentie.",
+      "aanbeveling": "Wijzig '€ 5.569' naar '€ 5.569,-'.",
+      "passage": "De rechten en verplichtingen uit beleggingen, lopend bij Peaks met kenmerk [REKENING_0] en met op 31-03-2026 een saldo van € 5.569 worden toebedeeld aan de man."
+    },
+    {
+      "onderwerp": "Opmaakinconsistentie beleggingssaldo ABN [REKENING_2]: ontbrekende ',-' achter bedrag",
+      "ernst": "laag",
+      "dimensies": [
+        "grammatica"
+      ],
+      "bevinding": "Het bedrag '€ 9.394' mist de standaard Nederlandse opmaak-afsluiting ',-'. Elders in het document worden bedragen consequent opgemaakt als '€ 9.394,-'. Dit is een opmaakinconsistentie.",
+      "aanbeveling": "Wijzig '€ 9.394' naar '€ 9.394,-'.",
+      "passage": "De rechten en verplichtingen uit beleggingen, lopend bij ABN met kenmerk [REKENING_2] en met op 30-06-2026 een saldo van € 9.394 worden toebedeeld aan de man."
+    },
+    {
+      "onderwerp": "Opmaakinconsistentie beleggingssaldo peaks [REKENING_1]: ontbrekende ',-' achter bedrag",
+      "ernst": "laag",
+      "dimensies": [
+        "grammatica"
+      ],
+      "bevinding": "Het bedrag '€ 727' mist de standaard Nederlandse opmaak-afsluiting ',-'. Elders in het document worden bedragen consequent opgemaakt met ',-'. Dit is een opmaakinconsistentie.",
+      "aanbeveling": "Wijzig '€ 727' naar '€ 727,-'.",
+      "passage": "De rechten en verplichtingen uit beleggingen, lopend bij peaks met kenmerk [REKENING_1] en met op 31-03-2026 een saldo van € 727 worden toebedeeld aan de vrouw."
+    },
+    {
+      "onderwerp": "Tikfout 'spaarekening' in sectie Huisdier",
+      "ernst": "laag",
+      "dimensies": [
+        "grammatica"
+      ],
+      "bevinding": "'Spaarekening' is een tikfout; het correcte woord is 'spaarrekening' (dubbele r).",
+      "aanbeveling": "Wijzig 'spaarekening' naar 'spaarrekening'.",
+      "passage": "De spaarekening met een opgebouwd bedrag wordt toegekend aan de vrouw en zal buiten de verdeling blijven."
+    },
+    {
+      "onderwerp": "Tikfout 'gezamelijke' (twee keer) in de tekst",
+      "ernst": "laag",
+      "dimensies": [
+        "grammatica"
+      ],
+      "bevinding": "'Gezamelijke' is een tikfout; het correcte woord is 'gezamenlijke'. Dezelfde fout komt ook voor in de sectie 'Gebruiksrecht gezamelijke woning' (koptekst). Beide instanties dienen gecorrigeerd te worden.",
+      "aanbeveling": "Wijzig 'gezamelijke' naar 'gezamenlijke' op beide plaatsen: in de koptekst 'Gebruiksrecht gezamelijke woning' en in de fiscale sectie.",
+      "passage": "Hier valt ook de ﬁscale afrekening met betrekking tot de gezamelijke woning onder."
+    },
+    {
+      "onderwerp": "Spatiefout in 'onderl ing' in de tekst over art. 1:159a BW",
+      "ernst": "laag",
+      "dimensies": [
+        "grammatica"
+      ],
+      "bevinding": "'Onderl ing' bevat een overbodige spatie; het correcte woord is 'onderling'.",
+      "aanbeveling": "Wijzig 'onderl ing' naar 'onderling'.",
+      "passage": "De man en de vrouw zijn bekend met het bepaalde in artikel 1:159a Burgerlijk Wetboek dat een onderl ing gemaakte partneralimentatie-afspraak een rechterlijke toewijzing tot verhaal door de gemeente op grond van de Participatiewet niet in de weg staat."
+    },
+    {
+      "onderwerp": "Verwijzing naar 'artikel 3.1.1' in pensioensectie — sectienummering niet zichtbaar, maar inhoudelijk traceerbaar",
+      "ernst": "laag",
+      "dimensies": [
+        "volledigheid"
+      ],
+      "bevinding": "Het document verwijst naar 'artikel 3.1.1' voor de pensioenuitvoerders. Het document heeft geen zichtbare doorlopende artikelnummering; de pensioensectie heeft geen zichtbaar nummer 3.1.1. De pensioenuitvoerders zijn echter direct boven deze passage opgesomd (A.S.R., PME pensioenfonds, Werknemerspensioen a.s.r.), zodat de verwijzing in de praktijk duidelijk is. De interne verwijzing is echter formeel niet herleidbaar tot een genummerd artikel.",
+      "aanbeveling": "Voeg een expliciete sectienummering toe aan de pensioensectie (bijv. 'Artikel 3.1.1 Ouderdomspensioenaanspraken'), of vervang de verwijzing door 'de hierboven vermelde pensioenuitvoerder(s)' om elke onduidelijkheid te vermijden.",
+      "passage": "De vrouw een direct vorderingsrecht zal verkrijgen jegens de in artikel 3.1.1 vermelde pensioenuitvoerder(s) ter grootte van de helft van het ouderdomspensioen van de man en daarmee ook een rechtstreekse uitbetaling van de pensioenuitvoerder(s), voor zover dit in de partnerschapsperiode is opgebouwd."
+    },
+    {
+      "onderwerp": "Bijzonder partnerpensioen: geen expliciete regeling over afstand of instemming pensioenuitvoerder",
+      "ernst": "midden",
+      "dimensies": [
+        "juridisch"
+      ],
+      "bevinding": "Het convenant regelt het bijzonder partnerpensioen door te verwijzen naar 'de wettelijke regeling'. Op grond van art. 3a WVPS jo. art. 57 lid 4 PW kan afstand van bijzonder partnerpensioen of omzetting ervan alleen plaatsvinden met instemming van de pensioenuitvoerder. De huidige formulering legt geen afstand vast en verwijst naar de wettelijke regeling, wat op zichzelf correct is. Er is echter geen expliciete verklaring dat partijen afzien van bijzonder partnerpensioen, noch een regeling over de omvang of de uitvoering. De formulering 'premievrij voor de ander gereserveerd' is vaag: het is onduidelijk of dit de wettelijke standaardregeling bevestigt of een afwijking beoogt.",
+      "aanbeveling": "Verduidelijk de bepaling over bijzonder partnerpensioen. Als partijen de wettelijke standaardregeling volgen, formuleer dan: 'Het bijzonder partnerpensioen dat is opgebouwd tot de datum van ontbinding van het geregistreerd partnerschap wordt overeenkomstig art. 3a WVPS premievrij voor de vrouw gereserveerd.' Als partijen afstand willen doen van het bijzonder partnerpensioen, voeg dan toe dat dit uitsluitend kan met instemming van de pensioenuitvoerder (art. 57 lid 4 PW) en regel die instemming expliciet.",
+      "passage": "Het (bijzonder) partnerpensioen dat tot de datum van ontbinding van het geregistreerd partnerschap voor partijen is opgebouwd wordt overeenkomstig de wettelijke regeling premievrij voor de ander gereserveerd."
+    },
+    {
+      "onderwerp": "Overbedelingsbedrag in convenant (€ 4.890) wijkt af van berekening in bijlage (€ 4.889)",
+      "ernst": "midden",
+      "dimensies": [
+        "conflicten"
+      ],
+      "bevinding": "Het convenant vermeldt een overbedelingsbedrag van € 4.890,- voor de man. Bijlage 1 vermeldt: 'Verschil: € 9.779' en 'Bedrag overbedeling: € 4.890'. De helft van € 9.779 is € 4.889,50, afgerond € 4.890,-. Het bedrag in het convenant en de bijlage zijn consistent (beide € 4.890,-). Echter: de bijlage vermeldt voor rekening [IBAN_2] voor de vrouw € 179,- in plaats van € 180,- (zie apart issue), waardoor het totaal voor de vrouw in de bijlage € 97.716,- bedraagt en voor de man € 107.494,-. Verschil: € 9.778,-. De helft daarvan is € 4.889,-. Het vermelde verschil van € 9.779 en overbedeling van € 4.890 kloppen niet exact met de optelsom van de kolommen in de bijlage. Berekening kolom man: 161.000 + (-102.704) + 14.535 + 416 + 6 + 654 + 13.985 + 90 + 301 + 180 + 0 + 5.569 + 1.268 + 9.394 + 0 + 2.800 + 0 = 107.494. Kolom vrouw: 161.000 + (-102.704) + 14.535 + 416 + 6 + 654 + 13.985 + 90 + 301 + 179 + 2.075 + 0 + 0 + 0 + 727 + 0 + 6.450 = 97.714. Verschil: 107.494 - 97.714 = 9.780. Helft: 4.890. Het overbedelingsbedrag van € 4.890,- is intern consistent met de bijlage-kolommen, maar het vermelde 'Verschil: € 9.779' in de bijlage wijkt af van de berekende € 9.780,-. Dit is een rekenkundige afwijking van € 1,- in de bijlage.",
+      "aanbeveling": "Controleer de optelsom in bijlage 1. Het verschil tussen de kolommen man (€ 107.494) en vrouw (€ 97.714) bedraagt € 9.780,-, niet € 9.779,-. Corrigeer 'Verschil: € 9.779' naar 'Verschil: € 9.780,-' in bijlage 1, of pas de individuele bedragen aan zodat zij optellen tot het vermelde verschil.",
+      "passage": "Er is sprake van een overbedeling voor een bedrag van € 4.890,- voor de man."
+    }
+  ]
+}

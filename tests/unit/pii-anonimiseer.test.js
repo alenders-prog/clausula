@@ -161,3 +161,40 @@ describe('piiAnonimiseer — gecombineerde casus', () => {
     expect(piiAnonimiseer(undefined)).toBeUndefined();
   });
 });
+
+// Aanleiding: drie rekeningidentificaties uit een echte screening stonden onvervangen
+// in het bewaarde rapport — en waren dus ook onvervangen naar de API gegaan. Ze zien
+// eruit als een IBAN maar zijn het niet, dus ibanRe zag ze niet.
+// Zie de toelichting bij REKENING_NL_KAAL_BRON in src/iban-patroon.js.
+describe('piiAnonimiseer — rekeningnummers die geen IBAN zijn', () => {
+  it('vervangt een beleggingsrekening zonder bankcode (NL + cijfers)', () => {
+    const r = piiAnonimiseer('Beleggingen bij Peaks met kenmerk NL046344501, saldo € 1.204,-.');
+    expect(r).not.toMatch(/NL046344501/);
+    expect(r).toMatch(/\[REKENING_0\]/);
+  });
+
+  it('vervangt de oude puntnotatie van vóór de IBAN-overgang', () => {
+    const r = piiAnonimiseer('Rekening bij ABN, nummer 60.75.97.461.');
+    expect(r).not.toMatch(/60\.75\.97\.461/);
+    expect(r).toMatch(/\[REKENING_0\]/);
+  });
+
+  it('geeft hetzelfde nummer altijd dezelfde placeholder, ook in andere notatie', () => {
+    const r = piiAnonimiseer('Eerst 60.75.97.461, later opnieuw 60.75.97.461 en ook NL414678501.');
+    expect(r.match(/\[REKENING_0\]/g)).toHaveLength(2);
+    expect(r).toMatch(/\[REKENING_1\]/);
+  });
+
+  it('laat een echt IBAN met rust — die krijgt zijn eigen [IBAN_n]', () => {
+    const r = piiAnonimiseer('Rekening NL28 RABO 0328582298 blijft een IBAN.');
+    expect(r).toMatch(/\[IBAN_0\]/);
+    expect(r).not.toMatch(/\[REKENING_/);
+  });
+
+  it('raakt artikelnummering en bedragen niet aan', () => {
+    const r = piiAnonimiseer('Artikel 2.1 en artikel 10.2.3 regelen dit; de waarde is € 1.204,50.');
+    expect(r).not.toMatch(/\[REKENING_/);
+    expect(r).toContain('artikel 10.2.3');
+    expect(r).toContain('€ 1.204,50');
+  });
+});

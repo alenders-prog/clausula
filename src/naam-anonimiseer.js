@@ -9,7 +9,7 @@
  * Geen DOM-afhankelijkheden; geschikt voor unit-tests in Node/Vitest.
  */
 
-import { ibanRe, ibanSleutel } from './iban-patroon.js';
+import { ibanRe, ibanSleutel, rekeningOverigRe, rekeningSleutel } from './iban-patroon.js';
 
 // ── Nep-namenpools ────────────────────────────────────────────────────────────
 //
@@ -437,6 +437,11 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
   // even verderop als telefoonnummer werden gemaskeerd.
   // Sleutel op de spatieloze vorm, zodat dezelfde rekening altijd hetzelfde nummer krijgt.
   if (piiPh) t = t.replace(ibanRe(), iban => piiPh('IBAN', ibanSleutel(iban)));
+  // - Rekeningnummers die geen IBAN zijn: beleggingsrekeningen ("NL046344501") en de
+  //   oude puntnotatie ("60.75.97.461"). Die vielen buiten ibanRe en gingen dus
+  //   onbewerkt naar de API — zie de toelichting in src/iban-patroon.js.
+  //   NA de IBAN-stap, zodat echte IBANs hier al vervangen zijn.
+  if (piiPh) t = t.replace(rekeningOverigRe(), nr => piiPh('REKENING', rekeningSleutel(nr)));
   // - BSN maskeren: uniek persoonskenmerk, nooit nodig voor analyse.
   // - Lookbehind (?<![A-Z]{4} ): voorkomt false positive op IBAN-accountcijfers
   //   (bankcode is altijd 4 hoofdletters, bijv. ABNA). "BSN 123456789" wordt WEL

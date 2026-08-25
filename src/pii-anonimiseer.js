@@ -16,7 +16,7 @@
  *
  * Geladen via ESM-bridge in index.html en assistent-mobiel.html (window.piiAnonimiseer).
  */
-import { ibanRe, ibanSleutel } from './iban-patroon.js';
+import { ibanRe, ibanSleutel, rekeningOverigRe, rekeningSleutel } from './iban-patroon.js';
 
 export function piiAnonimiseer(tekst) {
   if (!tekst) return tekst;
@@ -35,6 +35,18 @@ export function piiAnonimiseer(tekst) {
     const sleutel = ibanSleutel(iban);
     if (!ibanMap.has(sleutel)) ibanMap.set(sleutel, `[IBAN_${ibanTeller++}]`);
     return ibanMap.get(sleutel);
+  });
+
+  // ── Rekeningnummers die geen IBAN zijn ─────────────────────────────────────
+  // Beleggingsrekeningen ("NL046344501") en de oude puntnotatie ("60.75.97.461")
+  // voldoen niet aan het IBAN-formaat en bleven daardoor onvervangen staan.
+  // Zie src/iban-patroon.js voor de aanleiding en de afbakening.
+  let rekTeller = 0;
+  const rekMap  = new Map();
+  t = t.replace(rekeningOverigRe(), nr => {
+    const sleutel = rekeningSleutel(nr);
+    if (!rekMap.has(sleutel)) rekMap.set(sleutel, `[REKENING_${rekTeller++}]`);
+    return rekMap.get(sleutel);
   });
 
   // ── BSN ────────────────────────────────────────────────────────────────────

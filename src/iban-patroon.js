@@ -38,6 +38,44 @@ export const IBAN_NL_BRON = String.raw`\bNL\d{2}\s?[A-Z]{4}(?:\s?\d){10}\b`;
 export const IBAN_INT_BRON = String.raw`\b[A-Z]{2}\d{2}[A-Z0-9]{10,26}\b`;
 
 /**
+ * Rekeningnummers die géén IBAN zijn — en dus door `ibanRe` niet werden gezien.
+ *
+ * Aanleiding (25 augustus 2026): een bewaard rapport uit een echte screening bevatte
+ * drie rekeningidentificaties, letterlijk in de issue-titels:
+ *
+ *   NL046344501    beleggingsrekening (Peaks)
+ *   NL414678501    idem, tweede rekening
+ *   60.75.97.461   ABN, oude notatie van vóór de IBAN-overgang
+ *
+ * Geen van drieën voldoet aan het IBAN-formaat — NL + 2 cijfers + 4 LETTERS + 10
+ * cijfers — dus ze werden nooit vervangen en gingen onbewerkt naar de Anthropic API.
+ * Het viel niet op omdat ze er wél als IBAN uitzien; een controle die op geldige
+ * IBANs zoekt, meldt hier niets.
+ *
+ * Twee vormen, allebei nauw gehouden:
+ *   `NL` direct gevolgd door cijfers — kan nooit botsen met een echt NL-IBAN, want
+ *   daar staan na de twee checkcijfers altijd vier letters.
+ *   De oude puntnotatie 2.2.2.3 — te specifiek om op artikelnummering te matchen
+ *   (die telt zelden vier delen, en nooit in deze cijferbreedtes).
+ *
+ * Bewust NIET erbij: een kaal getal van tien cijfers. Dat is niet te onderscheiden
+ * van een telefoonnummer of een bedrag in centen, en de telefoonregel verderop dekt
+ * het gangbare geval al af.
+ */
+export const REKENING_NL_KAAL_BRON = String.raw`\bNL\d{6,12}\b`;
+export const REKENING_OUD_BRON     = String.raw`\b\d{2}\.\d{2}\.\d{2}\.\d{3}\b`;
+
+/**
+ * Alleen voor MASKEREN, nooit voor valideren — zie de afweging bij `ibanOfTokenRe`.
+ * Draai hem ná `ibanRe`, zodat echte IBANs al vervangen zijn.
+ */
+export const rekeningOverigRe = (vlaggen = 'g') =>
+  new RegExp(`(?:${REKENING_NL_KAAL_BRON}|${REKENING_OUD_BRON})`, vlaggen);
+
+/** Punten en spaties weg, zodat "60.75.97.461" en "6075 97461" één sleutel delen. */
+export const rekeningSleutel = (nr) => (nr || '').replace(/[\s.]/g, '');
+
+/**
  * De placeholders die eerder in de keten gezet kunnen zijn. Twee schrijfwijzen,
  * historisch gegroeid: de browser nummert met een liggend streepje onder
  * (`[IBAN_0]`), de server met een koppelteken (`[IBAN-1]`). Beide moeten herkend
