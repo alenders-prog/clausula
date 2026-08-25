@@ -93,3 +93,66 @@ test.describe('zoeken in het documentpaneel', () => {
     verwachtGeenPaginafouten(fouten);
   });
 });
+
+test.describe('tekst over blokgrenzen heen', () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSupabaseSession(page);
+    await mockSupabaseRest(page);
+    await page.route('**storage.googleapis.com/**', r => r.abort());
+    await page.route('**/storage/v1/**', r => r.fulfill({ status: 404 }));
+    await page.goto('/', { waitUntil: 'commit' });
+    await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  });
+
+  test('een passage die over twee bullets loopt wordt gevonden', async ({ page }) => {
+    // Het geval van 24 augustus 2026. De feestdagenregeling staat als lijst, en een
+    // citaat over de kerstverdeling loopt bijna altijd over twee bullets. De
+    // tekstnodes werden aaneengeplakt zónder scheidingsteken, dus in de
+    // doorzoekbare tekst stond "…te wensen.Oud & Nieuw…" en was de passage
+    // onvindbaar — zonder foutmelding, zonder spoor.
+    const r = await page.evaluate(() => {
+      const panel = document.getElementById('documentPanel');
+      panel.classList.remove('tekst-modus');
+      panel.innerHTML = '<div class="docx-inhoud"><ul>'
+        + '<li>Ouders staan de wens niet in de weg om gelukkig nieuwjaar te wensen.</li>'
+        + '<li>Oud &amp; Nieuw: in de even jaren bij vader en in de oneven jaren bij moeder.</li>'
+        + '</ul></div>';
+      const inp = document.getElementById('docZoekInput');
+      if (inp) inp.value = 'te wensen. Oud & Nieuw';
+      zoekInDocument('te wensen. Oud & Nieuw');
+      return { ankers: _zoekAnkers.length, marks: panel.querySelectorAll('mark.hl-match').length };
+    });
+    expect(r.ankers).toBe(1);
+    expect(r.marks).toBeGreaterThan(0);
+  });
+
+  test('een superscript midden in een woord breekt de tekst niet', async ({ page }) => {
+    // "2<sup>de</sup> kerstdag" is de standaardnotatie in een ouderschapsplan.
+    // <sup> is inline, dus "2" en "de" horen aaneen te plakken tot "2de". Zou een
+    // blokgrens hier meetellen, dan werd het "2 de kerstdag" en was elk citaat over
+    // de kerstverdeling onvindbaar.
+    const r = await page.evaluate(() => {
+      const panel = document.getElementById('documentPanel');
+      panel.classList.remove('tekst-modus');
+      panel.innerHTML = '<div class="docx-inhoud"><li>De ouder waar het kind 2<sup>de</sup>'
+        + ' kerstdag viert, blijft tot oud en nieuw.</li></div>';
+      zoekInDocument('kind 2de kerstdag viert');
+      return { ankers: _zoekAnkers.length };
+    });
+    expect(r.ankers).toBe(1);
+  });
+
+  test('binnen één alinea komt er géén spatie tussen — anders breekt een woord', async ({ page }) => {
+    // De fout in de andere richting: overal een spatie tussen tekstnodes zetten
+    // maakt van "vor<strong>dering</strong>" de tekst "vor dering", en dan is
+    // "vordering" onvindbaar.
+    const r = await page.evaluate(() => {
+      const panel = document.getElementById('documentPanel');
+      panel.classList.remove('tekst-modus');
+      panel.innerHTML = '<div class="docx-inhoud"><p>De vor<strong>dering</strong> vervalt.</p></div>';
+      zoekInDocument('vordering');
+      return { ankers: _zoekAnkers.length };
+    });
+    expect(r.ankers).toBe(1);
+  });
+});

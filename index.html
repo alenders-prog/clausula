@@ -5184,12 +5184,22 @@ function highlightInDocx(searchText) {
     const nodes = []; let node;
     while ((node = walker.nextNode())) nodes.push(node);
 
-    let gecombineerd = '';
-    const nodeStart = [];
-    for (const n of nodes) {
-      nodeStart.push(gecombineerd.length);
-      gecombineerd += n.nodeValue;
-    }
+    // Tekstnodes aaneenplakken MET een spatie op elke blokgrens. Zonder die spatie
+    // liep "…nieuwjaar te wensen." uit de ene bullet naadloos over in "Oud & Nieuw:"
+    // uit de volgende, en werd het "…te wensen.Oud & Nieuw…". Een passage die over
+    // twee bullets loopt — en dat doet een citaat over de feestdagenregeling bijna
+    // altijd — was daardoor onvindbaar, zonder dat er iets misging dat je kon zien.
+    //
+    // Binnen één blok juist géén spatie: "vor<strong>dering</strong>" zijn twee
+    // nodes in dezelfde alinea, en daar een spatie tussen zetten maakt "vordering"
+    // onvindbaar. Zie src/viewer/dom-tekst.js.
+    const blokVan = (node) => {
+      let el = node.parentElement;
+      while (el && el !== content && !BLOK_TAGS.has(el.tagName)) el = el.parentElement;
+      return el || content;
+    };
+    const { tekst: gecombineerd, starts: nodeStart } =
+      voegTekstDelenSamen(nodes.map(n => ({ tekst: n.nodeValue, blok: blokVan(n) })));
     const gecNorm = normChars(gecombineerd).replace(/\s+/g, ' ');
 
     // Verzamel alle match-posities
@@ -8605,6 +8615,8 @@ let _roepnaamIssuesPerBestand = new Map();
 var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-bridge)
 var lijstZin;           // → src/ui/lijst-zin.js
 var kiesUniekFragment;  // → src/viewer/uniek-fragment.js
+var voegTekstDelenSamen; // → src/viewer/dom-tekst.js
+var BLOK_TAGS;          // → src/viewer/dom-tekst.js
 
 // Maakt een gedeelde PII-tracker aan die genummerde, terugzetbare placeholders beheert.
 // Gedeeld over meerdere anonimiseerTekst-aanroepen zodat indexering consistent blijft.
@@ -15289,6 +15301,7 @@ import { injecteerNummering }                               from './src/docx/num
 import { bouwRoepnaamIssues }                              from './src/rapport/roepnaam-issues.js';
 import { lijstZin }                                        from './src/ui/lijst-zin.js';
 import { kiesUniekFragment }                               from './src/viewer/uniek-fragment.js';
+import { voegTekstDelenSamen, BLOK_TAGS }                  from './src/viewer/dom-tekst.js';
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
 import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
@@ -15326,6 +15339,8 @@ window.artikelVerwijzingen    = artikelVerwijzingen;
 window.bouwRoepnaamIssues     = bouwRoepnaamIssues;
 window.lijstZin               = lijstZin;
 window.kiesUniekFragment      = kiesUniekFragment;
+window.voegTekstDelenSamen    = voegTekstDelenSamen;
+window.BLOK_TAGS              = BLOK_TAGS;
 window.voegChunksSamen        = voegChunksSamen;
 window.trefwoord              = trefwoord;
 window.injecteerNummering     = injecteerNummering;

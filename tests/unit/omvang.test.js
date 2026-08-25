@@ -164,8 +164,16 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // fragment dat het document maar één keer bevat. Wat hier bijkwam is de aanroep,
 // een terugval erachter voor gescande documenten, en de uitleg waarom uniekheid
 // een betere maatstaf is dan een stopwoordenlijst.
-const MAX_REGELS_INDEX = 15457;
-const MAX_REGELS_JS     = 12444;
+// 24-08-2026 (negende keer): 15457 → 15472 (+15, alle 15 script), voor het
+// aaneenplakken van tekstnodes MET een spatie op blokgrenzen. Een passage die over
+// twee bullets liep was onvindbaar omdat er "…te wensen.Oud & Nieuw…" stond.
+//
+// De redenering staat in src/viewer/dom-tekst.js met tien tests, en het onderscheid
+// is subtiel genoeg om het daar te willen hebben: tussen blokken WEL een spatie,
+// binnen een blok NIET — anders breekt "vor<strong>dering</strong>" in tweeën.
+// Wat hier bijkwam is het bepalen van het blok per node en de aanroep.
+const MAX_REGELS_INDEX = 15472;
+const MAX_REGELS_JS     = 12459;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
