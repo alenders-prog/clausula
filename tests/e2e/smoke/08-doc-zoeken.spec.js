@@ -19,6 +19,7 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
 import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
+import { wachtOpBrug } from '../helpers/brug.js';
 
 /** Zet een documentpaneel klaar met DOCX-weergave en geeft het aantal treffers terug. */
 async function zoek(page, html, term) {
@@ -46,6 +47,7 @@ test.describe('zoeken in het documentpaneel', () => {
     await page.route('**/storage/v1/**', r => r.fulfill({ status: 404 }));
     await page.goto('/', { waitUntil: 'commit' });
     await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+    await wachtOpBrug(page);
   });
 
   test('telt elke treffer één keer', async ({ page }) => {
@@ -102,6 +104,7 @@ test.describe('tekst over blokgrenzen heen', () => {
     await page.route('**/storage/v1/**', r => r.fulfill({ status: 404 }));
     await page.goto('/', { waitUntil: 'commit' });
     await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+    await wachtOpBrug(page);
   });
 
   test('een passage die over twee bullets loopt wordt gevonden', async ({ page }) => {

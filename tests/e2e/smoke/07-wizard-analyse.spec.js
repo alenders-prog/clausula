@@ -25,6 +25,7 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
 import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
+import { wachtOpBrug } from '../helpers/brug.js';
 
 /** Zet de wizard rechtstreeks op stap 2 met twee herkende documenten. */
 async function wizardMetDocumenten(page) {
@@ -61,6 +62,7 @@ test('stap 2 gaat in de looptoestand zonder een nieuw scherm te openen', async (
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await wizardMetDocumenten(page);
 
   // Uitgangspunt: knop bruikbaar, tijdblok zichtbaar, geen status.
@@ -102,6 +104,7 @@ test('de voortgang staat in de documentregels, op naam en niet op volgorde', asy
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await wizardMetDocumenten(page);
   await page.evaluate(() => wizAnalyseLoopt());
 
@@ -142,6 +145,7 @@ test('na een mislukte analyse is stap 2 meteen weer bruikbaar', async ({ page })
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await wizardMetDocumenten(page);
 
   await page.evaluate(() => window.wizAnalyseStarten());
@@ -177,6 +181,7 @@ test('ook in de bewerkingsmodus blijft de knop de enige plek waar iets verandert
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await wizardMetDocumenten(page);
 
   await page.evaluate(() => {
@@ -210,6 +215,7 @@ test('wizard sluit zodra het rapportskelet opengaat, niet pas als alles klaar is
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await wizardMetDocumenten(page);
 
   // De analyse blijft na het skelet doorlopen; zo staat vast dat de wizard níét op

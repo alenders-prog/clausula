@@ -15,6 +15,7 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
+import { wachtOpBrug } from '../helpers/brug.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLS = JSON.parse(readFileSync(join(__dirname, '../fixtures/classificatie.json'), 'utf8'));
@@ -30,6 +31,7 @@ test('rapport rendert na state-injectie', async ({ page }) => {
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
 
   // Activeer de split-overlay — toonRapport() vereist dat #splitOverlay zichtbaar is
   await page.evaluate(() => {

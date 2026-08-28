@@ -9,6 +9,7 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
 import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
+import { wachtOpBrug } from '../helpers/brug.js';
 
 test('analyseknop enabled na bestand in tray', async ({ page }) => {
   const fouten = volgPaginafouten(page);
@@ -17,6 +18,7 @@ test('analyseknop enabled na bestand in tray', async ({ page }) => {
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
 
   // Stel een dossier-context in zodat #analyseBtn actief kan worden
   // (zetDossierContext is een globale function-declaratie, toegankelijk via window)

@@ -19,6 +19,7 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
 import { volgPaginafouten, verwachtGeenPaginafouten } from '../helpers/paginafouten.js';
+import { wachtOpBrug } from '../helpers/brug.js';
 
 /** Rendert de voortgangsweergave met een gekozen set nog-lopende dimensies. */
 async function toonVoortgang(page, bezig) {
@@ -42,6 +43,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/storage/v1/**', r => r.fulfill({ status: 404 }));
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await page.evaluate(() => document.getElementById('splitOverlay').classList.add('active'));
 });
 

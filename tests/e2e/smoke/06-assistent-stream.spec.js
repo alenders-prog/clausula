@@ -23,6 +23,7 @@
 import { test, expect } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../helpers/mock-supabase.js';
 import { volgPaginafouten, verwachtGeenPaginafouten, verwachtGeenFoutbericht } from '../helpers/paginafouten.js';
+import { wachtOpBrug } from '../helpers/brug.js';
 
 const ANTWOORD = '**Zeggenschap over de woning**\n\nDe vertrekkende partij behoudt '
   + 'zeggenschap zolang de woning gezamenlijk eigendom is.';
@@ -77,6 +78,7 @@ test('assistent beantwoordt een vraag streamend, zonder runtime-fouten', async (
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
 
   // Panel openen en de koppel-dialoog afhandelen als algemene vraag.
   await page.evaluate(() => {
@@ -131,6 +133,7 @@ test('assistent toont een leesbare melding bij een platte foutpagina', async ({ 
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await page.evaluate(() => {
     window.toggleAssistPanel();
     if (typeof window._assistLinkNee === 'function') window._assistLinkNee();
@@ -164,6 +167,7 @@ test('clausulekop blijft niet achter als het genereren mislukt', async ({ page }
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await page.evaluate(() => {
     window.toggleAssistPanel();
     if (typeof window._assistLinkNee === 'function') window._assistLinkNee();
@@ -214,6 +218,7 @@ test('keuze-knoppen bij een verduidelijkingsvraag zijn aanklikbaar', async ({ pa
 
   await page.goto('/', { waitUntil: 'commit' });
   await page.waitForSelector('#dossierLijst', { timeout: 45_000 });
+  await wachtOpBrug(page);
   await page.evaluate(() => {
     window.toggleAssistPanel();
     if (typeof window._assistLinkNee === 'function') window._assistLinkNee();
