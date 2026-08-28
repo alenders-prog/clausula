@@ -69,6 +69,7 @@ const grensDatum = () => new Date(Date.now() - MAANDEN * 30.44 * 864e5);
 /** Velden die het script vergelijkt. bijgewerkt_op hoort er niet bij: die verandert altijd. */
 const VERGELIJK = [
   'issues_totaal', 'hoog', 'midden', 'laag', 'afgevinkt', 'genegeerd',
+  'open_hoog', 'open_midden', 'open_laag',
   'mfn_totaal', 'mfn_aanwezig', 'mfn_onvolledig', 'mfn_ontbreekt', 'mfn_extra',
   'score', 'doc_type', 'versie_nr',
 ];

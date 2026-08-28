@@ -233,8 +233,18 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // Het tellen zelf staat in src/dashboard/feiten.js met achttien tests, waaronder het
 // vangnet dat weigert te schrijven zodra er vrije tekst in een feitregel staat. Wat
 // hier bijkwam is het ophalen van de zojuist bewaarde rij en het wegschrijven.
-const MAX_REGELS_INDEX = 15913;
-const MAX_REGELS_JS     = 12713;
+// 28-08-2026 (veertiende keer): 15913 → 15967 (+54, waarvan 51 script). Het dashboard
+// rekent nu op analyse_feiten in plaats van op de screeningen, zodat de cijfers blijven
+// staan als een dossier wordt verwijderd.
+//
+// Het rekenwerk staat in src/dashboard/feiten-statistiek.js met 24 tests, waaronder
+// een kruiscontrole dat beide bronnen dezelfde cijfers geven zolang er niets is
+// verwijderd. Wat hier bijkwam is het ophalen, het samenvoegen van de twee bronnen
+// (tellingen uit feiten, verloop en top-lijst uit de live berekening omdat die
+// issue-titels nodig hebben) en het regeltje dat meldt hoeveel er uit verwijderde
+// dossiers meetelt.
+const MAX_REGELS_INDEX = 15967;
+const MAX_REGELS_JS     = 12764;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

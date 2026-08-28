@@ -177,3 +177,34 @@ describe('keurFeitRegel — geen inhoud in de feitentabel', () => {
     expect(keurFeitRegel({})).toEqual([]);
   });
 });
+
+// Uit "gevonden min afgevinkt" is niet af te leiden wat er per ernst nog openstaat:
+// drie afgevinkte punten kunnen drie lage zijn of drie hoge. Het dashboard heeft dat
+// wel nodig voor de ringen "gevonden → nog open" en de regel "nog open, ernst hoog".
+describe('bouwFeitRegel — wat er per ernst nog openstaat', () => {
+  it('trekt afgevinkte en genegeerde punten van de juiste ernst af', () => {
+    const r = bouwFeitRegel(screening({ rapport: { issues: [
+      iss('a', 'hoog'),
+      iss('b', 'hoog',   ['juridisch'], { afgehandeld: true }),
+      iss('c', 'midden', ['juridisch'], { negeer: true }),
+      iss('d', 'laag'),
+      iss('e', 'laag'),
+    ] } }));
+    expect(r).toMatchObject({ hoog: 2, midden: 1, laag: 2 });
+    expect(r).toMatchObject({ open_hoog: 1, open_midden: 0, open_laag: 2 });
+  });
+
+  it('telt alles als open zolang er niets is aangeraakt', () => {
+    const r = bouwFeitRegel(screening({ rapport: { issues: [iss('a', 'hoog'), iss('b', 'laag')] } }));
+    expect(r.open_hoog).toBe(1);
+    expect(r.open_laag).toBe(1);
+  });
+
+  it('zet het openstaande aantal op nul als alles is afgehandeld', () => {
+    const r = bouwFeitRegel(screening({ rapport: { issues: [
+      iss('a', 'hoog', ['juridisch'], { afgehandeld: true }),
+    ] } }));
+    expect(r.hoog).toBe(1);
+    expect(r.open_hoog).toBe(0);
+  });
+});

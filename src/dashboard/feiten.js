@@ -56,6 +56,9 @@ export function bouwFeitRegel(screening, context = {}) {
 
   const perCategorie = legeCategorieen();
   const telling = { hoog: 0, midden: 0, laag: 0 };
+  // Per ernst apart bijhouden wat er nog openstaat. Uit gevonden-min-afgevinkt is dat
+  // niet af te leiden: drie afgevinkte punten kunnen drie lage zijn of drie hoge.
+  const open = { hoog: 0, midden: 0, laag: 0 };
   let issuesTotaal = 0, afgevinkt = 0, genegeerd = 0;
 
   const mfn = { totaal: null, aanwezig: 0, onvolledig: 0, ontbreekt: 0, extra: 0 };
@@ -73,6 +76,7 @@ export function bouwFeitRegel(screening, context = {}) {
       perCategorie[hoofdCategorie(iss)][KORT[e]]++;
       if (isAfgevinkt(iss)) afgevinkt++;
       else if (isGenegeerd(iss)) genegeerd++;
+      else open[e]++;
     }
 
     const m = doc?.mfn_score;
@@ -107,6 +111,9 @@ export function bouwFeitRegel(screening, context = {}) {
     laag:   telling.laag,
     afgevinkt,
     genegeerd,
+    open_hoog:   open.hoog,
+    open_midden: open.midden,
+    open_laag:   open.laag,
     per_categorie: perCategorie,
 
     mfn_totaal:     heeftMfn ? mfn.totaal     : null,

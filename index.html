@@ -1323,6 +1323,8 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 #dbKpi,#dbPaneel{width:100%;max-width:1250px;margin:0 auto 14px;}
 #dbKpi{margin-top:14px;}
 @media(min-width:920px){#dbKpi,#dbPaneel{min-width:860px;}}
+#dbVerwijderd{width:100%;max-width:1250px;margin:-6px auto 12px;font-size:.72rem;
+  color:var(--ink-faint);line-height:1.4;}
 .db-statknop{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;
   border:1px solid var(--border);background:var(--paper);color:var(--ink-mid);
   font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
@@ -2399,6 +2401,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
         <!-- Kerncijfers: altijd zichtbaar boven de dossiers, huidige stand.
              Het uitklappaneel eronder volgt wél de periodekiezer. -->
         <div id="dbKpi"></div>
+        <p id="dbVerwijderd" class="db-verwijderd" hidden></p>
         <div id="dbPaneel" class="db-paneel" hidden>
           <div class="db-periodebalk">
             <span class="db-lbl">Periode</span>
@@ -7436,6 +7439,20 @@ function dbVanaf(keuze) {
   return null;
 }
 
+// Feitregels, één keer per paginalading opgehaald. Ze veranderen alleen als er een
+// analyse bijkomt, en dan wordt het dashboard toch opnieuw getekend.
+let _dbFeitenCache = null;
+
+async function laadFeiten() {
+  if (_dbFeitenCache) return _dbFeitenCache;
+  // select=* en niet een lijst kolommen: draait de migratie met open_hoog/_midden/_laag
+  // nog niet, dan komt het zonder die velden terug in plaats van met een foutmelding.
+  const { data, error } = await db.from('analyse_feiten').select('*');
+  if (error) { console.warn('[dashboard] feiten niet beschikbaar:', error.message); return null; }
+  _dbFeitenCache = data || [];
+  return _dbFeitenCache;
+}
+
 function tekenDashboard() {
   const kpiEl = document.getElementById('dbKpi');
   if (!kpiEl || typeof bouwStatistieken !== 'function') return;   // brug nog niet geladen
@@ -7449,14 +7466,47 @@ function tekenDashboard() {
     .filter(s => !alleen || !vanaf || new Date(s.created_at) >= vanaf)
     .map(s => ({ ...s, dossier_id: d.id })));
 
-  kpiEl.innerHTML = kpiStripHtml(bouwStatistieken({ dossiers, screeningen: plat(false) }));
+  // Twee bronnen. De feitentabel telt álles wat er ooit is geanalyseerd, ook uit
+  // dossiers die inmiddels zijn verwijderd — dat is waarvoor hij bestaat. De live
+  // berekening uit de screeningen levert de twee blokken die issue-titels nodig
+  // hebben, en die staan bewust niet in de feitentabel.
+  //
+  // Zijn er geen feiten (migratie nog niet gedraaid, of leesrecht ontbreekt), dan valt
+  // alles terug op de live berekening. Dan telt het dashboard minder — maar het klopt
+  // nog steeds met wat er in de lijst staat, en dat is de veilige kant om op te vallen.
+  const live = bouwStatistieken({ dossiers, screeningen: plat(false) });
+  const feitenAlles = _dbFeitenCache;
+  kpiEl.innerHTML = kpiStripHtml(
+    feitenAlles ? statistiekenUitFeiten({ dossiers, feiten: feitenAlles }) : live);
+
+  // Het verschil tussen "wat er nu is" en "wat er ooit is gedaan" hoort zichtbaar te
+  // zijn. Zonder dit regeltje lijkt het dashboard simpelweg meer te tellen dan er in
+  // de dossierlijst staat, en dat leest als een fout.
+  const weg = feitenAlles
+    ? uitVerwijderdeDossiers(feitenAlles, plat(false).map(s => s.id)) : { analyses: 0 };
+  const wegEl = document.getElementById('dbVerwijderd');
+  if (wegEl) {
+    wegEl.hidden = !weg.analyses;
+    if (weg.analyses) wegEl.textContent =
+      `Inclusief ${weg.analyses} analyse${weg.analyses === 1 ? '' : 's'} `
+      + `(${weg.bevindingen} bevindingen) uit ${weg.dossiers} verwijderd `
+      + `dossier${weg.dossiers === 1 ? '' : 's'}.`;
+  }
 
   const paneel = document.getElementById('dbPaneel');
   if (!paneel || paneel.hidden) return;
   // docType gaat naar de héle aggregatie, niet alleen naar MfN: de categorietabel, het
   // verloop en de top-lijst horen mee te bewegen met de knop. Deed alleen MfN dat, dan
   // staat er een keuze die zichtbaar niets doet — erger dan geen keuze.
-  const stats = bouwStatistieken({ dossiers, screeningen: plat(true), docType: _dbDoctype });
+  const liveP = bouwStatistieken({ dossiers, screeningen: plat(true), docType: _dbDoctype });
+  const feitenP = feitenAlles
+    ? feitenAlles.filter(f => !vanaf || new Date(f.geanalyseerd_op) >= vanaf) : null;
+  // Tellingen uit de feiten, maar verloop en top-lijst uit de live berekening: die
+  // vergelijken issue-titels, en die staan niet in de feitentabel.
+  const stats = feitenP
+    ? { ...statistiekenUitFeiten({ dossiers, feiten: feitenP, docType: _dbDoctype }),
+        verloop: liveP.verloop, topIssues: liveP.topIssues }
+    : liveP;
   document.getElementById('dbCategorie').innerHTML = categorieHtml(stats);
   document.getElementById('dbVerloop').innerHTML   = verloopHtml(stats);
   document.getElementById('dbMfn').innerHTML       = mfnHtml(stats, _dbDoctype);
@@ -7481,7 +7531,7 @@ function dbSegKlik(groep, attr, zet) {
     document.querySelectorAll(`#${groep} button`).forEach(b =>
       b.setAttribute('aria-pressed', String(b === knop)));
     zet(knop.dataset[attr]);
-    tekenDashboard();
+    laadFeiten().then(tekenDashboard);
   });
 }
 dbSegKlik('dbPeriode', 'p', v => { _dbPeriode = v; });
@@ -9077,6 +9127,7 @@ var mfaStatusHtml, mfaInschrijfHtml;              // → src/auth/mfa-scherm.js
 var berekenGemiddeldeScore, rapportScore;         // → src/rapport/score.js
 var bouwStatistieken;                             // → src/dashboard/statistieken.js
 var bouwFeitRegel, keurFeitRegel;                 // → src/dashboard/feiten.js
+var statistiekenUitFeiten, uitVerwijderdeDossiers; // → src/dashboard/feiten-statistiek.js
 var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
                                                   // → src/dashboard/scherm.js
 var voegTekstDelenSamen; // → src/viewer/dom-tekst.js
@@ -15720,6 +15771,7 @@ import { mfaStatusHtml, mfaInschrijfHtml }                 from './src/auth/mfa-
 import { berekenGemiddeldeScore, rapportScore }            from './src/rapport/score.js';
 import { bouwStatistieken }                                from './src/dashboard/statistieken.js';
 import { bouwFeitRegel, keurFeitRegel }                    from './src/dashboard/feiten.js';
+import { statistiekenUitFeiten, uitVerwijderdeDossiers }   from './src/dashboard/feiten-statistiek.js';
 import { kpiStripHtml, categorieHtml, verloopHtml,
          mfnHtml, topIssuesHtml, mfnTypen, label }         from './src/dashboard/scherm.js';
 import { voegTekstDelenSamen, BLOK_TAGS }                  from './src/viewer/dom-tekst.js';
@@ -15773,6 +15825,8 @@ window.rapportScore           = rapportScore;
 window.bouwStatistieken       = bouwStatistieken;
 window.bouwFeitRegel          = bouwFeitRegel;
 window.keurFeitRegel          = keurFeitRegel;
+window.statistiekenUitFeiten  = statistiekenUitFeiten;
+window.uitVerwijderdeDossiers = uitVerwijderdeDossiers;
 window.kpiStripHtml           = kpiStripHtml;
 window.categorieHtml          = categorieHtml;
 window.verloopHtml            = verloopHtml;
