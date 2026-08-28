@@ -52,7 +52,7 @@
     <h1>Clausula</h1>
     <p>Juridische toetsing &middot; scheidingsmediation</p>
   </div>
-  <div class="card">
+  <div class="card" id="stapWachtwoord">
     <label for="email">E-mailadres</label>
     <input type="email" id="email" autocomplete="email" placeholder="naam@kantoor.nl">
 
@@ -65,6 +65,29 @@
       <a href="wachtwoord-vergeten.html" style="color:var(--ink-soft);text-decoration:none">Wachtwoord vergeten?</a>
     </p>
   </div>
+
+  <!-- Tweede stap. Aparte kaart in plaats van een veld dat erbij verschijnt, zodat de
+       browser het wachtwoordveld niet opnieuw aanbiedt en de wachtwoordmanager niet
+       de zescijferige code als wachtwoord opslaat. -->
+  <div class="card" id="stapCode" style="display:none">
+    <h2 style="font-family:'Source Serif 4',serif;font-size:1.15rem;margin:0 0 6px;color:#1B3050">
+      Verificatiecode
+    </h2>
+    <p style="margin:0 0 18px;font-size:.88rem;color:var(--ink-soft);line-height:1.5">
+      Open uw authenticator-app en voer de zescijferige code in die daar voor Clausula staat.
+    </p>
+
+    <label for="totp">Code</label>
+    <input type="text" id="totp" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="6" pattern="[0-9]{6}" placeholder="000000"
+           style="letter-spacing:.42em;font-size:1.35rem;text-align:center;font-weight:600">
+
+    <button id="codeBtn">Bevestigen</button>
+    <div class="fout" id="codeFout" style="display:none;"></div>
+    <p style="text-align:center;margin:14px 0 0;font-size:.82rem">
+      <a href="#" id="annuleerCode" style="color:var(--ink-soft);text-decoration:none">Annuleren</a>
+    </p>
+  </div>
   <p style="text-align:center;margin-top:20px;font-size:.88rem;color:var(--ink-soft);">
     Nieuw kantoor? <a href="registreer.html" style="color:var(--coral);text-decoration:none;font-weight:600;">Account aanmaken</a>
   </p>
@@ -72,14 +95,40 @@
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script>
+<script type="module">
 'use strict';
+import { bepaalMfaStap, mfaFoutTekst } from './src/auth/mfa-beleid.js';
+
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Al ingelogd? Direct doorsturen.
-db.auth.getSession().then(({ data: { session } }) => {
-  if (session) window.location.replace('index.html');
+// Al ingelogd? Alleen doorsturen als de sessie ook op het vereiste niveau staat.
+// Een sessie op aal1 terwijl er een factor is, is een half voltooide inlog: die hoort
+// hier de tweede stap te krijgen in plaats van doorgelaten te worden.
+db.auth.getSession().then(async ({ data: { session } }) => {
+  if (!session) return;
+  const stap = await huidigeStap();
+  if (stap.stap === 'code_invoeren') toonCodeStap();
+  else window.location.replace('index.html');
 });
+
+/** Beleid toepassen op wat Supabase over deze sessie weet. */
+async function huidigeStap() {
+  const [{ data: factoren }, { data: aal }] = await Promise.all([
+    db.auth.mfa.listFactors(),
+    db.auth.mfa.getAuthenticatorAssuranceLevel(),
+  ]);
+  // De rol doet er in deze stap niet toe: het instellen van een ontbrekende factor
+  // gebeurt in de app, niet op de inlogpagina. Hier telt alleen of er een tweede stap
+  // openstaat voor een factor die al bestaat.
+  return { ...bepaalMfaStap({ rol: 'gebruiker', factoren: factoren?.all, aal }),
+           factorId: (factoren?.all || []).find(f => f.status === 'verified')?.id };
+}
+
+function toonCodeStap() {
+  document.getElementById('stapWachtwoord').style.display = 'none';
+  document.getElementById('stapCode').style.display       = 'block';
+  document.getElementById('totp').focus();
+}
 
 async function inloggen() {
   const email = document.getElementById('email').value.trim();
@@ -104,13 +153,76 @@ async function inloggen() {
     fout.style.display = 'block';
     btn.disabled       = false;
     btn.textContent    = 'Inloggen';
-  } else {
-    window.location.replace('index.html');
+    return;
   }
+
+  // Wachtwoord klopt. Staat er een authenticator ingesteld, dan is de sessie nu op
+  // aal1 en telt hij nog niet als volledig ingelogd.
+  const stap = await huidigeStap();
+  if (stap.stap === 'code_invoeren') {
+    btn.disabled    = false;
+    btn.textContent = 'Inloggen';
+    toonCodeStap();
+    return;
+  }
+  window.location.replace('index.html');
+}
+
+async function codeBevestigen() {
+  const veld = document.getElementById('totp');
+  const fout = document.getElementById('codeFout');
+  const btn  = document.getElementById('codeBtn');
+  const code = veld.value.replace(/\D/g, '');
+
+  if (code.length !== 6) {
+    fout.textContent   = 'Vul de zes cijfers uit uw authenticator-app in.';
+    fout.style.display = 'block';
+    return;
+  }
+
+  fout.style.display = 'none';
+  btn.disabled       = true;
+  btn.textContent    = 'Bezig...';
+
+  const { factorId } = await huidigeStap();
+  const { error } = await db.auth.mfa.challengeAndVerify({ factorId, code });
+
+  if (error) {
+    fout.textContent   = mfaFoutTekst(error);
+    fout.style.display = 'block';
+    btn.disabled       = false;
+    btn.textContent    = 'Bevestigen';
+    veld.value         = '';
+    veld.focus();
+    return;
+  }
+  window.location.replace('index.html');
 }
 
 document.getElementById('inlogBtn').addEventListener('click', inloggen);
-document.addEventListener('keydown', e => { if (e.key === 'Enter') inloggen(); });
+document.getElementById('codeBtn').addEventListener('click', codeBevestigen);
+
+// Afbreken laat geen halve sessie achter: uitloggen, anders blijft er een sessie op
+// aal1 staan die bij de volgende paginalading weer om een code vraagt zonder dat
+// iemand weet wie er dan is ingelogd.
+document.getElementById('annuleerCode').addEventListener('click', async e => {
+  e.preventDefault();
+  await db.auth.signOut();
+  window.location.reload();
+});
+
+// Zes cijfers ingevoerd? Meteen bevestigen — anders typt iedereen de code en zoekt
+// daarna naar de knop, terwijl de code dertig seconden geldig is.
+document.getElementById('totp').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+  if (e.target.value.length === 6) codeBevestigen();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (document.getElementById('stapCode').style.display === 'block') codeBevestigen();
+  else inloggen();
+});
 </script>
 </body>
 </html>
