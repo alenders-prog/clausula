@@ -184,8 +184,57 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // src/ mét tests. De grens bewaakt toetsbaarheid, en die is hier niet in het geding —
 // alleen het aantal regels bedrading, en dat is de prijs van een dialoog in een bestand
 // zonder build-stap.
-const MAX_REGELS_INDEX = 15502;
-const MAX_REGELS_JS     = 12489;
+// 26-08-2026 (elfde keer): 15502 → 15676 (+174, waarvan 130 script en 44 opmaak),
+// voor tweefactorauthenticatie: het tabblad Beveiliging, in- en uitschrijven, en de
+// controle bij het opstarten.
+//
+// Waarom de grens omhoog gaat: het toetsbare deel staat al in src/auth/ — het beleid
+// (wie moet 2FA, en wat nu?) in mfa-beleid.js en de vier schermtoestanden in
+// mfa-scherm.js, samen 28 tests. Wat hier bijkomt kán daar niet heen: het roept
+// db.auth.mfa.* aan en hangt knoppen op. De grens bewaakt toetsbaarheid, en die is
+// hier niet in het geding.
+//
+// De 44 regels opmaak tellen wel mee in MAX_REGELS_INDEX maar niet in MAX_REGELS_JS —
+// dat is precies waarvoor die tweede grens sinds 23-08-2026 bestaat.
+// Zelfde dag, +21 script: het opruimen van een half afgeronde inschrijving en het
+// tonen van de échte foutmelding in plaats van een vangnettekst die de oorzaak
+// verborg. Zie mfaInschrijfFoutTekst in src/auth/mfa-beleid.js.
+// +2 opmaakregels (geen script) voor de waarschuwing over een achtergebleven regel in
+// de authenticator-app. Die kostte in de praktijk een half uur zoeken: de app toonde
+// nette codes uit een eerdere poging die de server allang niet meer kende.
+// 26-08-2026 (twaalfde keer): 15699 → 15861 (+162, waarvan slechts 32 script).
+// Het dashboard boven de dossierlijst: kaartenrij, uitklappaneel met periodekiezer,
+// en de secties categorie/verloop/MfN/top.
+//
+// Die 32 is laag omdat er ook iets wég ging: berekenGemiddeldeScore stond in dit
+// bestand en verhuisde naar src/rapport/score.js (66 regels eruit). Het dashboard
+// rekent met dezelfde formule als de chip op een dossierkaart, en twee kopieën van
+// een scoreformule lopen gegarandeerd uiteen. Die verhuizing leverde bovendien
+// zestien tests op voor een formule die er geen had — en het is de formule die het
+// cijfer bepaalt dat een mediator aan zijn cliënt laat zien.
+//
+// Aggregatie (26 tests) en weergave (23 tests) staan in src/dashboard/. Wat hier
+// bijkwam is de periodekeuze, het platslaan van de geneste query en het ophangen
+// van de knoppen.
+// +16 na de eerste ronde terugkoppeling: opmaak voor de twee voor/na-ringen en de
+// totaalregel, plus vier scriptregels om de documenttypekeuze door de hele aggregatie
+// te laten werken in plaats van alleen door het MfN-blok.
+// 15882 → 15872 (−10). De kop en de legenda boven de ringen zijn er weer uit: de
+// kleuren staan al links boven de tabel en de ringen spreken zonder bijschrift. Wat
+// overblijft is het centreren, verticaal tegen het staafdiagram en horizontaal in de
+// eigen kolom.
+// +4 opmaakregels: ook de enkele ring krijgt de ring van de dossierkaart. Bij
+// Ouderschapsplan was nog niets afgevinkt, dus viel die sectie terug op de oude
+// opmaak — één documenttype zag er anders uit dan de rest.
+// 28-08-2026 (dertiende keer): 15876 → 15913 (+37, alle 37 script), voor het
+// wegschrijven van een feitregel bij elke bewaarde analyse — tellingen die blijven
+// staan als het dossier later wordt verwijderd.
+//
+// Het tellen zelf staat in src/dashboard/feiten.js met achttien tests, waaronder het
+// vangnet dat weigert te schrijven zodra er vrije tekst in een feitregel staat. Wat
+// hier bijkwam is het ophalen van de zojuist bewaarde rij en het wegschrijven.
+const MAX_REGELS_INDEX = 15913;
+const MAX_REGELS_JS     = 12713;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

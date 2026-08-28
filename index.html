@@ -1318,6 +1318,146 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .mfn-el-ontbreekt  .mfn-el-icon{color:#c0392b;}
 .mfn-el-tekst{flex:1;color:var(--ink);}
 .mfn-el-toe{display:block;font-size:.75rem;color:var(--ink-soft);margin-top:2px;font-style:italic;}
+/* ═══ Dashboard boven de dossierlijst ═════════════════ */
+/* Zelfde breedte als de dossierkaarten: .rp-home-lijst>* staat op 1250/860. */
+#dbKpi,#dbPaneel{width:100%;max-width:1250px;margin:0 auto 14px;}
+#dbKpi{margin-top:14px;}
+@media(min-width:920px){#dbKpi,#dbPaneel{min-width:860px;}}
+.db-statknop{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;
+  border:1px solid var(--border);background:var(--paper);color:var(--ink-mid);
+  font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
+.db-statknop[aria-expanded="true"]{background:var(--accent-faint);border-color:var(--accent);color:var(--accent);}
+
+.db-kpi-rij{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;}
+.db-kpi{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:13px 15px;
+  display:flex;gap:13px;align-items:center;box-shadow:0 1px 2px rgba(26,24,22,.05);}
+.db-kpi-icoon{width:46px;height:46px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:var(--tint);color:var(--spoor);}
+.db-kpi-icoon svg{width:25px;height:25px;}
+.db-kpi-lbl{font-size:.69rem;font-weight:600;color:var(--ink-soft);line-height:1.3;}
+.db-kpi-waarde{font-size:1.55rem;font-weight:800;line-height:1.15;margin-top:2px;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.db-eenh{font-size:.8rem;font-weight:700;color:var(--ink-soft);}
+
+.db-paneel{background:var(--paper);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.db-periodebalk{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:11px 16px;
+  background:var(--bg);border-bottom:1px solid var(--line);}
+.db-lbl{font-size:.74rem;font-weight:600;color:var(--ink-soft);}
+.db-seg{display:flex;gap:3px;}
+.db-seg button{padding:5px 11px;border-radius:6px;border:1px solid var(--line);background:var(--paper);
+  font:inherit;font-size:.76rem;color:var(--ink-mid);cursor:pointer;}
+.db-seg button[aria-pressed="true"]{background:var(--nav-bg);color:#fff;border-color:var(--nav-bg);font-weight:600;}
+.db-seg button:disabled{opacity:.4;cursor:default;}
+.db-secties{padding:12px 16px 16px;display:flex;flex-direction:column;gap:8px;}
+.db-secties details{border:1px solid var(--line);border-radius:9px;}
+.db-secties summary{cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:9px;list-style:none;}
+.db-secties summary::-webkit-details-marker{display:none;}
+.db-secties summary::before{content:"›";color:var(--ink-faint);font-size:1.1rem;line-height:1;
+  transition:transform .18s ease;display:inline-block;}
+.db-secties details[open]>summary::before{transform:rotate(90deg);color:var(--coral);}
+.db-sectitel{font-size:.88rem;font-weight:700;}
+.db-secsub{font-size:.78rem;color:var(--ink-soft);}
+.db-secbody{padding:14px;border-top:1px solid var(--line);}
+.db-leeg{font-size:.85rem;color:var(--ink-soft);margin:0;line-height:1.5;}
+
+.db-duo{display:grid;grid-template-columns:1.5fr 1fr;gap:22px;align-items:start;}
+@media(max-width:980px){.db-duo{grid-template-columns:1fr;}}
+/* Verticaal uitgemiddeld tegen het staafdiagram ernaast. */
+.db-cirkel{align-self:center;}
+/* Ringen gecentreerd in hun kolom, met lucht eromheen. Drie kolommen in plaats van
+   vier: de vierde is op de dossierkaart de legenda, en die staat hier niet. Zonder
+   deze regel houdt die lege kolom alle ruimte en drukt de ringen naar links. */
+.db-cirkel .v2-cmp-grid{grid-template-columns:90px 36px 128px;justify-content:center;
+  margin:0 auto;padding:0 12px;}
+/* Eén ring: zelfde ring, zelfde centrering — anders ziet de sectie er bij het ene
+   documenttype anders uit dan bij het andere. */
+.db-enkelring{display:flex;flex-direction:column;align-items:center;gap:9px;padding:0 12px;}
+.db-enkelring-txt{font-size:.78rem;color:var(--ink-soft);}
+.db-legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:.76rem;color:var(--ink-mid);margin-bottom:10px;}
+.db-legenda i,.db-rij i,.db-vkaart i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;}
+.db-tabel{width:100%;border-collapse:collapse;}
+.db-tabel th{font-size:.66rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);
+  font-weight:700;text-align:left;padding:0 0 8px;}
+.db-tabel th.r,.db-tabel td.r{text-align:right;}
+.db-tabel td{padding:6px 0;border-top:1px solid var(--line);vertical-align:middle;}
+.db-cat{font-weight:600;font-size:.82rem;white-space:nowrap;padding-right:12px;}
+.db-staaf{display:flex;height:20px;border-radius:4px;overflow:hidden;min-width:120px;}
+.db-staaf span{display:grid;place-items:center;color:#fff;font-size:.66rem;font-weight:700;
+  font-family:'IBM Plex Mono',monospace;min-width:0;}
+.db-tot{font-weight:700;font-size:.85rem;padding-left:12px;font-variant-numeric:tabular-nums;}
+.db-mono{font-family:'IBM Plex Mono',monospace;font-size:.78rem;}
+.db-donutblok{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.db-donut{width:145px;height:145px;flex:none;font-family:'Manrope',sans-serif;}
+.db-regels{flex:1;min-width:150px;}
+.db-rij{display:flex;align-items:baseline;gap:8px;font-size:.8rem;padding:4px 0;}
+.db-rij b{font-family:'IBM Plex Mono',monospace;margin-left:auto;font-weight:600;}
+.db-pc{color:var(--ink-faint);font-size:.7rem;}
+.db-rij-slot{border-top:1px solid var(--line);margin-top:7px;padding-top:9px;color:var(--ink-soft);}
+.db-tabel tfoot td{border-top:2px solid var(--border);font-weight:700;padding-top:9px;}
+/* De twee ringen "gevonden → nog open" gebruiken de v2-*-klassen van de dossierkaart;
+   daar hoort hier dus geen eigen opmaak bij. */
+
+.db-verloop{display:flex;flex-direction:column;gap:8px;}
+.db-vrij{display:flex;align-items:center;gap:12px;}
+.db-vlbl{width:92px;flex:none;font-size:.8rem;font-weight:700;line-height:1.25;}
+.db-vlbl span{display:block;font-size:.66rem;font-weight:400;color:var(--ink-faint);}
+.db-vbalk{flex:1;display:flex;height:32px;border-radius:5px;overflow:hidden;background:var(--bg);}
+.db-vbalk span{display:grid;place-items:center;color:#fff;font-size:.72rem;font-weight:700;
+  font-family:'IBM Plex Mono',monospace;min-width:0;}
+.db-vtot{width:44px;flex:none;text-align:right;font-weight:800;font-size:.92rem;font-variant-numeric:tabular-nums;}
+.db-vlegenda{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px;}
+.db-vkaart{display:flex;gap:9px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);
+  border-radius:8px;padding:9px 11px;}
+.db-vkaart i{border-radius:3px;margin-top:4px;}
+.db-vkaart b{font-size:.79rem;display:block;}
+.db-vkaart span{font-size:.72rem;color:var(--ink-soft);line-height:1.45;display:block;margin-top:2px;}
+
+.db-toprij{display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid var(--line);}
+.db-toprij:first-child{border-top:none;}
+.db-rang{width:18px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink-faint);flex:none;}
+.db-toptekst{flex:1;font-size:.82rem;}
+.db-topmeta{display:block;font-size:.7rem;color:var(--ink-faint);}
+.db-ministaaf{width:68px;height:6px;border-radius:3px;background:var(--line);flex:none;overflow:hidden;}
+.db-ministaaf i{display:block;height:100%;background:var(--coral);border-radius:3px;}
+.db-topaantal{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.78rem;flex:none;}
+
+/* Tweefactorauthenticatie — instellingen, tab Beveiliging */
+.mfa-status{border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.mfa-status.mfa-aan{background:var(--ok-light);border-color:var(--ok-border)}
+.mfa-status.mfa-verplicht{background:var(--bad-light);border-color:var(--bad-border)}
+.mfa-kop{font-weight:700;font-size:.92rem;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mfa-vink{color:var(--ok);font-size:1.05rem}
+.mfa-let{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;
+  background:var(--bad);color:#fff;font-size:.72rem;font-weight:800}
+.mfa-uitleg{margin:0 0 12px;font-size:.85rem;color:var(--ink-soft);line-height:1.55}
+.mfa-knop-aan,.mfa-knop-uit{padding:9px 16px;border-radius:8px;font:inherit;font-size:.85rem;
+  font-weight:600;cursor:pointer;border:1px solid transparent}
+.mfa-knop-aan{background:var(--coral);color:#fff}
+.mfa-knop-uit{background:transparent;color:var(--ink-soft);border-color:var(--border)}
+.mfa-stappen{margin:0 0 12px;padding-left:20px;font-size:.85rem;color:var(--ink-mid);line-height:1.6}
+.mfa-stappen li{margin-bottom:7px}
+.mfa-fijn{display:block;font-size:.78rem;color:var(--ink-soft);line-height:1.5;margin-top:2px}
+.mfa-qr{display:grid;place-items:center;padding:14px;background:#fff;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:12px}
+.mfa-qr img{display:block;max-width:100%;height:auto}
+.mfa-handmatig{font-size:.82rem;color:var(--ink-soft);margin-bottom:12px}
+.mfa-handmatig summary{cursor:pointer}
+.mfa-secret{display:block;margin-top:8px;padding:9px 11px;background:var(--bg);border:1px solid var(--line);
+  border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:.9rem;letter-spacing:.04em;
+  word-break:break-all;user-select:all}
+.mfa-bewaar{background:var(--warn-light);border:1px solid var(--warn-border);border-radius:8px;
+  padding:10px 12px;font-size:.82rem;line-height:1.5;margin-bottom:14px}
+.mfa-lbl{display:block;font-size:.85rem;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+.mfa-codeveld{width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:1.25rem;letter-spacing:.4em;text-align:center;
+  background:var(--bg);color:var(--ink);outline:none}
+.mfa-codeveld:focus{border-color:var(--coral)}
+.mfa-fout{color:var(--bad);font-size:.82rem;margin-top:8px;line-height:1.5}
+.mfa-acties{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.mfa-tip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 18px;
+  background:var(--warn-light);border-bottom:1px solid var(--warn-border);font-size:.85rem;
+  line-height:1.5;color:var(--ink-mid)}
+.mfa-tip span{flex:1;min-width:220px}
 .mfn-extra-blok{margin-top:6px;padding:10px 12px;background:#F5F0FF;
   border:1px solid #D8CAFF;border-radius:9px;}
 .mfn-extra-kop{font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
@@ -2249,6 +2389,44 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             <button class="dos-filter-tab" data-filter="gearchiveerd">Gearchiveerd</button>
           </div>
           <button class="rp-btn-primary" id="nieuwDossierBtn" style="flex-shrink:0">+ Nieuw dossier</button>
+          <button class="db-statknop" id="dbStatBtn" aria-expanded="false" style="flex-shrink:0">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+            Statistieken
+          </button>
+        </div>
+        <!-- Kerncijfers: altijd zichtbaar boven de dossiers, huidige stand.
+             Het uitklappaneel eronder volgt wél de periodekiezer. -->
+        <div id="dbKpi"></div>
+        <div id="dbPaneel" class="db-paneel" hidden>
+          <div class="db-periodebalk">
+            <span class="db-lbl">Periode</span>
+            <div class="db-seg" id="dbPeriode">
+              <button data-p="30">Laatste 30 dagen</button>
+              <button data-p="kwartaal" aria-pressed="true">Dit kwartaal</button>
+              <button data-p="jaar">Dit jaar</button>
+              <button data-p="alles">Alles</button>
+            </div>
+            <span class="db-lbl">Documenttype</span>
+            <div class="db-seg" id="dbDoctype">
+              <button data-t="alle" aria-pressed="true">Alle</button>
+              <button data-t="convenant">Convenant</button>
+              <button data-t="ouderschapsplan">Ouderschapsplan</button>
+            </div>
+          </div>
+          <div class="db-secties">
+            <details open><summary><span class="db-sectitel">Verbeterpunten per categorie en ernst</span></summary>
+              <div class="db-secbody" id="dbCategorie"></div></details>
+            <details><summary><span class="db-sectitel">Verloop tussen versies</span>
+              <span class="db-secsub">wat is er van de bevindingen geworden?</span></summary>
+              <div class="db-secbody" id="dbVerloop"></div></details>
+            <details><summary><span class="db-sectitel">MfN-compatibiliteit</span>
+              <span class="db-secsub" id="dbMfnSub"></span></summary>
+              <div class="db-secbody" id="dbMfn"></div></details>
+            <details><summary><span class="db-sectitel">Top terugkerende verbeterpunten</span></summary>
+              <div class="db-secbody" id="dbTop"></div></details>
+          </div>
         </div>
         <div class="rp-home-lijst" id="dossierLijst">
           <p style="padding:14px;font-size:.85rem;color:var(--ink-soft)">Bezig met laden…</p>
@@ -2392,7 +2570,16 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
                margin-bottom:-2px;transition:color .15s,border-color .15s;display:none">
         Gebruikers
       </button>
+      <button class="inst-tab" data-inst-tab="beveiliging"
+        style="flex:1;padding:10px 8px;border:none;background:transparent;cursor:pointer;
+               font-weight:700;font-size:.85rem;color:var(--ink-soft);border-bottom:2px solid transparent;
+               margin-bottom:-2px;transition:color .15s,border-color .15s">
+        Beveiliging
+      </button>
     </div>
+
+    <!-- Beveiliging tab -->
+    <div id="instBeveiligingBody" style="display:none"></div>
 
     <!-- Kantoor tab -->
     <div id="instKantoorBody">
@@ -2956,6 +3143,11 @@ let _orgNaam = '';     // naam van de organisatie (uit organisaties-tabel)
 
   document.body.style.display = '';
   await laadPraktijknaam();   // praktijknaam laden vanuit Supabase user-metadata (legacy)
+
+  // Tweefactorauthenticatie afdwingen waar de rol dat vraagt. Na het laden van het
+  // profiel, want de eis hangt aan de rol; en niet blokkerend voor de rest van de
+  // opstart, zodat een trage listFactors() het scherm niet ophoudt.
+  mfaBijOpstart();
 
   // Organisatienaam ophalen en tonen in topbar
   const { data: org } = await db.from('organisaties')
@@ -6995,6 +7187,12 @@ async function opslaan() {
     if (error) throw error;
     app.screeningId = data.id;
 
+    // ── Feitregel voor het dashboard ──────────────────────────────────────
+    // Tellingen die blijven staan als het dossier later wordt verwijderd. Bewust NA het
+    // opslaan en zonder await-blokkade op de rest: mislukt dit, dan is de analyse nog
+    // steeds bewaard. scripts/feiten-sync.mjs vult ontbrekende regels later aan.
+    schrijfFeitRegel(data.id).catch(e => console.warn('[feiten]', e.message));
+
     // ── PDF-bestanden uploaden naar Storage (alleen bij nieuwe screening) ──
     // AVG: pad bevat geen persoonsdata — format {screeningId}/{volgnummer}.pdf.
     // Originele bestandsnaam wordt opgeslagen als metadata (naam) en niet in het pad.
@@ -7086,9 +7284,11 @@ function wisselInstTab(tabId) {
     btn.style.color      = actief ? 'var(--nav-bg)' : 'var(--ink-soft)';
     btn.style.borderBottomColor = actief ? 'var(--nav-bg)' : 'transparent';
   });
-  document.getElementById('instKantoorBody').style.display    = tabId === 'kantoor'    ? '' : 'none';
-  document.getElementById('instGebruikersBody').style.display = tabId === 'gebruikers' ? '' : 'none';
-  if (tabId === 'gebruikers') laadGebruikersLijst();
+  document.getElementById('instKantoorBody').style.display     = tabId === 'kantoor'     ? '' : 'none';
+  document.getElementById('instGebruikersBody').style.display  = tabId === 'gebruikers'  ? '' : 'none';
+  document.getElementById('instBeveiligingBody').style.display = tabId === 'beveiliging' ? '' : 'none';
+  if (tabId === 'gebruikers')  laadGebruikersLijst();
+  if (tabId === 'beveiliging') toonBeveiliging();
 }
 
 document.querySelectorAll('.inst-tab').forEach(btn => {
@@ -7192,6 +7392,240 @@ async function laadGebruikersLijst() {
   } catch(e) {
     el.innerHTML = `<p style="color:var(--terra);font-size:.85rem">${e.message}</p>`;
   }
+}
+
+// ── Feitregel wegschrijven ─────────────────────────────────────────────────
+// Het tellen zelf staat in src/dashboard/feiten.js, met achttien tests. Hier alleen
+// het ophalen van de zojuist bewaarde rij en het wegschrijven.
+//
+// Waarom opnieuw ophalen in plaats van app.rapport gebruiken: wat er in de database
+// staat is pseudonimiseerd en gestript, en dát is wat het dashboard straks ook leest.
+// Tellen op de versie in het geheugen zou een andere uitkomst kunnen geven dan
+// feiten-sync.mjs, en juist die twee moeten gelijk blijven.
+async function schrijfFeitRegel(screeningId) {
+  if (typeof bouwFeitRegel !== 'function') return;   // brug nog niet geladen
+  const { data: s } = await db.from('screeningen')
+    .select('id, dossier_id, versie_nr, rapport, classificatie, created_at, gebruiker_id')
+    .eq('id', screeningId).maybeSingle();
+  if (!s) return;
+
+  const regel = bouwFeitRegel(s, { organisatie_id: _orgId, gebruiker_id: (await db.auth.getUser()).data?.user?.id });
+  if (!regel) return;
+
+  // Vangnet tegen inhoud in de feitentabel — zie docs/avg-verwerkersovereenkomst.md.
+  const bezwaren = keurFeitRegel(regel);
+  if (bezwaren.length) { console.error('[feiten] geweigerd:', bezwaren); return; }
+
+  const { error } = await db.from('analyse_feiten')
+    .upsert(regel, { onConflict: 'screening_id' });
+  if (error) console.warn('[feiten] wegschrijven mislukt:', error.message);
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+// Aggregatie en weergave staan in src/dashboard/; hier de periodekeuze, het
+// omzetten van de geneste query naar platte rijen, en het ophangen van de knoppen.
+let _dbPeriode = 'kwartaal';
+let _dbDoctype = 'alle';
+
+/** Begindatum van de gekozen periode, of null voor "alles". */
+function dbVanaf(keuze) {
+  const nu = new Date();
+  if (keuze === '30')       return new Date(nu.getTime() - 30 * 864e5);
+  if (keuze === 'jaar')     return new Date(nu.getFullYear(), 0, 1);
+  if (keuze === 'kwartaal') return new Date(nu.getFullYear(), Math.floor(nu.getMonth() / 3) * 3, 1);
+  return null;
+}
+
+function tekenDashboard() {
+  const kpiEl = document.getElementById('dbKpi');
+  if (!kpiEl || typeof bouwStatistieken !== 'function') return;   // brug nog niet geladen
+  const dossiers = alleDosCacheData || [];
+  const vanaf = dbVanaf(_dbPeriode);
+
+  // De geneste screeningen platslaan tot rijen met dossier_id erbij. De periodefilter
+  // geldt alleen voor het uitklappaneel; de kaarten tonen de huidige stand en zouden
+  // met een periode iets anders gaan tellen dan de lijst eronder.
+  const plat = (alleen) => dossiers.flatMap(d => (d.screeningen || [])
+    .filter(s => !alleen || !vanaf || new Date(s.created_at) >= vanaf)
+    .map(s => ({ ...s, dossier_id: d.id })));
+
+  kpiEl.innerHTML = kpiStripHtml(bouwStatistieken({ dossiers, screeningen: plat(false) }));
+
+  const paneel = document.getElementById('dbPaneel');
+  if (!paneel || paneel.hidden) return;
+  // docType gaat naar de héle aggregatie, niet alleen naar MfN: de categorietabel, het
+  // verloop en de top-lijst horen mee te bewegen met de knop. Deed alleen MfN dat, dan
+  // staat er een keuze die zichtbaar niets doet — erger dan geen keuze.
+  const stats = bouwStatistieken({ dossiers, screeningen: plat(true), docType: _dbDoctype });
+  document.getElementById('dbCategorie').innerHTML = categorieHtml(stats);
+  document.getElementById('dbVerloop').innerHTML   = verloopHtml(stats);
+  document.getElementById('dbMfn').innerHTML       = mfnHtml(stats, _dbDoctype);
+  document.getElementById('dbTop').innerHTML       = topIssuesHtml(stats);
+  document.getElementById('dbMfnSub').textContent  =
+    _dbDoctype === 'alle' ? 'gemiddeld per dossier · beide stukken samen'
+                          : `gemiddeld per document · ${label(_dbDoctype).toLowerCase()}`;
+
+  // Welke documenttypen komen in deze periode überhaupt voor? Bepaald op de ONGEFILTERDE
+  // gegevens — zou dat op `stats` gebeuren, dan schakelt de knop waarop je net klikte
+  // zichzelf als enige weer in en de andere uit.
+  const beschikbaar = mfnTypen(bouwStatistieken({ dossiers, screeningen: plat(true) }));
+  document.querySelectorAll('#dbDoctype button[data-t]').forEach(b => {
+    b.disabled = b.dataset.t !== 'alle' && !beschikbaar.includes(b.dataset.t);
+  });
+}
+
+function dbSegKlik(groep, attr, zet) {
+  document.getElementById(groep)?.addEventListener('click', e => {
+    const knop = e.target.closest(`button[data-${attr}]`);
+    if (!knop || knop.disabled) return;
+    document.querySelectorAll(`#${groep} button`).forEach(b =>
+      b.setAttribute('aria-pressed', String(b === knop)));
+    zet(knop.dataset[attr]);
+    tekenDashboard();
+  });
+}
+dbSegKlik('dbPeriode', 'p', v => { _dbPeriode = v; });
+dbSegKlik('dbDoctype', 't', v => { _dbDoctype = v; });
+
+document.getElementById('dbStatBtn')?.addEventListener('click', () => {
+  const paneel = document.getElementById('dbPaneel');
+  const open   = paneel.hidden;
+  paneel.hidden = !open;
+  document.getElementById('dbStatBtn').setAttribute('aria-expanded', String(open));
+  if (open) tekenDashboard();
+});
+
+// ── Tweefactorauthenticatie ────────────────────────────────────────────────
+// Beleid en weergave staan in src/auth/; hier alleen het praten met Supabase en
+// het ophangen van de knoppen. `_mfaFactorId` bewaart de factor tussen inschrijven
+// en bevestigen — die twee zijn losse aanroepen.
+let _mfaFactorId = null;
+
+async function mfaToestand() {
+  const [{ data: f }, { data: aal }] = await Promise.all([
+    db.auth.mfa.listFactors(),
+    db.auth.mfa.getAuthenticatorAssuranceLevel(),
+  ]);
+  return bepaalMfaStap({ rol: _userRol, factoren: f?.all, aal });
+}
+
+async function toonBeveiliging() {
+  const el = document.getElementById('instBeveiligingBody');
+  el.innerHTML = '<p class="mfa-uitleg">Bezig met laden…</p>';
+  try {
+    el.innerHTML = mfaStatusHtml(await mfaToestand());
+    document.getElementById('mfaAanBtn')?.addEventListener('click', mfaInschrijven);
+    document.getElementById('mfaUitBtn')?.addEventListener('click', mfaVerwijderen);
+  } catch (e) {
+    console.error('[mfa] toestand ophalen mislukt:', e);
+    el.innerHTML = `<p class="mfa-fout">Kon de beveiligingsinstellingen niet laden: ${escH(e.message)}</p>`;
+  }
+}
+
+async function mfaInschrijven() {
+  const el = document.getElementById('instBeveiligingBody');
+
+  // Eerst opruimen. Een eerdere poging die niet is afgemaakt — scherm weggeklikt,
+  // tabblad gewisseld — laat een factor met status 'unverified' achter. Die kan niets,
+  // maar bezet wél de naam "Clausula", en Supabase weigert een tweede factor met
+  // dezelfde naam. Zonder dit lukt de tweede poging nooit meer.
+  try {
+    const { data: bestaand } = await db.auth.mfa.listFactors();
+    for (const f of (bestaand?.all || []).filter(x => x.status !== 'verified')) {
+      await db.auth.mfa.unenroll({ factorId: f.id });
+    }
+  } catch { /* opruimen mag het instellen niet blokkeren */ }
+
+  const { data, error } = await db.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Clausula' });
+  if (error) {
+    console.error('[mfa] enroll mislukt:', error);
+    el.innerHTML = `<p class="mfa-fout">${escH(mfaInschrijfFoutTekst(error))}</p>
+      <button type="button" id="mfaAanBtn" class="mfa-knop-aan" style="margin-top:12px">Opnieuw proberen</button>`;
+    document.getElementById('mfaAanBtn').addEventListener('click', mfaInschrijven);
+    return;
+  }
+  _mfaFactorId = data.id;
+  el.innerHTML = mfaInschrijfHtml({ qr: data.totp?.qr_code, secret: data.totp?.secret });
+  const veld = document.getElementById('mfaCode');
+  veld.addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    if (e.target.value.length === 6) mfaBevestigen();
+  });
+  document.getElementById('mfaBevestigBtn').addEventListener('click', mfaBevestigen);
+  document.getElementById('mfaAnnuleerBtn').addEventListener('click', mfaAfbreken);
+  veld.focus();
+}
+
+async function mfaBevestigen() {
+  const fout = document.getElementById('mfaFout');
+  const code = document.getElementById('mfaCode').value.replace(/\D/g, '');
+  if (code.length !== 6) return;
+  const { error } = await db.auth.mfa.challengeAndVerify({ factorId: _mfaFactorId, code });
+  if (error) {
+    fout.textContent   = mfaFoutTekst(error);
+    fout.style.display = 'block';
+    const veld = document.getElementById('mfaCode');
+    veld.value = ''; veld.focus();
+    return;
+  }
+  _mfaFactorId = null;
+  toonBeveiliging();
+}
+
+// Afbreken ruimt de onbevestigde factor op. Laten staan zou geen kwaad kunnen — hij
+// telt nergens mee — maar hij stapelt bij elke poging op en maakt listFactors()
+// onleesbaar voor wie later moet uitzoeken waarom iemand niet kan inloggen.
+async function mfaAfbreken() {
+  if (_mfaFactorId) { try { await db.auth.mfa.unenroll({ factorId: _mfaFactorId }); } catch {} }
+  _mfaFactorId = null;
+  toonBeveiliging();
+}
+
+// Bij het opstarten: beheerders zonder tweede factor krijgen het instelscherm meteen
+// te zien, mediators een melding die ze kunnen wegklikken. Faalt de controle zelf —
+// netwerk weg, Supabase traag — dan gebeurt er niets: een beveiligingsmelding die de
+// app onbruikbaar maakt bij een storing levert alleen maar omzeilingen op.
+async function mfaBijOpstart() {
+  let beleid;
+  try { beleid = await mfaToestand(); } catch { return; }
+  if (beleid.stap === 'instellen_verplicht') {
+    openInstellingen('beveiliging');
+    return;
+  }
+  if (beleid.stap === 'instellen_aanbevolen'
+      && localStorage.getItem('mfa-tip-weg') !== '1') {
+    toonMfaTip(beleid.reden);
+  }
+}
+
+function toonMfaTip(reden) {
+  const balk = document.createElement('div');
+  balk.className = 'mfa-tip';
+  balk.innerHTML = `<span>${escH(reden)}</span>
+    <button type="button" class="mfa-knop-aan" id="mfaTipAan">Instellen</button>
+    <button type="button" class="mfa-knop-uit" id="mfaTipWeg">Later</button>`;
+  document.body.prepend(balk);
+  document.getElementById('mfaTipAan').addEventListener('click', () => {
+    balk.remove(); openInstellingen('beveiliging');
+  });
+  document.getElementById('mfaTipWeg').addEventListener('click', () => {
+    localStorage.setItem('mfa-tip-weg', '1'); balk.remove();
+  });
+}
+
+async function mfaVerwijderen() {
+  const { data: f } = await db.auth.mfa.listFactors();
+  const factor = (f?.all || []).find(x => x.status === 'verified');
+  if (!factor) { toonBeveiliging(); return; }
+  const verplicht = mfaVerplicht(_userRol);
+  if (!confirm(verplicht
+    ? 'Tweefactorauthenticatie is verplicht voor beheerders. Verwijderen betekent dat u '
+      + 'bij de volgende keer inloggen meteen een nieuwe authenticator moet instellen.\n\nDoorgaan?'
+    : 'Tweefactorauthenticatie verwijderen? Uw account is daarna alleen nog met een '
+      + 'wachtwoord beveiligd.')) return;
+  const { error } = await db.auth.mfa.unenroll({ factorId: factor.id });
+  if (error) { alert('Verwijderen mislukt: ' + error.message); return; }
+  toonBeveiliging();
 }
 
 async function wisselRol(userId, huidigeRol) {
@@ -8638,6 +9072,13 @@ var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-b
 var lijstZin;           // → src/ui/lijst-zin.js
 var kiesUniekFragment;  // → src/viewer/uniek-fragment.js
 var toetsDossierSamenhang, samenhangWaarschuwing; // → src/dossier-samenhang.js
+var bepaalMfaStap, mfaVerplicht, mfaFoutTekst, mfaInschrijfFoutTekst; // → src/auth/mfa-beleid.js
+var mfaStatusHtml, mfaInschrijfHtml;              // → src/auth/mfa-scherm.js
+var berekenGemiddeldeScore, rapportScore;         // → src/rapport/score.js
+var bouwStatistieken;                             // → src/dashboard/statistieken.js
+var bouwFeitRegel, keurFeitRegel;                 // → src/dashboard/feiten.js
+var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
+                                                  // → src/dashboard/scherm.js
 var voegTekstDelenSamen; // → src/viewer/dom-tekst.js
 var BLOK_TAGS;          // → src/viewer/dom-tekst.js
 
@@ -10973,72 +11414,8 @@ document.getElementById('dossierZoek').addEventListener('input', function() {
 // ── Scoreberekenening ────────────────────────────────────────────────────────
 // Berekent een score 0–100 per categorie en het gemiddelde over alle categorieën.
 
-function berekenGemiddeldeScore(drp) {
-  if (!drp) return null;
-
-  // Nieuw schema v2: gewogen score op basis van issues[]
-  // Juridisch en conflicten wegen 2× zwaarder; grammatica 0.5×; MfN telt NIET mee (eigen score).
-  if (Array.isArray(drp.issues)) {
-    const issues = drp.issues;
-    if (!issues.length) return 100;
-    const GEWICHT    = { juridisch: 2.0, conflicten: 2.0, cross_doc: 2.0, volledigheid: 1.0, balans: 1.0, grammatica: 0.5 };
-    const ERNST_SCR  = { laag: 1, midden: 0.5, hoog: 0 };
-    let somW = 0, somV = 0;
-    for (const iss of issues) {
-      const dims = Array.isArray(iss.dimensies) ? iss.dimensies : ['volledigheid'];
-      const w = Math.max(...dims.map(d => GEWICHT[d] ?? 1.0));
-      somV += (ERNST_SCR[iss.ernst] ?? 0.5) * w;
-      somW += w;
-    }
-    return somW > 0 ? Math.round(somV / somW * 100) : 100;
-  }
-
-  // Oud schema (backward compat)
-  const scores = [];
-
-  // Volledigheid: aanwezig=1, gedeeltelijk=0.5, ontbreekt=0
-  const vol = drp.volledigheid || [];
-  if (vol.length) {
-    const som = vol.reduce((a, v) => a + (v.status === 'aanwezig' ? 1 : v.status === 'gedeeltelijk' ? 0.5 : 0), 0);
-    scores.push(som / vol.length);
-  }
-
-  // Juridisch: geen items = perfect; laag=1, midden=0.5, hoog=0
-  const jur = drp.juridisch || [];
-  if (jur.length) {
-    const som = jur.reduce((a, j) => a + (j.ernst === 'laag' ? 1 : j.ernst === 'midden' ? 0.5 : 0), 0);
-    scores.push(som / jur.length);
-  } else {
-    scores.push(1.0);
-  }
-
-  // Balans: zelfde patroon als juridisch
-  const bal = drp.balans || [];
-  if (bal.length) {
-    const som = bal.reduce((a, b) => a + (b.ernst === 'laag' ? 1 : b.ernst === 'midden' ? 0.5 : 0), 0);
-    scores.push(som / bal.length);
-  } else {
-    scores.push(1.0);
-  }
-
-  // Grammatica: geen = perfect, daarna -10% per probleem
-  const gram = drp.grammatica;
-  if (Array.isArray(gram)) {
-    scores.push(Math.max(0, 1 - gram.length / 10));
-  }
-
-  // MfN: aanwezig / totaal
-  const mfn = drp.mfn_score;
-  if (mfn?.elementen?.length) {
-    const tot  = mfn.elementen.length;
-    const aanw = mfn.elementen.filter(e => e.status === 'aanwezig').length;
-    scores.push(aanw / tot);
-  }
-
-  if (!scores.length) return null;
-  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100);
-}
-
+// berekenGemiddeldeScore staat sinds 26-08-2026 in src/rapport/score.js —
+// het dashboard rekent met dezelfde formule, en twee kopieën lopen uiteen.
 function berekenDeelscores(drp) {
   if (!drp) return {};
   const result = {};
@@ -11418,10 +11795,18 @@ async function laadDossiers() {
   try {
     const { data, error } = await db
       .from('dossiers')
-      .select('id, naam, partij_a, partij_b, status, updated_at, screeningen!dossier_id(id, bestandsnaam, classificatie, rapport, created_at)')
+      // versie_nr komt erbij voor het dashboard: het verloop tussen versies en het
+      // scoretraject moeten weten wélke versie de eerste en de laatste is. Zonder dat
+      // veld zou de volgorde uit de lijst komen, en die is niet gegarandeerd.
+      .select('id, naam, partij_a, partij_b, status, updated_at, screeningen!dossier_id(id, bestandsnaam, classificatie, rapport, created_at, versie_nr)')
       .order('updated_at', { ascending: false });
     if (error) throw error;
     alleDosCacheData = data || [];
+
+    // Het dashboard rekent met dezelfde gegevens die hier al binnenkomen — geen extra
+    // verzoek. Bewust ná het toewijzen van de cache en vóór het filteren: de cijfers
+    // gaan over álle dossiers, niet over het tabblad dat toevallig openstaat.
+    tekenDashboard();
 
     const gefilterd = huidigFilter === 'actief'
       ? data.filter(d => d.status !== 'afgerond' && d.status !== 'gearchiveerd')
@@ -15329,6 +15714,14 @@ import { bouwRoepnaamIssues }                              from './src/rapport/r
 import { lijstZin }                                        from './src/ui/lijst-zin.js';
 import { kiesUniekFragment }                               from './src/viewer/uniek-fragment.js';
 import { toetsDossierSamenhang, samenhangWaarschuwing }    from './src/dossier-samenhang.js';
+import { bepaalMfaStap, mfaVerplicht, mfaFoutTekst,
+         mfaInschrijfFoutTekst }                           from './src/auth/mfa-beleid.js';
+import { mfaStatusHtml, mfaInschrijfHtml }                 from './src/auth/mfa-scherm.js';
+import { berekenGemiddeldeScore, rapportScore }            from './src/rapport/score.js';
+import { bouwStatistieken }                                from './src/dashboard/statistieken.js';
+import { bouwFeitRegel, keurFeitRegel }                    from './src/dashboard/feiten.js';
+import { kpiStripHtml, categorieHtml, verloopHtml,
+         mfnHtml, topIssuesHtml, mfnTypen, label }         from './src/dashboard/scherm.js';
 import { voegTekstDelenSamen, BLOK_TAGS }                  from './src/viewer/dom-tekst.js';
 import { leesAntwoord }                                     from './src/api-antwoord.js';
 import { leesStroom }                                       from './src/assistent/sse-stroom.js';
@@ -15369,6 +15762,24 @@ window.lijstZin               = lijstZin;
 window.kiesUniekFragment      = kiesUniekFragment;
 window.toetsDossierSamenhang  = toetsDossierSamenhang;
 window.samenhangWaarschuwing  = samenhangWaarschuwing;
+window.bepaalMfaStap          = bepaalMfaStap;
+window.mfaVerplicht           = mfaVerplicht;
+window.mfaFoutTekst           = mfaFoutTekst;
+window.mfaInschrijfFoutTekst  = mfaInschrijfFoutTekst;
+window.mfaStatusHtml          = mfaStatusHtml;
+window.mfaInschrijfHtml       = mfaInschrijfHtml;
+window.berekenGemiddeldeScore = berekenGemiddeldeScore;
+window.rapportScore           = rapportScore;
+window.bouwStatistieken       = bouwStatistieken;
+window.bouwFeitRegel          = bouwFeitRegel;
+window.keurFeitRegel          = keurFeitRegel;
+window.kpiStripHtml           = kpiStripHtml;
+window.categorieHtml          = categorieHtml;
+window.verloopHtml            = verloopHtml;
+window.mfnHtml                = mfnHtml;
+window.topIssuesHtml          = topIssuesHtml;
+window.mfnTypen               = mfnTypen;
+window.label                  = label;
 window.voegTekstDelenSamen    = voegTekstDelenSamen;
 window.BLOK_TAGS              = BLOK_TAGS;
 window.voegChunksSamen        = voegChunksSamen;
