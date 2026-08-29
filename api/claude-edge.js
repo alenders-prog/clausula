@@ -3,7 +3,8 @@
 // op Windows Edge worker-processen niet betrouwbaar kan beëindigen.
 // maxDuration: 120 (zie vercel.json) geeft voldoende tijd voor streaming.
 
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
+import { meetAanroep, usageUitSse } from './_verbruik.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -12,7 +13,24 @@ export default async function handler(req, res) {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  const ctx = await gebruikerContext(token);
+  if (!ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+
+  // Dit endpoint is een doorgeefluik: het stuurt de body van de browser ongewijzigd
+  // door en weet dus niet wát het doet. De fase komt daarom uit een eigen header en
+  // niet uit de body — die gaat letterlijk naar Anthropic en mag er geen veld bij
+  // krijgen dat daar niet hoort.
+  //
+  // De waarde wordt in src/api/kosten.js tegen een vaste woordenlijst gehouden. Een
+  // header komt van de browser en is dus door de gebruiker te beïnvloeden; ongefilterd
+  // zou daar tekst in kunnen belanden die in deze tabel niet thuishoort.
+  const meter = meetAanroep({
+    endpoint: 'claude-edge',
+    fase:     req.headers['x-clausula-fase'],
+    model:    req.body?.model,
+    organisatieId: ctx.organisatieId,
+    gebruikerId:   ctx.gebruikerId,
+  });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -38,6 +56,7 @@ export default async function handler(req, res) {
 
   if (!anthropicRes.ok) {
     const errText = await anthropicRes.text();
+    meter.mislukt(new Error(`Claude ${anthropicRes.status}`));
     res.status(anthropicRes.status).setHeader('Content-Type', 'application/json').end(errText);
     return;
   }
@@ -47,15 +66,49 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Accel-Buffering', 'no');
 
-  const reader = anthropicRes.body.getReader();
+  // Meelezen zónder de doorgifte te veranderen: de bytes gaan onaangeroerd door,
+  // en een kopie wordt ontleed om het usage-blok eruit te halen. Alles daarvan zit in
+  // een eigen try — een fout in het meelezen mag de stroom naar de browser nooit
+  // onderbreken. Dat is hier extra belangrijk: dit endpoint draagt de concepten.
+  const reader  = anthropicRes.body.getReader();
+  const decoder = new TextDecoder();
+  let sniffBuffer = '';
+
+  const leesMee = (value) => {
+    try {
+      sniffBuffer += decoder.decode(value, { stream: true });
+      let grens;
+      while ((grens = sniffBuffer.indexOf('\n\n')) !== -1) {
+        const blok = sniffBuffer.slice(0, grens);
+        sniffBuffer = sniffBuffer.slice(grens + 2);
+        for (const regel of blok.split('\n')) {
+          if (!regel.startsWith('data:')) continue;
+          let ev;
+          try { ev = JSON.parse(regel.slice(5).trim()); } catch { continue; }
+          const u = usageUitSse(ev);
+          if (u) meter.usage(u);
+          if (ev.type === 'content_block_delta') meter.eersteTokenNu();
+        }
+      }
+      // Onbegrensd laten groeien zou bij een stroom zonder lege regel het geheugen
+      // vullen. Twee blokken is ruim; wat erbuiten valt kost hooguit een meting.
+      if (sniffBuffer.length > 65_536) sniffBuffer = sniffBuffer.slice(-8_192);
+    } catch (e) {
+      console.warn('[claude-edge] meelezen mislukt:', e.message);
+    }
+  };
+
+  let afgebroken = null;
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       if (!res.writable) break; // client verbroken
+      leesMee(value);
       res.write(Buffer.from(value));
     }
   } catch (err) {
+    afgebroken = err;
     // Een client die wegklikt is verwacht en mag stil blijven. Elke andere fout
     // (bijv. de Anthropic-stream die afbreekt) levert de gebruiker een half
     // antwoord zonder melding — die moet dus wél in de logs zichtbaar zijn.
@@ -64,6 +117,10 @@ export default async function handler(req, res) {
       console.error('[claude-edge] stream afgebroken:', err);
     }
   } finally {
+    // Ook een afgebroken stroom wordt geteld: de tokens die al binnen waren zijn
+    // betaald, en juist deze regels laten zien waar het misgaat.
+    if (afgebroken) meter.mislukt(afgebroken);
+    else meter.klaar();
     if (!res.destroyed) res.end();
   }
 }

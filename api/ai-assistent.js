@@ -6,7 +6,8 @@
 //             vragen, clausuleRelevant }  ← laatste twee backward-compat
 
 import { createClient } from '@supabase/supabase-js';
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
+import { meetAanroep, usageUitSse } from './_verbruik.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
 import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
@@ -430,7 +431,25 @@ const naarBronUI = (b) => (b?.url
   ? { type: 'web', titel: b.citation || '', url: b.url }
   : { type: 'wet', citation: b?.citation || '', peildatum: b?.peildatum });
 
-const FUNCTIE_BUDGET_MS = 55_000;   // 5s marge op de 60s van Vercel
+// 10s marge op de 120s uit vercel.json.
+//
+// Stond tot 29 augustus 2026 op 55_000, met maxDuration 60 ernaast — terwijl
+// claude-edge.js en analyseer.js al op 120 stonden. Deze functie was dus als enige
+// op de helft gezet, en juist die schrijft de langste antwoorden.
+//
+// Het gevolg was voorspelbaar en stond twintig regels verderop al opgeschreven: "een
+// clausule duurt in de praktijk ruim vijftig seconden". Bij een budget van 55 wordt
+// zo'n antwoord bijna altijd afgekapt — de gebruiker zag het antwoord verschijnen en
+// vervolgens verdwijnen. Bijna elke keer, en terecht.
+const FUNCTIE_BUDGET_MS = 110_000;
+
+// Wie de vraag stelt. Per verzoek gezet in de handler; blijft leeg als de context
+// niet op te halen was — dan mist er een label bij de meting, meer niet.
+let _meetContext = { organisatieId: null, gebruikerId: null };
+// De fase van de aanroep die nu loopt. Wordt vlak vóór elke aanroep gezet; zo
+// hoeven callClaude en callClaudeStream geen extra parameter te krijgen die op
+// zeven plekken meegegeven moet worden.
+let _meetFase = 'onbekend';
 const AFRONDING_MS      = 25_000;   // gereserveerd voor de gestructureerde call
 const RONDE_MS          =  8_000;   // wat een zoekronde in de praktijk kost (gemeten: 4–6s)
 
@@ -438,6 +457,8 @@ const RONDE_MS          =  8_000;   // wat een zoekronde in de praktijk kost (ge
 // `deadline` is een absoluut tijdstip (Date.now()-basis); de call wordt afgebroken
 // zodra dat gepasseerd is, zodat het budget nooit bij één trage aanroep opgaat.
 async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
+  const meter = meetAanroep({ endpoint: 'ai-assistent', fase: _meetFase,
+                              model: body?.model || 'claude-sonnet-4-6', ..._meetContext });
   const payload = JSON.stringify({ model: 'claude-sonnet-4-6', ...body });
   for (let attempt = 0; attempt <= retries; attempt++) {
     const resterend = deadline - Date.now();
@@ -463,7 +484,12 @@ async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
       throw err;
     }
 
-    if (res.ok) return res.json();
+    if (res.ok) {
+      const json = await res.json();
+      meter.usage(json.usage);
+      meter.klaar();
+      return json;
+    }
     const isRetryable = res.status === 429 || res.status === 529;
     // Alleen opnieuw proberen als er ná de wachttijd nog tijd over is.
     const wacht = 2000 * (attempt + 1); // 2s, 4s
@@ -471,7 +497,11 @@ async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
       await new Promise(r => setTimeout(r, wacht));
       continue;
     }
-    throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    {
+      const e = new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      meter.mislukt(e);
+      throw e;
+    }
   }
 }
 
@@ -490,6 +520,8 @@ async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
 // tekst (`text_delta`) — daarvoor is `onTekst`. Eén lezer, want het SSE-formaat en de
 // afbreek-afhandeling zijn identiek; alleen het soort brokje verschilt.
 async function callClaudeStream(apiKey, body, onJson, deadline = Infinity, onTekst = null) {
+  const meter = meetAanroep({ endpoint: 'ai-assistent', fase: _meetFase,
+                              model: body?.model || 'claude-sonnet-4-6', ..._meetContext });
   const resterend = deadline - Date.now();
   if (resterend <= 0) throw new Error('Tijdslimiet bereikt vóór het antwoord van Claude');
 
@@ -507,11 +539,16 @@ async function callClaudeStream(apiKey, body, onJson, deadline = Infinity, onTek
       signal: AbortSignal.timeout(resterend),
     });
   } catch (err) {
-    if (err?.name === 'TimeoutError' || err?.name === 'AbortError')
-      throw new Error('Claude antwoordde niet binnen de beschikbare tijd');
-    throw err;
+    const e = (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+      ? new Error('Claude antwoordde niet binnen de beschikbare tijd') : err;
+    meter.mislukt(e);
+    throw e;
   }
-  if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) {
+    const e = new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    meter.mislukt(e);
+    throw e;
+  }
 
   const lezer   = res.body.getReader();
   const decoder = new TextDecoder();
@@ -534,14 +571,19 @@ async function callClaudeStream(apiKey, body, onJson, deadline = Infinity, onTek
         if (!regel.startsWith('data:')) continue;
         let ev;
         try { ev = JSON.parse(regel.slice(5).trim()); } catch { continue; }
+        // usage komt in twee stukken: message_start draagt de invoerkant (met de
+        // cachevelden), message_delta de uitvoerkant. Beide zijn nodig.
+        meter.usage(usageUitSse(ev));
 
         if (ev.type === 'content_block_start' && ev.content_block?.type === 'tool_use')
           naam = ev.content_block.name;
         else if (ev.type === 'content_block_delta' && ev.delta?.type === 'input_json_delta') {
+          if (ev.delta.partial_json) meter.eersteTokenNu();
           json += ev.delta.partial_json || '';
           onJson?.(json);
         } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
           const stuk = ev.delta.text || '';
+          if (stuk) meter.eersteTokenNu();
           tekst += stuk;
           if (stuk) onTekst?.(stuk, tekst);
         } else if (ev.type === 'error')
@@ -551,16 +593,27 @@ async function callClaudeStream(apiKey, body, onJson, deadline = Infinity, onTek
   }
 
   if (onTekst) {
-    if (!tekst) throw new Error('Claude gaf geen tekst terug');
+    if (!tekst) {
+      const e = new Error('Claude gaf geen tekst terug');
+      meter.mislukt(e); throw e;
+    }
+    meter.klaar();
     return { naam, tekst };
   }
 
-  if (!json) throw new Error('assistent_antwoord niet aangeroepen door het model');
+  if (!json) {
+    const e = new Error('assistent_antwoord niet aangeroepen door het model');
+    meter.mislukt(e); throw e;
+  }
   try {
-    return { naam, input: JSON.parse(json) };
+    const input = JSON.parse(json);
+    meter.klaar();
+    return { naam, input };
   } catch {
-    // Afgekapt midden in de JSON — meestal een deadline die net te krap was.
-    throw new Error('Het antwoord kwam onvolledig binnen van Claude');
+    // Afgekapt midden in de JSON — meestal een deadline die net te krap was. Juist
+    // die wil je kunnen tellen: de tokens zijn betaald, het antwoord kwam niet.
+    const e = new Error('Het antwoord kwam onvolledig binnen van Claude');
+    meter.mislukt(e); throw e;
   }
 }
 
@@ -626,7 +679,11 @@ export default async function handler(req, res) {
   const eindtijd = Date.now() + FUNCTIE_BUDGET_MS;
 
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // gebruikerContext verifieert net als verifieerJWT, maar houdt vast wie het is —
+  // nodig om verbruik per gebruiker en per kantoor te kunnen tellen.
+  const _ctx = await gebruikerContext(token);
+  if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  _meetContext = { organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId };
 
   const {
     vraag,
@@ -767,12 +824,14 @@ export default async function handler(req, res) {
       if (stroom) {
         stuurSSE({ type: 'fase', tekst: 'Tekst opstellen…' });
         const t0Raw = Date.now();
+        _meetFase = 'clausule';  // rawModus: clausule, mail, klanttekst
         ({ tekst } = await callClaudeStream(
           anthropicKey, rawBody, null, eindtijd,
           stuk => stuurSSE({ type: 'delta', tekst: stuk }),
         ));
         console.log(`[ai-assistent] rawModus streamend ${Date.now() - t0Raw}ms, ${tekst.length} tekens`);
       } else {
+        _meetFase = 'clausule';  // rawModus zonder stroom
         const rawData = await callClaude(anthropicKey, rawBody, 2, eindtijd);
         tekst = rawData.content.find(b => b.type === 'text')?.text || '';
       }
@@ -840,6 +899,7 @@ export default async function handler(req, res) {
       // van vijfendertig.
       let data;
       try {
+        _meetFase = 'zoekronde';
         data = await callClaude(anthropicKey, {
           max_tokens:  400,
           temperature: 0.3,
@@ -904,6 +964,7 @@ export default async function handler(req, res) {
       const volgAntwoord = maakVeldVolger('antwoord');
       const volgSecties  = maakSectieVolger(STREAM_VELDEN);
 
+      _meetFase = 'afronding';
       const { input } = await callClaudeStream(anthropicKey, fase2, deelJson => {
         const stuk = volgAntwoord(deelJson);
         if (stuk) stuurSSE({ type: 'delta', tekst: stuk });
@@ -918,6 +979,7 @@ export default async function handler(req, res) {
       }, eindtijd);
       output = input;
     } else {
+      _meetFase = 'afronding';
       const structData = await callClaude(anthropicKey, fase2, 2, eindtijd);
       const toolBlock = structData.content.find(
         b => b.type === 'tool_use' && b.name === 'assistent_antwoord',

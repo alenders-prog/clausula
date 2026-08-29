@@ -27,10 +27,11 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { meetAanroep } from './_verbruik.js';
 import { filterIssuesOpIban } from './_iban.js';
 import { bouwConsolidatieLijst } from './_dedup-passage.js';
 import { hoortBijDocument } from './_cross-doc-toewijzing.js';
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
 } from './_consistentie.js';
@@ -61,6 +62,19 @@ export const config = {
 // geen verbruiksmeter — je betaalt alleen voor tokens die Claude daadwerkelijk genereert.
 const MAX_OUTPUT_TOKENS = 32000;
 
+// De fase voor api_verbruik, afgeleid uit de toolnaam. Zo hoeft geen enkele
+// aanroepplek te veranderen — en kan de fase ook niet per ongeluk vrije tekst worden.
+const FASE_PER_TOOL = {
+  registreer_structuur:            'structuur',
+  registreer_bevindingen:          'bevindingen',
+  registreer_cross_doc_bevindingen: 'cross_doc',
+  consolideer_issues:              'consolidatie',
+};
+
+// Wie de analyse draait. Wordt per verzoek gezet in de handler; blijft null als de
+// context niet op te halen was — dan mist er een label bij de meting, meer niet.
+let _meetContext = { organisatieId: null, gebruikerId: null };
+
 // ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
 // _herpoging: intern vlag om bij max_tokens eenmalig met verdubbeld budget opnieuw te proberen
 async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, model = 'claude-sonnet-4-6', _herpoging = false) {
@@ -81,8 +95,15 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
     tool_choice: { type: 'tool', name: tool.name },
   };
 
+  // Eén meting per POGING, niet per aanroep van askClaude: een herpoging kost
+  // opnieuw tokens en opnieuw tijd. Samenvoegen tot één regel zou de kosten van een
+  // mislukte poging onzichtbaar maken, en juist die wil je kunnen optellen.
   let lastErr;
   for (let poging = 0; poging <= 2; poging++) {
+    const meter = meetAanroep({
+      endpoint: 'analyseer', fase: FASE_PER_TOOL[tool?.name] || 'onbekend', model,
+      ..._meetContext,
+    });
     if (poging > 0) {
       console.warn(`[analyseer/${tool.name}] Herpoging ${poging}/2, wacht ${poging * 5}s…`);
       await new Promise(r => setTimeout(r, poging * 5000));
@@ -100,6 +121,8 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
       });
       if (res.ok) {
         const json = await res.json();
+        meter.usage(json.usage);
+        meter.klaar();
         if (json.stop_reason === 'max_tokens') {
           // Optie 4: automatisch herpoging met verdubbeld budget (eenmalig, tot MAX_OUTPUT_TOKENS)
           const verhoogd = Math.min(maxTokens * 2, MAX_OUTPUT_TOKENS);
@@ -116,10 +139,18 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
         if (!toolUse) throw new Error('Claude gaf geen tool-aanroep terug.');
         return toolUse.input;
       }
-      if (res.status === 400 || res.status === 401) throw new Error(`Claude fout (${res.status}): ${await res.text()}`);
+      if (res.status === 400 || res.status === 401) {
+        const e = new Error(`Claude fout (${res.status}): ${await res.text()}`);
+        meter.mislukt(e); throw e;
+      }
       lastErr = new Error(`Claude fout (${res.status})`);
+      meter.mislukt(lastErr);
       console.warn(`[analyseer/${tool.name}] HTTP ${res.status} — herpoging…`);
     } catch (err) {
+      // Bij een fout ná res.ok (bijv. tokenbudget) is de meting al weggeschreven;
+      // schrijfVerbruik is niet idempotent, dus alleen meten wat hier voor het eerst
+      // langskomt — een netwerkfout of een afgebroken verbinding.
+      if (!/Claude fout \(/.test(err.message) && !err.isMaxTokens) meter.mislukt(err);
       // Gooi direct bij max_tokens of auth-fout (geen zin om opnieuw te proberen)
       if (err.isMaxTokens || err.message.startsWith('Claude fout (4') || poging === 2) throw err;
       lastErr = err;
@@ -336,7 +367,11 @@ export default async function handler(req, res) {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // gebruikerContext doet dezelfde verificatie als verifieerJWT, maar houdt vast wie
+  // het is — nodig om het verbruik per gebruiker en per kantoor te kunnen tellen.
+  const _ctx = await gebruikerContext(token);
+  if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  _meetContext = { organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId };
 
   // ── Body parsen ───────────────────────────────────────────────────────────
   const { classificatie, documenten, roepnamen } = req.body || {};

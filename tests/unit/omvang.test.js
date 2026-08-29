@@ -243,8 +243,23 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // (tellingen uit feiten, verloop en top-lijst uit de live berekening omdat die
 // issue-titels nodig hebben) en het regeltje dat meldt hoeveel er uit verwijderde
 // dossiers meetelt.
-const MAX_REGELS_INDEX = 15967;
-const MAX_REGELS_JS     = 12764;
+// 29-08-2026 (vijftiende keer): 15967 → 16017 (+50, waarvan 45 script). Een afgekapt
+// antwoord van de assistent blijft nu staan in plaats van te verdwijnen.
+//
+// De aanroeper riep bericht.weg() in een finally-blok, dus ook bij een fout — met de
+// motivering "geen half bericht laten staan". Bij een clausule die vijftig seconden
+// schrijft en op de tijdslimiet strandt is dat de duurste reactie die er is: de
+// gebruiker ziet het antwoord verschijnen en vervolgens in één klap verdwijnen.
+// Twee streambubbels kregen daarom afbreken(); de aanroepplekken ruimen alleen nog
+// op bij succes.
+// 29-08-2026 (zestiende keer): 16017 → 16024 (+7, alle 7 script). De fase-header voor
+// api/claude-edge.js, plus de fase bij de twee aanroepplekken (classificatie, concept).
+//
+// Dat endpoint is een doorgeefluik: het stuurt de body ongewijzigd naar Anthropic en
+// kan dus niet weten waarvoor het wordt gebruikt. Vandaar een header en geen veld in
+// de body — dat laatste zou meegaan naar Anthropic.
+const MAX_REGELS_INDEX = 16024;
+const MAX_REGELS_JS     = 12816;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

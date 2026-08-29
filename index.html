@@ -1460,6 +1460,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   background:var(--warn-light);border-bottom:1px solid var(--warn-border);font-size:.85rem;
   line-height:1.5;color:var(--ink-mid)}
 .mfa-tip span{flex:1;min-width:220px}
+/* Afgekapt antwoord van de assistent: wat binnenkwam blijft staan, met deze regel
+   erboven. Weggooien van een half antwoord is de duurste reactie op een timeout. */
+.assist-afgebroken{font-size:.78rem;color:var(--gold);background:var(--warn-light);
+  border:1px solid var(--warn-border);border-radius:7px;padding:7px 10px;margin-bottom:9px;
+  line-height:1.45;}
 .mfn-extra-blok{margin-top:6px;padding:10px 12px;background:#F5F0FF;
   border:1px solid #D8CAFF;border-radius:9px;}
 .mfn-extra-kop{font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
@@ -3531,6 +3536,11 @@ async function askClaudeForJson(systemPrompt, userContent, tool, maxTokens = 409
         headers: {
           'Content-Type': 'application/json',
           ...extraHeaders,
+          // Waarvoor deze aanroep dient. claude-edge is een doorgeefluik en kan dat
+          // niet uit de body afleiden — die gaat ongewijzigd naar Anthropic. De
+          // waarde wordt server-side tegen een vaste lijst gehouden; zie
+          // src/api/kosten.js.
+          'x-clausula-fase': opts.fase || 'concept',
           'Authorization': `Bearer ${_sess?.access_token || ''}`,
         },
         body: JSON.stringify(body),
@@ -4239,7 +4249,7 @@ LET OP ROEPNAMEN: vul partij_a_roepnaam / partij_b_roepnaam in als de gangbare v
 Laat het veld WEG als de gangbare voornaam gelijk is aan het eerste naamsdeel van de formele naam.
 Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijst}`,
     classificatieTekst, classificatieTool, 2048,
-    { model: 'claude-haiku-4-5-20251001' }
+    { model: 'claude-haiku-4-5-20251001', fase: 'classificatie' }
   );
 
   // De classificatie las gepseudonimiseerde tekst, dus wat terugkomt draagt nep-namen:
@@ -6274,6 +6284,7 @@ WETSCITATEN — Parafraseer nooit een wetsartikel als letterlijk citaat. Als een
       method: 'POST',
       headers: {
         'Content-Type':  'application/json',
+        'x-clausula-fase': 'verificatie',
         'Authorization': `Bearer ${_bearerToken || ''}`,
       },
       body: JSON.stringify({
@@ -10491,7 +10502,8 @@ TE VERBETEREN DOCUMENT:
 ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
 
       // max_tokens laag houden: alleen vervangingen, geen volledig document (~1500 tokens voor 8 issues)
-      const data = await askClaudeForJson(systeemPrompt, userTekst, conceptTool, 6000);
+      const data = await askClaudeForJson(systeemPrompt, userTekst, conceptTool, 6000,
+        { fase: 'concept' });
       const wijzigingenRaw = Array.isArray(data?.wijzigingen) ? data.wijzigingen : [];
       if (!wijzigingenRaw.length) throw new Error('Claude gaf geen wijzigingen terug. Probeer opnieuw.');
 
@@ -13821,6 +13833,15 @@ function _assistMaakStreamBericht() {
       herteken();
     },
     weg() { div?.remove(); },
+    // Zie de toelichting bij _assistMaakTekstStroom.afbreken().
+    afbreken(melding) {
+      if (!div || !ruw) { div?.remove(); return; }
+      const kop = document.createElement('div');
+      kop.className = 'assist-afgebroken';
+      kop.textContent = melding || 'Afgebroken — dit is wat er binnenkwam.';
+      div.prepend(kop);
+      div = null;
+    },
   };
 }
 
@@ -13832,13 +13853,27 @@ async function _assistRawStroom(resp, maakBericht) {
     return leesAntwoord(resp);
   const bericht = maakBericht();
   try {
-    return await leesStroom(resp, {
+    const data = await leesStroom(resp, {
       onFase:  t => _assistZetThinkingLabel(t),
       onDelta: s => bericht.groei(s),
     });
-  } finally {
-    bericht.weg();   // ook bij een fout: geen half bericht laten staan
+    bericht.weg();   // gelukt: het eindresultaat komt als eigen bericht terug
+    return data;
+  } catch (e) {
+    // Mislukt: laat staan wat er binnenkwam. Een afgekapt antwoord van vijftig
+    // seconden is nog steeds bruikbaar — weggooien is de duurste reactie.
+    bericht.afbreken(_assistAfbreekMelding(e));
+    throw e;
   }
+}
+
+/** Zegt wat er misging in plaats van dát er iets misging. */
+function _assistAfbreekMelding(e) {
+  const m = String(e?.message || '');
+  if (/viel weg voordat het antwoord af was|Tijdslimiet|niet binnen de beschikbare tijd/i.test(m))
+    return 'Afgebroken op de tijdslimiet — dit is wat er binnenkwam. Stel de vraag '
+         + 'smaller, dan past het antwoord binnen de tijd.';
+  return 'Afgebroken — dit is wat er binnenkwam.';
 }
 
 // rawModus levert vrije tekst: laat die groeien in het bericht dat er straks blijft
@@ -13869,6 +13904,24 @@ function _assistMaakTekstStroom({ type = null, clausule = false } = {}) {
       );
     },
     weg() { div?.remove(); },
+
+    /**
+     * Bij een fout: laat staan wat er binnenkwam, met een regel erboven dat het niet
+     * af is. Tot 29 augustus 2026 verdween de hele bubbel — de aanroeper riep `weg()`
+     * in een `finally`, dus ook bij een timeout. Wie na vijftig seconden een half
+     * antwoord had, zag dat in één klap verdwijnen.
+     *
+     * Bij succes is verwijderen wél juist: het eindresultaat komt dan als eigen
+     * bericht terug, en anders staat alles er twee keer.
+     */
+    afbreken(melding) {
+      if (!div || !ruw) { div?.remove(); return; }
+      const kop = document.createElement('div');
+      kop.className = 'assist-afgebroken';
+      kop.textContent = melding || 'Afgebroken — dit is wat er binnenkwam.';
+      div.prepend(kop);
+      div = null;   // losmaken: een late groei() mag hier niet meer in tekenen
+    },
   };
 }
 
@@ -14625,8 +14678,12 @@ async function _assistVerstuur(forceTekst, thinkingLabel, rawModus = false, isCl
           onDelta:  s => bericht.groei(s),
           onSectie: (veld, waarde) => bericht.sectie?.(veld, waarde),
         });
-      } finally {
-        bericht.weg();  // ook bij een fout: geen half bericht laten staan
+        bericht.weg();   // gelukt: het eindresultaat komt als eigen bericht terug
+      } catch (e) {
+        // Mislukt: laat staan wat er binnenkwam. Een afgekapt antwoord van vijftig
+        // seconden is nog steeds bruikbaar — weggooien is de duurste reactie.
+        bericht.afbreken(_assistAfbreekMelding(e));
+        throw e;
       }
     } else {
       // De server viel terug op JSON — pad ongewijzigd.

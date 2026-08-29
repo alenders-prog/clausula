@@ -21,3 +21,49 @@ export async function verifieerJWT(token) {
   });
   return res.ok;
 }
+
+/**
+ * Verifieert de token én geeft terug wie het is.
+ *
+ * `verifieerJWT` doet dezelfde aanroep maar gooit het antwoord weg. Sinds er verbruik
+ * per gebruiker wordt vastgelegd (api/_verbruik.js) is die id nodig, en een tweede
+ * ronde naar /auth/v1/user zou hetzelfde verzoek nog eens doen. Endpoints die de
+ * context nodig hebben roepen deze aan in plaats van verifieerJWT.
+ *
+ * De organisatie komt uit `gebruikersprofiel` en vraagt dus een tweede aanroep. Dat is
+ * één keer per verzoek, niet per Claude-aanroep.
+ *
+ * Faalt de profiellookup, dan komt er `{ gebruikerId, organisatieId: null }` terug in
+ * plaats van null: de aanroep mag doorgaan, er ontbreekt alleen een label bij de
+ * meting. Meten mag nooit een analyse tegenhouden.
+ *
+ * @returns {Promise<{gebruikerId: string, organisatieId: string|null}|null>}
+ */
+export async function gebruikerContext(token) {
+  if (!token) return null;
+  const anon = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
+    headers: { Authorization: `Bearer ${token}`, apikey: anon },
+  });
+  if (!res.ok) return null;
+
+  let gebruikerId = null;
+  try { gebruikerId = (await res.json())?.id ?? null; } catch { /* geen id in het antwoord */ }
+  if (!gebruikerId) return null;
+
+  let organisatieId = null;
+  try {
+    const sleutel = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (sleutel) {
+      const p = await fetch(
+        `${process.env.SUPABASE_URL}/rest/v1/gebruikersprofiel`
+        + `?id=eq.${gebruikerId}&select=organisatie_id`,
+        { headers: { apikey: sleutel, Authorization: `Bearer ${sleutel}` } });
+      if (p.ok) organisatieId = (await p.json())?.[0]?.organisatie_id ?? null;
+    }
+  } catch (e) {
+    console.warn('[auth] organisatie ophalen mislukt:', e.message);
+  }
+
+  return { gebruikerId, organisatieId };
+}
