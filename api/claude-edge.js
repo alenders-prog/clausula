@@ -4,7 +4,7 @@
 // maxDuration: 120 (zie vercel.json) geeft voldoende tijd voor streaming.
 
 import { gebruikerContext } from './_auth.js';
-import { meetAanroep, usageUitSse } from './_verbruik.js';
+import { meetAanroep, usageUitSse, wachtOpVerbruik } from './_verbruik.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -121,6 +121,8 @@ export default async function handler(req, res) {
     // betaald, en juist deze regels laten zien waar het misgaat.
     if (afgebroken) meter.mislukt(afgebroken);
     else meter.klaar();
+    // Pas afsluiten als de meting weg is — daarna mag de functie bevriezen.
+    await wachtOpVerbruik();
     if (!res.destroyed) res.end();
   }
 }

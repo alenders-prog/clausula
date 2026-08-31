@@ -108,7 +108,7 @@ export const veiligeUuid = (v) => UUID_RE.test(String(v ?? '')) ? String(v) : nu
  */
 export function bouwVerbruikRegel({
   endpoint, fase, model, usage,
-  duurMs, eersteTokenMs,
+  duurMs, eersteTokenMs, gestartOp,
   organisatieId, gebruikerId, screeningId,
   geslaagd = true, foutsoort = null,
 } = {}) {
@@ -129,7 +129,17 @@ export function bouwVerbruikRegel({
     eerste_token_ms: Number.isFinite(eersteTokenMs) ? Math.round(eersteTokenMs) : null,
     geslaagd:  !!geslaagd,
     foutsoort: geslaagd ? null : (foutsoort || 'onbekend'),
-    gestart_op: new Date().toISOString(),
+    // Het BEGIN van de aanroep, niet het eind.
+    //
+    // Dit stond hier als `new Date()`, en deze functie draait pas als de aanroep klaar
+    // is — dus de kolom bevatte het eindtijdstip onder de naam gestart_op. Sorteren op
+    // deze kolom gaf daardoor de volgorde van afronden, wat de fasen van een analyse in
+    // een verkeerde volgorde zette, en een wandklokberekening kwam een hele aanroepduur
+    // te hoog uit. Valt gestartOp weg, dan is nu-min-de-duur nog altijd beter dan nu.
+    gestart_op: new Date(
+      Number.isFinite(gestartOp) ? gestartOp
+        : Date.now() - (Number.isFinite(duurMs) ? duurMs : 0),
+    ).toISOString(),
   };
 }
 

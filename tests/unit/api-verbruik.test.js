@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { meetAanroep, usageUitSse, schrijfVerbruik } from '../../api/_verbruik.js';
+import { meetAanroep, usageUitSse, schrijfVerbruik, wachtOpVerbruik } from '../../api/_verbruik.js';
 
 // De helper schrijft met fetch weg. Die vangen we af zodat de tests niets versturen en
 // we kunnen zien wát er verstuurd zou worden.
@@ -167,5 +167,86 @@ describe('meten mag de aanroep nooit laten stranden', () => {
   it('doet niets bij een lege regel', () => {
     schrijfVerbruik(null);
     expect(verstuurd).toHaveLength(0);
+  });
+});
+
+// Aanleiding (31 augustus 2026): van een analyse met twee documenten stonden er vier
+// regels in api_verbruik waar er vijf hadden moeten staan. De insert werd niet
+// afgewacht, en een serverless functie mag bevriezen zodra het antwoord eruit is — wat
+// er dan nog openstaat komt er niet meer doorheen. De tabel telde dus stil te weinig,
+// en juist die stille onvolledigheid was wat hij moest wegnemen.
+describe('wachtOpVerbruik — geen regel mag onderweg verdampen', () => {
+  it('wacht tot een trage insert echt weg is', async () => {
+    let losmaken;
+    globalThis.fetch = vi.fn((url, opties) => new Promise(r => {
+      losmaken = () => { verstuurd.push({ url, body: JSON.parse(opties.body) }); r({ ok: true, text: async () => '' }); };
+    }));
+
+    meetAanroep({ endpoint: 'analyseer', fase: 'structuur' }).klaar();
+    expect(verstuurd).toHaveLength(0);          // nog onderweg
+
+    // Losmaken pas ná een tel, en niet zelf afwachten: alleen een implementatie die
+    // écht wacht ziet de regel binnenkomen. Losmaken vóór het wachten zou de test
+    // ook groen laten zonder reparatie.
+    setTimeout(() => losmaken(), 100);
+    await wachtOpVerbruik(5000);
+    expect(verstuurd).toHaveLength(1);          // en nu binnen
+  });
+
+  it('geeft het na de bovengrens op in plaats van de gebruiker te laten wachten', async () => {
+    globalThis.fetch = vi.fn(() => new Promise(() => {}));   // komt nooit terug
+    meetAanroep({ endpoint: 'analyseer', fase: 'structuur' }).klaar();
+
+    const t0 = Date.now();
+    await wachtOpVerbruik(120);
+    expect(Date.now() - t0).toBeLessThan(2000);
+  });
+
+  it('valt niet om als er niets openstaat', async () => {
+    await expect(wachtOpVerbruik(50)).resolves.toBeUndefined();
+  });
+
+  it('schrijfVerbruik geeft een promise terug, ook zonder omgeving', async () => {
+    delete process.env.SUPABASE_URL;
+    await expect(schrijfVerbruik({ endpoint: 'x' })).resolves.toBeUndefined();
+  });
+});
+
+// gestart_op heette gestart_op en bevatte het EINDtijdstip: de regel wordt pas gebouwd
+// als de aanroep klaar is. Sorteren erop gaf de volgorde van afronden — waardoor de
+// fasen van een analyse in een verkeerde volgorde leken te lopen — en een wandklok-
+// berekening kwam een hele aanroepduur te hoog uit.
+describe('gestart_op is het begin, niet het eind', () => {
+  // De duur moet rúim boven de tolerantie liggen, anders kan deze test niet falen:
+  // met de oude fout is het verschil precies één aanroepduur, en verdwijnt dat in de
+  // speling dan bewijst de test niets. (Eerst met 60ms en 500ms speling gebouwd —
+  // die bleef groen mét de fout erin.)
+  const DUUR = 400;
+  const SPELING = 150;
+
+  it('ligt een aanroepduur vóór het moment van wegschrijven', async () => {
+    const nuVoor = Date.now();
+    const m = meetAanroep({ endpoint: 'analyseer', fase: 'structuur' });
+    await new Promise(r => setTimeout(r, DUUR));
+    m.klaar();
+
+    const r = verstuurd[0].body;
+    const begin = new Date(r.gestart_op).getTime();
+    expect(r.duur_ms).toBeGreaterThanOrEqual(DUUR - 50);
+    // Het weggeschreven begin ligt bij het begin van de aanroep…
+    expect(Math.abs(begin - nuVoor)).toBeLessThan(SPELING);
+    // …en dus een hele duur vóór nu, niet erop.
+    expect(Date.now() - begin).toBeGreaterThanOrEqual(DUUR - 50);
+  });
+
+  it('geldt ook voor een mislukte aanroep', async () => {
+    const nuVoor = Date.now();
+    const m = meetAanroep({ endpoint: 'analyseer', fase: 'structuur' });
+    await new Promise(r => setTimeout(r, DUUR));
+    m.mislukt(new Error('boem'));
+
+    const r = verstuurd[0].body;
+    expect(Math.abs(new Date(r.gestart_op).getTime() - nuVoor)).toBeLessThan(SPELING);
+    expect(r.geslaagd).toBe(false);
   });
 });

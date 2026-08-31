@@ -31,13 +31,23 @@ const omgeving = () => ({
 });
 
 /**
- * Schrijft één regel weg. Wacht niet op het resultaat; de aanroeper hoeft hier niets
- * mee te doen.
+ * Nog niet afgeronde schrijfacties.
+ *
+ * Aanleiding (31 augustus 2026): van een analyse met twee documenten stonden er vier
+ * regels in de tabel waar er vijf hadden moeten staan. De oorzaak is dat de fetch
+ * hieronder niet werd afgewacht — een serverless functie mag bevriezen zodra het
+ * antwoord de deur uit is, en wat er dan nog openstaat komt er niet meer doorheen.
+ *
+ * Gevolg: de tabel telde stil te weinig, dus elke kostenoptelling was een ondergrens
+ * zonder dat daar iets van te zien was. Precies het soort stille onvolledigheid waar
+ * deze tabel juist een eind aan moest maken.
  */
+const _lopendeSchrijfacties = new Set();
+
 export function schrijfVerbruik(regel) {
   const { url: URL, key: KEY } = omgeving();
-  if (!URL || !KEY || !regel) return;
-  fetch(`${URL}/rest/v1/api_verbruik`, {
+  if (!URL || !KEY || !regel) return Promise.resolve();
+  const p = fetch(`${URL}/rest/v1/api_verbruik`, {
     method: 'POST',
     headers: {
       apikey: KEY, Authorization: `Bearer ${KEY}`,
@@ -48,6 +58,29 @@ export function schrijfVerbruik(regel) {
     if (!r.ok) return r.text().then(t =>
       console.warn('[verbruik] wegschrijven mislukt:', r.status, t.slice(0, 200)));
   }).catch(e => console.warn('[verbruik] wegschrijven mislukt:', e.message));
+
+  _lopendeSchrijfacties.add(p);
+  p.finally(() => _lopendeSchrijfacties.delete(p));
+  return p;
+}
+
+/**
+ * Wacht tot de metingen weg zijn. Roep dit aan vlak vóór het afsluiten van het
+ * antwoord.
+ *
+ * Met een harde bovengrens: meten mag een gebruiker nooit laten wachten. Loopt het
+ * langer, dan is één ontbrekende regel beter dan een trage app — maar dan staat er
+ * tenminste een melding, in plaats van dat de regel geruisloos verdampt.
+ */
+export async function wachtOpVerbruik(maxMs = 2000) {
+  if (_lopendeSchrijfacties.size === 0) return;
+  const openstaand = [..._lopendeSchrijfacties];
+  let opTijd = true;
+  await Promise.race([
+    Promise.allSettled(openstaand),
+    new Promise(r => setTimeout(() => { opTijd = false; r(); }, maxMs)),
+  ]);
+  if (!opTijd) console.warn(`[verbruik] ${openstaand.length} metingen nog onderweg na ${maxMs}ms`);
 }
 
 /**
@@ -86,7 +119,7 @@ export function meetAanroep(context = {}) {
     klaar(extra = {}) {
       schrijfVerbruik(bouwVerbruikRegel({
         ...context, ...extra, usage,
-        duurMs: Date.now() - t0, eersteTokenMs: eersteToken, geslaagd: true,
+        duurMs: Date.now() - t0, eersteTokenMs: eersteToken, gestartOp: t0, geslaagd: true,
       }));
     },
 
@@ -99,7 +132,7 @@ export function meetAanroep(context = {}) {
     mislukt(fout, extra = {}) {
       schrijfVerbruik(bouwVerbruikRegel({
         ...context, ...extra, usage,
-        duurMs: Date.now() - t0, eersteTokenMs: eersteToken,
+        duurMs: Date.now() - t0, eersteTokenMs: eersteToken, gestartOp: t0,
         geslaagd: false, foutsoort: foutsoortVan(fout),
       }));
     },

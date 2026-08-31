@@ -27,7 +27,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { meetAanroep } from './_verbruik.js';
+import { meetAanroep, wachtOpVerbruik } from './_verbruik.js';
 import { filterIssuesOpIban } from './_iban.js';
 import { bouwConsolidatieLijst } from './_dedup-passage.js';
 import { hoortBijDocument } from './_cross-doc-toewijzing.js';
@@ -809,6 +809,10 @@ export default async function handler(req, res) {
   } finally {
     sseGesloten = true;
     clearInterval(keepalive);
+    // Eerst de metingen weg, dán pas afsluiten. Een serverless functie mag bevriezen
+    // zodra het antwoord eruit is; wat er dan nog openstaat verdampt. Zo verdween er
+    // een regel van een analyse met twee documenten.
+    await wachtOpVerbruik();
     if (!res.writableEnded) res.end();
   }
 }

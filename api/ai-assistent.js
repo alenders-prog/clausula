@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { gebruikerContext } from './_auth.js';
-import { meetAanroep, usageUitSse } from './_verbruik.js';
+import { meetAanroep, usageUitSse, wachtOpVerbruik } from './_verbruik.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
 import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
@@ -673,7 +673,18 @@ async function voerToolsUit(content, supabase, braveKey, bronnenAcc) {
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
+/**
+ * Dit endpoint heeft een stuk of tien uitgangen — streamend, niet-streamend, en drie
+ * foutpaden. In plaats van bij elk daarvan te onthouden dat de metingen nog weg moeten,
+ * staat het wachten hier één keer omheen. Zolang deze functie niet klaar is, bevriest de
+ * omgeving hem niet, en dat is precies wat een niet-afgewachte insert nodig heeft.
+ */
 export default async function handler(req, res) {
+  try { return await _verwerk(req, res); }
+  finally { await wachtOpVerbruik(); }
+}
+
+async function _verwerk(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST' });
 
   const eindtijd = Date.now() + FUNCTIE_BUDGET_MS;
