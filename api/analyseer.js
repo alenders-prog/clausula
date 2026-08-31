@@ -54,6 +54,7 @@ import {
 } from './_prompts/fragmenten.js';
 import { afgeleideKenmerken } from '../src/rapport/internationaal.js';
 import { tijdsbudget } from '../src/tijdsbudget.js';
+import { systeemVeld, berichtInhoud } from '../src/api/prompt-cache.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -114,15 +115,15 @@ const analyseBudget = () => tijdsbudget({
   perAanroepMs: PER_AANROEP_MAX,
 });
 
-// ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
+// ── Claude helper (non-streaming) met retry ─────────────────────────────────
 // _herpoging: intern vlag om bij max_tokens eenmalig met verdubbeld budget opnieuw te proberen
-async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, model = 'claude-sonnet-4-6', _herpoging = false) {
-  const systemField = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
-  const messageContent = Array.isArray(userContent)
-    ? userContent.map(b => b.cache
-        ? { type: 'text', text: b.text, cache_control: { type: 'ephemeral' } }
-        : { type: 'text', text: b.text })
-    : [{ type: 'text', text: userContent }];
+//
+// De prompt-cache staat uit; het waarom staat in src/api/prompt-cache.js. Kort: over een
+// echte analyse gingen er 153.284 tokens in en kwam er nul uit — $0,115 premie per
+// analyse voor niets — en er is geen route waarlangs hij hier wél gelezen wordt.
+async function askClaude(systemPrompt, userContent, tool, maxTokens = MAX_OUTPUT_TOKENS, model = 'claude-sonnet-4-6', _herpoging = false) {
+  const systemField    = systeemVeld(systemPrompt);
+  const messageContent = berichtInhoud(userContent);
 
   const body = {
     model,
@@ -165,7 +166,6 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
           'Content-Type':      'application/json',
           'x-api-key':         process.env.ANTHROPIC_API_KEY,
           'anthropic-version': '2023-06-01',
-          'anthropic-beta':    'prompt-caching-2024-07-31',
         },
         body:   JSON.stringify(body),
         signal: AbortSignal.timeout(budget.aanroepMs),
@@ -675,7 +675,7 @@ export default async function handler(req, res) {
           { text: stabielGedeeld, cache: true },
           { text: `VERWACHTE SECTIES:\n${checklistTekst}`, cache: true },
           { text: documentBlok },
-        ], maakStructuurTool(heeftMfn), heeftMfn ? 6000 : 2000), 'structuur'),
+        ], maakStructuurTool(heeftMfn)), 'structuur'),
 
         // Gecombineerde call: juridisch + balans + grammatica + conflicten in één context
         callMetSse(() => askClaude(sysBevindingen, [
@@ -721,7 +721,7 @@ export default async function handler(req, res) {
       crossDocPromise = askClaude(sysCrossDoc, [
         { text: bouwStabielCrossDoc(vandaag, situatieKenmerken), cache: true },
         { text: docBlokken },
-      ], crossDocTool, 6000);
+      ], crossDocTool);
     }
 
     // Verwerk max 2 documenten tegelijk (rate-limit bescherming)
