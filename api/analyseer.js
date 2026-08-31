@@ -53,6 +53,7 @@ import {
   bouwHvChecks, bouwIprChecks, bouwMfnInstructie,
 } from './_prompts/fragmenten.js';
 import { afgeleideKenmerken } from '../src/rapport/internationaal.js';
+import { tijdsbudget } from '../src/tijdsbudget.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -84,6 +85,30 @@ const FASE_PER_TOOL = {
 import { AsyncLocalStorage } from 'node:async_hooks';
 const _meetOpslag = new AsyncLocalStorage();
 const meetContext = () => _meetOpslag.getStore() || { organisatieId: null, gebruikerId: null };
+
+// ── Tijdsbudget van de analyse ───────────────────────────────────────────────
+//
+// Op 31 augustus 2026 werd een analyse van twee documenten na 120 seconden door Vercel
+// doodgeschoten. Eén van de twee bevindingen-aanroepen was nog bezig; die kwam er nooit,
+// de consolidatie draaide niet, en de browser toonde een rapport dat compleet leek.
+//
+// Twee dingen waren daaraan fout. De maxDuration stond op 120 terwijl het plan er 300
+// toestaat — een grens die we onszelf hadden opgelegd. En géén enkele aanroep hier had
+// een tijdslimiet, dus één trage aanroep kon de hele functieduur opeten en de rest
+// meenemen. Dat tweede wordt met een ruimere maxDuration juist erger, niet beter.
+//
+// Vandaar dezelfde regel als bij de PDF-conversie: een wandklokgrens die alles meetelt,
+// en een aanroep die nooit langer mag duren dan wat er van het geheel over is.
+const ANALYSE_MAX_MS   = 280_000;  // marge onder de maxDuration van 300s
+const PER_AANROEP_MAX  = 150_000;  // een enkele aanroep duurde gemeten tot 99s
+
+/** Wat er nog van het budget over is, geteld vanaf het begin van dit verzoek. */
+const analyseBudget = () => tijdsbudget({
+  gestartOp:    meetContext().begonOp ?? Date.now(),
+  nu:           Date.now(),
+  maxMs:        ANALYSE_MAX_MS,
+  perAanroepMs: PER_AANROEP_MAX,
+});
 
 // ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
 // _herpoging: intern vlag om bij max_tokens eenmalig met verdubbeld budget opnieuw te proberen
@@ -119,6 +144,17 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
       await new Promise(r => setTimeout(r, poging * 5000));
     }
     try {
+      // Nooit langer dan wat er van de hele analyse over is. Zonder deze grens eet één
+      // blijvende aanroep de functieduur op en gaat álles mee — inclusief de aanroepen
+      // die al klaar waren maar nog niet verwerkt.
+      const budget = analyseBudget();
+      if (budget.verlopen) {
+        // De catch hieronder schrijft de meting weg en gooit meteen door: opnieuw
+        // proberen heeft geen zin als er geen tijd meer is.
+        const op = new Error(`Tijd op vóór ${tool.name} (${Math.round(budget.verstreken / 1000)}s verstreken)`);
+        op.isTijdOp = true;
+        throw op;
+      }
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method:  'POST',
         headers: {
@@ -127,7 +163,8 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
           'anthropic-version': '2023-06-01',
           'anthropic-beta':    'prompt-caching-2024-07-31',
         },
-        body: JSON.stringify(body),
+        body:   JSON.stringify(body),
+        signal: AbortSignal.timeout(budget.aanroepMs),
       });
       if (res.ok) {
         const json = await res.json();
@@ -161,8 +198,9 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
       // schrijfVerbruik is niet idempotent, dus alleen meten wat hier voor het eerst
       // langskomt — een netwerkfout of een afgebroken verbinding.
       if (!/Claude fout \(/.test(err.message) && !err.isMaxTokens) meter.mislukt(err);
-      // Gooi direct bij max_tokens of auth-fout (geen zin om opnieuw te proberen)
-      if (err.isMaxTokens || err.message.startsWith('Claude fout (4') || poging === 2) throw err;
+      // Gooi direct bij max_tokens, auth-fout of een afgelopen budget — in geen van
+      // die gevallen heeft opnieuw proberen zin.
+      if (err.isMaxTokens || err.isTijdOp || err.message.startsWith('Claude fout (4') || poging === 2) throw err;
       lastErr = err;
     }
   }
@@ -392,6 +430,7 @@ export default async function handler(req, res) {
     organisatieId: _ctx.organisatieId,
     gebruikerId:   _ctx.gebruikerId,
     screeningId:   runId,
+    begonOp:       Date.now(),   // beginpunt van het tijdsbudget hierboven
   });
 
   const vervangPii = maakPiiVervanger();

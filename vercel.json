@@ -1,7 +1,7 @@
 {
   "regions": ["fra1"],
   "functions": {
-    "api/analyseer.js":    { "maxDuration": 120 },
+    "api/analyseer.js":    { "maxDuration": 300 },
     "api/claude-edge.js":  { "maxDuration": 120 },
     "api/ai-assistent.js": { "maxDuration": 120 },
     "api/adobe-start.js": { "maxDuration": 60  },

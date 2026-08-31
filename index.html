@@ -1200,6 +1200,12 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   text-overflow:ellipsis;}
 .hdr-status:empty{display:none;}
 .hdr-status--klaar{color:#2A7260;font-weight:600;}
+/* Waarschuwing dat de analyse is afgekapt. Boven de samenvatting, want het gaat over
+   de betrouwbaarheid van álles wat eronder staat. */
+.onvolledig-balk{display:flex;gap:9px;align-items:flex-start;margin:0 0 12px;padding:10px 13px;
+  border:1px solid #E0A200;border-left-width:4px;border-radius:8px;background:#FFF8E6;
+  font-size:.85rem;line-height:1.45;color:#6B4A00;}
+.onvolledig-balk strong{display:block;margin-bottom:2px;color:#8A4B00;}
 /* Donut-kaart (samenvatting rechterkolom) */
 .donut-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;align-items:center;gap:7px;}
 .donut-label{font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);}
@@ -3751,6 +3757,16 @@ function tekenVoortgangStatus(status) {
   el.textContent = '';
 }
 
+// De waarschuwing dat een analyse is afgekapt. Boven de samenvatting, want hij gaat
+// over de betrouwbaarheid van álles wat eronder staat — niet over één kaart.
+function onvolledigBalkHtml() {
+  const a = app.analyseOnvolledig;
+  if (!a) return '';
+  return '<div class="onvolledig-balk"><span>&#9888;</span><div>'
+    + '<strong>Deze analyse is niet afgemaakt</strong>'
+    + escH(a.melding) + '</div></div>';
+}
+
 // Automatische kwaliteitscontrole op analyse-output.
 // Logt waarschuwingen naar de console; gooit nooit — zuiver informatief.
 function checkIssueKwaliteit(docLabel, issues) {
@@ -4623,6 +4639,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const _pA = huidigDossierPartijA || app.classificatie?.partij_a_naam || '';
       const _pB = huidigDossierPartijB || app.classificatie?.partij_b_naam || '';
       const _samen = app.rapport.samenvatting;
+
       const _progHeroHtml = `<div class="summary-row">
         ${scoreHtml}
         <div class="sum-title">Samenvatting</div>
@@ -4630,7 +4647,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       </div>`;
       const _progSectieLabel = _progLbl ? `${_progLbl} — Verbeterpunten` : 'Verbeterpunten';
       document.getElementById('analysePanel').innerHTML =
-        `<div class="analyse-scroll-boven">${_progHeroHtml}</div>` +
+        `<div class="analyse-scroll-boven">${onvolledigBalkHtml()}${_progHeroHtml}</div>` +
         `<div class="sticky-chips-bar">${filterBar}</div>` +
         `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div>${_mfnSectieHtml ? '<div id="mfnSectie" style="display:none">' + _mfnSectieHtml + '</div>' : ''}</div>`;
       requestAnimationFrame(ajusteerDonutPositie);
@@ -4798,6 +4815,22 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 
   onProgress('Bezig met analyseren…', 100);
   _analyseAfgerondOp = Date.now();   // vanaf hier mag de afrondingsmelding komen
+
+  // Is de stroom wél afgelopen? `_klaar` werd gezet en nergens gelezen: viel de server
+  // weg (op 31-08-2026 na de maxDuration van 120s), dan brak de lus af en werd er
+  // vrolijk een rapport getoond waarin voor één document álle juridische bevindingen
+  // ontbraken. Zie src/analyse/afgekapt.js.
+  const _afloop = beoordeelAfloop({
+    klaarOntvangen: _klaar,
+    acc: _sseAcc,
+    bestanden: effectieveHoofdItems.map(i => i.bestandsnaam),
+  });
+  if (!_afloop.volledig) {
+    console.warn('[analyseer] onvolledig:', _afloop.melding);
+    app.analyseOnvolledig = _afloop;
+  } else {
+    delete app.analyseOnvolledig;
+  }
 
   // ── Rapport samenvoegen uit accumulator (browser-side dedup) ──────────────
   const _docResultaten = effectieveHoofdItems.map(item => {
@@ -6721,7 +6754,7 @@ async function toonRapport(cls, rp) {
       <p class="sum-body">${drp.samenvatting ? escH(drp.samenvatting) : ''}</p>
     </div>`;
 
-    return `<div class="analyse-scroll-boven">${heroHtml}</div>` +
+    return `<div class="analyse-scroll-boven">${onvolledigBalkHtml()}${heroHtml}</div>` +
       `<div class="sticky-chips-bar">${filterBar}</div>` +
       `<div class="anal-tab-body" id="analTabBody">` +
       `<div id="issuesLijst">${issueKaartenHtml}</div>` +
@@ -15915,6 +15948,7 @@ import { splitsClausuleAntwoord, splitsToelichting,
 import { pollWacht, tijdsbudget, nogEenPoging, tijdslimietMelding,
          START_MAX_MS, POLL_MAX_MS }                         from './src/conversie/wachtschema.js';
 import { voortgangStatus, AFRONDING_MS }                     from './src/analyse/voortgang-status.js';
+import { beoordeelAfloop }                                   from './src/analyse/afgekapt.js';
 import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport/doc-volgorde.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
@@ -15994,6 +16028,7 @@ window.voortgangStatus        = voortgangStatus;
 window.AFRONDING_MS           = AFRONDING_MS;
 window.bepaalVolgorde         = bepaalVolgorde;
 window.beoordeelVolgorde      = beoordeelVolgorde;
+window.beoordeelAfloop        = beoordeelAfloop;
 
 // Laatste regel van de brug: alles staat op `window`. Het klassieke script wacht
 // hierop via `brugGereed` — zie de toelichting daar. Blijft deze regel achterwege,

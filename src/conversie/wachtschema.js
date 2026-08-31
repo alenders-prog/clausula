@@ -28,6 +28,8 @@
  * bereikt.
  */
 
+import { tijdsbudget as _tijdsbudget } from '../tijdsbudget.js';
+
 /** Oplopende wachttijd tussen twee pogingen: 1s, 2s, 4s, 8s, 8s, … */
 export const POLL_WACHT = [1000, 2000, 4000, 8000];
 
@@ -61,14 +63,7 @@ export function pollWacht(poging) {
  *   van het totaal over is, want anders zou één aanroep de grens alsnog overleven.
  */
 export function tijdsbudget({ gestartOp, nu, maxMs = CONVERSIE_MAX_MS, perAanroepMs = POLL_MAX_MS } = {}) {
-  const verstreken = Math.max(0, (Number(nu) || 0) - (Number(gestartOp) || 0));
-  const resterend  = Math.max(0, maxMs - verstreken);
-  return {
-    verstreken,
-    resterend,
-    verlopen:  resterend <= 0,
-    aanroepMs: Math.max(0, Math.min(perAanroepMs, resterend)),
-  };
+  return _tijdsbudget({ gestartOp, nu, maxMs, perAanroepMs });
 }
 
 /**

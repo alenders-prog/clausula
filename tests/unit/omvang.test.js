@@ -316,8 +316,17 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // nu vooraf en stuurt hem mee. Wat hier bijkwam is het maken, het meesturen, het
 // bewaren in het rapport (nodig omdat een heranalyse de bestaande rij bijwerkt en de
 // sleutel dan niet gelijk is aan het screening-id) en het wissen bij het laden.
-const MAX_REGELS_INDEX = 16118;
-const MAX_REGELS_JS     = 12901;
+// 31-08-2026 (tweeëntwintigste keer): 16118 → 16153 (+35, waarvan 29 script en 6 CSS),
+// voor het opmerken van een afgekapte analyse.
+//
+// Een analyse van twee documenten werd na 120 seconden door Vercel doodgeschoten. De
+// leeslus zette `_klaar` en las hem nergens: bij een weggevallen server brak hij af en
+// toonde de app een rapport waarin voor één document álle juridische bevindingen
+// ontbraken, zonder een spoor daarvan op het scherm. Het oordeel — wát er mist, en of
+// het rapport te vertrouwen is — staat in src/analyse/afgekapt.js met 14 tests; hier
+// bleef het tekenen van de balk over.
+const MAX_REGELS_INDEX = 16153;
+const MAX_REGELS_JS     = 12930;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
