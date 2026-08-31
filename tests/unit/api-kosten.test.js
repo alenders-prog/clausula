@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  kostenVanUsage, normaliseerModel, bouwVerbruikRegel, veiligeFase, foutsoortVan,
+  kostenVanUsage, normaliseerModel, bouwVerbruikRegel, veiligeFase, veiligeUuid, foutsoortVan,
   PRIJZEN, CACHE_LEES_FACTOR, CACHE_SCHRIJF_FACTOR,
 } from '../../src/api/kosten.js';
 
@@ -100,6 +100,38 @@ describe('onbekend model', () => {
   });
 });
 
+// screening_id komt uit de browser: de analyse begint vóórdat de screening bestaat,
+// dus de sleutel wordt daar vooraf gemaakt en meegestuurd. De kolom is een uuid — iets
+// anders laat het wegschrijven mislukken, en dan is de héle regel weg (kosten, duur,
+// tokens) en niet alleen het label.
+describe('veiligeUuid', () => {
+  it('laat een echte uuid door', () => {
+    const u = '11111111-1111-4111-8111-111111111111';
+    expect(veiligeUuid(u)).toBe(u);
+    expect(veiligeUuid(u.toUpperCase())).toBe(u.toUpperCase());
+  });
+
+  it('weigert alles wat geen uuid is', () => {
+    expect(veiligeUuid('s1')).toBeNull();
+    expect(veiligeUuid('11111111-1111-4111-8111')).toBeNull();
+    expect(veiligeUuid('kerstavond')).toBeNull();
+    expect(veiligeUuid(null)).toBeNull();
+    expect(veiligeUuid(undefined)).toBeNull();
+    expect(veiligeUuid(12345)).toBeNull();
+  });
+
+  it('de regel houdt zijn cijfers, ook zonder bruikbare sleutel', () => {
+    // De meting mag niet sneuvelen op een onbruikbaar label.
+    const r = bouwVerbruikRegel({
+      endpoint: 'analyseer', fase: 'structuur', model: 'claude-sonnet-4-6',
+      screeningId: 'onzin', usage: { input_tokens: 100, output_tokens: 10 },
+    });
+    expect(r.screening_id).toBeNull();
+    expect(r.input_tokens).toBe(100);
+    expect(r.kosten_usd).toBeGreaterThan(0);
+  });
+});
+
 describe('veiligeFase', () => {
   it('laat een bekende fase door', () => {
     expect(veiligeFase('cross_doc')).toBe('cross_doc');
@@ -120,7 +152,7 @@ describe('bouwVerbruikRegel', () => {
     endpoint: 'ai-assistent', fase: 'clausule', model: 'claude-sonnet-4-6',
     usage: usage({ input_tokens: 1000, output_tokens: 2000, cache_read_input_tokens: 3500 }),
     duurMs: 52340.7, eersteTokenMs: 4120.2,
-    organisatieId: 'o1', gebruikerId: 'g1', screeningId: 's1',
+    organisatieId: 'o1', gebruikerId: 'g1', screeningId: '11111111-1111-4111-8111-111111111111',
   };
 
   it('zet de tellingen en de kosten in de regel', () => {
@@ -128,7 +160,7 @@ describe('bouwVerbruikRegel', () => {
     expect(r).toMatchObject({
       endpoint: 'ai-assistent', fase: 'clausule', model: 'claude-sonnet-4-6',
       input_tokens: 1000, output_tokens: 2000, cache_lees_tokens: 3500,
-      organisatie_id: 'o1', gebruiker_id: 'g1', screening_id: 's1', geslaagd: true,
+      organisatie_id: 'o1', gebruiker_id: 'g1', screening_id: '11111111-1111-4111-8111-111111111111', geslaagd: true,
     });
     expect(r.kosten_usd).toBeGreaterThan(0);
   });

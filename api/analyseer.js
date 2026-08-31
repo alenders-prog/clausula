@@ -71,9 +71,19 @@ const FASE_PER_TOOL = {
   consolideer_issues:              'consolidatie',
 };
 
-// Wie de analyse draait. Wordt per verzoek gezet in de handler; blijft null als de
-// context niet op te halen was — dan mist er een label bij de meting, meer niet.
-let _meetContext = { organisatieId: null, gebruikerId: null };
+// Wie de analyse draait, en welke analyse het is.
+//
+// Dit stond eerst in een gewone modulevariabele. Bij twee analyses die tegelijk in
+// hetzelfde proces landen overschrijft de één de context van de ander, en dan staan de
+// kosten van kantoor A onder kantoor B. Met screening_id erbij wordt dat erger: dan
+// klopt "wat kostte déze analyse" niet meer.
+//
+// AsyncLocalStorage houdt de context vast aan de aanroepketen van één verzoek. Met
+// enterWith is dat één regel in de handler, zonder de hele functie in een callback te
+// hoeven wikkelen.
+import { AsyncLocalStorage } from 'node:async_hooks';
+const _meetOpslag = new AsyncLocalStorage();
+const meetContext = () => _meetOpslag.getStore() || { organisatieId: null, gebruikerId: null };
 
 // ── Claude helper (non-streaming, prompt-caching) met retry ──────────────────
 // _herpoging: intern vlag om bij max_tokens eenmalig met verdubbeld budget opnieuw te proberen
@@ -102,7 +112,7 @@ async function askClaude(systemPrompt, userContent, tool, maxTokens = 6000, mode
   for (let poging = 0; poging <= 2; poging++) {
     const meter = meetAanroep({
       endpoint: 'analyseer', fase: FASE_PER_TOOL[tool?.name] || 'onbekend', model,
-      ..._meetContext,
+      ...meetContext(),
     });
     if (poging > 0) {
       console.warn(`[analyseer/${tool.name}] Herpoging ${poging}/2, wacht ${poging * 5}s…`);
@@ -371,10 +381,19 @@ export default async function handler(req, res) {
   // het is — nodig om het verbruik per gebruiker en per kantoor te kunnen tellen.
   const _ctx = await gebruikerContext(token);
   if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
-  _meetContext = { organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId };
-
   // ── Body parsen ───────────────────────────────────────────────────────────
-  const { classificatie, documenten, roepnamen } = req.body || {};
+  const { classificatie, documenten, roepnamen, runId } = req.body || {};
+
+  // runId is de sleutel waaronder de screening straks wordt opgeslagen. De browser
+  // maakt hem vooraf, want de analyse begint vóórdat de screening bestaat — zonder dat
+  // valt achteraf niet te zeggen welke aanroepen bij welke analyse hoorden. Wat er
+  // binnenkomt wordt in src/api/kosten.js op uuid-vorm gecontroleerd.
+  _meetOpslag.enterWith({
+    organisatieId: _ctx.organisatieId,
+    gebruikerId:   _ctx.gebruikerId,
+    screeningId:   runId,
+  });
+
   const vervangPii = maakPiiVervanger();
   if (!classificatie || !Array.isArray(documenten) || !documenten.length) {
     return res.status(400).json({ error: 'classificatie en documenten[] zijn verplicht' });

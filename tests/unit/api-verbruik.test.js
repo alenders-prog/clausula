@@ -120,12 +120,12 @@ describe('meetAanroep — context', () => {
   it('neemt organisatie, gebruiker en screening over', () => {
     const m = meetAanroep({
       endpoint: 'analyseer', fase: 'cross_doc', model: 'claude-sonnet-4-6',
-      organisatieId: 'o1', gebruikerId: 'g1', screeningId: 's1',
+      organisatieId: 'o1', gebruikerId: 'g1', screeningId: '11111111-1111-4111-8111-111111111111',
     });
     m.klaar();
     expect(verstuurd[0].body).toMatchObject({
       endpoint: 'analyseer', fase: 'cross_doc',
-      organisatie_id: 'o1', gebruiker_id: 'g1', screening_id: 's1',
+      organisatie_id: 'o1', gebruiker_id: 'g1', screening_id: '11111111-1111-4111-8111-111111111111',
     });
   });
 
@@ -138,8 +138,8 @@ describe('meetAanroep — context', () => {
   it('laat extra velden bij klaar() de context aanvullen', () => {
     // De screening-id is bij analyseer pas ná de aanroep bekend.
     const m = meetAanroep({ endpoint: 'analyseer', fase: 'structuur' });
-    m.klaar({ screeningId: 's9' });
-    expect(verstuurd[0].body.screening_id).toBe('s9');
+    m.klaar({ screeningId: '99999999-9999-4999-8999-999999999999' });
+    expect(verstuurd[0].body.screening_id).toBe('99999999-9999-4999-8999-999999999999');
   });
 });
 

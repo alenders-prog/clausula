@@ -87,6 +87,18 @@ export const FASEN = new Set([
 
 export const veiligeFase = (f) => FASEN.has(String(f || '')) ? String(f) : 'onbekend';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Laat alleen iets door dat écht een uuid is.
+ *
+ * `screening_id` komt uit de browser: de analyse begint vóórdat de screening bestaat,
+ * dus de browser maakt de sleutel vooraf en geeft hem mee. Alles wat van de client komt
+ * kan van alles zijn, en de kolom is een uuid — een andere waarde laat het wegschrijven
+ * stilletjes mislukken en dan is de hele regel weg, niet alleen het label.
+ */
+export const veiligeUuid = (v) => UUID_RE.test(String(v ?? '')) ? String(v) : null;
+
 /**
  * Bouwt de regel voor `api_verbruik`.
  *
@@ -104,7 +116,7 @@ export function bouwVerbruikRegel({
   return {
     organisatie_id: organisatieId ?? null,
     gebruiker_id:   gebruikerId ?? null,
-    screening_id:   screeningId ?? null,
+    screening_id:   veiligeUuid(screeningId),
     endpoint:       String(endpoint || 'onbekend'),
     fase:           veiligeFase(fase),
     model:          normaliseerModel(model) || null,

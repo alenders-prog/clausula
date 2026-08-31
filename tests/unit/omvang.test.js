@@ -308,8 +308,16 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // functie gaf een getal terug zonder te zeggen of dat een treffer was of een terugval.
 // Twee trappen waren daadwerkelijk stuk; nu zegt elke uitkomst via welke trap hij
 // gevonden is, en telt beoordeelVolgorde hoeveel er op de terugval staan.
-const MAX_REGELS_INDEX = 16098;
-const MAX_REGELS_JS     = 12881;
+// 31-08-2026 (eenentwintigste keer): 16098 → 16118 (+20, alle 20 script), voor de
+// sleutel waaronder een analyse gemeten wordt.
+//
+// api_verbruik had een kolom screening_id die nooit werd gevuld: de analyse begint
+// vóórdat de screening bestaat, dus de server kán hem niet weten. De browser maakt hem
+// nu vooraf en stuurt hem mee. Wat hier bijkwam is het maken, het meesturen, het
+// bewaren in het rapport (nodig omdat een heranalyse de bestaande rij bijwerkt en de
+// sleutel dan niet gelijk is aan het screening-id) en het wissen bij het laden.
+const MAX_REGELS_INDEX = 16118;
+const MAX_REGELS_JS     = 12901;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

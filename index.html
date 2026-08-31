@@ -4687,13 +4687,21 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
 
   try {
     const { data: { session: _analyseerSess } } = await db.auth.getSession();
+    // De sleutel van deze analyse, vooraf gemaakt. De screening bestaat nog niet — die
+    // wordt pas bij het opslaan aangemaakt — dus zonder dit kan de server zijn
+    // kostenregels aan niets koppelen en is achteraf niet te zeggen wat één analyse
+    // heeft gekost. Bij een heranalyse is de screening er al; dan is dit gewoon zijn id.
+    app.analyseRunId = app.screeningId || crypto.randomUUID();
     const _analyseerRes = await fetch('/api/analyseer', {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${_analyseerSess?.access_token || ''}`,
       },
-      body: JSON.stringify({ classificatie, documenten: documentenVoorServer, roepnamen: _roepnamen }),
+      body: JSON.stringify({
+        classificatie, documenten: documentenVoorServer, roepnamen: _roepnamen,
+        runId: app.analyseRunId,
+      }),
     });
     if (!_analyseerRes.ok) {
       const _err = await _analyseerRes.json().catch(() => ({ error: _analyseerRes.statusText }));
@@ -7175,6 +7183,14 @@ async function opslaan() {
       const { _teksten_per_pad, ...rapportZonderBulk } = app.rapport;
       _opsl_rapport = anonimiseerObj(rapportZonderBulk, huidigeNaarAnon);
     }
+
+    // De sleutel waaronder deze analyse is gemeten. Hij wordt vóór het opslaan gemaakt
+    // — de screening bestaat op dat moment nog niet — en is bij een heranalyse níét
+    // gelijk aan het screening-id, want dan wordt de bestaande rij bijgewerkt. Door hem
+    // in het rapport te bewaren is api_verbruik in álle gevallen aan deze screening te
+    // koppelen: `screening_id` daar komt overeen met `_analyse_run_id` hier.
+    // Een uuid, dus geen persoonsgegeven; hij mag gewoon mee in het opgeslagen rapport.
+    if (app.analyseRunId) _opsl_rapport = { ..._opsl_rapport, _analyse_run_id: app.analyseRunId };
 
     const _wasInsert = !app.screeningId;
     let data, error;
@@ -13135,6 +13151,10 @@ async function laadScreening(id, origin = 'main') {
   // Toon meteen de overlay met een laadspinner — bestanden downloaden duurt even
   // app.screeningId alvast zetten zodat openSplitView weet dat het geen nieuwe versie is
   app.screeningId = id;
+  // Deze screening is geladen, niet in deze sessie geanalyseerd. Zou de sleutel van een
+  // eerdere analyse blijven staan, dan stempelt een tussentijdse opslag hem op het
+  // verkeerde rapport en wijst de kostenregel naar de verkeerde screening.
+  app.analyseRunId = null;
   const spinnerHtml = '<div class="laad-wrap"><div class="laad-spinner"></div></div>';
   document.getElementById('documentPanel').innerHTML = spinnerHtml;
   document.getElementById('analysePanel').innerHTML  =
