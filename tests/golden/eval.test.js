@@ -223,7 +223,17 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
           + (treffer ? `\n    gevonden issue: "${treffer.onderwerp}"` : ''),
         ).toBeUndefined();
       }
-    }, 180_000); // 3 min per fixture — met kennisbank duurt een analyse langer
+    // Gelijk aan de maxDuration van api/analyseer.js in vercel.json.
+    //
+    // Dat is geen willekeurig ruimer getal maar dezelfde grens: haalt een fixture het
+    // hier niet, dan zou hij het op productie ook niet halen, en dan is de timeout een
+    // échte bevinding in plaats van een testartefact.
+    //
+    // Stond op 180_000 en dat werd te krap: een analyse van twee documenten duurde
+    // gemeten 139 seconden, en fixtures met veel bevindingen liepen daar overheen. Op
+    // 31 augustus 2026 faalden drie van de vijf fixtures op deze grens, waardoor de
+    // eval geen oordeel meer gaf over de screeningkwaliteit — precies waarvoor hij er is.
+    }, 300_000);
   }
 
   afterAll(() => {
