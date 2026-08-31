@@ -90,6 +90,86 @@ test('één spinner, geen drie balken', async ({ page }) => {
   verwachtGeenPaginafouten(fouten);
 });
 
+/**
+ * Bouwt de kopregel zoals beide renderpaden hem opleveren, zodat
+ * tekenVoortgangStatus een echte plek heeft om in te schrijven.
+ */
+async function toonKopregel(page) {
+  await page.evaluate(() => {
+    document.getElementById('analysePanel').innerHTML =
+      `<div class="sticky-chips-bar"><div class="issue-filter-bar"><div class="issues-hdr">`
+      + `<span class="issues-hdr-title" id="stickySectieTitel">Convenant — Verbeterpunten</span>`
+      + `<span class="hdr-status" id="voortgangStatus" aria-live="polite"></span>`
+      + `</div></div></div>`;
+  });
+}
+
+// Dit is de reparatie van 31 augustus 2026. De zin hing aan "er is nog niets" in
+// plaats van aan "er wordt nog gewerkt", en verdween dus zodra het eerste
+// verbeterpunt binnenkwam — precies wanneer je hem nodig hebt.
+test.describe('de status blijft staan als er al resultaten zijn', () => {
+  test('bezig mét resultaten levert de compacte regel in de kopbalk', async ({ page }) => {
+    const fouten = volgPaginafouten(page);
+    await toonKopregel(page);
+
+    const modus = await page.evaluate(() => {
+      const s = voortgangStatus({
+        nogBezig: true, aantalIssues: 6,
+        dimLoadt: { balans: true, grammatica: true },
+        labels: { balans: 'Balans', grammatica: 'Grammatica' },
+      });
+      tekenVoortgangStatus(s);
+      return s.modus;
+    });
+
+    expect(modus).toBe('compact');
+    await expect(page.locator('#voortgangStatus')).toHaveText('Bezig met balans en grammatica…');
+    await expect(page.locator('#voortgangStatus .laad-spin')).toHaveCount(1);
+
+    verwachtGeenPaginafouten(fouten);
+  });
+
+  test('de regel krimpt mee en verdwijnt als het klaar is', async ({ page }) => {
+    const fouten = volgPaginafouten(page);
+    await toonKopregel(page);
+    const status = page.locator('#voortgangStatus');
+
+    await page.evaluate(() => tekenVoortgangStatus(voortgangStatus({
+      nogBezig: true, aantalIssues: 6,
+      dimLoadt: { grammatica: true }, labels: { grammatica: 'Grammatica' },
+    })));
+    await expect(status).toHaveText('Bezig met grammatica…');
+
+    // Klaar, en zojuist afgerond: kort een bevestiging, want anders is het einde van
+    // de analyse even onzichtbaar als het verloop was.
+    await page.evaluate(() => tekenVoortgangStatus(voortgangStatus({
+      nogBezig: false, afgerondOp: Date.now(),
+    })));
+    await expect(status).toHaveText('✓ Analyse compleet');
+
+    // En een rapport zonder afronding in deze sessie zegt niets.
+    await page.evaluate(() => tekenVoortgangStatus(voortgangStatus({ nogBezig: false })));
+    await expect(status).toHaveText('');
+
+    verwachtGeenPaginafouten(fouten);
+  });
+
+  test('beide renderpaden hebben de plek voor de status', async ({ page }) => {
+    // Zonder dit element schrijft tekenVoortgangStatus stilletjes nergens heen —
+    // geen fout, geen melding, alleen weer een leeg scherm.
+    const html = await (await page.request.get('/index.html')).text();
+    const treffers = html.match(/id="voortgangStatus"/g) || [];
+    expect(treffers).toHaveLength(2);
+
+    // En dat de renderpaden hem ook áánroepen. De module en het tekenen zijn los
+    // getoetst; wat daartussen zit is bedrading, en juist dáár ging het eerder mis:
+    // kloppende logica die nergens werd gebruikt (de brug-race, 29-08-2026).
+    expect(html).toMatch(/_voortgang\s*=\s*voortgangStatus\(/);
+    expect(html.match(/tekenVoortgangStatus\(/g) || []).not.toHaveLength(0);
+    expect(html).toMatch(/tekenVoortgangStatus\(_voortgang\)/);
+  });
+});
+
 test('de regel over "langer dan gebruikelijk" bestaat niet meer', async ({ page }) => {
   // Hij meldde na twintig seconden iets wat niet waar was: het was al aangekondigd
   // dat de analyse een paar minuten duurt. Een melding die iets onverwachts

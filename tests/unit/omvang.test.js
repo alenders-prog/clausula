@@ -286,8 +286,21 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // dat de app er oneindig op wachtte: geen enkele fetch had een tijdslimiet, en de grens
 // van 90s telde alleen de SLAAPTIJD op en werd bovenaan de lus getoetst — dus precies
 // bij een aanroep die bleef hangen kon hij niet afgaan.
-const MAX_REGELS_INDEX = 16077;
-const MAX_REGELS_JS     = 12869;
+// 31-08-2026 (negentiende keer): 16077 → 16128 (+51, waarvan 42 script en 9 CSS), voor
+// de statusregel die tijdens de analyse blijft staan.
+//
+// De beslissing zelf ging naar src/analyse/voortgang-status.js met 15 tests; de oude
+// inline-variant in de render is daarmee verdwenen. Wat hier bijkwam is het tekenen
+// (tekenVoortgangStatus, ~30 regels DOM-werk), twee plekken in de kopregel en het
+// onthouden van het afrondingsmoment.
+//
+// De aanleiding: de zin "Bezig met juridische toets, balans en grammatica…" hing aan
+// `alleI.length > 0 ? kaarten : nogBezig ? zin : leeg` — dus aan "er is nog niets" in
+// plaats van aan "er wordt nog gewerkt". Zodra het eerste verbeterpunt binnenkwam was
+// hij weg, terwijl er nog twee dimensies liepen. Wat overbleef waren de veegjes op de
+// grijze fiches, en daaruit valt niet af te lezen waaróp gewacht wordt.
+const MAX_REGELS_INDEX = 16128;
+const MAX_REGELS_JS     = 12911;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
