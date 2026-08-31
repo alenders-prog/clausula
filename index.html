@@ -3682,72 +3682,39 @@ async function askClaudeForJson(systemPrompt, userContent, tool, maxTokens = 409
 const tekstPerPad        = new Map(); // storageInfo.pad → tekst (mammoth of PDF.js)
 const docxPerBestandsnaam = new Map(); // bestand.name    → Blob  (DOCX van Adobe)
 
-// ── Issue-deduplicatie (browser-side, identiek aan server-versie) ─────────────
-// Zoek de tekenpositie van een issue-passage in de gecombineerde documenttekst.
-// Gebruikt de eerste 80 tekens van het citaat voor een betrouwbare match.
-// Fallback: _origPos (Claude-outputvolgorde) als passage ontbreekt of niet gevonden.
+// ── Verbeterpunten op documentvolgorde ───────────────────────────────────────
+// Het zoeken zelf staat in src/rapport/doc-volgorde.js, met tests. Hier blijft wat
+// applicatietoestand nodig heeft: de juiste documenttekst kiezen en de passages
+// terug-pseudonimiseren.
 function vindDocVolgorde(issuesArr) {
-  // Gebruik alleen de tekst van het actieve tabblad, niet de gecombineerde tekst.
-  // Zo worden cross-doc passages die ook in het andere document staan niet op een
-  // vroege positie gematcht (Convenant staat eerst in de gecombineerde tekst).
-  const volledigeTekst = app.rapport?._document_tekst || '';
-  const huidigDocType  = app.documenten[app.docIdx]?.doc_type
-                      || app.classificatie?.doc_type || '';
-  const tabTekst = haalDocTypeTekst(volledigeTekst, huidigDocType);
-  const docNorm  = normPassage(tabTekst);
-  if (!docNorm) return issuesArr.map((_, i) => i);
+  const lijst = Array.isArray(issuesArr) ? issuesArr : [];
 
-  const STOP = new Set(['de','het','een','en','of','in','van','op','te','dat','die','is',
-    'zijn','voor','aan','met','bij','uit','als','ook','maar','niet','naar','om','over']);
+  // Alleen de tekst van het actieve tabblad, niet de gecombineerde. Anders worden
+  // cross-doc passages die in béide documenten staan op de vroegste positie gematcht
+  // (het convenant staat eerst in de gecombineerde tekst).
+  const huidigDocType = app.documenten[app.docIdx]?.doc_type
+                     || app.classificatie?.doc_type || '';
+  const docNorm = normPassage(
+    haalDocTypeTekst(app.rapport?._document_tekst || '', huidigDocType));
 
-  const vindPos = (issue) => {
-    if (!issue?.passage) return 500000 + (issue._origPos ?? 0);
-    // Pseudonimiseer opnieuw: herstelAnonObj heeft echte namen hersteld maar
-    // _document_tekst bevat nep-namen → match mislukt anders altijd.
-    const pasNorm = normPassage(anonimiseerTekst(issue.passage, huidigeNaarAnon));
-    if (!pasNorm) return 500000 + (issue._origPos ?? 0);
+  // Terug-pseudonimiseren: herstelAnonObj heeft de echte namen teruggezet, maar
+  // _document_tekst bevat nog de nepnamen — anders mislukt élke match.
+  const items = lijst.map((issue, i) => ({
+    passageNorm: issue?.passage
+      ? normPassage(anonimiseerTekst(issue.passage, huidigeNaarAnon)) : '',
+    artikel: issue?.artikel || '',
+    origPos: issue?._origPos ?? i,
+  }));
 
-    // Tier 1: exacte genormaliseerde match
-    let idx = docNorm.indexOf(pasNorm);
+  const { volgorde, diagnose } = bepaalVolgorde({ docNorm, items });
 
-    // Tier 2: eerste 60 tekens (afgekorte passages)
-    if (idx < 0 && pasNorm.length > 60)
-      idx = docNorm.indexOf(pasNorm.slice(0, 60));
+  // De controle die er niet was. Staat een flink deel van de kaarten op de terugval,
+  // dan is dit geen documentvolgorde meer maar grotendeels modelvolgorde — en dat is
+  // aan de lijst zelf niet te zien.
+  const oordeel = beoordeelVolgorde(diagnose);
+  if (!oordeel.ok) console.warn('[docvolgorde]', oordeel.melding, diagnose.perTrap);
 
-    // Tier 3: glijdend venster van 4 inhoudswoorden (> 3 tekens, geen stopwoord)
-    if (idx < 0) {
-      const wrd = pasNorm.split(' ').filter(w => w.length > 3 && !STOP.has(w));
-      for (let i = 0; i + 3 < wrd.length && idx < 0; i++)
-        idx = docNorm.indexOf(wrd.slice(i, i + 4).join(' '));
-    }
-
-    // Tier 4: glijdend venster van 3 inhoudswoorden (kortere passages)
-    if (idx < 0) {
-      const wrd = pasNorm.split(' ').filter(w => w.length > 3 && !STOP.has(w));
-      for (let i = 0; i + 2 < wrd.length && idx < 0; i++)
-        idx = docNorm.indexOf(wrd.slice(i, i + 3).join(' '));
-    }
-
-    // Tier 5: artikel-kopje zoeken als passage niet gevonden (bijv. "3.2.1 Bankrekeningen")
-    // Geeft een betere volgorde dan de vaste fallback 500000 voor issues met een sectienummer.
-    if (idx < 0 && issue.artikel) {
-      const artNorm = normPassage(issue.artikel);
-      if (artNorm) {
-        idx = docNorm.indexOf(artNorm);
-        if (idx < 0) {
-          // Probeer alleen het numerieke deel (bijv. "3.2.1" uit "Artikel 3.2.1 Bankrekeningen")
-          const artNum = artNorm.replace(/^(artikel|art\.?)\s*/i, '').trim();
-          if (artNum) idx = docNorm.indexOf(artNum);
-        }
-      }
-    }
-
-    // Niet gevonden → naar achteren plaatsen (bijlage-issues e.d.), niet naar voren.
-    // 500000 + _origPos zodat ongematchte issues aan het einde staan in Claude-volgorde.
-    return idx >= 0 ? idx : 500000 + (issue._origPos ?? 0);
-  };
-
-  return issuesArr.map((_, i) => i).sort((a, b) => vindPos(issuesArr[a]) - vindPos(issuesArr[b]));
+  return volgorde;
 }
 
 // ── Statusregel tijdens de analyse ───────────────────────────────────────────
@@ -15928,6 +15895,7 @@ import { splitsClausuleAntwoord, splitsToelichting,
 import { pollWacht, tijdsbudget, nogEenPoging, tijdslimietMelding,
          START_MAX_MS, POLL_MAX_MS }                         from './src/conversie/wachtschema.js';
 import { voortgangStatus, AFRONDING_MS }                     from './src/analyse/voortgang-status.js';
+import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport/doc-volgorde.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16004,6 +15972,8 @@ window.START_MAX_MS           = START_MAX_MS;
 window.POLL_MAX_MS            = POLL_MAX_MS;
 window.voortgangStatus        = voortgangStatus;
 window.AFRONDING_MS           = AFRONDING_MS;
+window.bepaalVolgorde         = bepaalVolgorde;
+window.beoordeelVolgorde      = beoordeelVolgorde;
 
 // Laatste regel van de brug: alles staat op `window`. Het klassieke script wacht
 // hierop via `brugGereed` — zie de toelichting daar. Blijft deze regel achterwege,

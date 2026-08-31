@@ -299,8 +299,17 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // plaats van aan "er wordt nog gewerkt". Zodra het eerste verbeterpunt binnenkwam was
 // hij weg, terwijl er nog twee dimensies liepen. Wat overbleef waren de veegjes op de
 // grijze fiches, en daaruit valt niet af te lezen waaróp gewacht wordt.
-const MAX_REGELS_INDEX = 16128;
-const MAX_REGELS_JS     = 12911;
+// 31-08-2026 (twintigste keer): 16128 → 16098 (−30, alle 30 script). Omláág, voor het
+// eerst sinds lang: vindDocVolgorde ging naar src/rapport/doc-volgorde.js met 22 tests
+// en liet 30 regels achter zich.
+//
+// Aanleiding: een verbeterpunt uit §11 van een ouderschapsplan stond bovenaan de lijst
+// bij "Sorteren op Documentvolgorde". Er was geen enkele manier om te zien waarom — de
+// functie gaf een getal terug zonder te zeggen of dat een treffer was of een terugval.
+// Twee trappen waren daadwerkelijk stuk; nu zegt elke uitkomst via welke trap hij
+// gevonden is, en telt beoordeelVolgorde hoeveel er op de terugval staan.
+const MAX_REGELS_INDEX = 16098;
+const MAX_REGELS_JS     = 12881;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
