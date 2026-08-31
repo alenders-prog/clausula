@@ -258,8 +258,36 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // Dat endpoint is een doorgeefluik: het stuurt de body ongewijzigd naar Anthropic en
 // kan dus niet weten waarvoor het wordt gebruikt. Vandaar een header en geen veld in
 // de body — dat laatste zou meegaan naar Anthropic.
-const MAX_REGELS_INDEX = 16024;
-const MAX_REGELS_JS     = 12816;
+// 29-08-2026 (zeventiende keer): 16024 → 16059 (+35, alle 35 script), voor het wachten
+// op de ESM-brug.
+//
+// `laadDossiers()` staat aan het eind van de opstart-IIFE in het KLASSIEKE script, dat
+// meteen draait; het moduleblok onderaan is deferred. Alles wat via window.* uit src/
+// komt bestaat op dat moment nog niet. Die race zat er altijd in en werd altijd
+// gewonnen — tot de modulegraaf van ~20 naar ~30 bestanden groeide. Toen meldde de app
+// bij het openen "Kon dossiers niet laden: maakGrad is not defined", zonder enige
+// foutmelding in de console.
+//
+// Verplaatsen naar src/ kan hier niet: het IS de koppeling tussen de twee scriptsoorten.
+// Wat het wél verdiende is een browsertest, en die staat er (13-brug-race.spec.js) —
+// mét de race afgedwongen, want zonder die vertraging bleef hij groen ook als je de
+// reparatie weghaalde.
+// 29-08-2026 (achttiende keer): 16059 → 16077 (+18, alle 18 script), voor het
+// tijdsbudget van de PDF→DOCX-conversie.
+//
+// De rédenering ging wél naar src/ (conversie/wachtschema.js, 13 tests). Wat hier
+// achterbleef is bedrading die nergens anders kán staan: de import, zes window.*-regels
+// op de brug, `await brugGereed`, en twee `signal:`-regels bij de fetches. Daar valt
+// geen test omheen te schrijven, want er valt niets te beslissen.
+//
+// De aanleiding: de conversie bleef eeuwig staan op "Converteren… (1s)". `vercel dev`
+// sluist het antwoord via undici door en valt bij ~1,44 MB om met een onafgevangen
+// socket-error; het proces sterft en niemand antwoordt nog. Dat is hun bug. Van ons was
+// dat de app er oneindig op wachtte: geen enkele fetch had een tijdslimiet, en de grens
+// van 90s telde alleen de SLAAPTIJD op en werd bovenaan de lus getoetst — dus precies
+// bij een aanroep die bleef hangen kon hij niet afgaan.
+const MAX_REGELS_INDEX = 16077;
+const MAX_REGELS_JS     = 12869;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

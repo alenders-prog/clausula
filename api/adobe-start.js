@@ -9,6 +9,20 @@ export const config = {
   api: { bodyParser: { sizeLimit: '25mb' } },
 };
 
+// Elke aanroep naar Adobe krijgt een eigen tijdslimiet.
+//
+// Aanleiding (29 augustus 2026): geen van deze fetches had er een. Op productie
+// valt dat niet op — Vercel schiet de functie na maxDuration dood en de browser
+// krijgt een fout. Maar `vercel dev` handhaaft maxDuration NIET, dus lokaal bleef
+// een trage Adobe-aanroep oneindig wachten. De conversie bleef staan op
+// "Converteren… (1s)" en kwam nooit meer terug; de 90-secondengrens in de browser
+// kon niet vuren, want die wordt bovenaan de lus getoetst en de lus stond stil in
+// een await.
+//
+// De waarden blijven ruim onder de maxDuration van dit endpoint, zodat een
+// afgelopen limiet hier een nette foutmelding oplevert in plaats van een
+// doodgeschoten functie.
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
 
@@ -40,6 +54,7 @@ export default async function handler(req, res) {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body:    new URLSearchParams({ client_id: clientId, client_secret: clientSecret }),
+      signal:  AbortSignal.timeout(10_000),
     });
     if (!tokRes.ok) {
       throw new Error(`Adobe token-fout (${tokRes.status}): ${await tokRes.text()}`);
@@ -55,6 +70,7 @@ export default async function handler(req, res) {
         'Content-Type':  'application/json',
       },
       body: JSON.stringify({ mediaType: 'application/pdf' }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!assetRes.ok) {
       throw new Error(`Adobe asset-fout (${assetRes.status}): ${await assetRes.text()}`);
@@ -66,6 +82,8 @@ export default async function handler(req, res) {
       method:  'PUT',
       headers: { 'Content-Type': 'application/pdf' },
       body:    pdfBuf,
+      // Ruimer dan de andere: hier gaat het hele bestand over de lijn.
+      signal:  AbortSignal.timeout(30_000),
     });
     if (!putRes.ok) {
       throw new Error(`S3-upload mislukt (${putRes.status})`);
@@ -80,6 +98,7 @@ export default async function handler(req, res) {
         'Content-Type':  'application/json',
       },
       body: JSON.stringify({ assetID, targetFormat: 'docx' }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!jobRes.ok) {
       throw new Error(`Adobe export-job fout (${jobRes.status}): ${await jobRes.text()}`);

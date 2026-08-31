@@ -9,6 +9,20 @@
 import { verifieerJWT } from './_auth.js';
 import JSZip from 'jszip';
 
+// Elke aanroep naar Adobe krijgt een eigen tijdslimiet.
+//
+// Aanleiding (29 augustus 2026): geen van deze fetches had er een. Op productie
+// valt dat niet op — Vercel schiet de functie na maxDuration dood en de browser
+// krijgt een fout. Maar `vercel dev` handhaaft maxDuration NIET, dus lokaal bleef
+// een trage Adobe-aanroep oneindig wachten. De conversie bleef staan op
+// "Converteren… (1s)" en kwam nooit meer terug; de 90-secondengrens in de browser
+// kon niet vuren, want die wordt bovenaan de lus getoetst en de lus stond stil in
+// een await.
+//
+// De waarden blijven ruim onder de maxDuration van dit endpoint, zodat een
+// afgelopen limiet hier een nette foutmelding oplevert in plaats van een
+// doodgeschoten functie.
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
 
@@ -31,6 +45,7 @@ export default async function handler(req, res) {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body:    new URLSearchParams({ client_id: clientId, client_secret: clientSecret }),
+      signal:  AbortSignal.timeout(8000),
     });
     if (!tokRes.ok) throw new Error(`Adobe token-fout (${tokRes.status})`);
     const { access_token } = await tokRes.json();
@@ -41,6 +56,7 @@ export default async function handler(req, res) {
         'X-API-Key':     clientId,
         'Authorization': `Bearer ${access_token}`,
       },
+      signal: AbortSignal.timeout(8000),
     });
     if (!statusRes.ok) {
       throw new Error(`Status-check fout (${statusRes.status}): ${await statusRes.text()}`);
@@ -65,7 +81,7 @@ export default async function handler(req, res) {
       throw new Error('Adobe-respons bevat geen downloadUri');
     }
 
-    const docxRes = await fetch(downloadUri);
+    const docxRes = await fetch(downloadUri, { signal: AbortSignal.timeout(15000) });
     if (!docxRes.ok) throw new Error(`DOCX download mislukt (${docxRes.status})`);
 
     const rawBuf     = Buffer.from(await docxRes.arrayBuffer());

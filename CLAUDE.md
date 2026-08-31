@@ -39,6 +39,43 @@ Open daarna: http://localhost:3000
 
 Het `.env` bestand staat in `.gitignore` — nooit committen.
 
+### `vercel dev` valt om bij het antwoord dat een bestand draagt
+
+Sinds 29 augustus 2026 bekend. De PDF→DOCX-conversie bleef staan op "Converteren… (1s)"
+en kwam nooit meer terug. Niet Adobe (volledige flow: ~8s), niet de tokencontrole (35ms),
+niet `fixDocxArtifacts` (regex 2ms, inpakken 58ms) — allemaal gemeten en vrijgepleit.
+
+Het kindproces waarin `vercel dev` de functie draait sterft terwijl het zijn antwoord nog
+verstuurt. De socket valt weg, undici zendt een `error`-event dat niemand afvangt, en Node
+doodt daarop de hele dev-server:
+
+```
+SocketError: closed   code: 'UND_ERR_SOCKET'
+  Emitted 'error' event on BodyReadable instance   ← onafgevangen
+Error: Command failed: taskkill /pid … — ERROR: The process not found.
+```
+
+Het treft alleen het antwoord dát een bestand draagt (`status: 'done'` met de DOCX als
+base64); de kleine `in_progress`-antwoorden overleven het altijd. Het is **niet**
+groottegebonden — het gebeurde bij 1,44 MB én bij 130 KB — en niet documentgebonden,
+waardoor het lijkt te verspringen naar "het volgende document".
+
+Alleen lokaal: productie heeft die proxy er niet tussen. Ga bij zo'n hang dus **eerst
+kijken of de dev-server nog leeft** (`curl localhost:3000/login.html`) voordat je in de
+applicatiecode zoekt. Start hem met een logbestand, anders is de stacktrace weg.
+
+> **Wat hiervan wél van ons was.** De app wachtte er oneindig op. Geen enkele fetch had
+> een tijdslimiet, en de grens van 90 seconden telde alleen de *slaaptijd* tussen de
+> pogingen op — niet de aanroepen zelf — en werd bovenaan de lus getoetst. Bij het enige
+> geval dat ertoe deed, een aanroep die blijft hangen, kón hij dus niet afgaan.
+>
+> Vandaar de regel: **een tijdsgrens is een wandklokgrens.** Hij telt alles mee, en de
+> limiet van één aanroep is nooit langer dan wat er van het totaal over is. Staat in
+> `src/conversie/wachtschema.js` met tests; de lus in `index.html` gebruikt die.
+>
+> Toets zo'n grens door hem te laten afgaan — een server die verbindt en nooit antwoordt.
+> Anders weet je alleen dat de code compileert.
+
 ## Bestandsstructuur
 
 | Bestand / map | Doel |

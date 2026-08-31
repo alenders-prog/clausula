@@ -3392,16 +3392,24 @@ async function bestandNaarBase64(file) {
 // Upload PDF naar Adobe PDF Services, converteert naar DOCX (incl. OCR voor gescande docs)
 // en retourneert de DOCX als Blob. Gooit een Error als het mislukt.
 async function adobeConverteerPdf(file, onProgress = () => {}) {
+  await brugGereed;   // het wachtschema komt uit src/ via de ESM-brug
   onProgress('PDF uploaden naar converter…');
   const base64 = await bestandNaarBase64(file);
   const { data: { session: _adobeSess } } = await db.auth.getSession();
   // Fallback op _bearerToken als getSession() null retourneert tijdens token-refresh
   const _adobeToken = _adobeSess?.access_token || _bearerToken;
 
+  // Wandklok: het uploaden, het wachten én de aanroepen zelf tellen mee. Waarom dat
+  // moet, en wat er misging toen het niet zo was: src/conversie/wachtschema.js.
+  const _gestartOp = Date.now();
+  const _tijdOver  = (perAanroepMs) =>
+    tijdsbudget({ gestartOp: _gestartOp, nu: Date.now(), perAanroepMs });
+
   const startRes = await fetch('/api/adobe-start', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_adobeToken}` },
     body:    JSON.stringify({ pdfBase64: base64 }),
+    signal:  AbortSignal.timeout(_tijdOver(START_MAX_MS).aanroepMs),
   });
   if (!startRes.ok) {
     const err = await startRes.json().catch(() => ({}));
@@ -3409,19 +3417,20 @@ async function adobeConverteerPdf(file, onProgress = () => {}) {
   }
   const { jobUrl } = await startRes.json();
 
-  // Poll met exponential backoff: 1s, 2s, 4s, 8s, 8s, … — max ~90s totaal
-  const _adobeWacht = [1000, 2000, 4000, 8000];
-  const _adobeMaxMs = 90_000;
-  let _adobeVerstreken = 0;
-  for (let poging = 0; _adobeVerstreken < _adobeMaxMs; poging++) {
-    const wacht = _adobeWacht[Math.min(poging, _adobeWacht.length - 1)];
-    await new Promise(r => setTimeout(r, wacht));
-    _adobeVerstreken += wacht;
-    onProgress(`Converteren… (${Math.round(_adobeVerstreken / 1000)}s)`);
+  for (let poging = 0; ; poging++) {
+    if (!nogEenPoging({ gestartOp: _gestartOp, nu: Date.now(), poging })) break;
+    await new Promise(r => setTimeout(r, pollWacht(poging)));
+
+    const budget = _tijdOver(POLL_MAX_MS);
+    onProgress(`Converteren… (${Math.round(budget.verstreken / 1000)}s)`);
+
+    // De limiet omvat óók het lezen van de body — daar viel hij stil, niet bij de
+    // headers.
     const resultRes = await fetch('/api/adobe-result', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_adobeToken}` },
       body:    JSON.stringify({ jobUrl }),
+      signal:  AbortSignal.timeout(budget.aanroepMs),
     });
     if (!resultRes.ok) {
       const err = await resultRes.json().catch(() => ({}));
@@ -3439,7 +3448,8 @@ async function adobeConverteerPdf(file, onProgress = () => {}) {
     }
     if (result.status !== 'in_progress') throw new Error(`Onverwachte status: ${result.status}`);
   }
-  throw new Error('Adobe conversie timeout (60s)');
+  // Geen eindstation: de aanroeper vangt dit af en valt terug op PDF.js.
+  throw new Error(tijdslimietMelding(Date.now() - _gestartOp));
 }
 
 // ── Tekst extraheren ──────────────────────────────────
@@ -9125,6 +9135,33 @@ let _alVerwerktWijzigingIdx = null; // Set van indices waarvan de tekst al via e
 // var-declaraties zodat de namen beschikbaar zijn in dit script-bereik;
 // de ESM-bridge overschrijft ze v\u00f3\u00f3r de eerste gebruikersactie.
 var bouwAnonMap;      // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
+// \u2500\u2500 Wachten op de ESM-brug \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Het klassieke script draait meteen; het moduleblok onderaan is *deferred* en pas
+// n\u00e1 het parsen van de pagina. Alles wat via `window.*` uit src/ komt bestaat dus
+// nog niet op het moment dat dit script begint.
+//
+// Dat ging jarenlang goed omdat de modulegraaf klein was en het klassieke script
+// eerst nog op Supabase wachtte. Op 29 augustus 2026 ging het mis: de graaf groeide
+// naar ongeveer dertig bestanden en `laadDossiers()` won de race \u2014 met als resultaat
+// "Kon dossiers niet laden: maakGrad is not defined", zonder verdere foutmelding.
+//
+// Wachten op een element of op een tijdje lost dat niet op; wachten op de voorwaarde
+// zelf wel. Het moduleblok roept `_brugGereedMelden()` aan als laatste regel.
+let _brugGereedMelden;
+const brugGereed = new Promise(r => { _brugGereedMelden = r; });
+window._brugGereedMelden = () => _brugGereedMelden();
+
+// Blijft de brug weg \u2014 een importfout, een 404 op een src-bestand \u2014 dan mag de app
+// niet blijven hangen. Na acht seconden gaat hij door, met een luide melding: de
+// fouten die daarna komen zijn dan tenminste te herleiden tot de oorzaak.
+setTimeout(() => {
+  if (typeof maakGrad === 'undefined') {
+    console.error('[brug] Het moduleblok is niet uitgevoerd. Controleer of alle '
+      + 'imports onderaan index.html laden; \u00e9\u00e9n 404 zet de h\u00e9le brug uit.');
+    _brugGereedMelden();
+  }
+}, 8000);
+
 var anonimiseerTekst; // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
 // Issue-kaarten voor sterk afwijkende roepnamen (geen alert), per bestandsnaam —
 // een kaart hoort alleen bij het document waar die roepnaam in voorkomt.
@@ -11853,6 +11890,9 @@ function maakBestandenHtml(rp) {
 
 // ── Dossier-overzicht laden ──────────────────────────────────────────────────
 async function laadDossiers() {
+  // De kaarten gebruiken maakGrad en de scorefuncties uit src/. Zonder deze regel
+  // wint dit soms de race met het moduleblok — zie de toelichting bij `brugGereed`.
+  await brugGereed;
   const el = document.getElementById('dossierLijst');
   el.innerHTML = '<p style="padding:20px 28px;font-size:.85rem;color:var(--ink-soft)">Bezig met laden…</p>';
   try {
@@ -15837,6 +15877,8 @@ import { leesStroom }                                       from './src/assisten
 import { splitsAnalyse, leesVoorstel, beoordeelAfronding }   from './src/verificatie/stroom-status.js';
 import { splitsClausuleAntwoord, splitsToelichting,
          splitsMinimaleVereisten, isMinimaleVereistenKop }   from './src/assistent/clausule-delen.js';
+import { pollWacht, tijdsbudget, nogEenPoging, tijdslimietMelding,
+         START_MAX_MS, POLL_MAX_MS }                         from './src/conversie/wachtschema.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -15905,6 +15947,17 @@ window.splitsClausuleAntwoord = splitsClausuleAntwoord;
 window.splitsToelichting      = splitsToelichting;
 window.splitsMinimaleVereisten = splitsMinimaleVereisten;
 window.isMinimaleVereistenKop = isMinimaleVereistenKop;
+window.pollWacht              = pollWacht;
+window.tijdsbudget            = tijdsbudget;
+window.nogEenPoging           = nogEenPoging;
+window.tijdslimietMelding     = tijdslimietMelding;
+window.START_MAX_MS           = START_MAX_MS;
+window.POLL_MAX_MS            = POLL_MAX_MS;
+
+// Laatste regel van de brug: alles staat op `window`. Het klassieke script wacht
+// hierop via `brugGereed` — zie de toelichting daar. Blijft deze regel achterwege,
+// dan draait de app acht seconden later alsnog door, maar met een fout in de console.
+window._brugGereedMelden?.();
 </script>
 <div class="print-voettekst" id="printVoettekst">
   <span id="printVoettekstLinks"></span>
