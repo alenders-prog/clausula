@@ -70,6 +70,10 @@ const FASE_PER_TOOL = {
   registreer_bevindingen:          'bevindingen',
   registreer_cross_doc_bevindingen: 'cross_doc',
   consolideer_issues:              'consolidatie',
+  // Ontbrak tot 31 augustus 2026: die aanroepen stonden als 'onbekend' in de tabel.
+  // Klein bedrag ($0,013 per analyse), maar een fase zonder naam maakt de kolom op
+  // termijn onleesbaar — dan is niet meer te zien wát 'onbekend' was.
+  controleer_consistentie:         'consistentie',
 };
 
 // Wie de analyse draait, en welke analyse het is.

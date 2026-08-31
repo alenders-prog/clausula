@@ -77,7 +77,7 @@ export function kostenVanUsage(usage, model) {
  */
 export const FASEN = new Set([
   // analyseer.js
-  'structuur', 'bevindingen', 'cross_doc', 'consolidatie',
+  'structuur', 'bevindingen', 'cross_doc', 'consolidatie', 'consistentie',
   // ai-assistent.js
   'zoekronde', 'afronding', 'clausule', 'klanttekst', 'mail', 'samenvatting',
   // claude-edge.js — komt uit de browser mee

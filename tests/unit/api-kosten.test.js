@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   kostenVanUsage, normaliseerModel, bouwVerbruikRegel, veiligeFase, veiligeUuid, foutsoortVan,
   PRIJZEN, CACHE_LEES_FACTOR, CACHE_SCHRIJF_FACTOR,
@@ -215,5 +216,53 @@ describe('foutsoortVan', () => {
   it('geeft onbekend bij iets anders', () => {
     expect(foutsoortVan(new Error('boem'))).toBe('onbekend');
     expect(foutsoortVan(null)).toBe('onbekend');
+  });
+});
+
+// Aanleiding (31 augustus 2026): de consistentiecheck draaide twee keer per analyse en
+// stond in api_verbruik als fase 'onbekend' — zijn toolnaam ontbrak in FASE_PER_TOOL.
+// Klein bedrag, maar een kolom waarin 'onbekend' zich ophoopt is op termijn onleesbaar:
+// dan valt niet meer na te gaan wát daar in zat.
+//
+// Deze test kijkt in de bron in plaats van naar een tweede lijst die kan verlopen.
+describe('elke fase die de endpoints kunnen versturen staat op de woordenlijst', () => {
+  const bron = (p) => readFileSync(new URL(p, import.meta.url), 'utf8');
+
+  const faseBlok = () => {
+    const m = bron('../../api/analyseer.js').match(/const FASE_PER_TOOL = \{([\s\S]*?)\n\};/);
+    expect(m, 'FASE_PER_TOOL niet gevonden — is hij hernoemd?').not.toBeNull();
+    return m[1];
+  };
+
+  // Dít is de richting waarin het vandaag misging: de tool bestond, de toewijzing niet.
+  it('elke tool in het analysepad heeft een fase', () => {
+    const namen = new Set();
+    for (const p of ['../../api/analyseer.js', '../../api/_consistentie.js']) {
+      for (const m of bron(p).matchAll(/^\s*name: '([a-z_]+)',/gm)) namen.add(m[1]);
+    }
+    expect(namen.size, 'geen toolnamen gevonden — is de vorm veranderd?').toBeGreaterThan(3);
+
+    const blok = faseBlok();
+    for (const naam of namen) {
+      expect(blok, `tool '${naam}' heeft geen fase in FASE_PER_TOOL en belandt als 'onbekend' in api_verbruik`)
+        .toContain(`${naam}:`);
+    }
+  });
+
+  it('de fasen uit analyseer.js zijn allemaal bekend', () => {
+    const fasen = [...faseBlok().matchAll(/:\s*'([a-z_]+)'/g)].map(m => m[1]);
+    expect(fasen.length).toBeGreaterThan(3);
+    for (const f of fasen) {
+      expect(veiligeFase(f), `fase '${f}' staat niet in FASEN`).toBe(f);
+    }
+  });
+
+  it('de fasen uit ai-assistent.js zijn allemaal bekend', () => {
+    const fasen = [...bron('../../api/ai-assistent.js')
+      .matchAll(/_meetFase\s*=\s*'([a-z_]+)'/g)].map(m => m[1]);
+    expect(fasen.length).toBeGreaterThan(2);
+    for (const f of fasen) {
+      expect(veiligeFase(f), `fase '${f}' staat niet in FASEN`).toBe(f);
+    }
   });
 });
