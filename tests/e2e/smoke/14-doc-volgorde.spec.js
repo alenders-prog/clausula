@@ -120,3 +120,18 @@ test('bij een goede uitkomst blijft het stil', async ({ page }) => {
 
   expect(meldingen.join(' ')).not.toMatch(/docvolgorde/);
 });
+
+// Dit is niet in de browser te toetsen: in een test bestaat er geen naamkoppeling, dus
+// de ruwe en de gepseudonimiseerde schrijfwijze zijn daar identiek en elke variant
+// slaagt. In productie niet — op 1 september 2026 werden tien van de veertien
+// bevindingen niet teruggevonden (nul exact) doordat alléén de gepseudonimiseerde
+// variant werd aangeboden tegen een documenttekst die tijdens een verse analyse nog ruw
+// is. Na opslaan en opnieuw openen klopte diezelfde lijst wél.
+test('de passage gaat in beide schrijfwijzen naar de volgordebepaling', async ({ page }) => {
+  const html = await (await page.request.get('/index.html')).text();
+
+  expect(html, 'de ruwe schrijfwijze ontbreekt')
+    .toMatch(/passages:[\s\S]{0,240}normPassage\(issue\.passage\)/);
+  expect(html, 'de gepseudonimiseerde schrijfwijze ontbreekt')
+    .toMatch(/normPassage\(anonimiseerTekst\(issue\.passage/);
+});

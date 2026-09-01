@@ -190,3 +190,49 @@ describe('beoordeelVolgorde', () => {
     expect(beoordeelVolgorde().ok).toBe(true);
   });
 });
+
+// Aanleiding (1 september 2026), uit een echte analyse: van veertien bevindingen werden
+// er tien niet teruggevonden en NUL exact. De lijst stond daardoor grotendeels in
+// modelvolgorde. Na opslaan en opnieuw openen klopte diezelfde lijst wél — en dat was het
+// bewijs: de passage werd altijd gepseudonimiseerd, maar `_document_tekst` is dat tijdens
+// een verse analyse nog niet. Er werd dus in twee alfabetten tegelijk gezocht.
+describe('passage en documenttekst staan niet altijd in hetzelfde alfabet', () => {
+  const RUW    = norm('De rekening op naam van Erwin Huzen wordt toebedeeld aan de man.');
+  const PSEUDO = norm('De rekening op naam van Robin Doorneveld wordt toebedeeld aan de man.');
+  const ctxVan = (doc) => ({ docNorm: doc, inhoudSkelet: bouwSkelet(doc, true), volSkelet: bouwSkelet(doc, false) });
+
+  it('vindt de passage in een RUWE documenttekst (verse analyse)', () => {
+    const r = vindPositie(ctxVan(RUW), { passages: [RUW, PSEUDO] });
+    expect(r.trap).toBe('exact');
+  });
+
+  it('vindt hem ook in een GEPSEUDONIMISEERDE tekst (opgeslagen rapport)', () => {
+    const r = vindPositie(ctxVan(PSEUDO), { passages: [RUW, PSEUDO] });
+    expect(r.trap).toBe('exact');
+  });
+
+  it('met maar één variant mist hij de helft van de gevallen', () => {
+    // Dit is precies wat er misging: alléén de gepseudonimiseerde variant aanbieden,
+    // terwijl het document ruw is.
+    expect(vindPositie(ctxVan(RUW), { passages: [PSEUDO] }).trap).toBe('geen');
+  });
+
+  it('negeert lege en dubbele varianten', () => {
+    const r = vindPositie(ctxVan(RUW), { passages: [null, '', RUW, RUW] });
+    expect(r.trap).toBe('exact');
+  });
+
+  it('blijft werken met het oude enkelvoudige veld', () => {
+    expect(vindPositie(ctxVan(RUW), { passageNorm: RUW }).trap).toBe('exact');
+  });
+
+  it('bepaalVolgorde geeft beide varianten door', () => {
+    const doc = norm(`Vooraan staat iets anders. ${RUW} En daarna nog een slotzin.`);
+    const { volgorde, diagnose } = bepaalVolgorde({ docNorm: doc, items: [
+      { passages: [PSEUDO, RUW], origPos: 0 },
+      { passages: ['vooraan staat iets anders'], origPos: 1 },
+    ] });
+    expect(diagnose.zonderTreffer).toBe(0);
+    expect(volgorde).toEqual([1, 0]);
+  });
+});

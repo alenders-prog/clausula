@@ -3703,11 +3703,22 @@ function vindDocVolgorde(issuesArr) {
   const docNorm = normPassage(
     haalDocTypeTekst(app.rapport?._document_tekst || '', huidigDocType));
 
-  // Terug-pseudonimiseren: herstelAnonObj heeft de echte namen teruggezet, maar
-  // _document_tekst bevat nog de nepnamen — anders mislukt élke match.
+  // Béíde schrijfwijzen van de passage meegeven, want ze staan niet altijd in hetzelfde
+  // alfabet als de documenttekst:
+  //
+  //   verse analyse       herstelAnonObj heeft de echte namen teruggezet, en
+  //                       _document_tekst is óók nog ruw          → de ruwe variant past
+  //   opgeslagen rapport  bij het opslaan ging het hele rapport door anonimiseerObj,
+  //                       inclusief _document_tekst                → de pseudo-variant past
+  //
+  // De oude code pseudonimiseerde altijd, met een opmerking die het omgekeerde beweerde.
+  // Bij een verse analyse zocht hij daarmee nepnamen in ruwe tekst: op 1 september 2026
+  // werden zo tien van de veertien bevindingen niet teruggevonden, nul exact.
   const items = lijst.map((issue, i) => ({
-    passageNorm: issue?.passage
-      ? normPassage(anonimiseerTekst(issue.passage, huidigeNaarAnon)) : '',
+    passages: issue?.passage
+      ? [normPassage(issue.passage),
+         normPassage(anonimiseerTekst(issue.passage, huidigeNaarAnon))]
+      : [],
     artikel: issue?.artikel || '',
     origPos: issue?._origPos ?? i,
   }));

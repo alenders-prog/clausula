@@ -109,8 +109,25 @@ export function artikelZoekterm(artikel) {
 /**
  * De positie van één issue, plus via welke trap hij gevonden is.
  *
+ * Een issue mag méér dan één schrijfwijze van zijn passage aanleveren (`passages`). Dat
+ * is nodig omdat de passage en de documenttekst niet altijd in hetzelfde alfabet staan:
+ *
+ *   tijdens een verse analyse   de passage is terug-vertaald naar echte namen,
+ *                               `_document_tekst` staat er nog ruw in       → gelijk
+ *   bij een opgeslagen rapport  bij het opslaan is het hele rapport gepseudonimiseerd,
+ *                               inclusief de documenttekst                  → gelijk
+ *
+ * Alleen: de code wist niet in welke van die twee toestanden hij zat, en pseudonimiseerde
+ * de passage altijd. In een verse analyse zocht hij daarmee nepnamen in ruwe tekst. Op
+ * 1 september 2026 kwam dat naar boven: van veertien bevindingen werden er tien niet
+ * teruggevonden en nul exact — de lijst stond daardoor grotendeels in modelvolgorde. Na
+ * het opslaan en opnieuw openen klopte diezelfde lijst wél, en dát was het bewijs.
+ *
+ * Beide varianten proberen is eenvoudiger dan de toestand achterhalen, en blijft goed als
+ * er ooit een derde toestand bij komt.
+ *
  * @param {object} ctx   { docNorm, inhoudSkelet, volSkelet }
- * @param {object} issue { passageNorm, artikel, origPos }
+ * @param {object} issue { passages?: string[], passageNorm?: string, artikel, origPos }
  * @returns {{pos:number, trap:'exact'|'begin'|'woorden4'|'woorden3'|'artikel'|'geen'}}
  */
 export function vindPositie(ctx, issue = {}) {
@@ -119,8 +136,11 @@ export function vindPositie(ctx, issue = {}) {
     pos: GEEN_TREFFER_BASIS + (Number(issue.origPos) || 0), trap: 'geen',
   });
 
-  const pas = String(issue.passageNorm || '');
-  if (pas) {
+  const varianten = [...new Set(
+    (Array.isArray(issue.passages) ? issue.passages : [issue.passageNorm])
+      .map(p => String(p || '')).filter(Boolean),
+  )];
+  for (const pas of varianten) {
     let idx = docNorm.indexOf(pas);
     if (idx >= 0) return { pos: idx, trap: 'exact' };
 
@@ -157,7 +177,7 @@ export function vindPositie(ctx, issue = {}) {
  *
  * @param {object} p
  * @param {string} p.docNorm  genormaliseerde tekst van het actieve tabblad
- * @param {Array}  p.items    [{ passageNorm, artikel, origPos }] — zelfde volgorde als de issues
+ * @param {Array}  p.items    [{ passages|passageNorm, artikel, origPos }] — zelfde volgorde als de issues
  * @returns {{volgorde:number[], diagnose:{totaal:number, perTrap:object, zonderTreffer:number}}}
  */
 export function bepaalVolgorde({ docNorm = '', items = [] } = {}) {

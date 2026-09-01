@@ -325,8 +325,17 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // ontbraken, zonder een spoor daarvan op het scherm. Het oordeel — wát er mist, en of
 // het rapport te vertrouwen is — staat in src/analyse/afgekapt.js met 14 tests; hier
 // bleef het tekenen van de balk over.
-const MAX_REGELS_INDEX = 16153;
-const MAX_REGELS_JS     = 12930;
+// 01-09-2026 (vierentwintigste keer): 16153 → 16164 (+11, alle 11 script), voor twee
+// wijzigingen: `passage_document` in het issue-schema en de passage die nu in twee
+// schrijfwijzen naar de volgordebepaling gaat — ruw én gepseudonimiseerd.
+//
+// Dat laatste was een echte fout. De documenttekst is tijdens een verse analyse ruw en na
+// het opslaan gepseudonimiseerd; de code pseudonimiseerde de passage altijd, met een
+// opmerking die het omgekeerde beweerde. Uit een echte analyse: tien van de veertien
+// bevindingen niet teruggevonden, nul exact — de lijst stond daardoor in modelvolgorde.
+// Na opslaan en opnieuw openen klopte diezelfde lijst wél, en dát was het bewijs.
+const MAX_REGELS_INDEX = 16164;
+const MAX_REGELS_JS     = 12941;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
