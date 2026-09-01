@@ -52,11 +52,6 @@ export function documentenVoorType(screening, docType = 'alle') {
   return docs.filter(d => typeVanDocument(d, screening) === docType);
 }
 
-/** Alle bevindingen uit een rapport, over de documenten heen. */
-export function issuesVan(rapport) {
-  return documentenVan(rapport).flatMap(d => Array.isArray(d?.issues) ? d.issues : []);
-}
-
 /** Bevindingen van één screening, beperkt tot het gekozen documenttype. */
 export function issuesVoorType(screening, docType = 'alle') {
   return documentenVoorType(screening, docType)

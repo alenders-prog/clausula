@@ -47,6 +47,10 @@ const TOEGESTAAN = new Map([
     + 'DOC_TYPEN.includes(). Een derde type zou hier een kolom moeten krijgen, geen rang.'],
   ['DIM_PRIO', 'Prioriteit voor het kiezen van één dimensie per kaart, geen gewicht in de '
     + 'score. cross_doc ontbreekt bewust: dat is geen dimensie van één document.'],
+  ['bevestigdeTotp', 'Wacht op de 2FA-uitrol. De migratie supabase/2026-08-26-mfa-aal2.sql '
+    + 'staat klaar maar is nog niet gedraaid (mijn_rol_vereist_mfa bestaat niet in de '
+    + 'database), omdat er nog een beheerder zonder factor is. Weghalen en straks '
+    + 'terugbouwen is churn. Schrappen zodra die uitrol niet meer doorgaat.'],
 ]);
 
 // ── Bestanden inlezen ───────────────────────────────────────────────────────

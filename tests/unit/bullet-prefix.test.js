@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { bulletPrefix, zonderBullet, metBullet } from '../../src/docx/bullet-prefix.js';
+import { bulletPrefix, metBullet } from '../../src/docx/bullet-prefix.js';
 
 describe('bulletPrefix', () => {
   it('herkent een bolletje zonder spatie erachter — de Adobe-vorm', () => {
@@ -34,18 +34,6 @@ describe('bulletPrefix', () => {
     expect(bulletPrefix('')).toBe('');
     expect(bulletPrefix(null)).toBe('');
     expect(bulletPrefix(undefined)).toBe('');
-  });
-});
-
-describe('zonderBullet', () => {
-  it('haalt het voorvoegsel eraf', () => {
-    expect(zonderBullet('●Incidentele afwijking')).toBe('Incidentele afwijking');
-    expect(zonderBullet('  ▪  Ingesprongen')).toBe('Ingesprongen');
-  });
-
-  it('laat tekst zonder bullet ongemoeid', () => {
-    expect(zonderBullet('Gewone zin')).toBe('Gewone zin');
-    expect(zonderBullet('')).toBe('');
   });
 });
 

@@ -149,7 +149,8 @@ describe('analyseer.js gebruikt deze module ook echt', () => {
   const bron = readFileSync(new URL('../../api/analyseer.js', import.meta.url), 'utf8');
 
   it('roept de toets aan op de per-document bevindingen', () => {
-    expect(bron).toMatch(/import \{[^}]*maakHerkomstToets[^}]*\} from '\.\.\/src\/rapport\/passage-herkomst\.js'/);
+    expect(bron).toMatch(/import \{ scheidBijlageIssues \} from '\.\.\/src\/rapport\/passage-herkomst\.js'/);
+    expect(bron).toMatch(/scheidBijlageIssues\(result\.issues, bijlageOpties\)/);
     expect(bron).toMatch(/filterBijlageIssues\(filterGenderIssues\(result\)/);
   });
 
@@ -157,7 +158,7 @@ describe('analyseer.js gebruikt deze module ook echt', () => {
     // De passages komen terug in gepseudonimiseerde vorm, want dát is wat er verstuurd
     // is. Toetsen tegen doc.tekst zou dezelfde alfabet-asymmetrie opleveren die de
     // volgordebepaling op 1 september 2026 om zeep hielp — daar dan zonder melding.
-    expect(bron).toMatch(/maakHerkomstToets\(\{\s*hoofdTekst:\s*vervangPii\(doc\.tekst\),\s*contextTekst\s*\}\)/);
+    expect(bron).toMatch(/bijlageOpties = \{ hoofdTekst: vervangPii\(doc\.tekst\), contextTekst \}/);
   });
 
   it('laat cross-doc met rust — die kijkt juist over de documentgrens heen', () => {

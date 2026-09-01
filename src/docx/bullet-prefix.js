@@ -35,12 +35,6 @@ export function bulletPrefix(tekst) {
   return tekst.match(RE_HARD)?.[1] ?? tekst.match(RE_ZACHT)?.[1] ?? '';
 }
 
-/** De regel zonder het opsommingsvoorvoegsel. */
-export function zonderBullet(tekst) {
-  const p = bulletPrefix(tekst);
-  return p ? tekst.slice(p.length) : (tekst ?? '');
-}
-
 /**
  * Zet het voorvoegsel terug voor vervangende tekst.
  *

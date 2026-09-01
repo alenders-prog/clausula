@@ -56,7 +56,7 @@ import {
 import { afgeleideKenmerken } from '../src/rapport/internationaal.js';
 import { tijdsbudget } from '../src/tijdsbudget.js';
 import { systeemVeld, berichtInhoud } from '../src/api/prompt-cache.js';
-import { maakHerkomstToets, BIJLAGE } from '../src/rapport/passage-herkomst.js';
+import { scheidBijlageIssues } from '../src/rapport/passage-herkomst.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -689,19 +689,19 @@ export default async function handler(req, res) {
       //
       // Alleen op deze twee per-document calls: cross-doc kíjkt juist over de grenzen
       // heen en moet ongemoeid blijven.
-      const herkomstToets = contextTekst
-        ? maakHerkomstToets({ hoofdTekst: vervangPii(doc.tekst), contextTekst })
-        : null;
+      // Via scheidBijlageIssues, niet met een kopie ernaast. Die kopie stond hier
+      // vanmiddag nog: dezelfde lus, dezelfde vergelijking, terwijl de geteste module er
+      // ongebruikt naast lag. Precies het patroon dat we diezelfde dag drie keer vonden —
+      // en dat scripts/losse-eindjes.mjs sindsdien opmerkt.
+      const bijlageOpties = { hoofdTekst: vervangPii(doc.tekst), contextTekst };
 
       const filterBijlageIssues = (result, type) => {
-        if (!herkomstToets || !Array.isArray(result?.issues)) return result;
-        const blijft = [], weg = [];
-        for (const iss of result.issues) {
-          (herkomstToets(iss?.passage) === BIJLAGE ? weg : blijft).push(iss);
-        }
-        if (weg.length) {
-          console.warn(`[analyseer] ${weg.length} bevinding(en) uit een bijlage geweerd bij `
-            + `${doc.bestandsnaam}/${type}: ${weg.map(i => i.onderwerp || '(zonder onderwerp)').join(' | ')}`);
+        if (!contextTekst || !Array.isArray(result?.issues)) return result;
+        const { blijft, uitBijlage } = scheidBijlageIssues(result.issues, bijlageOpties);
+        if (uitBijlage.length) {
+          console.warn(`[analyseer] ${uitBijlage.length} bevinding(en) uit een bijlage geweerd bij `
+            + `${doc.bestandsnaam}/${type}: `
+            + uitBijlage.map(i => i.onderwerp || '(zonder onderwerp)').join(' | '));
         }
         return { ...result, issues: blijft };
       };

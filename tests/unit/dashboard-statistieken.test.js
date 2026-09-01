@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  bouwStatistieken, issuesVan, documentenVan, hoofdCategorie,
+  bouwStatistieken, documentenVan, hoofdCategorie,
   isAfgevinkt, isGenegeerd, bouwVerloop, scoreTraject, MFN_TOTAAL,
 } from '../../src/dashboard/statistieken.js';
 
@@ -9,27 +9,31 @@ const iss = (onderwerp, ernst = 'midden', dimensies = ['juridisch'], extra = {})
 
 const scr = (dossier_id, versie_nr, rapport) => ({ dossier_id, versie_nr, rapport });
 
-describe('documentenVan / issuesVan', () => {
+// `issuesVan` is op 1 september 2026 weggehaald: geëxporteerd, getest, en door de app
+// nooit aangeroepen. Een groene test onder code die niemand draait geeft dekking die er
+// niet is — precies de valse zekerheid waardoor `sorteerOpType` maanden onopgemerkt bleef.
+// Wat de app wél gebruikt is `documentenVan`, en dat blijft hieronder staan.
+describe('documentenVan', () => {
   it('leest een rapport met één document', () => {
-    expect(issuesVan({ issues: [iss('a')] })).toHaveLength(1);
+    expect(documentenVan({ issues: [iss('a')] })).toHaveLength(1);
   });
 
   it('leest een rapport met meerdere documenten', () => {
     const r = { documenten: [{ issues: [iss('a')] }, { issues: [iss('b'), iss('c')] }] };
-    expect(issuesVan(r)).toHaveLength(3);
+    expect(documentenVan(r)).toHaveLength(2);
   });
 
-  it('een lege documenten-array levert geen bevindingen op', () => {
+  it('een lege documenten-array levert geen documenten op', () => {
     // Niet terugvallen op het rapport zelf: dat gaf eerder bij score.js een rapport
     // zonder documenten een perfecte score.
     expect(documentenVan({ documenten: [] })).toEqual([]);
-    expect(issuesVan({ documenten: [] })).toEqual([]);
   });
 
   it('valt niet om op ontbrekende of rare invoer', () => {
-    expect(issuesVan(null)).toEqual([]);
-    expect(issuesVan({})).toEqual([]);
-    expect(issuesVan({ documenten: [null, { issues: null }] })).toEqual([]);
+    expect(documentenVan(null)).toEqual([]);
+    // Een rapport zonder `documenten` is de enkeldocument-vorm en telt als één
+    // document — dat is de tweevorm waar deze functie voor bestaat, geen randgeval.
+    expect(documentenVan({})).toEqual([{}]);
   });
 });
 
