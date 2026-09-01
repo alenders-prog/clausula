@@ -190,19 +190,11 @@ test('analyseDocument komt zonder fout tot het eind en zet het hoofddocument voo
 // moet bewijzen ligt vóór dat punt — dat er werkelijk iets naar de tabel gaat. De
 // koppeling tussen een geslaagde analyse en opslaan() staat vast in de broncontroles
 // onderaan tests/unit/opslag-waarschuwing.test.js.
-// NOG NIET GROEN, bewust zichtbaar. page.evaluate keert niet terug: opslaan() blijft
-// ergens hangen in de testomgeving, ook zonder tray en zonder bestanden. De nep-client
-// kan sinds vandaag wél schrijven (insert/update/storage in helpers/mock-supabase.js) —
-// dat was de eerste blokkade en die is weg. Volgende stap: de await-keten in opslaan()
-// stap voor stap loggen om te zien welke belofte niet nakomt.
-//
-// Wat hierboven al wél vastligt is de fout die elf dagen kostte: analyseDocument haalt
-// het eind van de stroom. Deze test gaat over de stap daarna.
-test.fixme('opslaan() schrijft de screening werkelijk naar de database', async ({ page }) => {
+test('opslaan() schrijft de screening werkelijk naar de database', async ({ page }) => {
   const fouten = volgPaginafouten(page);
   const geschreven = await bereidVoor(page);
 
-  await page.evaluate(async () => {
+  await page.evaluate(() => {
     app.dossierId    = '9725a3c8-0000-0000-0000-000000000000';
     app.screeningId  = null;
     app.tray         = [];
@@ -213,13 +205,23 @@ test.fixme('opslaan() schrijft de screening werkelijk naar de database', async (
       _document_tekst: 'CONVENANT. Partijen zijn gehuwd in gemeenschap van goederen.',
       _document_bestanden: [],
     };
-    await opslaan();
+    window.__opslagKlaar = false;
+    opslaan().then(() => { window.__opslagKlaar = 'af'; },
+                   e => { window.__opslagKlaar = 'fout: ' + e.message; });
   });
+
+  await expect.poll(() => page.evaluate(() => window.__opslagKlaar),
+    { timeout: 15_000, message: 'opslaan() kwam niet terug' }).toBe('af');
 
   // Strandt het opslaan, dan staat de reden in de foutbalk. Die meelezen scheelt een
   // ronde raden: "nul schrijfacties" zegt niet waaróm.
-  const balk = await page.locator('#opslagFoutBalk').textContent().catch(() => null);
-  expect(balk, ).toBeNull();
+  //
+  // Bewust via evaluate en niet via locator().textContent(): die wacht tot het element
+  // verschijnt, en dat gebeurt hier terecht nooit. Precies dáárop liep deze test twee
+  // minuten vast — de regel die de fout moest verklaren was zelf de fout.
+  const balk = await page.evaluate(() =>
+    document.getElementById('opslagFoutBalk')?.textContent ?? null);
+  expect(balk, `opslaan() meldde een fout: ${balk}`).toBeNull();
 
   // De bewering die elf dagen niet gold: er gaat werkelijk iets naar de tabel.
   expect(geschreven.length, 'er is niets naar screeningen geschreven').toBeGreaterThan(0);
