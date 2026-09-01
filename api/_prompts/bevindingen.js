@@ -38,7 +38,18 @@ Drie verplichte regels voor roepnaam-issues:
 - Bij twijfel: geen issue. Speculeer niet.
 - ALLEEN echte problemen rapporteren. Leg NOOIT een issue vast als het document aan de eis voldoet. Positieve bevestigingen ("Geen issue", "Voldoet aan...", "Geen actie vereist", "Correct geregeld") horen NIET in de issues-lijst — die lijst bevat uitsluitend punten die de mediator moet aanpassen of controleren.
 
-**issues (balans)** — Primaire dimensie: "balans". Voeg extra dimensies toe waar van toepassing (bijv. ["balans","juridisch"] bij een alimentatiebedrag dat zowel eenzijdig is als wettelijk onjuist berekend). Onderwerpen: alimentatiebedragen, eenzijdige clausules, asymmetrische indexering, ongemotiveerde afwijking van wettelijke maatstaven.
+**issues (balans)** — Primaire dimensie: "balans". Voeg extra dimensies toe waar van toepassing (bijv. ["balans","juridisch"] bij een alimentatiebedrag dat zowel eenzijdig is als wettelijk onjuist berekend).
+
+GRENS MET CONFLICTEN — lees dit vóór je een van beide kiest. Een tegenstrijdigheid is dat twee plaatsen in het document elkaar TEGENSPREKEN. Een balanskwestie is dat het document volkomen consistent is, maar dat de afspraak EENZIJDIG uitpakt. Een auto die aan één partij wordt toegedeeld zonder compensatie is geen tegenstrijdigheid — er spreekt niets iets anders tegen — maar een eenzijdige verdeling. Kies dan "balans", niet "conflicten".
+
+Zoek op deze categorieën:
+- VERDELING VAN VERMOGEN: een goed (auto, inboedel, spaartegoed, effecten, onderneming) dat aan één partij toevalt zonder verrekening of compensatie, terwijl het tot de te verdelen gemeenschap of het te verrekenen vermogen behoort.
+- VERDELING VAN SCHULDEN: een schuld die tijdens de relatie is aangegaan en volledig bij één partij wordt gelegd zonder verrekening. Bij gemeenschap van goederen is dat een afwijking van de hoofdregel en die vraagt motivering.
+- ALIMENTATIE EN ZORGKORTING: bedragen, percentages of termijnen die zonder onderbouwing in het voordeel van één partij uitvallen — bijvoorbeeld een zorgkorting die hoger is voor de ouder die niet de alimentatieplichtige is.
+- EENZIJDIGE VOORWAARDEN: verplichtingen, boetes, opzegtermijnen of informatieplichten die maar voor één partij gelden, of indexering die maar één kant op werkt.
+- MOTIVERING ONTBREEKT OF IS ONTOEREIKEND: "aangezien hij de auto nodig heeft voor zijn werk" is een reden, geen verrekening. Een afwijking van een wettelijke maatstaf mag, maar moet zijn onderbouwd.
+
+Rapporteer géén balansissue als de afwijking wél deugdelijk is onderbouwd of elders wordt gecompenseerd — kijk dus eerst of er verderop een tegenprestatie staat.
 - ZORGVERDELING-TABELLEN: beoordeel altijd de volledige cyclus (oneven + even week samen). Als de even week het spiegelbeeld is van de oneven week → het schema is per definitie symmetrisch. Het patroon waarbij één ouder de maandagochtend heeft en de andere ouder de rest t/m de volgende maandagochtend ("weekwissel op maandag") is een standaard Nederlands co-ouderschapspatroon — dit is geen asymmetrie en geen fout.
 
 **issues (grammatica)** — Dimensies ["grammatica"]. Scan het VOLLEDIGE document op:
@@ -67,6 +78,7 @@ NOOIT: onderwerp over fout X, maar bevinding/passage over een totaal ander onder
 - Inter-artikel: artikel X en artikel Y spreken elkaar tegen over hetzelfde onderwerp
 - Intra-sectie: twee opeenvolgende zinnen of bullets binnen hetzelfde onderdeel die het tegenovergestelde beweren (bijv. 'uitsluitend mondeling' gevolgd door 'schriftelijk vastgelegd', of een vakantieregeling die intern inconsistente aantallen weken of wisseldata noemt)
 - Bedrag/datum: hetzelfde bedrag of dezelfde datum wordt op twee plaatsen anders vermeld
+- GEEN CONFLICT: een verdeling die eenzijdig uitvalt. Als niets in het document iets anders beweert, is er geen tegenstrijdigheid — dat is een balanskwestie. Een spaarrekening of auto die zonder verrekening aan één partij toevalt hoort onder "balans", ook al voelt het als een fout.
 - DEDUPLICATIE: als meerdere inconsistenties voortkomen uit DEZELFDE onderliggende oorzaak (bijv. één fout bedrag dat op meerdere plekken terugkomt), maak dan EEN bevinding die de kernfout beschrijft en de gevolgen noemt — GEEN afzonderlijk issue per plek.
 
 - Vul bij elk issue het veld 'passage' met een verbatim citaat van de ZIN OF BULLET DIE HET SPECIFIEKE GETAL, DE DATUM OF DE TEGENSTRIJDIGHEID BEVAT (niet de persoonsomschrijving of definitiebepaling van de betrokkene, ook niet de omringende context). Bij een bedrag/datum-conflict: citeer de zin mét het afwijkende getal/datum, niet de zin die de persoon of het onderwerp introduceert.
