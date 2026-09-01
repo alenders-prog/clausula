@@ -334,8 +334,20 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // opmerking die het omgekeerde beweerde. Uit een echte analyse: tien van de veertien
 // bevindingen niet teruggevonden, nul exact — de lijst stond daardoor in modelvolgorde.
 // Na opslaan en opnieuw openen klopte diezelfde lijst wél, en dát was het bewijs.
-const MAX_REGELS_INDEX = 16164;
-const MAX_REGELS_JS     = 12941;
+//
+// 01-09-2026 (vijfentwintigste keer): 16164 → 16241 (+77, waarvan 67 script en 10 CSS),
+// nadat een analyse van $0,34 verloren ging doordat het opslaan stilletjes niet doorging.
+// Uit de gegevens: api_verbruik vier geslaagde fasen, screeningen geen rij, Storage geen
+// bestand, en de updated_at van het dossier — die `opslaan()` als laatste stap bijwerkt —
+// onveranderd. De analyse bestond alleen in dat ene tabblad.
+//
+// Dit is bewust een verhoging en geen verplaatsing. De beslissing "mag de gebruiker hier
+// weg" staat in src/opslag-waarschuwing.js met 12 tests; wat hier bijkwam is uitsluitend
+// bedrading: een balk tekenen, een knop koppelen, een beforeunload aanhaken en twee
+// vlaggen om `opslaan()` heen. Dat is precies wat CLAUDE.md in index.html toestaat, en er
+// is geen test die van het verhuizen ervan iets méér zou bewijzen.
+const MAX_REGELS_INDEX = 16241;
+const MAX_REGELS_JS     = 13008;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

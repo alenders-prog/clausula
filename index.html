@@ -767,6 +767,16 @@ button.primair:hover{background:var(--coral-dark);}
 .versie-label-header:focus{border-color:var(--brass);}
 .versie-label-header::placeholder{color:rgba(245,241,232,.35);}
 .opslagstatus{color:rgba(245,241,232,.4);font-size:.82rem;}
+/* Blijft staan tot het opslaan alsnog lukt. Onder in beeld, over alles heen: de vorige
+   melding was een grijze span die je alleen zag als je er toevallig naar keek. */
+.opslag-fout-balk{position:fixed;left:0;right:0;bottom:0;z-index:9999;display:flex;
+  align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;
+  background:#8C2F1F;color:#FFF4EF;font-size:.9rem;line-height:1.45;
+  box-shadow:0 -2px 14px rgba(0,0,0,.28);}
+.opslag-fout-balk button{flex:none;padding:8px 16px;border:1px solid rgba(255,255,255,.55);
+  border-radius:6px;background:transparent;color:#FFF4EF;font-size:.86rem;cursor:pointer;}
+.opslag-fout-balk button:hover:not(:disabled){background:rgba(255,255,255,.14);}
+.opslag-fout-balk button:disabled{opacity:.6;cursor:default;}
 .doc-tab{background:none;border:none;border-bottom:2px solid transparent;padding:6px 14px;
   cursor:pointer;font-family:inherit;font-size:.85rem;font-weight:600;color:rgba(245,241,232,.5);
   transition:color .15s,border-color .15s;white-space:nowrap;flex-shrink:0;}
@@ -7115,8 +7125,29 @@ document.getElementById('backBtn').addEventListener('click', () => {
 });
 
 // ── Opslaan ───────────────────────────────────────────
+// Loopt er nu een opslagpoging, en is de vorige gestrand? Zie
+// src/opslag-waarschuwing.js voor waaróm dit wordt bijgehouden: op 1 september 2026
+// ging een analyse van $0,34 verloren omdat opslaan stilletjes niet doorging.
+let _opslaanBezig     = false;
+let _opslaanLaatsteFout = '';
+
+/** De toestand van het scherm tegenover de database. */
+function huidigeOpslagToestand() {
+  // Via window: de brug vult dit pas na het laden — zelfde patroon als de andere
+  // modulefuncties in dit bestand. Vóór de eerste analyse is er niets te verliezen.
+  if (!window.opslagToestand) return { toestand: 'veilig', melding: '' };
+  return window.opslagToestand({
+    heeftRapport: !!app.rapport,
+    screeningId:  app.screeningId,
+    bezig:        _opslaanBezig,
+    laatsteFout:  _opslaanLaatsteFout,
+  });
+}
+
 async function opslaan() {
   const status = document.getElementById('opslagStatus');
+  _opslaanBezig = true;
+  _opslaanLaatsteFout = '';
   try {
     // 1. Bestanden uploaden naar Storage (eenmalig)
     //    - fromStorage items: pad al bekend, hoeven niet opnieuw geüpload
@@ -7324,9 +7355,48 @@ async function opslaan() {
     status.textContent = 'Opgeslagen ✓';
     setTimeout(() => { if (status.textContent === 'Opgeslagen ✓') status.textContent = ''; }, 3000);
   } catch (err) {
-    status.textContent = 'Opslaan mislukt: ' + err.message;
+    // Dit stond alleen in een grijze span naast de conceptknoppen, en verdween zodra je
+    // wegklikte. Een analyse kost twee minuten en ruim dertig dollarcent; als het
+    // opslaan strandt moet dat in beeld staan, in de console terug te vinden zijn, én
+    // opnieuw te proberen — zie de melder hieronder.
+    _opslaanLaatsteFout = err.message || 'onbekende fout';
+    console.error('[opslaan] mislukt:', err);
+    status.textContent = 'Opslaan mislukt';
+    toonOpslagFout(_opslaanLaatsteFout);
+  } finally {
+    _opslaanBezig = false;
   }
 }
+
+/**
+ * Een balk die blijft staan tot het opslaan alsnog lukt. Bewust geen alert(): die
+ * blokkeert de pagina en is met één Enter weg, waarna het spoor opnieuw verdwenen is.
+ */
+function toonOpslagFout(bericht) {
+  document.getElementById('opslagFoutBalk')?.remove();
+  const balk = document.createElement('div');
+  balk.id = 'opslagFoutBalk';
+  balk.className = 'opslag-fout-balk';
+  balk.innerHTML = `<span><strong>Deze analyse is niet opgeslagen.</strong> ${escH(bericht)}
+    — hij staat alleen nog in dit tabblad. Sluit het niet voordat het opslaan lukt.</span>
+    <button type="button" id="opslagOpnieuwBtn">Opnieuw opslaan</button>`;
+  document.body.appendChild(balk);
+  balk.querySelector('#opslagOpnieuwBtn').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    e.target.textContent = 'Bezig…';
+    await opslaan();
+    if (!_opslaanLaatsteFout) balk.remove();
+    else { e.target.disabled = false; e.target.textContent = 'Opnieuw opslaan'; }
+  });
+}
+
+// De browser-terugknop en het sluiten van het tabblad. Alleen als er iets te verliezen
+// is: een waarschuwing die altijd komt, leert men wegklikken.
+window.addEventListener('beforeunload', (e) => {
+  if (!window.magWeg || window.magWeg(huidigeOpslagToestand())) return;
+  e.preventDefault();
+  e.returnValue = '';   // Chrome toont zijn eigen tekst; deze regel zet de vraag aan.
+});
 
 // Debounced auto-save — wordt getriggerd als de gebruiker een notitie wijzigt
 let _autoSaveTimer = null;
@@ -12312,6 +12382,10 @@ async function toonDossierDetail(id) {
 }
 
 function gaTerug() {
+  // De knop waarmee de analyse van 1 september verdween. Zie src/opslag-waarschuwing.js.
+  const toestand = huidigeOpslagToestand();
+  if (window.magWeg && !window.magWeg(toestand) && !confirm(`${toestand.melding}\n\nToch teruggaan?`)) return;
+
   schakelRechts('rp-home');
   app.dossierId     = null;
   app.dossierNaam    = null;
@@ -15961,6 +16035,7 @@ import { pollWacht, tijdsbudget, nogEenPoging, tijdslimietMelding,
 import { voortgangStatus, AFRONDING_MS }                     from './src/analyse/voortgang-status.js';
 import { beoordeelAfloop }                                   from './src/analyse/afgekapt.js';
 import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport/doc-volgorde.js';
+import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16039,6 +16114,8 @@ window.voortgangStatus        = voortgangStatus;
 window.AFRONDING_MS           = AFRONDING_MS;
 window.bepaalVolgorde         = bepaalVolgorde;
 window.beoordeelVolgorde      = beoordeelVolgorde;
+window.opslagToestand         = opslagToestand;
+window.magWeg                 = magWeg;
 window.beoordeelAfloop        = beoordeelAfloop;
 
 // Laatste regel van de brug: alles staat op `window`. Het klassieke script wacht
