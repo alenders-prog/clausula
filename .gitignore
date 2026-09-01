@@ -19,3 +19,6 @@ playwright-report/
 # Uitvoer van de semantische eval — diagnostisch, geen broncode
 tests/golden/laatste-run-*.json
 tests/golden/laatste-diff.txt
+
+# Agent-geheugen, hoort niet in de repo (per ongeluk meegecommit op 1 sep 2026)
+memory/
