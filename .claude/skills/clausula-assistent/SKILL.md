@@ -106,6 +106,27 @@ Drie oorzaken, alle drie aangepakt:
    schreef het model een clausule van 4.350 tekens mee. Geen enkele client las die velden
    ooit — nul verwijzingen in `index.html`, `assistent-core.js`, `assistent-mobiel.html`.
    Een echte clausule komt via `rawModus=true`, als vrije tekst in `antwoord`.
+
+   > **Die verwijdering liet één draadje liggen, en dat brak op 1 september 2026.**
+   > De `description` van het `antwoord`-veld bleef staan op *"max 2 zinnen intro bij
+   > opties … en clausule (tekst in clausule.tekst)"*. Dat veld was net weg. Het model
+   > deed exact wat er stond: het schreef zijn twee zinnen — *"Hieronder een juridisch
+   > volledige clausule."* — en had nergens om de clausule te laten. De mediator zag
+   > aannames, signalen, een vraag en een knop "Andere stijl", en geen clausule.
+   >
+   > Er kwam geen fout: de JSON was geldig, geen veld ontbrak. Zo'n gebroken belofte is
+   > van buiten niet van een gewoon antwoord te onderscheiden — vandaar dat het bleef
+   > zitten tot een mediator het meldde.
+   >
+   > De beschrijving zegt nu dat de volledige clausuletekst in `antwoord` hoort, en
+   > `src/assistent/clausule-belofte.js` (12 tests) is het vangnet: kondigt een
+   > `intent=clausule`-antwoord iets aan ("hieronder", "als volgt") zonder dat er
+   > minstens 120 tekens op volgen, dan wordt dat gelogd én komt er een zichtbare regel
+   > onder het antwoord die de mediator naar "Clausule opstellen" verwijst.
+   >
+   > **Les voor de volgende keer dat er een veld uit `ASSISTENT_TOOL` gaat**: doorzoek
+   > óók de `description`-teksten van de overgebleven velden. Die zijn prompt, geen
+   > documentatie — het model leest ze en handelt ernaar.
 3. **Het antwoord streamt.** Zie hieronder.
 
 > **Nog open**: `MAX_ZOEK` staat op 5 en de loop gebruikte in de metingen zijn hele

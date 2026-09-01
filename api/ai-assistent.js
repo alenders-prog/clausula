@@ -13,6 +13,7 @@ import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaa
 import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
 import { maakSectieVolger } from '../src/assistent/gedeeltelijk-json.js';
 import { zoekChunks } from '../src/kennisbank/zoek.js';
+import { beoordeelClausuleBelofte, vulClausuleBelofteAan } from '../src/assistent/clausule-belofte.js';
 
 // ── Systeem-prompt ────────────────────────────────────────────────────────────
 const SYSTEEM =
@@ -107,7 +108,13 @@ afwegingen symmetrisch voor beide partijen. Een optie die structureel één part
 krijgt een balans-signaal. Mailconcept alleen genereren als de mediator erom vraagt.
 Vervolgacties: kies uit klanttekst, clausule_opstellen.
 
-CLAUSULE — stijl staat in [CLAUSULE-STIJL], nooit aan de mediator vragen. Ontbrekende
+CLAUSULE — de clausuletekst staat VOLUIT in het antwoord-veld, onder je inleidende zin.
+Er is geen apart clausuleveld. Kondig nooit een clausule aan die je niet meelevert: schrijf
+je "hieronder volgt", dan staat de tekst er ook. Kun of wil je de clausule niet geven —
+bijvoorbeeld omdat een gegeven ontbreekt — zeg dan wát je nodig hebt en beloof niets.
+Een blokkerende onbekende is geen reden om de clausule weg te laten: lever hem met een
+placeholder of met beide varianten, en stel de vraag daarnaast.
+Stijl staat in [CLAUSULE-STIJL], nooit aan de mediator vragen. Ontbrekende
 specifieke waarden: placeholder [BEDRAG], [DATUM], [NAAM] — zelden blokkerend.
 Afwijking van dwingend recht: niet in de clausule opnemen maar als juridisch-signaal ernst hoog.
 Stijldefinities:
@@ -193,7 +200,12 @@ const ASSISTENT_TOOL = {
 
       antwoord: {
         type: 'string',
-        description: 'Kernantwoord. Max ~60 woorden bij kennisvraag/casus; max 2 zinnen intro bij opties (opties zelf in het opties-veld) en clausule (tekst in clausule.tekst).',
+        // Stond tot 1 september 2026 op "clausule (tekst in clausule.tekst)". Dat veld
+        // bestaat niet en heeft nooit bestaan — zie de properties hieronder. Het model
+        // schreef daardoor keurig zijn twee zinnen intro ("Hieronder een juridisch
+        // volledige clausule.") en had nergens om de clausule zelf te laten. Er was geen
+        // foutmelding: een belofte zonder vervolg ziet er van buiten uit als een antwoord.
+        description: 'Kernantwoord. Max ~60 woorden bij kennisvraag/casus; max 2 zinnen intro bij opties (opties zelf in het opties-veld). Bij intent=clausule hoort de VOLLEDIGE clausuletekst in dit veld, direct onder de inleidende zin — er is geen apart clausuleveld.',
       },
 
       bronnen: {
@@ -1017,6 +1029,15 @@ async function _verwerk(req, res) {
         output.verduidelijkingsvraag.veld !== 'vraag_context') {
       delete output.verduidelijkingsvraag;
     }
+    // Een aangekondigde clausule die er niet is. Zie src/assistent/clausule-belofte.js:
+    // dit kwam voort uit een verwijzing naar een veld dat niet bestond, en was van
+    // buiten niet van een gewoon antwoord te onderscheiden.
+    const belofte = beoordeelClausuleBelofte(output);
+    if (belofte.gebroken) {
+      console.warn(`[ai-assistent] ${belofte.reden}`);
+      output.antwoord = vulClausuleBelofteAan(output.antwoord, belofte);
+    }
+
     // Cap op 3
     if (output.vervolgacties?.length > 3) output.vervolgacties = output.vervolgacties.slice(0, 3);
     if (output.opties?.length > 3)        output.opties        = output.opties.slice(0, 3);
