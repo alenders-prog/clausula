@@ -322,6 +322,22 @@ const issueItem = {
       type: 'string',
       description: 'Sectienummer of kopje van het document waaronder dit issue valt (bijv. "3.2.1", "Artikel 5", "Bankrekeningen"). Laat leeg als het document geen duidelijke sectienummering heeft voor deze plek.',
     },
+    // Uit wélk document het citaat komt.
+    //
+    // Vandaag overbodig: elke aanroep krijgt precies één document, dus het antwoord staat
+    // al vast. Het staat er als voorbereiding op het samenvoegen van de documenten tot
+    // één tekst — dan draait één aanroep over beide en moet de server de bevindingen weer
+    // per document uitsturen. Het mechanisme daarvoor bestaat al
+    // (api/_cross-doc-toewijzing.js, dat hier als eerste naar `passage_document` kijkt),
+    // maar het kan alleen werken als het veld gevuld is.
+    //
+    // Nu alvast vullen betekent dat de omschakeling straks geen nieuw veld hoeft te
+    // introduceren op het moment dat er ook van alles anders verandert. Zie
+    // docs/ontwerpbesluiten.md.
+    passage_document: {
+      type: 'string',
+      description: 'Het documenttype waaruit de geciteerde passage komt: "convenant" of "ouderschapsplan". Neem de waarde over uit de kopregel === TYPE: bestandsnaam === boven de tekst waarin je het citaat vond.',
+    },
     // Verbatim citaat: navigatieanker waarmee de viewer de juiste plek in het document markeert.
     passage: {
       type: 'string',
@@ -705,7 +721,7 @@ export default async function handler(req, res) {
 
       const docTypenLabel = effectiefHoofd.map(d => d.type).join(' en ');
 
-      const sysCrossDoc = bouwSysCrossDoc({ docTypenLabel, wetTekst });
+      const sysCrossDoc = bouwSysCrossDoc({ docTypenLabel });
 
       sse({ type: 'cross_doc_start', documenten: effectiefHoofd.map(d => d.type) });
       // De gedeelde regels gaan nu ook hierheen. Tot 24 augustus 2026 kreeg deze

@@ -1,0 +1,110 @@
+{
+  "fixture": "cross-doc-verschillende-dossiers.json",
+  "aantal": 25,
+  "perErnst": {
+    "midden": 20,
+    "hoog": 5
+  },
+  "onderwerpen": [
+    {
+      "onderwerp": "Geboortedaten van beide partijen ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: Tremanormen-berekening ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: indexeringsclausule ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Partneralimentatie niet behandeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Pensioenverevening niet geregeld",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Ondertekeningsblok: datum en handtekeningen ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Partneralimentatie: geen regeling en geen nihilbeding",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Pensioenverevening: geen regeling opgenomen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Huwelijksgemeenschap: geen volledige vermogensafwikkeling (bankrekeningen, inboedel, schulden)",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Vakantieregeling ontbreekt volledig",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie zonder draagkrachtberekening of onderbouwing conform Tremanormen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Indexeringsclausule kinderalimentatie ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Informatieplicht onvolledig: geen kanalen, frequentie of consultatieplicht",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "School- en opleidingsbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Geschillenregeling en mediationclausule ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Ontbrekende secties: actuele situatie, wisselmomenten, vakanties, feestdagen, verjaardagen, sociale media, spaartegoed, evaluatie en overige standaardsecties",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: ingangsdatum ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Zorgverdeling tussen kinderen asymmetrisch en niet gemotiveerd",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Datum van het ouderschapsplan ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Documenten betreffen verschillende dossiers: andere partijen en andere kinderen",
+      "ernst": "hoog"
+    }
+  ]
+}

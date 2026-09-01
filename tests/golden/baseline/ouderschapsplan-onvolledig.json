@@ -1,22 +1,14 @@
 {
   "fixture": "ouderschapsplan-onvolledig.json",
-  "aantal": 12,
+  "aantal": 13,
   "perErnst": {
     "midden": 9,
-    "laag": 2,
+    "laag": 3,
     "hoog": 1
   },
   "onderwerpen": [
     {
-      "onderwerp": "Ingangsdatum kinderalimentatie ontbreekt",
-      "ernst": "midden"
-    },
-    {
       "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld, overige vakanties ontbreken",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
       "ernst": "midden"
     },
     {
@@ -32,7 +24,7 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Omgangsregeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "onderwerp": "Regeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
       "ernst": "laag"
     },
     {
@@ -40,11 +32,15 @@
       "ernst": "midden"
     },
     {
+      "onderwerp": "Wisselmomenten niet volledig gespecificeerd: geen vermelding wie haalt/brengt",
+      "ernst": "laag"
+    },
+    {
       "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Meerdere verwachte secties volledig afwezig",
+      "onderwerp": "Actuele situatie, rechten van de kinderen en betrokkenheid kinderen ontbreken",
       "ernst": "laag"
     },
     {
@@ -52,7 +48,15 @@
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Geschillenregeling / mediationclausule ontbreekt",
+      "onderwerp": "Kinderalimentatie: indexering verwijst naar 'NVI' in plaats van wettelijk CBS-indexcijfer",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Zorgkorting: niet vermeld bij kinderalimentatieberekening",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie na 18e jaar (art. 1:395a BW) niet geregeld",
       "ernst": "midden"
     }
   ]

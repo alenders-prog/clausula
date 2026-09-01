@@ -10,7 +10,23 @@
  * volledige cache-miss op alle lopende analyses.
  */
 
-export const bouwSysCrossDoc = ({ docTypenLabel, wetTekst }) =>
+/**
+ * Géén wetsartikelen meer, sinds 1 september 2026.
+ *
+ * Ze stonden onderaan dit prompt: ~15.000 tokens, ordegrootte $0,05 per analyse, en bij
+ * twee documenten ging dezelfde tekst dan drie keer de deur uit (hier plus een keer per
+ * bevindingen-aanroep).
+ *
+ * Gemeten op cross-doc-hoofdverblijf, twee rondes met en twee zonder: de kernbevinding
+ * (€ 400 in het convenant tegen € 350 in het ouderschapsplan) werd in alle vier gevonden,
+ * met vergelijkbare aantallen. De invoer van deze aanroep daalde van 25.826 naar 7.197
+ * tokens.
+ *
+ * Waarom dat kan: deze aanroep zoekt inconsistenties TUSSEN documenten. De juridische
+ * toetsing van elk document afzonderlijk gebeurt in `bevindingen`, en die houdt de
+ * artikelen wél. Zie docs/ontwerpbesluiten.md.
+ */
+export const bouwSysCrossDoc = ({ docTypenLabel }) =>
 `Je bent een ervaren familierechtjurist. Je legt twee documenten naast elkaar: ${docTypenLabel}.
 
 TAAK: Vind uitsluitend inconsistenties die ALLEEN ZICHTBAAR zijn door BEIDE documenten samen te lezen.
@@ -73,5 +89,4 @@ VERBODEN als passage (dit zijn NOOIT goede passages):
 CORRECT voorbeeld bij een peildatum-conflict:
 - "De peildatum voor de spaarrekeningen van de kinderen is vastgesteld op 15-03-2026." → GOED
 - "Het saldo op rekening NL91INGB... per 15-03-2026 bedraagt € 4.200,-." → GOED
-
-WETSARTIKELEN:\n${wetTekst || '(geen)'}`;
+`;

@@ -83,9 +83,18 @@ describe('system prompts per call', () => {
     expect(zonder).not.toContain('EXACT');
   });
 
-  it('nemen de meegegeven wetteksten op in de cross-doc prompt', () => {
-    const p = bouwSysCrossDoc({ ...LEEG, wetTekst: '[Art. 1:94 BW] beperkte gemeenschap' });
-    expect(p).toContain('[Art. 1:94 BW] beperkte gemeenschap');
+  // Sinds 1 september 2026 krijgt cross_doc GEEN wetsartikelen meer: ~15.000 tokens die
+  // bij twee documenten drie keer de deur uit gingen. Gemeten op cross-doc-hoofdverblijf,
+  // twee rondes met en twee zonder: de kernbevinding werd in alle vier gevonden en de
+  // invoer van die aanroep daalde van 25.826 naar 7.197 tokens. De juridische toetsing
+  // van elk document afzonderlijk gebeurt in `bevindingen`, en die houdt ze wél.
+  it('de cross-doc prompt draagt geen wetsartikelen meer', () => {
+    const p = bouwSysCrossDoc({ docTypenLabel: 'convenant en ouderschapsplan' });
+    expect(p).not.toContain('WETSARTIKELEN');
+    expect(p).not.toMatch(/\[Art\. 1:\d+/);
+    // Maar hij moet nog wél doen waarvoor hij bestaat.
+    expect(p).toContain('convenant en ouderschapsplan');
+    expect(p).toMatch(/ALLEEN ZICHTBAAR zijn door BEIDE documenten/);
   });
 
   it('laten optionele checkblokken weg als ze leeg zijn', () => {

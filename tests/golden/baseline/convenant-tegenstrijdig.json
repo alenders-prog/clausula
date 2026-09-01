@@ -1,13 +1,16 @@
 {
   "fixture": "convenant-tegenstrijdig.json",
-  "aantal": 13,
+  "aantal": 10,
   "perErnst": {
-    "midden": 12,
-    "laag": 1
+    "midden": 10
   },
   "onderwerpen": [
     {
-      "onderwerp": "Naam op bankrekening wijkt af van persoonsgegevens man",
+      "onderwerp": "Naam op bankrekening wijkt af van geïntroduceerde naam van de man",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Overbedelingsvergoeding € 5.000,- lager dan helft van berekende overwaarde, zonder motivering",
       "ernst": "midden"
     },
     {
@@ -15,11 +18,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Peildatum voor verdeling niet vastgelegd",
+      "onderwerp": "Fiscale afwikkeling ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Fiscale afwikkeling ontbreekt",
+      "onderwerp": "Schulden niet geregeld",
       "ernst": "midden"
     },
     {
@@ -27,35 +30,19 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Overbedelingsberekening woning niet controleerbaar onderbouwd",
-      "ernst": "laag"
-    },
-    {
-      "onderwerp": "Betaaltermijn overbedelingsvergoeding niet vastgelegd",
+      "onderwerp": "Nihilbeding partneralimentatie: geen expliciete grondslag art. 1:158 BW en geen termijn",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Nihilbeding partneralimentatie niet formeel vastgelegd (art. 1:158 BW)",
+      "onderwerp": "Bijzonder partnerpensioen niet geregeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Passeerdatum/leveringsdatum woning niet vermeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Pensioenregeling: bijzonder partnerpensioen niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Meldingsplicht pensioenuitvoerder (art. 11 WVPS) niet opgenomen",
+      "onderwerp": "Passeerdatum / leveringsdatum woning niet vermeld",
       "ernst": "midden"
     },
     {
       "onderwerp": "Fiscaal partnerschap: einddatum en verdeling aanslagen niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Peildatum bankrekening niet gespecificeerd",
       "ernst": "midden"
     }
   ]

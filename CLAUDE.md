@@ -247,6 +247,24 @@ daaraan; `api/_consistentie.js` valt onder dezelfde regel.
 > byte-exact door Anthropic gecachet — elke wijziging kost eenmalig een volledige
 > cache-miss op alle lopende analyses.
 
+## Ontwerpbesluiten staan in `docs/ontwerpbesluiten.md`
+
+Waaróm de analysepijplijn is zoals hij is, met de meting eronder en de voorwaarde
+waaronder je een besluit mag terugdraaien. **Lees dat bestand voordat je iets aan de
+structuur van de analyse verandert** — de meeste besluiten daar zijn tegenintuïtief en
+worden anders met de beste bedoelingen teruggedraaid.
+
+De twee verbanden waar alles uit volgt, allebei gemeten:
+
+- **Tijd is uitvoer.** `duur ≈ 6,3 s + 16,6 ms per uitvoertoken` (n=53, R² 0,94).
+  Correlatie met de invoergrootte is negatief. Meer context kost geld, geen tijd.
+- **Kosten zijn invoer.** Van een gemeten analyse van $0,97 was 71% invoer.
+
+Die twee wijzen naar verschillende plekken, dus een maatregel die het ene verbetert maakt
+het andere meestal slechter. En bovenal: **toets bij elke voorgestelde herstructurering
+eerst of het geen promptprobleem is.** Vijf keer in twee dagen leek iets architectuur en
+was het een instructie of een instelling.
+
 ## Nieuwe logica gaat naar `src/`
 
 `index.html` telt bijna 15.000 regels en 286 functies. Het refactorplan in

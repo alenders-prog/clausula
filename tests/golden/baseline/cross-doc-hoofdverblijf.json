@@ -1,0 +1,115 @@
+{
+  "fixture": "cross-doc-hoofdverblijf.json",
+  "aantal": 26,
+  "perErnst": {
+    "midden": 16,
+    "hoog": 4,
+    "laag": 6
+  },
+  "onderwerpen": [
+    {
+      "onderwerp": "Kinderalimentatie: indexering ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Woning: geen concrete verkooptermijn of uiterste datum vastgelegd",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Pensioenverevening: geen regeling of schriftelijke afwijking opgenomen",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Partneralimentatie: geen regeling of nihilbeding opgenomen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Fiscale afwikkeling: geen regeling opgenomen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Schulden: geen regeling opgenomen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Ondertekeningsdatum niet ingevuld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Inboedelverdeling: geen regeling opgenomen",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Terminologie: 'echtelijke woning' in plaats van 'gezamenlijke woning' of 'woning van partijen'",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Woning: ontslag uit hoofdelijke aansprakelijkheid hypotheek niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Gebruiksrecht woning: vage voorwaarde 'per datum dat de vrouw andere woonruimte heeft gevonden'",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatiebedrag wijkt af tussen convenant en ouderschapsplan",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Zorgregeling niet uitgewerkt — geen concrete weekomgang gespecificeerd",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Informatie- en consultatieverplichting onvolledig uitgewerkt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: ingangsdatum ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "School- en opleidingsbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Leeftijden van de kinderen niet vermeld",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Persoonsgegevens ouders en kinderen (personaliasectie) ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Actuele situatie van ouders niet beschreven",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Rechten van de kinderen en mate van betrokkenheid niet beschreven",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Terminologie: 'uit elkaar gaan' in plaats van 'ontbinding geregistreerd partnerschap'",
+      "ernst": "laag"
+    }
+  ]
+}

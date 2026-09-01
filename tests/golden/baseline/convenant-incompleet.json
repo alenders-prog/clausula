@@ -3,8 +3,8 @@
   "aantal": 13,
   "perErnst": {
     "hoog": 3,
-    "midden": 8,
-    "laag": 2
+    "midden": 9,
+    "laag": 1
   },
   "onderwerpen": [
     {
@@ -12,19 +12,23 @@
       "ernst": "hoog"
     },
     {
+      "onderwerp": "Ouderschapsplan ontbreekt en wordt niet vermeld",
+      "ernst": "hoog"
+    },
+    {
       "onderwerp": "Ingangsdatum partneralimentatie niet vermeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Hypotheek: ontslag hoofdelijke aansprakelijkheid niet geregeld",
-      "ernst": "hoog"
-    },
-    {
-      "onderwerp": "Verdeling woning: verkooptermijn en procedure niet geregeld",
+      "onderwerp": "Pensioenverevening: uitvoeringswijze onvolledig (geen WVPS-conform beding)",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Bankrekeningen: saldo's en peildatum niet vermeld",
+      "onderwerp": "Echtelijke woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Bankrekeningen: saldi en peildatum niet vermeld",
       "ernst": "midden"
     },
     {
@@ -32,32 +36,28 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Fiscale verdeling aanslagen en teruggaven niet geregeld",
+      "onderwerp": "Fiscale afwikkeling onvolledig: verdeling aanslagen en teruggaven ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Persoonsgegevens onvolledig: adressen en BSN ontbreken",
+      "onderwerp": "Persoonsgegevens onvolledig: adressen en geboorteplaatsen ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Geboortedatums kinderen onvolledig (alleen geboortejaar)",
+      "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Huwelijksgemeenschap: considerans over vermogensregime ontbreekt",
+      "onderwerp": "Inboedelverdeling ontbreekt",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Pensioenregeling beschrijft conversie maar noemt art. 5 WVPS niet en vereist instemming pensioenuitvoerder",
+      "onderwerp": "Pensioenafspraak beschrijft conversie maar noemt art. 5 WVPS niet en vereist instemming pensioenuitvoerder",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Vermogensverdeling: geen peildatum voor omvang en waardebepaling huwelijksgemeenschap",
+      "onderwerp": "Verdeling echtelijke woning: ontslag uit hoofdelijke aansprakelijkheid hypotheek en passeerdatum niet geregeld",
       "ernst": "midden"
-    },
-    {
-      "onderwerp": "Adres echtelijke woning niet gepseudonimiseerd conform documentprotocol maar wel concreet vermeld",
-      "ernst": "laag"
     }
   ]
 }
