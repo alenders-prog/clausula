@@ -191,17 +191,57 @@ Twee storingen leidden hiertoe, en ze deelden hun oorzaak:
 
 ---
 
-## Wat hier nog níét staat, en waarom
+## Besluit: het aantal aanroepen blijft zoals het is
 
-**Screenen per onderwerp in plaats van per document.** Uitgewerkt als voorstel, nog niet
-besloten. De kern: alle aanroepen delen dan één voorvoegsel (beide documenten + gedeeld
-blok + wetsartikelen), wat voorverwarmen mogelijk maakt en `cross_doc` overbodig. De
-onderwerpindeling zit al in `document_templates` — de sectienamen hebben voorvoegsels
-(`considerans_*`, `levensonderhoud_*`, `verdeling_*`) en dát zijn de onderwerpen.
+**Onderzocht en verworpen op 1 september 2026.** Dit is het besluit dat het vaakst opnieuw
+zal worden voorgesteld, want het klinkt vanzelfsprekend: verdeel het werk over meer
+parallelle aanroepen en de analyse wordt sneller.
 
-Samenvoegen op zichzelf is géén verbetering: minder aanroepen betekent minder invoer
-(−62%) maar meer tijd (+63%), omdat dezelfde uitvoer in minder stromen wordt geperst.
-**Samenvoegen is de voorwaarde, niet de opbrengst.**
+Dat werkt niet, en de reden is gemeten. **Het aantal aanroepen bepaalt de uitvoer, niet de
+indeling:**
+
+| verandering | uitvoergroei |
+|---|---|
+| 1 → 2 aanroepen (dimensies gesplitst) | +42% |
+| 4 → 4 aanroepen (alleen anders verdeeld) | +3 à 11% |
+| 4 → 8 aanroepen (per onderwerp) | +86 à 154% |
+
+Een smallere opdracht met hetzelfde tokenbudget levert diepere uitwerking op. Het zijn
+grotendeels géén duplicaten — de overlap tussen gesplitste helften was 0 tot 2 titels —
+maar het is wél werk dat je betaalt en waar de wandklok aan hangt. En omdat tijd aan
+uitvoer hangt, heft die groei de fijnere verdeling precies op.
+
+De volledige proef, acht onderwerp-aanroepen op één voorverwarmd voorvoegsel tegen de
+huidige vier, op een documentpaar van ~7.500 tekens:
+
+- **langste aanroep −7% en +2%** — geen tijdwinst
+- **uitvoer +86% en +154%**, bevindingen 44→74 en 47→101
+- **invoer −22%**, maar dat wordt ruimschoots opgegeten: kosten $0,46 → $0,73 (+58%)
+
+Honderd bevindingen op twee documenten is bovendien niet alleen duur maar onbruikbaar.
+
+> **Wat er wél uit kwam.** Vier aanroepen op één voorverwarmd voorvoegsel (dus zonder het
+> aantal te vergroten) geeft **invoer −42% bij vlakke uitvoer**, en het voorverwarmen
+> werkt: 8 van de 8 aanroepen lazen de cache. Maar de langste aanroep werd 12 tot 29%
+> langer, omdat `volledigheid` over beide documenten dan de dikste brok is. Ook dat is dus
+> een ruil, geen winst — en hij vraagt één gedeelde tool en het verplaatsen van de
+> documenttype-specifieke promptdelen naar de staart.
+>
+> Wil je het toch: de meting staat in het ontwerpvoorstel, en de bouwstenen bestaan al
+> (`docBlokken` bij cross_doc, `api/_cross-doc-toewijzing.js` voor het terugsplitsen).
+> Bedenk dan wel dat de toewijzing in de proef brak — het model vulde soms `convenant` en
+> soms `convenant.txt`. Elke extra aanroep is ook een extra manier om iets net anders te
+> doen.
+
+**Samenvoegen van de documenten** is apart gemeten en werkt technisch: invoer −47%, geen
+bevindingen verloren, toewijzing 100%. Maar het maakt de analyse trager (+35% wandklok),
+omdat dezelfde uitvoer in minder stromen wordt geperst. Samenvoegen is de voorwaarde voor
+het gedeelde voorvoegsel, niet de opbrengst.
+
+**Conclusie: de architectuur zit dicht bij een lokaal optimum.** Alles wat er nog ligt
+ruilt tijd tegen geld. De onmiskenbare winst zit in de besluiten hierboven — de cache
+eruit, de wetsartikelen uit cross-doc, het tokenplafond omhoog — en die zijn alle drie
+doorgevoerd.
 
 ---
 
