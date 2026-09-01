@@ -346,8 +346,8 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // bedrading: een balk tekenen, een knop koppelen, een beforeunload aanhaken en twee
 // vlaggen om `opslaan()` heen. Dat is precies wat CLAUDE.md in index.html toestaat, en er
 // is geen test die van het verhuizen ervan iets méér zou bewijzen.
-const MAX_REGELS_INDEX = 16241;
-const MAX_REGELS_JS     = 13008;
+const MAX_REGELS_INDEX = 16255;
+const MAX_REGELS_JS     = 13022;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

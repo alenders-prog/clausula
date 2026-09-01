@@ -89,7 +89,11 @@ describe('index.html gebruikt de toestand ook echt', () => {
   });
 
   it('onthoudt de fout in plaats van hem alleen te tonen', () => {
-    expect(html).toMatch(/_opslaanLaatsteFout = err\.message/);
+    // Niet alleen .message: de code, hint en details van een Supabase-fout zeggen samen
+    // pas wat er misging (42501 = RLS, 23502 = verplichte kolom leeg). Zonder die drie
+    // was "opslaan mislukt" op 1 september niet te herleiden.
+    expect(html).toMatch(/_opslaanLaatsteFout = \[err\.message, err\.code/);
+    expect(html).toMatch(/err\.hint, err\.details\]/);
     expect(html).toMatch(/console\.error\('\[opslaan\] mislukt:'/);
   });
 

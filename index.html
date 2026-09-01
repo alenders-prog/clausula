@@ -7148,6 +7148,13 @@ async function opslaan() {
   const status = document.getElementById('opslagStatus');
   _opslaanBezig = true;
   _opslaanLaatsteFout = '';
+  // Sporen. Twee analyses op 1 september 2026 zijn stil verdwenen en de gegevens konden
+  // alleen zeggen wáár het strandde (vóór de eerste upload), niet waarom. Deze drie
+  // regels maken van één schermafdruk van de console een volledig antwoord: liep hij,
+  // hoe ver kwam hij, en waarop viel hij om.
+  console.info('[opslaan] start —',
+    { dossier: app.dossierId, screening: app.screeningId, tray: app.tray.length,
+      rapport: !!app.rapport, bestanden: app.bestanden?.length ?? 0, org: _orgId, gebruiker: _userId });
   try {
     // 1. Bestanden uploaden naar Storage (eenmalig)
     //    - fromStorage items: pad al bekend, hoeven niet opnieuw geüpload
@@ -7170,6 +7177,7 @@ async function opslaan() {
           geupload.push({ pad, naam: item.bestand.name, type: item.type });
         }
       }
+      console.info(`[opslaan] uploads klaar — ${geupload.length} bestand(en)`);
       if (geupload.length) {
         app.rapport._document_bestanden = geupload;
 
@@ -7316,6 +7324,7 @@ async function opslaan() {
     }
     if (error) throw error;
     app.screeningId = data.id;
+    console.info(`[opslaan] ${_wasInsert ? 'aangemaakt' : 'bijgewerkt'} — screening ${data.id}`);
 
     // ── Feitregel voor het dashboard ──────────────────────────────────────
     // Tellingen die blijven staan als het dossier later wordt verwijderd. Bewust NA het
@@ -7359,7 +7368,12 @@ async function opslaan() {
     // wegklikte. Een analyse kost twee minuten en ruim dertig dollarcent; als het
     // opslaan strandt moet dat in beeld staan, in de console terug te vinden zijn, én
     // opnieuw te proberen — zie de melder hieronder.
-    _opslaanLaatsteFout = err.message || 'onbekende fout';
+    // De volledige Supabase-fout, niet alleen .message: code, details en hint staan daar
+    // apart en zeggen samen wat er werkelijk misging (42501 = RLS-policy, 23502 = een
+    // verplichte kolom leeg, 23503 = verwijzing naar iets dat niet bestaat). Zonder die
+    // drie is "mislukt" niet te herleiden — en dat was vanmiddag precies het probleem.
+    _opslaanLaatsteFout = [err.message, err.code && `code ${err.code}`, err.hint, err.details]
+      .filter(Boolean).join(' — ') || 'onbekende fout';
     console.error('[opslaan] mislukt:', err);
     status.textContent = 'Opslaan mislukt';
     toonOpslagFout(_opslaanLaatsteFout);
