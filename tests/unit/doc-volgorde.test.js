@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   woorden, bouwSkelet, zoekInSkelet, artikelZoekterm, vindPositie,
-  bepaalVolgorde, beoordeelVolgorde, GEEN_TREFFER_BASIS,
+  bepaalVolgorde, beoordeelVolgorde, GEEN_TREFFER_BASIS, MELD_TEKENS,
 } from '../../src/rapport/doc-volgorde.js';
 
 /** Zoals de aanroeper aanlevert: kleine letters, witruimte ingeklapt. */
@@ -234,5 +234,58 @@ describe('passage en documenttekst staan niet altijd in hetzelfde alfabet', () =
     ] });
     expect(diagnose.zonderTreffer).toBe(0);
     expect(volgorde).toEqual([1, 0]);
+  });
+});
+
+// ── Wélke passages niet zijn teruggevonden ─────────────────────────────────
+//
+// Aanleiding (1 september 2026). De melding zei hoevéél: "10 van 14, nul exact". Dat was
+// genoeg om de alfabet-asymmetrie aan te wijzen — zo'n verhouding is een patroon.
+//
+// Voor het geval dat daarna overbleef — één passage die er wél staat en toch niet matcht —
+// zegt een getal niets. Ik heb er die dag twee oorzaken voor voorgesteld (een teruggezette
+// roepnaam, en een verdwenen tussenvoegsel) en bij naspelen bleken ze allebei onjuist,
+// juist omdat ik het geval zelf niet had. Vandaar de tekst erbij.
+
+describe('diagnose.nietGevonden', () => {
+  it('noemt welke passages niet zijn teruggevonden, met hun oorspronkelijke plek', () => {
+    const { diagnose } = bepaalVolgorde({
+      docNorm: 'de kinderen hebben hun hoofdverblijf bij de moeder.',
+      items: [
+        { passages: ['de kinderen hebben hun hoofdverblijf bij de moeder.'], origPos: 0 },
+        { passages: ['een zin die er beslist niet in staat'], origPos: 1 },
+      ],
+    });
+    expect(diagnose.nietGevonden).toEqual([
+      { origPos: 1, passage: 'een zin die er beslist niet in staat' },
+    ]);
+  });
+
+  it('kapt een lange passage af — een schermafdruk moet leesbaar blijven', () => {
+    const lang = 'x'.repeat(200);
+    const { diagnose } = bepaalVolgorde({ docNorm: 'iets heel anders', items: [{ passages: [lang] }] });
+    expect(diagnose.nietGevonden[0].passage).toHaveLength(MELD_TEKENS);
+  });
+
+  it('leest ook de oude enkelvoudige schrijfwijze', () => {
+    const { diagnose } = bepaalVolgorde({
+      docNorm: 'iets heel anders', items: [{ passageNorm: 'afwezige zin', origPos: 3 }],
+    });
+    expect(diagnose.nietGevonden).toEqual([{ origPos: 3, passage: 'afwezige zin' }]);
+  });
+
+  it('blijft leeg als alles is teruggevonden', () => {
+    const { diagnose } = bepaalVolgorde({
+      docNorm: 'de kinderen hebben hun hoofdverblijf bij de moeder.',
+      items: [{ passages: ['de kinderen hebben hun hoofdverblijf bij de moeder.'] }],
+    });
+    expect(diagnose.nietGevonden).toEqual([]);
+  });
+
+  it('heeft dezelfde vorm als er geen documenttekst is', () => {
+    // Zonder dit zou `diagnose.nietGevonden.length` omvallen op precies het geval waarin
+    // er niets te doorzoeken viel.
+    const { diagnose } = bepaalVolgorde({ docNorm: '', items: [{ passages: ['x'] }] });
+    expect(diagnose.nietGevonden).toEqual([]);
   });
 });

@@ -379,7 +379,10 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // stempel bij het progressief renderen, en de melding als er wél een rapport staat maar
 // van een andere run. Zonder die laatste melding zou het overslaan net zo onzichtbaar
 // zijn als de fout die dit hele hoofdstuk begon.
-const MAX_REGELS_INDEX = 16307;
+// 01-09-2026 (elfde keer): 16307 → 16315 (+7), voor de melding die de niet-gevonden
+// passages bij naam noemt. Klein, maar het beslecht een gebrek waarvoor ik twee keer een
+// oorzaak heb voorgesteld die bij naspelen onjuist bleek — omdat het geval zelf ontbrak.
+const MAX_REGELS_INDEX = 16315;
 const MAX_REGELS_JS     = 13086;
 
 function regels(pad) {

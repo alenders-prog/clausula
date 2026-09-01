@@ -3739,7 +3739,15 @@ function vindDocVolgorde(issuesArr) {
   // dan is dit geen documentvolgorde meer maar grotendeels modelvolgorde — en dat is
   // aan de lijst zelf niet te zien.
   const oordeel = beoordeelVolgorde(diagnose);
-  if (!oordeel.ok) console.warn('[docvolgorde]', oordeel.melding, diagnose.perTrap);
+  if (!oordeel.ok) {
+    console.warn('[docvolgorde]', oordeel.melding, diagnose.perTrap);
+    // En wélke. Het getal wees op 1 september 2026 meteen de alfabet-asymmetrie aan, maar
+    // voor één passage die er wél staat en toch niet matcht, is de tekst zelf het enige
+    // spoor. Alleen naar de console van de mediator, afgekapt op 80 tekens.
+    for (const n of diagnose.nietGevonden || []) {
+      console.warn(`[docvolgorde] niet gevonden [${n.origPos}]: "${n.passage}…"`);
+    }
+  }
 
   return volgorde;
 }

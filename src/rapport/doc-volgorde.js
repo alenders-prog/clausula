@@ -44,6 +44,15 @@ export const STOPWOORDEN = new Set(['de', 'het', 'een', 'en', 'of', 'in', 'van',
 /** Issues zonder bruikbare treffer gaan hierachter, in de volgorde van het model. */
 export const GEEN_TREFFER_BASIS = 500000;
 
+/**
+ * Zoveel tekens van een niet-gevonden passage komen in de melding.
+ *
+ * De melding gaat naar de console van de mediator zelf — dezelfde plek waar het rapport
+ * al in het geheugen staat, en er gaat niets naar een server. Afkappen houdt het leesbaar
+ * én beperkt wat er in een schermafdruk belandt die iemand doorstuurt.
+ */
+export const MELD_TEKENS = 80;
+
 /** Woorden mét hun tekenpositie. Leestekens horen niet bij het woord. */
 export function woorden(tekst) {
   const uit = [];
@@ -185,7 +194,10 @@ export function bepaalVolgorde({ docNorm = '', items = [] } = {}) {
   const volgorde = lijst.map((_, i) => i);
 
   if (!docNorm) {
-    return { volgorde, diagnose: { totaal: lijst.length, perTrap: {}, zonderTreffer: lijst.length } };
+    // `nietGevonden` óók hier, zodat de vorm van `diagnose` niet afhangt van of er tekst
+    // was. Een aanroeper die `diagnose.nietGevonden.length` leest hoort niet om te vallen
+    // op het geval waarin er helemaal niets te doorzoeken viel.
+    return { volgorde, diagnose: { totaal: lijst.length, perTrap: {}, zonderTreffer: lijst.length, nietGevonden: [] } };
   }
 
   const ctx = {
@@ -195,16 +207,28 @@ export function bepaalVolgorde({ docNorm = '', items = [] } = {}) {
   };
 
   const perTrap = {};
-  const posities = lijst.map(it => {
+  const nietGevonden = [];
+  const posities = lijst.map((it, i) => {
     const { pos, trap } = vindPositie(ctx, it);
     perTrap[trap] = (perTrap[trap] || 0) + 1;
+    // Wélke passage niet gevonden is, niet alleen hoevéél. Een getal is genoeg om een
+    // patroon te zien — "10 van 14, nul exact" wees op 1 september 2026 meteen op een
+    // systematische fout, en dat bleek de alfabet-asymmetrie. Voor één passage die er wél
+    // staat maar niet matcht is de tekst zelf het enige bruikbare spoor: ik heb er die dag
+    // twee oorzaken voor voorgesteld en beide bleken bij naspelen onjuist, juist omdat ik
+    // het geval niet had.
+    if (trap === 'geen') {
+      const eerste = (Array.isArray(it.passages) ? it.passages : [it.passageNorm])
+        .find(Boolean) || '';
+      nietGevonden.push({ origPos: it.origPos ?? i, passage: eerste.slice(0, MELD_TEKENS) });
+    }
     return pos;
   });
 
   volgorde.sort((a, b) => posities[a] - posities[b]);
   return {
     volgorde,
-    diagnose: { totaal: lijst.length, perTrap, zonderTreffer: perTrap.geen || 0 },
+    diagnose: { totaal: lijst.length, perTrap, zonderTreffer: perTrap.geen || 0, nietGevonden },
   };
 }
 

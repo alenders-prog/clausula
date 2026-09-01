@@ -106,6 +106,16 @@ test('de controle meldt het als de helft niet is teruggevonden', async ({ page }
   expect(meldingen.join(' ')).toMatch(/docvolgorde/);
   expect(meldingen.join(' ')).toMatch(/3 van 4/);
 
+  // En wélke. Het getal wees op 1 september 2026 de alfabet-asymmetrie meteen aan — zo'n
+  // verhouding is een patroon. Voor één passage die er wél staat en toch niet matcht zegt
+  // een aantal niets: twee voorgestelde oorzaken bleken die dag bij naspelen allebei
+  // onjuist, juist omdat het geval zelf ontbrak.
+  const alles = meldingen.join('\n');
+  expect(alles).toMatch(/niet gevonden \[1\]: "volstrekt afwezige zin een/i);
+  expect(alles).toMatch(/niet gevonden \[3\]: "volstrekt afwezige zin drie/i);
+  // De passage die wél is teruggevonden hoort er niet bij te staan.
+  expect(alles).not.toMatch(/niet gevonden \[0\]/);
+
   verwachtGeenPaginafouten(fouten);
 });
 
