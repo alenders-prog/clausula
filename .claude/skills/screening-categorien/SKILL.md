@@ -22,6 +22,7 @@ Elke analyse bestaat uit twee gelijktijdige Sonnet-calls + één afsluitende Hai
 | **bevindingen** | `juridisch`, `balans`, `grammatica`, `conflicten` | `registreer_bevindingen` / Sonnet |
 | **cross_doc** | inconsistenties over twee documenten heen | `registreer_cross_doc_bevindingen` / Sonnet |
 | **IBAN-validatie** | verwijdert issues met hallucinated of tegenstrijdige IBAN-vermeldingen | server-side code / geen LLM |
+| **bijlagefilter** | verwijdert issues waarvan de passage aantoonbaar uit een bijlage komt | server-side code / geen LLM |
 | **consolidatie** | semantische deduplicatie van alle bovenstaande issues | `consolideer_issues` / Haiku |
 | **consistentie** | titel die meer beweert dan de bevinding aantoont | `controleer_consistentie` / Haiku |
 
@@ -29,6 +30,36 @@ Elke analyse bestaat uit twee gelijktijdige Sonnet-calls + één afsluitende Hai
 Twee checks op basis van regex `\bNL\d{2}[A-Z]{4}\d{10}\b`:
 1. Issues waarbij een vermeld IBAN *niet exact* in de documenttekst staat worden verwijderd (voorkomt verwisseling van vergelijkbare nummers zoals NL36 vs NL32).
 2. Als twee issues over hetzelfde IBAN tegenstrijdige conclusies trekken ("ontbreekt" vs "aanwezig"), wordt het minder ernstige verwijderd.
+
+**Bijlagefilter (`filterBijlageIssues` in `api/analyseer.js`, module `src/rapport/passage-herkomst.js`):**
+Elke analyse-call krijgt één hoofddocument plus de bijlagen onder de kop
+`BIJLAGEN (ter context — niet apart analyseren)`. Op 1 september 2026 stond onder het
+tabblad Ouderschapsplan een bevinding over de schrijfwijze van een beleggingsapp in het
+verdelingsoverzicht — een bijlage bij het *convenant*. De prompt zei het al, maar de
+grammatica-instructie zei óók "Scan het VOLLEDIGE document"; die twee botsten. Beide
+promptregels zijn aangescherpt (`bevindingen.js` en `structuur.js`, blok `REIKWIJDTE`)
+en dit filter is de harde controle eronder.
+
+**De toets is met opzet scheef, en dat moet zo blijven.** Om te blijven staan volstaat
+élke trap van `vindPositie` in het hoofddocument, tot en met drie inhoudswoorden op een
+rij. Om verwijderd te worden is een *harde* treffer in de bijlage nodig: letterlijk, de
+eerste zestig tekens, of vier inhoudswoorden (`HARDE_TRAPPEN`). Reden: een convenant en
+zijn eigen verdelingsoverzicht delen altijd drie woorden ("bankrekening rabobank
+toedeling"), dus een symmetrische toets zou goede bevindingen wegvegen. Alles ertussenin
+is `onbekend` en blijft staan.
+
+Twee dingen om niet stuk te maken:
+- Vergelijk met `vervangPii(doc.tekst)`, niet met `doc.tekst`. De passages komen
+  gepseudonimiseerd terug omdat dát verstuurd is; toetsen tegen ruwe tekst geeft
+  dezelfde alfabet-asymmetrie die de documentvolgorde om zeep hielp — daar dan zonder
+  melding.
+- **Cross-doc gaat er niet doorheen** en moet dat ook niet: een bevinding die twee
+  stukken tegen elkaar houdt staat per definitie niet volledig in één ervan.
+
+De eval raakt dit filter niet — géén enkele fixture in `tests/golden/fixtures/` heeft een
+bijlage. Dekking komt van `tests/unit/passage-herkomst.test.js` (17 tests, inclusief
+bronwachters op de bedrading in `analyseer.js`). Wil je het echt meten, dan moet er
+eerst een fixture met een contextdocument bij.
 
 **IBANs worden gepseudonimiseerd** in `index.html` vóór server-verzending via `_maakPiiTracker`:
 echte IBANs worden vervangen door bracket-placeholders `[IBAN_0]`, `[IBAN_1]`, etc.

@@ -15,6 +15,8 @@ export const bouwSysStructuur = ({ docTypLabel, anderDocsNota, roepnamenNota, mf
 DOCUMENTTYPE: ${docTypLabel}${anderDocsNota}${roepnamenNota}
 ${mfnInstructie}
 
+REIKWIJDTE: elke bevinding gaat over het blok "TE ANALYSEREN DOCUMENT". Een blok "BIJLAGEN" dient uitsluitend als naslag — daaraan mag je toetsen wat er in het te analyseren document staat, maar een tekortkoming die alléén een bijlage betreft rapporteer je NIET.
+
 **samenvatting** — Beschrijf de feitelijke situatie van partijen op basis van het document. Behandel altijd de volgende thema's, ook als er geen issues over zijn:
 - Gezamenlijke of eigen woning: aanwezig, te verdelen, of afwezig (partijen hebben geen gezamenlijke woning)?
 - Kinderen: aantal en voornamen met leeftijd in jaren, bijv. "één kind: Jochem (14)" — geen achternamen, geen geboortedatums, geen plaatsnamen.

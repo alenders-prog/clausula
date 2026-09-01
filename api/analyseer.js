@@ -55,6 +55,7 @@ import {
 import { afgeleideKenmerken } from '../src/rapport/internationaal.js';
 import { tijdsbudget } from '../src/tijdsbudget.js';
 import { systeemVeld, berichtInhoud } from '../src/api/prompt-cache.js';
+import { maakHerkomstToets, BIJLAGE } from '../src/rapport/passage-herkomst.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '12mb' } },
@@ -662,10 +663,43 @@ export default async function handler(req, res) {
         return { ...result, issues: filtered };
       };
 
+      // Bevindingen die aantoonbaar over een bijlage gaan horen niet in dit document.
+      //
+      // Op 1 september 2026 stond onder het tabblad Ouderschapsplan een bevinding over
+      // de schrijfwijze "Peaks - Beleggings-app" in het verdelingsoverzicht — een
+      // bijlage bij het convenant. De bevinding zei het zelf: "Hoewel dit een bijlage
+      // bij het convenant betreft". Een mediator die daarop afgaat past het verkeerde
+      // stuk aan.
+      //
+      // De prompt zegt het al ("BIJLAGEN (ter context — niet apart analyseren)"), maar
+      // de grammatica-instructie zegt óók "Scan het VOLLEDIGE document", en het model
+      // koos begrijpelijkerwijs de ruimste lezing. Beide regels zijn aangescherpt, maar
+      // een promptregel blijft een verzoek — dit is de controle. De lat om iets te
+      // verwijderen ligt bewust hoger dan om het te laten staan; zie de module.
+      //
+      // Alleen op deze twee per-document calls: cross-doc kíjkt juist over de grenzen
+      // heen en moet ongemoeid blijven.
+      const herkomstToets = contextTekst
+        ? maakHerkomstToets({ hoofdTekst: vervangPii(doc.tekst), contextTekst })
+        : null;
+
+      const filterBijlageIssues = (result, type) => {
+        if (!herkomstToets || !Array.isArray(result?.issues)) return result;
+        const blijft = [], weg = [];
+        for (const iss of result.issues) {
+          (herkomstToets(iss?.passage) === BIJLAGE ? weg : blijft).push(iss);
+        }
+        if (weg.length) {
+          console.warn(`[analyseer] ${weg.length} bevinding(en) uit een bijlage geweerd bij `
+            + `${doc.bestandsnaam}/${type}: ${weg.map(i => i.onderwerp || '(zonder onderwerp)').join(' | ')}`);
+        }
+        return { ...result, issues: blijft };
+      };
+
       const callMetSse = (clodeFn, type) =>
         clodeFn().then(
           result => {
-            const gefilterd = filterGenderIssues(result);
+            const gefilterd = filterBijlageIssues(filterGenderIssues(result), type);
             sse({ type, bestandsnaam: doc.bestandsnaam, result: gefilterd });
             return gefilterd;
           },

@@ -1,50 +1,67 @@
 {
   "fixture": "cross-doc-verschillende-dossiers.json",
-  "aantal": 25,
+  "aantal": 23,
   "perErnst": {
-    "midden": 20,
+    "midden": 16,
+    "laag": 2,
     "hoog": 5
   },
   "onderwerpen": [
     {
-      "onderwerp": "Geboortedaten van beide partijen ontbreken",
+      "onderwerp": "Geboortedatums man en vrouw ontbreken in de personalia",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie: Tremanormen-berekening ontbreekt",
+      "onderwerp": "Huwelijksgemeente vermeld als 'Proefstad' — vermoedelijk plaatshouder",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: ingangsdatum onvoldoende bepaald",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie: indexeringsclausule ontbreekt",
+      "onderwerp": "Kinderalimentatie: indexering ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "onderwerp": "Kinderalimentatie: onderbouwing conform Tremanormen ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Woning: hypotheek, taxatiewaarde en termijn voor verkoop ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Bankrekeningen en spaargeld: regeling ontbreekt volledig",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Pensioenverevening: regeling ontbreekt volledig",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Partneralimentatie niet behandeld",
+      "onderwerp": "Partneralimentatie: regeling ontbreekt volledig",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Pensioenverevening niet geregeld",
+      "onderwerp": "Schulden: regeling ontbreekt volledig",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Fiscale afwikkeling: regeling ontbreekt volledig",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Ondertekeningsdatum en handtekeningen ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Documenten betreffen verschillende dossiers: andere partijen en andere kinderen",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Ondertekeningsblok: datum en handtekeningen ontbreken",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Partneralimentatie: geen regeling en geen nihilbeding",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Pensioenverevening: geen regeling opgenomen",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Huwelijksgemeenschap: geen volledige vermogensafwikkeling (bankrekeningen, inboedel, schulden)",
-      "ernst": "midden"
+      "onderwerp": "Zorgregeling ontbreekt: geen concrete dagen, tijden of wisselafspraken",
+      "ernst": "hoog"
     },
     {
       "onderwerp": "Vakantieregeling ontbreekt volledig",
@@ -55,15 +72,7 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie zonder draagkrachtberekening of onderbouwing conform Tremanormen",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Indexeringsclausule kinderalimentatie ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Informatieplicht onvolledig: geen kanalen, frequentie of consultatieplicht",
+      "onderwerp": "Informatieplicht onvolledig: geen concrete afspraken over kanalen of consultatie",
       "ernst": "midden"
     },
     {
@@ -75,35 +84,19 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Geschillenregeling en mediationclausule ontbreken",
-      "ernst": "midden"
+      "onderwerp": "Regeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "ernst": "laag"
     },
     {
-      "onderwerp": "Ontbrekende secties: actuele situatie, wisselmomenten, vakanties, feestdagen, verjaardagen, sociale media, spaartegoed, evaluatie en overige standaardsecties",
-      "ernst": "hoog"
+      "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
+      "ernst": "midden"
     },
     {
       "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie: ingangsdatum ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Zorgverdeling tussen kinderen asymmetrisch en niet gemotiveerd",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Datum van het ouderschapsplan ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Documenten betreffen verschillende dossiers: andere partijen en andere kinderen",
+      "onderwerp": "Vrijwel alle standaardsecties van een ouderschapsplan ontbreken",
       "ernst": "hoog"
     }
   ]

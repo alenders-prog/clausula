@@ -10,10 +10,6 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Overbedelingsvergoeding € 5.000,- lager dan helft van berekende overwaarde, zonder motivering",
-      "ernst": "midden"
-    },
-    {
       "onderwerp": "Ontslag hoofdelijke aansprakelijkheid hypotheek niet geregeld",
       "ernst": "midden"
     },
@@ -30,7 +26,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Nihilbeding partneralimentatie: geen expliciete grondslag art. 1:158 BW en geen termijn",
+      "onderwerp": "Nihilbeding partneralimentatie niet formeel vastgelegd als art. 1:158 BW-beding",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Overbedelingsvergoeding woning: € 5.000 lager dan berekende helft overwaarde, niet gemotiveerd",
       "ernst": "midden"
     },
     {
@@ -38,11 +38,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Passeerdatum / leveringsdatum woning niet vermeld",
+      "onderwerp": "Peildatum bankrekening niet gespecificeerd",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Fiscaal partnerschap: einddatum en verdeling aanslagen niet geregeld",
+      "onderwerp": "Passeerdatum / leveringsdatum woning niet vermeld",
       "ernst": "midden"
     }
   ]

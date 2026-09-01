@@ -1,50 +1,62 @@
 {
   "fixture": "cross-doc-hoofdverblijf.json",
-  "aantal": 26,
+  "aantal": 29,
   "perErnst": {
-    "midden": 16,
-    "hoog": 4,
+    "midden": 17,
+    "hoog": 6,
     "laag": 6
   },
   "onderwerpen": [
     {
-      "onderwerp": "Kinderalimentatie: indexering ontbreekt",
+      "onderwerp": "Kinderalimentatie: ingangsdatum onduidelijk en indexering ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Woning: geen concrete verkooptermijn of uiterste datum vastgelegd",
+      "onderwerp": "Kinderalimentatie: geen verwijzing naar Tremanormen of draagkrachtberekening",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "onderwerp": "Woning: geen regeling voor hypotheek, ontslag hoofdelijke aansprakelijkheid en restschuld",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Pensioenverevening: geen regeling of schriftelijke afwijking opgenomen",
+      "onderwerp": "Woning: geen concrete verkooptermijn of uiterste datum",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Partneralimentatie: geen regeling of nihilbeding",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Pensioenverevening: geen regeling of schriftelijke afwijking",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Partneralimentatie: geen regeling of nihilbeding opgenomen",
+      "onderwerp": "Schulden: geen regeling over verdeling en aansprakelijkheid",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Fiscale afwikkeling: geen regeling opgenomen",
+      "onderwerp": "Fiscale afwikkeling: geen regeling",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Schulden: geen regeling opgenomen",
+      "onderwerp": "Ondertekeningsdatum en handtekeningen ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Ondertekeningsdatum niet ingevuld",
+      "onderwerp": "Persoonsgegevens: geboortedatum en -plaats van partijen ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Inboedelverdeling: geen regeling opgenomen",
+      "onderwerp": "Mediatornaam niet vermeld in considerans",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Terminologie: 'echtelijke woning' in plaats van 'gezamenlijke woning' of 'woning van partijen'",
+      "onderwerp": "Terminologie: 'echtelijke woning' in een geregistreerd partnerschap",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: indexering niet expliciet geregeld",
       "ernst": "laag"
     },
     {
@@ -52,7 +64,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Gebruiksrecht woning: vage voorwaarde 'per datum dat de vrouw andere woonruimte heeft gevonden'",
+      "onderwerp": "Woning: geen passeerdatum of uiterste leveringstermijn",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Woning: gebruiksrecht man zonder regeling woonlasten en compensatie vrouw",
       "ernst": "midden"
     },
     {
@@ -60,7 +76,19 @@
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Zorgregeling niet uitgewerkt — geen concrete weekomgang gespecificeerd",
+      "onderwerp": "Zorgregeling niet uitgewerkt: geen weekschema, dagen of tijden",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Vakantieregeling ontbreekt volledig",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: draagkrachtberekening conform Tremanormen ontbreekt",
       "ernst": "hoog"
     },
     {
@@ -68,16 +96,8 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie: ingangsdatum ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "School- en opleidingsbeslissingen niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
-      "ernst": "midden"
+      "onderwerp": "Omgangsregeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "ernst": "laag"
     },
     {
       "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
@@ -88,7 +108,7 @@
       "ernst": "laag"
     },
     {
-      "onderwerp": "Persoonsgegevens ouders en kinderen (personaliasectie) ontbreken",
+      "onderwerp": "Persoonsgegevens ouders en kinderen ontbreken (geen gegevenssectie)",
       "ernst": "midden"
     },
     {
@@ -96,19 +116,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Actuele situatie van ouders niet beschreven",
-      "ernst": "laag"
-    },
-    {
       "onderwerp": "Rechten van de kinderen en mate van betrokkenheid niet beschreven",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Terminologie: 'uit elkaar gaan' in plaats van 'ontbinding geregistreerd partnerschap'",
+      "onderwerp": "Evaluatiebepaling ouderschapsplan ontbreekt",
       "ernst": "laag"
     }
   ]

@@ -1,18 +1,13 @@
 {
   "fixture": "convenant-incompleet.json",
-  "aantal": 13,
+  "aantal": 9,
   "perErnst": {
     "hoog": 3,
-    "midden": 9,
-    "laag": 1
+    "midden": 6
   },
   "onderwerpen": [
     {
-      "onderwerp": "Kinderalimentatie ontbreekt volledig",
-      "ernst": "hoog"
-    },
-    {
-      "onderwerp": "Ouderschapsplan ontbreekt en wordt niet vermeld",
+      "onderwerp": "Kinderalimentatie ontbreekt volledig zonder verwijzing naar ouderschapsplan",
       "ernst": "hoog"
     },
     {
@@ -20,15 +15,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Pensioenverevening: uitvoeringswijze onvolledig (geen WVPS-conform beding)",
-      "ernst": "midden"
+      "onderwerp": "Hypotheek: ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "ernst": "hoog"
     },
     {
-      "onderwerp": "Echtelijke woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Bankrekeningen: saldi en peildatum niet vermeld",
+      "onderwerp": "Bankrekeningen: saldi op peildatum en bestemming gezamenlijke rekening onvolledig",
       "ernst": "midden"
     },
     {
@@ -36,27 +27,19 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Fiscale afwikkeling onvolledig: verdeling aanslagen en teruggaven ontbreekt",
-      "ernst": "midden"
-    },
-    {
       "onderwerp": "Persoonsgegevens onvolledig: adressen en geboorteplaatsen ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "onderwerp": "Fiscale afwikkeling onvolledig: verdeling aanslagen en teruggaven ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Inboedelverdeling ontbreekt",
-      "ernst": "laag"
-    },
-    {
-      "onderwerp": "Pensioenafspraak beschrijft conversie maar noemt art. 5 WVPS niet en vereist instemming pensioenuitvoerder",
+      "onderwerp": "Pensioenregeling beschrijft conversie maar noemt art. 5 WVPS niet en vereist instemming pensioenuitvoerder",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Verdeling echtelijke woning: ontslag uit hoofdelijke aansprakelijkheid hypotheek en passeerdatum niet geregeld",
+      "onderwerp": "Peildatum voor omvang en waardebepaling huwelijksgemeenschap ontbreekt",
       "ernst": "midden"
     }
   ]
