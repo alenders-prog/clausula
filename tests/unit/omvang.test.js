@@ -362,8 +362,12 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // gebruiker hier weg" staat wél in src/opslag-waarschuwing.js met tests; deze tak is
 // bedrading die zich buiten de app niet laat naspelen — wat hem afdekt zijn de
 // broncontroles onderaan tests/unit/opslag-waarschuwing.test.js.
-const MAX_REGELS_INDEX = 16304;
-const MAX_REGELS_JS     = 13071;
+// 01-09-2026 (zevende keer): 16304 → 16319 (+15, alle 15 script). Per saldo klein: er
+// gingen drie eigen volgordetabellen uit (elf regels) en er kwam toelichting voor terug
+// bij `_klaar` — de regel die elf dagen lang elke analyse liet verdwijnen. Die uitleg is
+// de goedkoopste manier om te voorkomen dat iemand hem terugzet in de try.
+const MAX_REGELS_INDEX = 16319;
+const MAX_REGELS_JS     = 13086;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

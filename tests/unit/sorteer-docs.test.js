@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { DOC_VOLGORDE, sorteerOpDocType, sorteerOpType } from '../../src/rapport/sorteer-docs.js';
 
 describe('DOC_VOLGORDE', () => {
@@ -86,5 +87,42 @@ describe('sorteerOpType', () => {
     const input = [{ type: 'convenant' }, { type: 'ouderschapsplan' }];
     sorteerOpType(input);
     expect(input[0].type).toBe('convenant');
+  });
+});
+
+// ── Bedrading ──────────────────────────────────────────────────────────────
+//
+// Aanleiding (1 september 2026). In de viewer stond het waardeoverzicht vóór het
+// convenant. De console wees het aan:
+//
+//   [toonRapport] renderDocPanel aanroepen met app.bestanden:
+//     (2) ['Waarde_verdeling (13).pdf', 'Concept Convenant (16).pdf']
+//
+// `sorteerOpType` bestond, was getest, werd naar window geëxporteerd — en werd nul keer
+// aangeroepen. In plaats daarvan stond er drie keer een eigen tabel in index.html, elke
+// keer `{ ouderschapsplan: 0, convenant: 1 }`. Waardebepaling en zorgverdeling ontbraken
+// daarin, kregen allebei rang 9, en hielden dus de volgorde van het uploaden.
+//
+// Precies dezelfde soort fout als bij de documentvolgorde twee dagen eerder: kloppende
+// logica die nergens werd aangeroepen. Vandaar deze controles.
+
+describe('index.html gebruikt deze sortering ook echt', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+
+  it('roept sorteerOpType aan in plaats van een eigen tabel bij te houden', () => {
+    expect((html.match(/window\.sorteerOpType\(/g) || []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('houdt geen losse volgordetabellen meer aan', () => {
+    // Een tweede tabel gaat vanzelf uiteenlopen met DOC_VOLGORDE, en het verschil is
+    // aan het scherm niet te zien — je ziet alleen een volgorde die "raar" aanvoelt.
+    expect(html).not.toMatch(/_HOOFD_VOLGORDE|_PRIM_VOLGORDE/);
+    expect(html).not.toMatch(/const _VOLGORDE = \{ ouderschapsplan/);
+  });
+
+  it('sorteert ook de terugval van app.bestanden', () => {
+    // `app.bestanden = primaireBestanden?.[0] || resolvedFiles`. Bleef resolvedFiles in
+    // uploadvolgorde staan, dan gaf de terugval een ándere volgorde dan het gewone pad.
+    expect(html).toMatch(/resolvedFiles:\s*window\.sorteerOpType\(resolvedItems\)/);
   });
 });

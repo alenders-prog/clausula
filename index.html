@@ -4240,9 +4240,11 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
   const contextItems = resolvedItems.filter(i => !HOOFD_TYPES.has(i.type));
   // Fallback: geen hoofddocumenten → analyseer alles als hoofddocument, context leeg
   // Sorteer hoofddocs: ouderschapsplan eerst, convenant tweede (zelfde volgorde als tabs in toonRapport)
-  const _HOOFD_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
-  const effectieveHoofdItems    = (hoofdItems.length ? hoofdItems : resolvedItems)
-    .slice().sort((a, b) => (_HOOFD_VOLGORDE[a.type] ?? 9) - (_HOOFD_VOLGORDE[b.type] ?? 9));
+  // Via sorteerOpType, niet met een eigen tabel. Die stond hier drie keer, elke keer met
+  // alleen `{ ouderschapsplan: 0, convenant: 1 }` erin — waardoor een waardebepaling en
+  // een zorgverdeling allebei op rang 9 belandden en hun onderlinge plek die van het
+  // uploaden werd. Zie de nota bij `resolvedFiles` onderaan deze functie.
+  const effectieveHoofdItems    = window.sorteerOpType(hoofdItems.length ? hoofdItems : resolvedItems);
   const effectieveContextItems  = hoofdItems.length ? contextItems  : [];
   const heeftHV = resolvedItems.some(i => i.type === 'huwelijkse_voorwaarden');
 
@@ -4427,10 +4429,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     app.docIdx         = 0;
     // Sorteer op dezelfde volgorde als de tabs in toonRapport zodat
     // app.primaireBest[0] altijd overeenkomt met tab 0 (OP), ongeacht uploadvolgorde.
-    const _PRIM_VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
-    const _gesorteerdeHoofd = [...effectieveHoofdItems].sort(
-      (a, b) => (_PRIM_VOLGORDE[a.type] ?? 9) - (_PRIM_VOLGORDE[b.type] ?? 9)
-    );
+    const _gesorteerdeHoofd = window.sorteerOpType(effectieveHoofdItems);
     app.primaireBest   = _gesorteerdeHoofd.map(hoofd => {
       const relevantCtx = effectieveContextItems
         .filter(ctx => contextVoorHoofd(ctx.type, hoofd.type))
@@ -4722,6 +4721,9 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   let _maxTokensWaarschuwing = false;
   const _totaalEvents = effectieveHoofdItems.length * 4; // 3 analyse-calls + 1 consolidatie per document
   let _eventsKlaar = 0;
+  // Hier, niet in de try. Hij wordt binnen de leeslus gezet en ná de try gelezen door
+  // beoordeelAfloop; stond hij binnen, dan is dat een ReferenceError. Zie de nota daar.
+  let _klaar = false;
 
   try {
     const { data: { session: _analyseerSess } } = await db.auth.getSession();
@@ -4749,7 +4751,6 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     const _reader  = _analyseerRes.body.getReader();
     const _decoder = new TextDecoder();
     let _sseBuf = '';
-    let _klaar  = false;
 
     while (!_klaar) {
       const { done, value } = await _reader.read();
@@ -4841,6 +4842,17 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   // weg (op 31-08-2026 na de maxDuration van 120s), dan brak de lus af en werd er
   // vrolijk een rapport getoond waarin voor één document álle juridische bevindingen
   // ontbraken. Zie src/analyse/afgekapt.js.
+  //
+  // En toen ging dit hier zélf mis. `_klaar` stond met `let` ín de try hierboven, en
+  // wordt hier erbuiten gelezen: `ReferenceError: _klaar is not defined`, bij élke
+  // analyse, vanaf het moment dat deze regel werd toegevoegd (31-08 om 19:29 — de laatste
+  // geslaagde opslag was om 19:03). De fout viel elf dagen niet op omdat hij werd
+  // opgeslokt: de catch in startAnalyse logde niets, het foutvak lag achter het rapport,
+  // en het opslaan hing aan een vlag die daardoor nooit true werd. Twee analyses van
+  // samen $0,68 zijn zo verdwenen.
+  //
+  // De les zit niet in deze regel maar in wat eromheen ontbrak: een fout die niemand
+  // kan zien is erger dan een fout. Zie tests/e2e/smoke/15-analyse-opslag.spec.js.
   const _afloop = beoordeelAfloop({
     klaarOntvangen: _klaar,
     acc: _sseAcc,
@@ -4940,14 +4952,17 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   return {
     classificatie,
     rapport,
-    resolvedFiles:    resolvedItems.map(i => i.bestand),
+    // Óók gesorteerd. Dit is de terugval van `app.bestanden` in startAnalyse
+    // (`primaireBestanden?.[0] || resolvedFiles`), en die terugval liet de viewer op
+    // 1 september 2026 met het waardeoverzicht beginnen in plaats van met het convenant:
+    // de lijst stond in uploadvolgorde, en het waardeoverzicht was als eerste gekozen.
+    // Een terugval die een ándere volgorde geeft dan het gewone pad is een terugval die
+    // je pas opmerkt als je er toevallig naar kijkt.
+    resolvedFiles:    window.sorteerOpType(resolvedItems).map(i => i.bestand),
     // Per hoofddocument: het eigen bestand + alleen relevante contextstukken.
     // Gesorteerd op dezelfde volgorde als de tabs (OP eerst) zodat index 0 altijd OP is.
     primaireBestanden: (() => {
-      const _VOLGORDE = { ouderschapsplan: 0, convenant: 1 };
-      const gesorteerd = [...effectieveHoofdItems].sort(
-        (a, b) => (_VOLGORDE[a.type] ?? 9) - (_VOLGORDE[b.type] ?? 9)
-      );
+      const gesorteerd = window.sorteerOpType(effectieveHoofdItems);
       return gesorteerd.map(hoofd => {
         const relevantCtx = effectieveContextItems
           .filter(ctx => contextVoorHoofd(ctx.type, hoofd.type))
