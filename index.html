@@ -11619,6 +11619,7 @@ async function startAnalyse() {
   }
 
   let geslaagd = false;
+  let _analyseFout = null;
 
   try {
     const { classificatie, rapport, resolvedFiles, primaireBestanden, extractedTexts } = await analyseDocument(
@@ -11641,6 +11642,11 @@ async function startAnalyse() {
     await toonRapport(classificatie, rapport);
     geslaagd = true;
   } catch (err) {
+    // Deze regel ontbrak, en dat is precies waarom twee analyses spoorloos verdwenen:
+    // de fout ging naar een tekstvak dat achter het rapport zat en liet in de console
+    // geen enkel spoor na. Zie de nota bij `if (geslaagd)` hieronder.
+    console.error('[analyse] afgebroken vóór het opslaan:', err);
+    _analyseFout = err;
     // Een bewuste afbreking is geen storing — "Kon de documenten niet analyseren"
     // zou de gebruiker vertellen dat er iets kapot is terwijl hij zelf stopte.
     errorBox.textContent   = err.afgebroken
@@ -11653,9 +11659,47 @@ async function startAnalyse() {
     analyseBtn.disabled = !app.tray.length || !app.dossierId;
   }
 
-  // Direct automatisch opslaan na succesvolle analyse (buiten try/finally)
-  if (geslaagd) await opslaan();
+  // ── Opslaan, óók als de analyse niet netjes eindigde ────────────────────────
+  //
+  // Hier ging het mis op 1 september 2026. De voorwaarde was `if (geslaagd)`, en
+  // `geslaagd` wordt pas gezet ná toonRapport(). Struikelt er iets ná het tekenen van
+  // het rapport, dan staat het rapport wél volledig op het scherm en wordt er niets
+  // opgeslagen.
+  //
+  // Onzichtbaar, want drie dingen vielen samen:
+  //   - de catch hierboven logde niets;
+  //   - het foutvak staat op het uploadscherm, dat op dat moment achter het rapport ligt;
+  //   - de wizard sluit zichzelf zodra het rapportskelet opengaat en leest daarna
+  //     `geslaagd || wizardDicht` — dus een mislukking ná dat moment sluit hem net zo
+  //     stil af als een succes.
+  //
+  // Twee analyses (13:45 en 14:10 UTC) liepen zo volledig door — vier geslaagde fasen,
+  // $0,34 — en belandden nergens. Geen rij, geen bestand, geen melding.
+  //
+  // Staat er een rapport op het scherm, dan wordt het bewaard. Punt. Een onvolledig
+  // bewaard rapport is te herkennen (`app.analyseOnvolledig` zet er een balk boven);
+  // een verdwenen rapport is dat niet.
+  if (geslaagd) {
+    await opslaan();
+  } else if (app.rapport && Object.keys(app.rapport).length) {
+    console.warn('[analyse] niet netjes afgerond, maar er staat een rapport — toch opslaan');
+    toonAnalyseFoutBalk(_analyseFout);
+    await opslaan();
+  }
   return geslaagd;
+}
+
+/** Het rapport staat er, de analyse struikelde. Zeggen wat er aan de hand is. */
+function toonAnalyseFoutBalk(err) {
+  document.getElementById('analyseFoutBalk')?.remove();
+  const balk = document.createElement('div');
+  balk.id = 'analyseFoutBalk';
+  balk.className = 'opslag-fout-balk';
+  balk.innerHTML = `<span><strong>Deze analyse is niet netjes afgerond.</strong>
+    ${escH(err?.message || 'onbekende fout')} — wat u ziet is bewaard, maar controleer of
+    het volledig is voordat u erop afgaat.</span>
+    <button type="button" onclick="this.parentElement.remove()">Sluiten</button>`;
+  document.body.appendChild(balk);
 }
 
 analyseBtn.addEventListener('click', () => { startAnalyse(); });
@@ -13117,6 +13161,11 @@ async function wizAnalyseStarten() {
     document.removeEventListener('clausula:rapport-open', opRapport);
   }
 
+  // `wizardDicht` betekent alleen dat het rapportskelet openging — niet dat het goed
+  // ging. Op 1 september 2026 sloot de wizard hierdoor twee mislukte analyses net zo
+  // stil af als geslaagde: het rapport stond op het scherm, en niemand kreeg te horen
+  // dat er niets was opgeslagen. Het melden gebeurt nu in startAnalyse zelf, dat ook
+  // bij een struikeling alsnog opslaat; hier blijft alleen het sluiten over.
   if (geslaagd || wizardDicht) {
     if (!wizardDicht) sluitWizard();
   } else {

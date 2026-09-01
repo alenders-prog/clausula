@@ -168,7 +168,13 @@ test('na een mislukte analyse is stap 2 meteen weer bruikbaar', async ({ page })
   const standen = page.locator('#awiz-stap2 .awiz-doc-stand');
   for (let i = 0; i < await standen.count(); i++) await expect(standen.nth(i)).toBeEmpty();
 
-  verwachtGeenPaginafouten(fouten);
+  // Deze test lokt de mislukking zélf uit, dus die ene regel hoort erbij te staan —
+  // sterker nog, dat hij er staat is de winst. Tot 1 september 2026 logde de catch in
+  // startAnalyse níets, en juist daardoor kon een analyse spoorloos verdwijnen: het
+  // rapport stond op het scherm, het opslaan werd overgeslagen, en nergens een spoor.
+  expect(fouten.join('\n'), 'de afbreking hoort in de console te staan')
+    .toMatch(/\[analyse\] afgebroken vóór het opslaan/);
+  verwachtGeenPaginafouten(fouten, [/\[analyse\] afgebroken vóór het opslaan/]);
 });
 
 test('ook in de bewerkingsmodus blijft de knop de enige plek waar iets verandert', async ({ page }) => {

@@ -109,3 +109,38 @@ describe('index.html gebruikt de toestand ook echt', () => {
     expect(html).toMatch(/opslag-fout-balk/);
   });
 });
+
+// ── Opslaan mag niet aan "geslaagd" hangen ─────────────────────────────────
+//
+// De werkelijke oorzaak van 1 september 2026, gevonden via de console: er stond géén
+// enkele [opslaan]-regel terwijl het rapport volledig op het scherm stond. opslaan()
+// werd dus niet aangeroepen.
+//
+// `geslaagd` wordt gezet ná toonRapport(). Struikelt er iets ná het tekenen, dan ziet
+// de mediator een compleet rapport en wordt er niets bewaard. Drie dingen maakten dat
+// onzichtbaar: de catch logde niets, het foutvak ligt achter het rapport, en de wizard
+// leest `geslaagd || wizardDicht` — waardoor een mislukking ná het openen van het
+// skelet net zo stil afsluit als een succes.
+
+describe('een rapport op het scherm wordt bewaard, ook na een struikeling', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const blok = html.slice(html.indexOf('// ── Opslaan, óók als de analyse niet netjes eindigde'),
+                          html.indexOf('function toonAnalyseFoutBalk'));
+
+  it('slaat ook op als geslaagd false is maar er een rapport staat', () => {
+    expect(blok).toMatch(/else if \(app\.rapport && Object\.keys\(app\.rapport\)\.length\)/);
+    // Twee aanroepen: de geslaagde tak en de struikeltak. Eén zou betekenen dat er
+    // precies één van de twee gevallen bewaard wordt — en het mislukte geval is nu
+    // juist het geval dat ertoe doet.
+    expect(blok.match(/await opslaan\(\);/g) || []).toHaveLength(2);
+  });
+
+  it('logt de fout in plaats van hem alleen in een verborgen vak te zetten', () => {
+    expect(html).toMatch(/console\.error\('\[analyse\] afgebroken vóór het opslaan:'/);
+  });
+
+  it('zegt tegen de mediator dat het rapport niet compleet hoeft te zijn', () => {
+    expect(html).toMatch(/function toonAnalyseFoutBalk/);
+    expect(html).toMatch(/Deze analyse is niet netjes afgerond/);
+  });
+});

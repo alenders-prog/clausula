@@ -346,8 +346,24 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // bedrading: een balk tekenen, een knop koppelen, een beforeunload aanhaken en twee
 // vlaggen om `opslaan()` heen. Dat is precies wat CLAUDE.md in index.html toestaat, en er
 // is geen test die van het verhuizen ervan iets méér zou bewijzen.
-const MAX_REGELS_INDEX = 16255;
-const MAX_REGELS_JS     = 13022;
+// 01-09-2026 (zesde keer): 16255 → 16304 (+49, alle 49 script), nadat de oorzaak van
+// het verdwijnen gevonden was.  hing aan een vlag die pas
+// ná toonRapport() wordt gezet; struikelde er iets ná het tekenen, dan stond het rapport
+// volledig op het scherm en werd er niets bewaard.
+//
+// Dit is bedrading en een voorwaarde, geen redenering die zich los laat toetsen: de
+// beslissing zit in één if. Wat er wél bij hoort staat in src/opslag-waarschuwing.js.
+// 01-09-2026 (zesde keer): 16255 → 16304 (+49, alle 49 script), nadat de werkelijke
+// oorzaak van het verdwijnen boven water kwam. Het opslaan hing aan een vlag die pas ná
+// het tekenen van het rapport wordt gezet; struikelde er iets ná dat tekenen, dan stond
+// het rapport volledig op het scherm en werd er niets bewaard.
+//
+// Wat erbij kwam is één voorwaarde, één logregel en één meldbalk. De beslissing "mag de
+// gebruiker hier weg" staat wél in src/opslag-waarschuwing.js met tests; deze tak is
+// bedrading die zich buiten de app niet laat naspelen — wat hem afdekt zijn de
+// broncontroles onderaan tests/unit/opslag-waarschuwing.test.js.
+const MAX_REGELS_INDEX = 16304;
+const MAX_REGELS_JS     = 13071;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

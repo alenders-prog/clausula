@@ -64,9 +64,18 @@ export function volgPaginafouten(page) {
   return fouten;
 }
 
-/** Laat de test falen met de fout erbij, in plaats van met een vage assertie. */
-export function verwachtGeenPaginafouten(fouten) {
-  expect(fouten, `\nRuntime-fouten in de pagina:\n  ${fouten.join('\n  ')}\n`).toEqual([]);
+/**
+ * Laat de test falen met de fout erbij, in plaats van met een vage assertie.
+ *
+ * @param {string[]} fouten
+ * @param {RegExp[]} verwacht  meldingen die déze test bewust uitlokt. Een test die een
+ *   mislukking naspeelt hóórt een foutregel op te leveren; die hier benoemen is eerlijker
+ *   dan hem aan de algemene NEGEER-lijst toevoegen, want daar zou hij álle tests blind
+ *   maken voor dezelfde fout.
+ */
+export function verwachtGeenPaginafouten(fouten, verwacht = []) {
+  const over = fouten.filter(f => !verwacht.some(re => re.test(f)));
+  expect(over, `\nRuntime-fouten in de pagina:\n  ${over.join('\n  ')}\n`).toEqual([]);
 }
 
 /**
