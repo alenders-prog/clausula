@@ -366,7 +366,11 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // gingen drie eigen volgordetabellen uit (elf regels) en er kwam toelichting voor terug
 // bij `_klaar` — de regel die elf dagen lang elke analyse liet verdwijnen. Die uitleg is
 // de goedkoopste manier om te voorkomen dat iemand hem terugzet in de try.
-const MAX_REGELS_INDEX = 16319;
+// 01-09-2026 (achtste keer): 16319 → 16305 (−14). Eindelijk de goede kant op: twintig
+// regels die bouwPrimaireBest woord voor woord nabouwden zijn vervangen door een aanroep
+// van de module zelf. Die stond getest en ongebruikt in src/viewer/primaire-best.js —
+// dezelfde dode hoek als sorteerOpType, en op dezelfde manier gevonden.
+const MAX_REGELS_INDEX = 16305;
 const MAX_REGELS_JS     = 13086;
 
 function regels(pad) {

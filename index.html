@@ -13438,39 +13438,25 @@ async function laadScreening(id, origin = 'main') {
       console.log('[laadScreening] bestanden in lijst:', app.bestanden.map(f => f.name));
       console.log('[laadScreening] docs gesorteerd:', rDocsSorted.map(d => d.doc_type + ':' + d.bestandsnaam));
       const contextMap = data.rapport._context_per_hoofd; // opgeslagen tijdens analyse
-      app.primaireBest = rDocsSorted.map(doc => {
-        let eigen = app.bestanden.filter(f => f.name === doc.bestandsnaam);
-        console.log('[laadScreening] match', doc.bestandsnaam, '→', eigen.length, 'gevonden');
-        if (!eigen.length) {
-          // Fallback: naam komt niet overeen — probeer doc_type-heuristiek op bestandsnaam
-          eigen = app.bestanden.filter(f => raadDocType(f.name) === doc.doc_type);
-          if (eigen.length) {
-            console.warn('[laadScreening] naam-match mislukt voor', doc.bestandsnaam,
-              '→ fallback op doc_type-heuristiek, gevonden:', eigen.map(f => f.name));
-          } else {
-            console.warn('[laadScreening] geen bestand gevonden voor', doc.bestandsnaam,
-              '(doc_type:', doc.doc_type, ') beschikbaar:', app.bestanden.map(f => f.name));
-          }
+
+      // Via bouwPrimaireBest, niet met een kopie ernaast. Deze twintig regels stonden
+      // hier woord voor woord dubbel, terwijl de module ernaast getest was en nul keer
+      // werd aangeroepen — dezelfde dode hoek als sorteerOpType. Zie
+      // scripts/losse-eindjes.mjs, dat er sinds 1 september 2026 op let.
+      //
+      // De meldingen blijven: welk bestand bij welk document hoort is bij een
+      // opgeslagen rapport de eerste plek waar het scheef kan lopen.
+      for (const doc of rDocsSorted) {
+        const { eigen, gevondenVia } = vindEigenBestanden(doc, app.bestanden);
+        if (gevondenVia === 'heuristiek') {
+          console.warn('[laadScreening] naam-match mislukt voor', doc.bestandsnaam,
+            '→ fallback op doc_type-heuristiek, gevonden:', eigen.map(f => f.name));
+        } else if (gevondenVia === 'geen') {
+          console.warn('[laadScreening] geen bestand gevonden voor', doc.bestandsnaam,
+            '(doc_type:', doc.doc_type, ') beschikbaar:', app.bestanden.map(f => f.name));
         }
-        if (contextMap) {
-          // Gebruik de opgeslagen toewijzing: alleen relevante contextbestanden per tab
-          const mapping   = contextMap.find(m => m.bestandsnaam === doc.bestandsnaam);
-          const ctxNamen  = new Set(mapping?.context || []);
-          const ctxBest   = app.bestanden.filter(f => ctxNamen.has(f.name));
-          return [...eigen, ...ctxBest];
-        } else {
-          // Oudere rapporten zonder _context_per_hoofd: gebruik type-mapping als fallback
-          const hoofdNamen = new Set(rDocsSorted.map(d => d.bestandsnaam).filter(Boolean));
-          const eigenNamen = new Set(eigen.map(f => f.name));
-          const alleCtx    = app.bestanden.filter(f => !hoofdNamen.has(f.name) && !eigenNamen.has(f.name));
-          const docType    = doc.doc_type || '';
-          const relevanteCtx = alleCtx.filter(f => {
-            const ctxType = raadDocType(f.name);
-            return contextVoorHoofd(ctxType, docType);
-          });
-          return [...eigen, ...relevanteCtx];
-        }
-      });
+      }
+      app.primaireBest = bouwPrimaireBest(rDocsSorted, app.bestanden, contextMap);
       // Initieel het eerste hoofddocument + context tonen (na sortering = ouderschapsplan)
       console.log('[laadScreening] app.primaireBest[0]:', app.primaireBest[0]?.map(f => f.name));
       if (app.primaireBest[0]?.length) {

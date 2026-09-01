@@ -34,9 +34,19 @@ import { fileURLToPath } from 'node:url';
 
 const WORTEL = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
-/** Namen die bewust ongebruikt zijn, met de reden erbij. */
+/**
+ * Namen die hier bewust staan, met de reden erbij. Elke regel is een besluit; groeit
+ * deze lijst, dan staat dat in de diff.
+ *
+ * Wat hier NIET in hoort: iets dat gewoon aangesloten of weggehaald moet worden. Deze
+ * lijst is voor echte uitzonderingen, niet om de teller op nul te praten.
+ */
 const TOEGESTAAN = new Map([
-  // vul aan met: ['naam', 'waarom dit mag'],
+  ['KOLOM_POSITIE', 'Geen rangorde maar een tweekolomslayout: OP links, convenant rechts. '
+    + 'Dat er twee documenttypes ontbreken is juist correct — de tak is afgeschermd met '
+    + 'DOC_TYPEN.includes(). Een derde type zou hier een kolom moeten krijgen, geen rang.'],
+  ['DIM_PRIO', 'Prioriteit voor het kiezen van één dimensie per kaart, geen gewicht in de '
+    + 'score. cross_doc ontbreekt bewust: dat is geen dimensie van één document.'],
 ]);
 
 // ── Bestanden inlezen ───────────────────────────────────────────────────────
@@ -149,6 +159,7 @@ function schaduwTabellen() {
     }
   }
   for (const m of indexHtml.matchAll(/(?:const|let|var)\s+(\w+)\s*=\s*\{([^}]{10,400})\}/g)) {
+    if (TOEGESTAAN.has(m[1])) continue;
     const sleutels = [...m[2].matchAll(/(\w+)\s*:/g)].map(x => x[1]);
     // Alleen tabellen die op een rangorde lijken: numerieke waarden. Labeltabellen
     // (doc_type → 'Convenant') mogen best minder sleutels hebben dan de volgorde —
