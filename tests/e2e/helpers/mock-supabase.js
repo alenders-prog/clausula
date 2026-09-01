@@ -38,8 +38,11 @@ function createClient(baseUrl,key){
     try{return JSON.parse(localStorage.getItem('sb-'+baseUrl.replace('https://','').split('.')[0]+'-auth-token'));}
     catch(e){return null;}
   }
+  // Deze nep-client kon tot 1 september 2026 alleen LEZEN. Daardoor kon geen enkele
+  // browsertest het opslaan raken — en juist daar zat de fout die elf dagen lang elke
+  // analyse liet verdwijnen. insert/update/maybeSingle en storage staan er nu bij.
   function qb(table){
-    var sel='*',fil={},single=false;
+    var sel='*',fil={},single=false,verb='GET',lading=null;
     var b={
       select:function(c){sel=c||'*';return b;},
       eq:function(col,val){fil[col]='eq.'+val;return b;},
@@ -47,15 +50,28 @@ function createClient(baseUrl,key){
       limit:function(){return b;},
       overlaps:function(col,val){fil[col]='ov.{'+val+'}';return b;},
       single:function(){single=true;return b;},
+      // maybeSingle geeft null terug bij nul rijen in plaats van een fout — de app
+      // gebruikt hem om te kijken óf er al een screening voor dit dossier is.
+      maybeSingle:function(){single=true;return b;},
+      insert:function(rij){verb='POST';lading=rij;return b;},
+      update:function(rij){verb='PATCH';lading=rij;return b;},
+      delete:function(){verb='DELETE';return b;},
       then:function(res,rej){
         var s=sess(),tok=(s&&s.access_token)||key;
         var p=new URLSearchParams({select:sel});
         for(var k in fil) p.set(k,fil[k]);
         var h=Object.assign({},hdr,{'Authorization':'Bearer '+tok});
         if(single) h['Accept']='application/vnd.pgrst.object+json';
-        return fetch(baseUrl+'/rest/v1/'+table+'?'+p,{headers:h})
-          .then(function(r){return r.json();})
-          .then(function(d){return {data:d,error:null};})
+        if(verb!=='GET') h['Prefer']='return=representation';
+        var opt={method:verb,headers:h};
+        if(lading!==null) opt.body=JSON.stringify(lading);
+        return fetch(baseUrl+'/rest/v1/'+table+'?'+p,opt)
+          .then(function(r){return r.status===204?null:r.json();})
+          .then(function(d){
+            // Een lijst waar de app één rij verwacht: pak de eerste, of null.
+            if(single&&Array.isArray(d)) d=d.length?d[0]:null;
+            return {data:d,error:null};
+          })
           .catch(function(e){return {data:null,error:e};})
           .then(res,rej);
       },
@@ -63,8 +79,23 @@ function createClient(baseUrl,key){
     };
     return b;
   }
+
+  function bucket(naam){
+    return {
+      upload:function(pad){
+        return Promise.resolve({data:{path:pad},error:null});
+      },
+      download:function(){
+        return Promise.resolve({data:new Blob(['x']),error:null});
+      },
+      remove:function(){return Promise.resolve({data:[],error:null});},
+      list:function(){return Promise.resolve({data:[],error:null});},
+      getPublicUrl:function(pad){return {data:{publicUrl:baseUrl+'/'+naam+'/'+pad}};}
+    };
+  }
   return {
     from:qb,
+    storage:{from:bucket},
     auth:{
       getSession:function(){
         var s=sess();
