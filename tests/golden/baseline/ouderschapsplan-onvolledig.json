@@ -1,14 +1,14 @@
 {
   "fixture": "ouderschapsplan-onvolledig.json",
-  "aantal": 11,
+  "aantal": 12,
   "perErnst": {
-    "midden": 8,
-    "laag": 2,
-    "hoog": 1
+    "midden": 10,
+    "hoog": 1,
+    "laag": 1
   },
   "onderwerpen": [
     {
-      "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld, overige vakanties ontbreken",
+      "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld",
       "ernst": "midden"
     },
     {
@@ -17,6 +17,10 @@
     },
     {
       "onderwerp": "Informatie- en consultatieverplichting ontbreekt",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Ingangsdatum kinderalimentatie niet vermeld",
       "ernst": "midden"
     },
     {
@@ -24,15 +28,11 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Omgangsregeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "onderwerp": "Regeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
+      "onderwerp": "Geschillenregeling onvolledig: geen mediationclausule",
       "ernst": "midden"
     },
     {
@@ -40,16 +40,20 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Informatieplicht (art. 1:377b BW) ontbreekt",
-      "ernst": "hoog"
-    },
-    {
-      "onderwerp": "Kinderalimentatie: indexering verwijst naar NVI in plaats van wettelijk CBS-indexcijfer",
+      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Zorgregeling: wisselmoment zondagavond niet symmetrisch met ophaalmoment",
-      "ernst": "laag"
+      "onderwerp": "Indexering kinderalimentatie: verwijzing naar NVI onjuist (wettelijk CBS-indexcijfer)",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Zorgkorting niet vermeld bij kinderalimentatieberekening",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Zomervakantieregeling: tweede helft in oneven jaren en verdeling even jaren niet uitgewerkt",
+      "ernst": "midden"
     }
   ]
 }

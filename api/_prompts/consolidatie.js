@@ -78,6 +78,17 @@ Merge-criteria (verwijder het issue met de lagere ernst of lagere juridische pri
   Vraag je bij elk paar af: zou een mediator hier één regel toevoegen, of twee? Eén regel → één issue.
   Houd het exemplaar met de wetsverwijzing, of anders dat met de hoogste ernst.
 
+NOOIT SAMENVOEGEN — een tegenstrijdigheid is nooit hetzelfde als een gemis:
+Een issue dat zegt dat twee plekken elkaar TEGENSPREKEN (twee verschillende bedragen, nummers,
+datums of namen voor hetzelfde ding — in de hoofdtekst en een bijlage, of in twee artikelen)
+beschrijft iets anders dan een issue dat zegt dat er over dat onderwerp iets ONTBREEKT of
+niet geregeld is. Ook al gaan ze over dezelfde hypotheek, dezelfde woning of hetzelfde
+pensioen: bewaar ze allebei. De regel hierboven over "hetzelfde onderwerp niet geregeld"
+geldt uitsluitend tussen twee gemis-issues.
+Een tegenstrijdigheid noemt een concreet gegeven dat de mediator moet nakijken; verdwijnt die
+in een algemener issue over hetzelfde onderwerp, dan is dat gegeven weg zonder dat iemand het
+kan zien.
+
 Bewaar issues die écht een ander probleem beschrijven of die samen meer informatie geven dan elk apart.
 Bij twijfel: bewaar het issue.
 Geef ALTIJD minimaal één index terug.`;

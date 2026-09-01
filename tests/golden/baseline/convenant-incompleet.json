@@ -2,45 +2,45 @@
   "fixture": "convenant-incompleet.json",
   "aantal": 9,
   "perErnst": {
-    "hoog": 3,
-    "midden": 6
+    "hoog": 2,
+    "midden": 7
   },
   "onderwerpen": [
     {
-      "onderwerp": "Kinderalimentatie ontbreekt volledig zonder verwijzing naar ouderschapsplan",
+      "onderwerp": "Ouderschapsplan en kinderafspraken volledig afwezig",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Ingangsdatum partneralimentatie niet vermeld",
+      "onderwerp": "Partneralimentatie: ingangsdatum ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Hypotheek: ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "onderwerp": "Echtelijke woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Bankrekeningen: saldi op peildatum en gezamenlijke rekening niet gespecificeerd",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Schulden: geen regeling over verdeling en aansprakelijkheid",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Pensioenverevening: geen verwijzing naar WVPS of afwijkingsbeding",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Persoonsgegevens onvolledig: adressen en BSN ontbreken",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Fiscale afwikkeling: verdeling aanslagen en teruggaven niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Pensioenafspraak beschrijft conversie maar mist wettelijke grondslag (art. 5 WVPS)",
       "ernst": "hoog"
-    },
-    {
-      "onderwerp": "Bankrekeningen: saldi op peildatum en bestemming gezamenlijke rekening onvolledig",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Schulden niet geregeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Persoonsgegevens onvolledig: adressen en geboorteplaatsen ontbreken",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Fiscale afwikkeling onvolledig: verdeling aanslagen en teruggaven ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Pensioenregeling beschrijft conversie maar noemt art. 5 WVPS niet en vereist instemming pensioenuitvoerder",
-      "ernst": "hoog"
-    },
-    {
-      "onderwerp": "Peildatum voor omvang en waardebepaling huwelijksgemeenschap ontbreekt",
-      "ernst": "midden"
     }
   ]
 }

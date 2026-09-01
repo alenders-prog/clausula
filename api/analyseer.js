@@ -892,8 +892,29 @@ export default async function handler(req, res) {
           const geconsolideerd = teBewarenSet.size > 0
             ? allIssues.filter((_, i) => teBewarenSet.has(i))
             : allIssues; // veiligheidsfallback: bewaar alles
+          // Wélke, niet alleen hoevéél.
+          //
+          // Op 1 september 2026 verdween een bevinding die er eerder wél stond: het
+          // hypotheeknummer in het convenant week af van dat in de waardebepaling. Het
+          // log zei "6 duplicaat(en) verwijderd" en verder niets, dus viel niet vast te
+          // stellen óf hij was weggegooid, met iets anders was samengevoegd, of dit keer
+          // gewoon niet was gevonden. Drie heel verschillende oorzaken, en geen ervan uit
+          // te sluiten.
+          //
+          // Een bovengrens zou hier niet helpen: gemeten over de fixtures haalt deze stap
+          // routinematig 36 tot 65 procent weg, en dat is bedoeld gedrag — hij ontdubbelt
+          // over drie aanroepen heen. Elke grens die dat niet breekt, ligt zo hoog dat hij
+          // niets vangt. De namen wél.
+          const weggevallen = allIssues.filter((_, i) => !teBewarenSet.has(i));
           const verwijderd = allIssues.length - geconsolideerd.length;
-          if (verwijderd > 0) console.log(`[analyseer] consolidatie ${doc.bestandsnaam}: ${verwijderd} duplicaat(en) verwijderd`);
+          if (verwijderd > 0) {
+            console.log(`[analyseer] consolidatie ${doc.bestandsnaam}: ${verwijderd} van `
+              + `${allIssues.length} duplicaat(en) verwijderd`);
+            for (const w of weggevallen) {
+              console.log(`[analyseer]   weg: ${(w.ernst || '?').padEnd(6)} `
+                + `${w.onderwerp || '(zonder onderwerp)'}`);
+            }
+          }
 
           const definitief = await pasConsistentieToe(geconsolideerd, doc.bestandsnaam);
           sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: definitief } });

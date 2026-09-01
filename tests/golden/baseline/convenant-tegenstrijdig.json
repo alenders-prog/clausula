@@ -1,12 +1,13 @@
 {
   "fixture": "convenant-tegenstrijdig.json",
-  "aantal": 10,
+  "aantal": 8,
   "perErnst": {
-    "midden": 10
+    "midden": 6,
+    "laag": 2
   },
   "onderwerpen": [
     {
-      "onderwerp": "Naam op bankrekening wijkt af van geïntroduceerde naam van de man",
+      "onderwerp": "Naam op bankrekening wijkt af van geïntroduceerde naam man",
       "ernst": "midden"
     },
     {
@@ -18,32 +19,24 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Schulden niet geregeld",
+      "onderwerp": "Handtekeningen en ondertekeningsblok ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Ondertekeningsblok ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Nihilbeding partneralimentatie niet formeel vastgelegd als art. 1:158 BW-beding",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Overbedelingsvergoeding woning: € 5.000 lager dan berekende helft overwaarde, niet gemotiveerd",
-      "ernst": "midden"
+      "onderwerp": "Indexering partneralimentatie-nihilbeding niet gemotiveerd conform wettelijke vereisten",
+      "ernst": "laag"
     },
     {
       "onderwerp": "Bijzonder partnerpensioen niet geregeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Peildatum bankrekening niet gespecificeerd",
+      "onderwerp": "Overbedelingsvergoeding woning: berekening niet controleerbaar zonder nadere toelichting",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Passeerdatum / leveringsdatum woning niet vermeld",
-      "ernst": "midden"
+      "onderwerp": "Finale kwijting ontbreekt",
+      "ernst": "laag"
     }
   ]
 }

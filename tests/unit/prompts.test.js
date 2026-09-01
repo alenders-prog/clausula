@@ -272,3 +272,31 @@ describe('pensioen: verevening tegenover conversie', () => {
     expect(bouwJuridischeChecks('ouderschapsplan')).not.toContain('CONVERSIE');
   });
 });
+
+// ── Een tegenstrijdigheid is geen gemis ────────────────────────────────────
+//
+// Aanleiding (1 september 2026). Een bevinding die er in een eerdere run wél stond —
+// het hypotheeknummer in het convenant week af van dat in de waardebepaling — was in een
+// volgende run verdwenen. Het log zei alleen "6 duplicaat(en) verwijderd".
+//
+// De consolidatieprompt zegt dat twee issues over "hetzelfde onderwerp niet geregeld"
+// één issue zijn, uitdrukkelijk óók als de passages verschillen. Zonder tegenwicht kan
+// een tegenstrijdigheid over de hypotheek zo opgaan in een algemener issue dat er iets
+// over de hypotheek ontbreekt — en dan is het concrete nummer weg.
+//
+// Een bovengrens op het aantal verwijderingen zou hier niet helpen: gemeten over de
+// fixtures haalt deze stap routinematig 36 tot 65 procent weg, en dat is bedoeld gedrag.
+
+describe('consolidatie: tegenstrijdigheid versus gemis', () => {
+  it('verbiedt het samenvoegen van een tegenstrijdigheid met een gemis', () => {
+    expect(SYS_CONSOLIDATIE).toMatch(/NOOIT SAMENVOEGEN/);
+    expect(SYS_CONSOLIDATIE).toMatch(/TEGENSPREKEN/);
+    expect(SYS_CONSOLIDATIE).toMatch(/bewaar ze allebei/i);
+  });
+
+  it('perkt de "hetzelfde onderwerp"-regel expliciet in', () => {
+    // Zonder deze zin blijven de twee regels elkaar tegenspreken, en dan wint de
+    // ruimste lezing — precies wat er bij de bijlage-bevinding ook gebeurde.
+    expect(SYS_CONSOLIDATIE).toMatch(/geldt uitsluitend tussen twee gemis-issues/);
+  });
+});
