@@ -34,6 +34,7 @@ import { hoortBijDocument } from './_cross-doc-toewijzing.js';
 import { gebruikerContext } from './_auth.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
+  verwijderDuplicaten,
 } from './_consistentie.js';
 // De prompts staan apart in api/_prompts/. Wijzigingen daar raken de screening-
 // kwaliteit en horen gevolgd te worden door `npm run test:eval`.
@@ -303,7 +304,16 @@ async function pasConsistentieToe(issues, label) {
       console.log(`[consistentie] ${label} [${t.index}] "${t.oud}" → "${t.nieuw}" (${t.reden || 'geen reden'})`);
     }
     if (toegepast.length) console.log(`[consistentie] ${label}: ${toegepast.length} titel(s) bijgesteld`);
-    return aangepast;
+
+    // Herhalingen pas ná de titelcorrecties: die werken op de indices van de lijst
+    // zoals het model hem kreeg, en verwijderen verschuift die.
+    const { issues: ontdubbeld, verwijderd, genegeerd } = verwijderDuplicaten(aangepast, res?.duplicaten);
+    for (const d of verwijderd) {
+      console.log(`[consistentie] ${label} [${d.index}] "${d.onderwerp}" verwijderd als herhaling van [${d.van}] (${d.reden || 'geen reden'})`);
+    }
+    if (verwijderd.length) console.log(`[consistentie] ${label}: ${verwijderd.length} herhaling(en) verwijderd`);
+    if (genegeerd) console.warn(`[consistentie] ${label}: ${genegeerd}`);
+    return ontdubbeld;
   } catch (err) {
     console.warn(`[consistentie] overgeslagen voor ${label}:`, err.message);
     return issues;
