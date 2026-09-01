@@ -4477,8 +4477,15 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       // Zet global zodat issueKaart() en de checkbox-handlers kloppen
       // Samenvatting ALLEEN uit eigen acc.structuur — nooit fallback naar app.rapport.samenvatting
       // (die kan van een ander tabblad zijn als de Convenant-structuur later binnenkomt dan het OP).
+      //
+      // `_analyse_merk` zegt wélke run dit rapport heeft gebouwd. Nodig omdat de spread
+      // hieronder bewust velden van het vórige rapport meeneemt (`_concepts` overleeft zo
+      // een heranalyse) — en dat betekent dat `app.rapport` gevuld kán zijn met het
+      // rapport van een ánder dossier zodra deze functie nog niet heeft gedraaid.
+      // startAnalyse vergelijkt dit merk voordat hij bij een mislukking alsnog opslaat.
       app.rapport = {
         ...(app.rapport || {}),
+        _analyse_merk: app.analyseMerk,
         issues:       alleI,
         samenvatting: acc.structuur?.samenvatting ?? '',
         mfn_score:    acc.structuur?.mfn_score    || null,
@@ -11620,6 +11627,13 @@ async function startAnalyse() {
   let geslaagd = false;
   let _analyseFout = null;
 
+  // Het merk van déze run. Elke analyse krijgt een verse waarde, en het progressief
+  // renderen stempelt hem op `app.rapport`. Bewust géén hergebruik van app.analyseRunId:
+  // die valt terug op app.screeningId, en dat is precies de waarde die bij een nieuw
+  // dossier nog van het vórige dossier is.
+  const _runMerk = crypto.randomUUID();
+  app.analyseMerk = _runMerk;
+
   try {
     const { classificatie, rapport, resolvedFiles, primaireBestanden, extractedTexts } = await analyseDocument(
       app.tray,
@@ -11678,12 +11692,26 @@ async function startAnalyse() {
   // Staat er een rapport op het scherm, dan wordt het bewaard. Punt. Een onvolledig
   // bewaard rapport is te herkennen (`app.analyseOnvolledig` zet er een balk boven);
   // een verdwenen rapport is dat niet.
+  // ── En alleen het rapport van DEZE run ──────────────────────────────────────
+  //
+  // De eerste versie hiervan toetste `app.rapport && Object.keys(app.rapport).length`.
+  // Dat is niet genoeg, en de reviewbevinding van 1 september wees er terecht op:
+  // `app.rapport` wordt nooit leeggemaakt bij een nieuwe analyse, en het progressief
+  // renderen spreidt bewust het vórige rapport erin (zodat `_concepts` een heranalyse
+  // overleeft). Struikelt analyseDocument vóór dat renderen — bij de tekstextractie, de
+  // classificatie of de dossiercontrole — dan staat er nog het rapport van het dossier
+  // dat daarvóór openstond, en sloeg deze terugval dát op onder het huidige dossier.
+  //
+  // Van "de analyse is weg" naar "het rapport van mevrouw A staat in het dossier van
+  // mevrouw B" is geen vooruitgang. Vandaar het merk.
   if (geslaagd) {
     await opslaan();
-  } else if (app.rapport && Object.keys(app.rapport).length) {
-    console.warn('[analyse] niet netjes afgerond, maar er staat een rapport — toch opslaan');
+  } else if (app.rapport?._analyse_merk === _runMerk) {
+    console.warn('[analyse] niet netjes afgerond, maar er staat een rapport van deze run — toch opslaan');
     toonAnalyseFoutBalk(_analyseFout);
     await opslaan();
+  } else if (app.rapport && Object.keys(app.rapport).length) {
+    console.warn('[analyse] er staat een rapport, maar niet van deze run — niet opgeslagen');
   }
   return geslaagd;
 }

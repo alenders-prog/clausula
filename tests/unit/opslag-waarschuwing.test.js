@@ -144,3 +144,43 @@ describe('een rapport op het scherm wordt bewaard, ook na een struikeling', () =
     expect(html).toMatch(/Deze analyse is niet netjes afgerond/);
   });
 });
+
+// ── Alleen het rapport van DEZE run ────────────────────────────────────────
+//
+// Reviewbevinding van 1 september 2026 (kandidaat 6 van zes; de verificatiestap
+// bevestigde noch weerlegde ze, dus zelf nagetrokken — en deze klopte).
+//
+// De terugval die verlies moest voorkomen, toetste alleen of er een rapport op het
+// scherm stond. Maar `app.rapport` wordt nooit leeggemaakt bij een nieuwe analyse, en
+// het progressief renderen spreidt bewust het vorige rapport erin zodat `_concepts` een
+// heranalyse overleeft. Struikelt analyseDocument vóór dat renderen, dan staat er nog
+// het rapport van het dossier dat daarvóór openstond — en werd dát opgeslagen onder het
+// huidige dossier.
+//
+// Van "de analyse is weg" naar "het rapport van mevrouw A staat in het dossier van
+// mevrouw B" is geen vooruitgang.
+
+describe('de terugval slaat alleen het rapport van deze run op', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+
+  it('geeft elke analyse een vers merk, niet het hergebruikte runId', () => {
+    // app.analyseRunId valt terug op app.screeningId, en dat is bij een nieuw dossier
+    // nog de waarde van het vorige — precies het geval dat we moeten vangen.
+    expect(html).toMatch(/const _runMerk = crypto\.randomUUID\(\);\s*\n\s*app\.analyseMerk = _runMerk;/);
+    expect(html).not.toMatch(/_runMerk = app\.analyseRunId/);
+  });
+
+  it('stempelt dat merk op het rapport tijdens het progressief renderen', () => {
+    expect(html).toMatch(/_analyse_merk: app\.analyseMerk/);
+  });
+
+  it('slaat alleen op als het merk overeenkomt', () => {
+    expect(html).toMatch(/else if \(app\.rapport\?\._analyse_merk === _runMerk\)/);
+  });
+
+  it('meldt het geval waarin er wél een rapport staat maar van een andere run', () => {
+    // Stil overslaan zou dezelfde blinde vlek geven als de fout die dit hele hoofdstuk
+    // veroorzaakte: iets gaat niet door en niemand kan zien dat het niet doorging.
+    expect(html).toMatch(/niet van deze run — niet opgeslagen/);
+  });
+});

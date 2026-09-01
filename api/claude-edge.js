@@ -57,6 +57,13 @@ export default async function handler(req, res) {
   if (!anthropicRes.ok) {
     const errText = await anthropicRes.text();
     meter.mislukt(new Error(`Claude ${anthropicRes.status}`));
+    // Eerst de meting weg, dán pas antwoorden. Deze tak keert terug vóór de try/finally
+    // onderaan, waar `wachtOpVerbruik()` staat — dus zonder deze regel verdampt de regel
+    // zodra de functie na het antwoord bevriest. Juist de gevallen die je wilt zien
+    // staan (een 429 of 500 van Anthropic) waren daardoor de enige die niet werden
+    // vastgelegd. Gevonden door de ultrareview van 1 september 2026; dezelfde fout was
+    // op 31 augustus al in analyseer.js gerepareerd.
+    await wachtOpVerbruik();
     res.status(anthropicRes.status).setHeader('Content-Type', 'application/json').end(errText);
     return;
   }

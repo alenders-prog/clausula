@@ -98,6 +98,13 @@ export function meetAanroep(context = {}) {
   const t0 = Date.now();
   let eersteToken = null;
   let usage = null;
+  // Eén meter schrijft hoogstens één regel. schrijfVerbruik is niet idempotent, en
+  // zonder deze vlag hing dat af van foutmeldingen uit elkaar houden met een regex.
+  // Dat ging mis: een 200 van Anthropic zónder tool_use schrijft eerst klaar() en gooit
+  // daarna "Claude gaf geen tool-aanroep terug" — een melding die niet op /Claude fout (/
+  // matchte, dus mislukt() schreef er een tweede regel bij. Twee regels voor één aanroep,
+  // en de kosten dubbel geteld. Gevonden door de ultrareview van 1 september 2026.
+  let geschreven = false;
 
   return {
     /** Eerste stukje antwoord binnen. Alleen de eerste aanroep telt. */
@@ -117,6 +124,8 @@ export function meetAanroep(context = {}) {
 
     /** Gelukt: schrijf de regel weg. */
     klaar(extra = {}) {
+      if (geschreven) return;
+      geschreven = true;
       schrijfVerbruik(bouwVerbruikRegel({
         ...context, ...extra, usage,
         duurMs: Date.now() - t0, eersteTokenMs: eersteToken, gestartOp: t0, geslaagd: true,
@@ -130,6 +139,8 @@ export function meetAanroep(context = {}) {
      * antwoord niet af.
      */
     mislukt(fout, extra = {}) {
+      if (geschreven) return;
+      geschreven = true;
       schrijfVerbruik(bouwVerbruikRegel({
         ...context, ...extra, usage,
         duurMs: Date.now() - t0, eersteTokenMs: eersteToken, gestartOp: t0,

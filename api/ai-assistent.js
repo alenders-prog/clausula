@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { gebruikerContext } from './_auth.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { meetAanroep, usageUitSse, wachtOpVerbruik } from './_verbruik.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
@@ -455,13 +456,23 @@ const naarBronUI = (b) => (b?.url
 // vervolgens verdwijnen. Bijna elke keer, en terecht.
 const FUNCTIE_BUDGET_MS = 110_000;
 
-// Wie de vraag stelt. Per verzoek gezet in de handler; blijft leeg als de context
-// niet op te halen was — dan mist er een label bij de meting, meer niet.
-let _meetContext = { organisatieId: null, gebruikerId: null };
-// De fase van de aanroep die nu loopt. Wordt vlak vóór elke aanroep gezet; zo
-// hoeven callClaude en callClaudeStream geen extra parameter te krijgen die op
-// zeven plekken meegegeven moet worden.
-let _meetFase = 'onbekend';
+// Wie de vraag stelt, en welke fase er nu loopt.
+//
+// Dit stond tot 1 september 2026 in gewone modulevariabelen. Bij twee vragen die tegelijk
+// in hetzelfde proces landen overschrijft de één de context van de ander: dan staat het
+// verbruik van kantoor A onder kantoor B, en een zoekronde onder het label 'afronding'.
+// analyseer.js had dezelfde fout en loste hem op 31 augustus op met AsyncLocalStorage;
+// hier bleef hij staan. De ultrareview wees er drie keer op.
+//
+// AsyncLocalStorage houdt de context vast aan de aanroepketen van één verzoek. Met
+// enterWith is dat één regel in de handler, zonder de hele functie in een callback te
+// hoeven wikkelen. De fase zit in dezelfde opslag: callClaude en callClaudeStream hoeven
+// zo nog steeds geen extra parameter te krijgen die op zeven plekken meemoet.
+const _meetOpslag = new AsyncLocalStorage();
+const _meting = () => _meetOpslag.getStore()
+  || { organisatieId: null, gebruikerId: null, fase: 'onbekend' };
+/** Zet de fase voor de rest van dít verzoek. */
+const _zetFase = (fase) => { const s = _meetOpslag.getStore(); if (s) s.fase = fase; };
 const AFRONDING_MS      = 25_000;   // gereserveerd voor de gestructureerde call
 const RONDE_MS          =  8_000;   // wat een zoekronde in de praktijk kost (gemeten: 4–6s)
 
@@ -469,8 +480,10 @@ const RONDE_MS          =  8_000;   // wat een zoekronde in de praktijk kost (ge
 // `deadline` is een absoluut tijdstip (Date.now()-basis); de call wordt afgebroken
 // zodra dat gepasseerd is, zodat het budget nooit bij één trage aanroep opgaat.
 async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
-  const meter = meetAanroep({ endpoint: 'ai-assistent', fase: _meetFase,
-                              model: body?.model || 'claude-sonnet-4-6', ..._meetContext });
+  const _m = _meting();
+  const meter = meetAanroep({ endpoint: 'ai-assistent', fase: _m.fase,
+                              model: body?.model || 'claude-sonnet-4-6',
+                              organisatieId: _m.organisatieId, gebruikerId: _m.gebruikerId });
   const payload = JSON.stringify({ model: 'claude-sonnet-4-6', ...body });
   for (let attempt = 0; attempt <= retries; attempt++) {
     const resterend = deadline - Date.now();
@@ -532,8 +545,10 @@ async function callClaude(apiKey, body, retries = 2, deadline = Infinity) {
 // tekst (`text_delta`) — daarvoor is `onTekst`. Eén lezer, want het SSE-formaat en de
 // afbreek-afhandeling zijn identiek; alleen het soort brokje verschilt.
 async function callClaudeStream(apiKey, body, onJson, deadline = Infinity, onTekst = null) {
-  const meter = meetAanroep({ endpoint: 'ai-assistent', fase: _meetFase,
-                              model: body?.model || 'claude-sonnet-4-6', ..._meetContext });
+  const _m = _meting();
+  const meter = meetAanroep({ endpoint: 'ai-assistent', fase: _m.fase,
+                              model: body?.model || 'claude-sonnet-4-6',
+                              organisatieId: _m.organisatieId, gebruikerId: _m.gebruikerId });
   const resterend = deadline - Date.now();
   if (resterend <= 0) throw new Error('Tijdslimiet bereikt vóór het antwoord van Claude');
 
@@ -706,7 +721,8 @@ async function _verwerk(req, res) {
   // nodig om verbruik per gebruiker en per kantoor te kunnen tellen.
   const _ctx = await gebruikerContext(token);
   if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
-  _meetContext = { organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId };
+  _meetOpslag.enterWith({ organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId,
+                          fase: 'onbekend' });
 
   const {
     vraag,
@@ -847,14 +863,14 @@ async function _verwerk(req, res) {
       if (stroom) {
         stuurSSE({ type: 'fase', tekst: 'Tekst opstellen…' });
         const t0Raw = Date.now();
-        _meetFase = 'clausule';  // rawModus: clausule, mail, klanttekst
+        _zetFase('clausule');  // rawModus: clausule, mail, klanttekst
         ({ tekst } = await callClaudeStream(
           anthropicKey, rawBody, null, eindtijd,
           stuk => stuurSSE({ type: 'delta', tekst: stuk }),
         ));
         console.log(`[ai-assistent] rawModus streamend ${Date.now() - t0Raw}ms, ${tekst.length} tekens`);
       } else {
-        _meetFase = 'clausule';  // rawModus zonder stroom
+        _zetFase('clausule');  // rawModus zonder stroom
         const rawData = await callClaude(anthropicKey, rawBody, 2, eindtijd);
         tekst = rawData.content.find(b => b.type === 'text')?.text || '';
       }
@@ -922,7 +938,7 @@ async function _verwerk(req, res) {
       // van vijfendertig.
       let data;
       try {
-        _meetFase = 'zoekronde';
+        _zetFase('zoekronde');
         data = await callClaude(anthropicKey, {
           max_tokens:  400,
           temperature: 0.3,
@@ -987,7 +1003,7 @@ async function _verwerk(req, res) {
       const volgAntwoord = maakVeldVolger('antwoord');
       const volgSecties  = maakSectieVolger(STREAM_VELDEN);
 
-      _meetFase = 'afronding';
+      _zetFase('afronding');
       const { input } = await callClaudeStream(anthropicKey, fase2, deelJson => {
         const stuk = volgAntwoord(deelJson);
         if (stuk) stuurSSE({ type: 'delta', tekst: stuk });
@@ -1002,7 +1018,7 @@ async function _verwerk(req, res) {
       }, eindtijd);
       output = input;
     } else {
-      _meetFase = 'afronding';
+      _zetFase('afronding');
       const structData = await callClaude(anthropicKey, fase2, 2, eindtijd);
       const toolBlock = structData.content.find(
         b => b.type === 'tool_use' && b.name === 'assistent_antwoord',

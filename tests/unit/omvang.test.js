@@ -374,7 +374,12 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // elf inline H/M/L-tellingen, negen keer het actief-filter en drie letterlijke
 // segmentarrays zijn vervangen door telHml, filterActief en hmlSegs — modules die
 // getest waren, aan window hingen, en nul keer werden aangeroepen.
-const MAX_REGELS_INDEX = 16279;
+// 01-09-2026 (tiende keer): 16279 → 16307 (+28), voor de reviewbevinding dat de
+// terugval-opslag het rapport van een ánder dossier kon bewaren. Het merk per run, de
+// stempel bij het progressief renderen, en de melding als er wél een rapport staat maar
+// van een andere run. Zonder die laatste melding zou het overslaan net zo onzichtbaar
+// zijn als de fout die dit hele hoofdstuk begon.
+const MAX_REGELS_INDEX = 16307;
 const MAX_REGELS_JS     = 13086;
 
 function regels(pad) {

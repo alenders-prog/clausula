@@ -258,8 +258,11 @@ describe('elke fase die de endpoints kunnen versturen staat op de woordenlijst',
   });
 
   it('de fasen uit ai-assistent.js zijn allemaal bekend', () => {
+    // `_meetFase = '…'` is op 1 september 2026 `_zetFase('…')` geworden: de fase zit nu
+    // in de AsyncLocalStorage van het verzoek in plaats van in een modulevariabele, zodat
+    // twee gelijktijdige vragen elkaars label niet meer overschrijven.
     const fasen = [...bron('../../api/ai-assistent.js')
-      .matchAll(/_meetFase\s*=\s*'([a-z_]+)'/g)].map(m => m[1]);
+      .matchAll(/_zetFase\('([a-z_]+)'\)/g)].map(m => m[1]);
     expect(fasen.length).toBeGreaterThan(2);
     for (const f of fasen) {
       expect(veiligeFase(f), `fase '${f}' staat niet in FASEN`).toBe(f);
