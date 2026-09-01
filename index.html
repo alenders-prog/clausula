@@ -1188,6 +1188,13 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .ib-aanbeveling{flex:1;background:#EBF3FC;border-left:3px solid #2466B8;border-radius:0 6px 6px 0;padding:8px 11px;}
 .ib-aanbeveling-hdr{font-size:.61rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#2466B8;margin-bottom:3px;}
 .ib-aanbeveling-body{font-size:.82rem;line-height:1.6;color:var(--ink-mid);}
+/* Vervangvoorstel: laat zien wát er verandert. Een mediator meldde op 1 september 2026
+   dat een aanbeveling "dezelfde zin door dezelfde zin" leek te vervangen; er zaten twee
+   woorden verschil in, maar die waren in een lange zin niet te vinden. */
+.vv-oud mark.vv-weg{background:#FCE4E4;color:#8C2F1F;text-decoration:line-through;border-radius:3px;padding:0 2px;}
+.vv-nieuw mark.vv-erbij{background:#DFF1E6;color:#1E6A47;font-weight:600;border-radius:3px;padding:0 2px;}
+.vv-oud,.vv-nieuw,.vv-gelijk{white-space:normal;}
+.vv-let-op{color:#8C2F1F;font-style:italic;}
 .ib-ext-btn{flex-shrink:0;padding:5px 10px;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);color:var(--ink-mid);background:var(--paper);display:flex;align-items:center;gap:4px;white-space:nowrap;align-self:flex-start;}
 .ib-ext-btn:hover{background:var(--bg);}
 .ib-textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:.79rem;color:var(--ink-soft);font-family:inherit;resize:none;background:var(--paper);}
@@ -6084,7 +6091,7 @@ function issueKaart(idx, nr) {
         ? `<div class="ib-aanb-row">
             <div class="ib-aanbeveling">
               <div class="ib-aanbeveling-hdr">💡 AANBEVELING</div>
-              <div class="ib-aanbeveling-body">${escH(issue.aanbeveling)}</div>
+              <div class="ib-aanbeveling-body">${window.accentueerAanbeveling?.(issue.aanbeveling, escH) ?? escH(issue.aanbeveling)}</div>
             </div>
             <button class="ib-ext-btn${issue.diepteResultaat ? ' ib-ext-bekijk' : ''}" onclick="diepteAnalyse(${idx});event.stopPropagation()">${issue.diepteResultaat ? '👁 Bekijk extra verificatie' : '⟳ Extra verificatie'}</button>
           </div>`
@@ -16110,6 +16117,7 @@ import { pollWacht, tijdsbudget, nogEenPoging, tijdslimietMelding,
 import { voortgangStatus, AFRONDING_MS }                     from './src/analyse/voortgang-status.js';
 import { beoordeelAfloop }                                   from './src/analyse/afgekapt.js';
 import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport/doc-volgorde.js';
+import { accentueerAanbeveling }                             from './src/rapport/vervang-accent.js';
 import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
@@ -16188,6 +16196,7 @@ window.voortgangStatus        = voortgangStatus;
 window.AFRONDING_MS           = AFRONDING_MS;
 window.bepaalVolgorde         = bepaalVolgorde;
 window.beoordeelVolgorde      = beoordeelVolgorde;
+window.accentueerAanbeveling  = accentueerAanbeveling;
 window.opslagToestand         = opslagToestand;
 window.magWeg                 = magWeg;
 window.beoordeelAfloop        = beoordeelAfloop;

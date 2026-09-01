@@ -382,7 +382,11 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // 01-09-2026 (elfde keer): 16307 → 16315 (+7), voor de melding die de niet-gevonden
 // passages bij naam noemt. Klein, maar het beslecht een gebrek waarvoor ik twee keer een
 // oorzaak heb voorgesteld die bij naspelen onjuist bleek — omdat het geval zelf ontbrak.
-const MAX_REGELS_INDEX = 16315;
+// 01-09-2026 (twaalfde keer): 16315 → 16324 (+9, waarvan 2 script en 7 opmaak), voor het
+// tonen van het verschil in een vervangvoorstel. De redenering — wanneer is iets een
+// vervang-paar, en welke woorden verschillen — staat in src/rapport/vervang-accent.js met
+// 18 tests; hier bleef één aanroep en de kleuring over.
+const MAX_REGELS_INDEX = 16324;
 const MAX_REGELS_JS     = 13086;
 
 function regels(pad) {
