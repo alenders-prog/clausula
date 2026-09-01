@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   telHml,
   filterActief,
-  kopKlasse,
   hmlSegs,
   maakGrad,
 } from '../../src/chips/hml-counts.js';
@@ -65,30 +64,6 @@ describe('filterActief', () => {
     const kopie = [...issues];
     filterActief(issues);
     expect(issues).toHaveLength(kopie.length);
-  });
-});
-
-// ─── kopKlasse ────────────────────────────────────────────────────────────────
-
-describe('kopKlasse', () => {
-  it('kop-hoog als h > 0', () => {
-    expect(kopKlasse({ h: 1, m: 0, l: 0 })).toBe('kop-hoog');
-  });
-
-  it('kop-hoog heeft prioriteit boven midden', () => {
-    expect(kopKlasse({ h: 1, m: 3, l: 0 })).toBe('kop-hoog');
-  });
-
-  it('kop-midden als h=0 en m > 0', () => {
-    expect(kopKlasse({ h: 0, m: 2, l: 0 })).toBe('kop-midden');
-  });
-
-  it('kop-laag als alleen l > 0', () => {
-    expect(kopKlasse({ h: 0, m: 0, l: 5 })).toBe('kop-laag');
-  });
-
-  it('kop-leeg als alles nul', () => {
-    expect(kopKlasse({ h: 0, m: 0, l: 0 })).toBe('kop-leeg');
   });
 });
 

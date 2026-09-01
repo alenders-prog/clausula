@@ -28,19 +28,19 @@ import { join } from 'node:path';
 const WORTEL = join(fileURLToPath(new URL('.', import.meta.url)), '../..');
 
 /**
- * Stand op 1 september 2026, na het aansluiten van sorteerOpType en bouwPrimaireBest.
+ * Stand op 1 september 2026, aan het eind van de opruimronde: NUL.
  *
- *   4 × window-export uit src/chips/hml-counts.js die nergens wordt gebruikt, terwijl
- *       index.html op zes plekken zelf H/M/L telt.
+ * Alle acht zijn afgehandeld, elk op zijn eigen manier:
+ *   aangesloten   sorteerOpType, bouwPrimaireBest, scheidBijlageIssues, telHml,
+ *                 filterActief, hmlSegs — de app deed ze ernaast zelf na
+ *   weggehaald    issuesVan, zonderBullet, kopKlasse — speculatieve helpers waarvan
+ *                 de app het uitvoerformaat nooit heeft overgenomen
+ *   uitgezonderd  bevestigdeTotp, met reden, in TOEGESTAAN
  *
- * De vier test-only exports zijn 1 september afgehandeld: scheidBijlageIssues is
- * aangesloten (analyseer.js deed het ernaast na), issuesVan en zonderBullet zijn
- * weggehaald (speculatieve helpers), en bevestigdeTotp staat in TOEGESTAAN omdat de
- * 2FA-uitrol nog wacht.
- *
- * Beide staan met naam in de uitvoer van het script.
+ * Nu hij op nul staat mag hij daar blijven. Verhogen kan technisch, maar dan staat het
+ * in de diff en is het een besluit — precies zoals bij de omvangsgrens.
  */
-const PLAFOND = 4;
+const PLAFOND = 0;
 
 function scan() {
   try {

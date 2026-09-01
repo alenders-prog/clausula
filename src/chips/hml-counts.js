@@ -25,18 +25,6 @@ export function filterActief(issues) {
 }
 
 /**
- * Vertaalt H/M/L-counts naar de CSS-klasse voor de chip-kop.
- * @param {{ h: number, m: number, l: number }} counts
- * @returns {'kop-hoog'|'kop-midden'|'kop-laag'|'kop-leeg'}
- */
-export function kopKlasse({ h, m, l }) {
-  if (h > 0) return 'kop-hoog';
-  if (m > 0) return 'kop-midden';
-  if (l > 0) return 'kop-laag';
-  return 'kop-leeg';
-}
-
-/**
  * Bouwt de standaard segment-array voor donut-ringen.
  * @param {{ h: number, m: number, l: number }} counts
  * @returns {{ kleur: string, n: number }[]}

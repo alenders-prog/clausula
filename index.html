@@ -4494,14 +4494,12 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       const nogBezig = _structuurLoadt || _juridischLoadt || _balansLoadt;
 
       // Ernst-counts
-      const hoog   = alleI.filter(i => i.ernst === 'hoog').length;
-      const midden = alleI.filter(i => i.ernst === 'midden').length;
-      const laag   = alleI.filter(i => i.ernst === 'laag').length;
+      const { h: hoog, m: midden, l: laag } = window.telHml(alleI);
       const _totaal = hoog + midden + laag;
 
       // Donut als conic-gradient ring (zelfde visuele taal als dimensie-cirkels en tabs)
       const _segs = _totaal > 0
-        ? [{ kleur:'#C82020',n:hoog },{ kleur:'#E07200',n:midden },{ kleur:'#2A7260',n:laag }]
+        ? window.hmlSegs({ h: hoog, m: midden, l: laag })
         : [];
       const _grad = _totaal > 0 ? maakGrad(_segs) : 'var(--line) 0deg 360deg';
       const _centerTxt = nogBezig && _totaal === 0
@@ -4597,17 +4595,15 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         if (loading) {
           return `<button class="a-fiche-chip a-fiche-chip--laden" data-dim="${d}" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-label">${DIM_LABELS[d]}</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">—</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">—</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">—</strong><span>Laag</span></div></div></button>`;
         }
-        const open = dimIss.filter(i => !i.negeer && !i.afgehandeld);
+        const open = window.filterActief(dimIss);
         const h = open.filter(i=>i.ernst==='hoog').length;
         const m = open.filter(i=>i.ernst==='midden').length;
         const l = open.filter(i=>i.ernst==='laag').length;
         return `<button class="a-fiche-chip" data-dim="${d}" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS[d]||''}</span><span class="a-fiche-label">${DIM_LABELS[d]}</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${h||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${m||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${l||'—'}</strong><span>Laag</span></div></div></button>`;
       };
 
-      const _alleOpen = alleI.filter(i => !i.negeer && !i.afgehandeld);
-      const _alleHoog = _alleOpen.filter(i => i.ernst === 'hoog').length;
-      const _alleMid  = _alleOpen.filter(i => i.ernst === 'midden').length;
-      const _alleLaag = _alleOpen.filter(i => i.ernst === 'laag').length;
+      const _alleOpen = window.filterActief(alleI);
+      const { h: _alleHoog, m: _alleMid, l: _alleLaag } = window.telHml(_alleOpen);
       const _alleChip = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${_alleMiniRingHtml(alleI)}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_alleHoog||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_alleMid||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_alleLaag||'—'}</strong><span>Laag</span></div></div></button>`;
       const filterBar = `<div class="issue-filter-bar">
         <div class="filter-chip-grid">${_alleChip}${dims.map(d => {
@@ -5901,10 +5897,8 @@ const DIM_SVG_ICONS = {
 };
 
 function _alleMiniRingHtml(issues) {
-  const actief = issues.filter(i => !i.negeer && !i.afgehandeld);
-  const h = actief.filter(i => i.ernst === 'hoog').length;
-  const m = actief.filter(i => i.ernst === 'midden').length;
-  const l = actief.filter(i => i.ernst === 'laag').length;
+  const actief = window.filterActief(issues);
+  const { h, m, l } = window.telHml(actief);
   const tot = h + m + l;
   let grad;
   if (tot > 0) {
@@ -5925,11 +5919,9 @@ function herlaadChipTellers() {
     const dim = chip.dataset.dim;
     if (!dim || dim === 'mfn') return;
     const dimIss = dim === 'alle'
-      ? issues.filter(i => !i.negeer && !i.afgehandeld)
+      ? window.filterActief(issues)
       : issues.filter(i => !i.negeer && !i.afgehandeld && Array.isArray(i.dimensies) && i.dimensies.includes(dim));
-    const h = dimIss.filter(i => i.ernst === 'hoog').length;
-    const m = dimIss.filter(i => i.ernst === 'midden').length;
-    const l = dimIss.filter(i => i.ernst === 'laag').length;
+    const { h, m, l } = window.telHml(dimIss);
     const hEl = chip.querySelector('.a-fiche-h');
     const mEl = chip.querySelector('.a-fiche-m');
     const lEl = chip.querySelector('.a-fiche-l');
@@ -5943,15 +5935,13 @@ function herlaadChipTellers() {
   });
 
   // Update de grote donut card (samenvatting rechts)
-  const open = issues.filter(i => !i.negeer && !i.afgehandeld);
-  const dH = open.filter(i => i.ernst === 'hoog').length;
-  const dM = open.filter(i => i.ernst === 'midden').length;
-  const dL = open.filter(i => i.ernst === 'laag').length;
+  const open = window.filterActief(issues);
+  const { h: dH, m: dM, l: dL } = window.telHml(open);
   const dTot = dH + dM + dL;
   const donutRing = document.querySelector('.donut-card .v2-doc-seg-ring');
   if (donutRing) {
     const segs = dTot > 0
-      ? [{ kleur:'#C82020',n:dH },{ kleur:'#E07200',n:dM },{ kleur:'#2A7260',n:dL }]
+      ? window.hmlSegs({ h: dH, m: dM, l: dL })
       : [];
     const grad = dTot > 0 ? maakGrad(segs) : 'var(--line) 0deg 360deg';
     donutRing.style.background = `conic-gradient(${grad})`;
@@ -6669,10 +6659,8 @@ async function toonRapport(cls, rp) {
     }
 
     const issues = drp.issues;
-    const openIss = issues.filter(i => !i.negeer && !i.afgehandeld);
-    const hoog   = openIss.filter(i => i.ernst === 'hoog').length;
-    const midden = openIss.filter(i => i.ernst === 'midden').length;
-    const laag   = openIss.filter(i => i.ernst === 'laag').length;
+    const openIss = window.filterActief(issues);
+    const { h: hoog, m: midden, l: laag } = window.telHml(openIss);
     const totaal = hoog + midden + laag;
     const samenDelen = [
       hoog   > 0 ? `<span style="color:#C82020;font-weight:700">${hoog} hoog</span>`     : '',
@@ -6683,7 +6671,7 @@ async function toonRapport(cls, rp) {
 
     // Donut als conic-gradient ring (zelfde visuele taal als dimensie-cirkels en tabs)
     const _segs2 = totaal > 0
-      ? [{ kleur:'#C82020',n:hoog },{ kleur:'#E07200',n:midden },{ kleur:'#2A7260',n:laag }]
+      ? window.hmlSegs({ h: hoog, m: midden, l: laag })
       : [];
     const _grad2 = totaal > 0 ? maakGrad(_segs2) : 'var(--line) 0deg 360deg';
     const _center2 = totaal > 0
@@ -6743,10 +6731,8 @@ async function toonRapport(cls, rp) {
       ? `<button class="a-fiche-chip" data-dim="mfn" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${DIM_SVG_ICONS.mfn}</span><span class="a-fiche-label">MfN</span></div></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong style="color:#16a34a;font-size:1.1rem;font-weight:800;display:block;line-height:1">${mfnAanw}</strong><span>Behaald</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong style="color:var(--ink-soft);font-size:1.1rem;font-weight:800;display:block;line-height:1">${mfnEl.length}</strong><span>Totaal</span></div></div></button>`
       : '';
 
-    const _openIss = issues.filter(i => !i.negeer && !i.afgehandeld);
-    const _totalH = _openIss.filter(i => i.ernst === 'hoog').length;
-    const _totalM = _openIss.filter(i => i.ernst === 'midden').length;
-    const _totalL = _openIss.filter(i => i.ernst === 'laag').length;
+    const _openIss = window.filterActief(issues);
+    const { h: _totalH, m: _totalM, l: _totalL } = window.telHml(_openIss);
     const _alleChipHtml = `<button class="a-fiche-chip actief" data-dim="alle" onclick="filterIssues(this)"><div class="a-fiche-header"><div class="a-fiche-title"><span class="a-fiche-icn">${_alleMiniRingHtml(issues)}</span><span class="a-fiche-label">Alle Issues</span></div><span class="chip-info-icn" title="Het totaal per categorie kan hoger zijn dan het totale verbeterpuntenaantal, omdat issues in meerdere categorieën kunnen voorkomen." onclick="event.stopPropagation()">ⓘ</span></div><div class="a-fiche-stats"><div class="a-fiche-stat"><strong class="a-fiche-h">${_totalH||'—'}</strong><span>Hoog</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-m">${_totalM||'—'}</strong><span>Midden</span></div><div class="a-fiche-divider"></div><div class="a-fiche-stat"><strong class="a-fiche-l">${_totalL||'—'}</strong><span>Laag</span></div></div></button>`;
 
     const _docLblSectie = (() => {
@@ -8349,9 +8335,7 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
 
   // Bereken score-blok variabelen (zelfde logica als bouwAnalyseHtml)
   const _issues = (drp && drp.issues) || [];
-  const _hoog   = _issues.filter(i => i.ernst === 'hoog').length;
-  const _midden = _issues.filter(i => i.ernst === 'midden').length;
-  const _laag   = _issues.filter(i => i.ernst === 'laag').length;
+  const { h: _hoog, m: _midden, l: _laag } = window.telHml(_issues);
   const _totaal = _hoog + _midden + _laag;
   const _samenDelen = [
     _hoog   > 0 ? `<span style="color:#C82020;font-weight:700">${_hoog} hoog</span>`   : '',
@@ -8360,7 +8344,7 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
     _issues.length === 0 ? '<span style="color:#2A7260;font-weight:700">Geen issues</span>' : '',
   ].filter(Boolean).join(' · ');
   const _segs2  = _totaal > 0
-    ? [{ kleur:'#C82020',n:_hoog },{ kleur:'#E07200',n:_midden },{ kleur:'#2A7260',n:_laag }]
+    ? window.hmlSegs({ h: _hoog, m: _midden, l: _laag })
     : [];
   const _grad2  = _totaal > 0 ? maakGrad(_segs2) : 'var(--line) 0deg 360deg';
   const _center2 = _totaal > 0
@@ -11872,9 +11856,7 @@ const maakDocCircels = (drp) => {
         ? issues.filter(i => i.dimensies?.includes('conflicten') || i.dimensies?.includes('cross_doc'))
         : issues.filter(i => i.dimensies?.includes(d));
       if (!list.length) return;
-      const h = list.filter(i => i.ernst === 'hoog').length;
-      const m = list.filter(i => i.ernst === 'midden').length;
-      const l = list.filter(i => i.ernst === 'laag').length;
+      const { h: h, m: m, l: l } = window.telHml(list);
       c += segCircle(lbl[d], [
         { kleur: 'var(--status-risico)',   n: h },
         { kleur: 'var(--status-aandacht)', n: m },
@@ -11890,9 +11872,7 @@ const maakDocCircels = (drp) => {
         { kleur: 'var(--status-ok)',     n: mA },
       ], `${mA}/${mfnEl.length}`);
     }
-    const h = issues.filter(i => i.ernst === 'hoog').length;
-    const m = issues.filter(i => i.ernst === 'midden').length;
-    const l = issues.filter(i => i.ernst === 'laag').length;
+    const { h: h, m: m, l: l } = window.telHml(issues);
     const mO2 = mfnEl.filter(x => x.status !== 'aanwezig').length;
     const mA2 = mfnEl.filter(x => x.status === 'aanwezig').length;
     return { html: c, grootSegs: [
@@ -12009,10 +11989,8 @@ function maakDocKolommenHtml(rp) {
       </div>`;
     }
 
-    const issues = (Array.isArray(curr.issues) ? curr.issues : []).filter(i => !i.negeer && !i.afgehandeld);
-    const h = issues.filter(i => i.ernst === 'hoog').length;
-    const m = issues.filter(i => i.ernst === 'midden').length;
-    const l = issues.filter(i => i.ernst === 'laag').length;
+    const issues = window.filterActief(Array.isArray(curr.issues) ? curr.issues : []);
+    const { h: h, m: m, l: l } = window.telHml(issues);
     const tot = h + m + l;
     const currGrad = ringGrad(h, m, l);
     const currCtr  = tot > 0 ? String(tot) : `<span style="font-size:.9rem;color:var(--status-ok)">✓</span>`;
@@ -12022,9 +12000,7 @@ function maakDocKolommenHtml(rp) {
     const allIssues    = Array.isArray(curr.issues) ? curr.issues : [];
     const handledCount = allIssues.filter(i => i.afgehandeld).length;
     if (handledCount > 0) {
-      const ph   = allIssues.filter(i => i.ernst === 'hoog').length;
-      const pm   = allIssues.filter(i => i.ernst === 'midden').length;
-      const pl   = allIssues.filter(i => i.ernst === 'laag').length;
+      const { h: ph, m: pm, l: pl } = window.telHml(allIssues);
       const ptot = ph + pm + pl;
       const pct  = ptot > 0 ? Math.round((ptot - tot) / ptot * 100) : 0;
       const pctTx = pct > 0 ? `+ ${pct}%` : pct < 0 ? `${pct}%` : '±0%';
@@ -13879,8 +13855,7 @@ function _assistBouwDossierContext(id) {
       });
     }
     // Alle open issues (geen limiet)
-    const openIssues = (Array.isArray(rp.issues) ? rp.issues : [])
-      .filter(i => !i.negeer && !i.afgehandeld)
+    const openIssues = window.filterActief(Array.isArray(rp.issues) ? rp.issues : [])
       .map(i => {
         const tekst = i.signalering || i.bevinding || '';
         const naNamen = huidigeNaarAnon ? anonimiseerTekst(tekst, huidigeNaarAnon) : tekst;
@@ -16066,7 +16041,7 @@ import { piiAnonimiseer }                                   from './src/pii-anon
 import { bouwAnonMap, anonimiseerTekst }                    from './src/naam-anonimiseer.js';
 import { raadDocType, contextVoorHoofd,
          vindEigenBestanden, bouwPrimaireBest }             from './src/viewer/primaire-best.js';
-import { maakGrad, telHml, filterActief, kopKlasse, hmlSegs } from './src/chips/hml-counts.js';
+import { maakGrad, telHml, filterActief, hmlSegs } from './src/chips/hml-counts.js';
 import { sorteerOpDocType, sorteerOpType }                  from './src/rapport/sorteer-docs.js';
 import { bouwSubRapport }                                   from './src/rapport/merge-rapport.js';
 import { bulletPrefix, metBullet }                          from './src/docx/bullet-prefix.js';
@@ -16114,7 +16089,6 @@ window.bouwPrimaireBest  = bouwPrimaireBest;
 window.maakGrad          = maakGrad;
 window.telHml            = telHml;
 window.filterActief      = filterActief;
-window.kopKlasse         = kopKlasse;
 window.hmlSegs           = hmlSegs;
 window.sorteerOpDocType  = sorteerOpDocType;
 window.sorteerOpType     = sorteerOpType;

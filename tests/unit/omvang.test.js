@@ -370,7 +370,11 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // regels die bouwPrimaireBest woord voor woord nabouwden zijn vervangen door een aanroep
 // van de module zelf. Die stond getest en ongebruikt in src/viewer/primaire-best.js —
 // dezelfde dode hoek als sorteerOpType, en op dezelfde manier gevonden.
-const MAX_REGELS_INDEX = 16305;
+// 01-09-2026 (negende keer): 16305 → 16279 (−26, alle 26 script). De opruimronde:
+// elf inline H/M/L-tellingen, negen keer het actief-filter en drie letterlijke
+// segmentarrays zijn vervangen door telHml, filterActief en hmlSegs — modules die
+// getest waren, aan window hingen, en nul keer werden aangeroepen.
+const MAX_REGELS_INDEX = 16279;
 const MAX_REGELS_JS     = 13086;
 
 function regels(pad) {
