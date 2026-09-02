@@ -5,7 +5,54 @@ zijn gedaan. Dat etmaal is het bewijsmateriaal: elke fout is een steekproef uit 
 structuur mogelijk maakt. Dit stuk redeneert daarvandaan terug, niet vanuit een ideaal.
 
 Leesvolgorde: eerst de meting, dan de foutenklassen, dan wat er te doen valt — in de
-volgorde waarin het loont. Wie alleen de conclusie wil: § 6.
+volgorde waarin het loont. Wie alleen de conclusie wil: § 7; wie wil weten wat dit stuk NIET dekt: § 0.
+
+---
+
+## 0. Reikwijdte — wat dit stuk wél en niet is
+
+Dit is **geen volledige architectuurbeoordeling.** Het staat op twee benen, en die zijn
+niet even sterk:
+
+**Het meetbeen is volledig.** Functielengtes, bestandsgroottes, de verhouding tussen
+geteste en ongeteste code, het aantal namen aan `window`, het aantal verwijzingen naar
+`app.rapport` — dat is over de héle codebase geteld en hangt niet af van welke fouten ik
+toevallig zag.
+
+**Het bewijsbeen is een steekproef, en een scheve.** De zes foutklassen komen uit
+negenentwintig commits van één etmaal. Gemeten: **46 van de 69 bestanden in `src/` en
+`api/` heb ik in dat etmaal niet aangeraakt** — twee derde. Van de 278 functies in
+`index.html` heb ik er een handvol van binnen gezien.
+
+Wat dat betekent voor de conclusies:
+
+- De **richting** is betrouwbaar. Dat de helft van de functiecode in drieëntwintig lange
+  functies zit en dat 71% van de frontend-JS ongetest is, volgt uit de meting, niet uit de
+  steekproef.
+- De **prioriteitsvolgorde** is dat minder. Stap 1 gaat over `analyseDocument` omdat dáár
+  de duurste fout zat — maar dat is ook de functie waar ik het langst in heb gekeken. Een
+  even grote fout in de conceptgeneratie of het DOCX-patchen zou ik niet zijn tegengekomen.
+
+**Wat dit stuk niet heeft bekeken**, en wat een volledige beoordeling zou moeten
+toevoegen:
+
+| gebied | waarom het ontbreekt |
+|---|---|
+| conceptgeneratie & DOCX-patching | nooit gedraaid dit etmaal; `vervangInDocxXml` (221) en `bewerkDocx` (180) zijn ongezien |
+| dashboard & feitentabel | `scherm.js` (325) en `feiten-statistiek.js` (192) niet aangeraakt |
+| auth, MFA, uitnodigingen | `mfa-beleid.js`, `registreer.js`, `uitnodigen.js` — alleen zijdelings |
+| Adobe-conversie | alleen de tijdsgrens, niet de flow |
+| datamodel & migraties | vier tabellen, geen migratiebeleid beoordeeld |
+| RLS-beleid | alleen `screeningen` bekeken, en dat was voor één fout |
+| AVG-gegevensstromen | het pseudonimiseringspad wel, de rest niet |
+| afhankelijkheden | niet gekeken naar versies, kwetsbaarheden of de CDN-afhankelijkheden |
+| waarneembaarheid in productie | Sentry staat op de backlog en ontbreekt volledig |
+| terugrolbeleid | er is geen procedure voor een slechte deploy |
+
+Als "een strakke basis om verder op te ontwikkelen" betekent dat élk gebied is gewogen,
+dan is dit dat niet. Als het betekent dat de eerste stappen op meting rusten in plaats van
+op smaak, dan wel — met de kanttekening dat de gebieden hierboven nog een eigen ronde
+verdienen.
 
 ---
 
@@ -293,7 +340,7 @@ ligt zo hoog dat hij niets vangt. Dit staat hier omdat ik hem bijna had toegevoe
 
 ---
 
-## 6. Kort
+## 7. Kort
 
 De codebase is niet in verval; hij is scheef. `src/` is in orde en `api/` is werkbaar. De
 helft van de functiecode zit in drieëntwintig functies van meer dan honderd regels,
