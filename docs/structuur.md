@@ -12,7 +12,7 @@ volgorde waarin het loont. Wie alleen de conclusie wil: § 6.
 ## 1. De meting
 
 ```
-index.html   13.084 regels script · 278 functies op topniveau · gemiddeld 47 regels
+index.html   13.084 regels script · 278 functies op topniveau · gemiddeld 39 regels
 src/             45 bestanden ·  5.248 regels · gemiddeld 117 · 1023 unittests
 api/             24 bestanden ·  4.661 regels · gemiddeld 194
 ESM-brug         34 modules ingeladen · 74 namen aan window gehangen
@@ -22,15 +22,23 @@ Het gemiddelde van 47 regels verbergt de werkelijke verdeling:
 
 | functies | aantal | samen | aandeel van de code |
 |---|---|---|---|
-| > 500 regels | 2 | 1.478 | 11% |
-| > 200 regels | 10 | 4.086 | **31%** |
-| > 100 regels | 29 | 6.800 | **52%** |
-| > 50 regels | 65 | 9.163 | 71% |
+| > 400 regels | 2 | 1.413 | 13% |
+| > 200 regels | 8 | 3.219 | **30%** |
+| > 100 regels | 23 | 5.358 | **49%** |
+| > 50 regels | 50 | 7.183 | 66% |
 
-De tien grootste: `analyseDocument` (939), `pasWijzigingenToe` (539),
-`toonConceptReview` (478), `buildPdfDef` (477), `_assistVoegAssistBerichtToe` (368),
-`toonRapport` (309), `diepteAnalyse` (299), `opslaan` (242), `vervangInDocxXml` (229),
-`dedupIssues` (206).
+De 278 functies beslaan samen 10.839 regels; de rest is code op topniveau, handlers en
+opmaak. De twaalf grootste: `analyseDocument` (937), `toonConceptReview` (476),
+`buildPdfDef` (376), `_assistVoegAssistBerichtToe` (367), `toonRapport` (307),
+`diepteAnalyse` (298), `opslaan` (237), `vervangInDocxXml` (221), `dedupIssues` (194),
+`laadScreening` (183), `bewerkDocx` (180), `laadDossiers` (176).
+
+> **Dit is de tweede meting.** De eerste nam als lengte "de afstand tot de volgende
+> functie", en dat overschat zodra er losse code tussen staat. Zo verscheen er een
+> `pasWijzigingenToe` van 539 regels — een functie die niet bestaat: er zijn drie
+> varianten (`…Schoon`, `…InDocx`, `…Tekst`) en de meting plakte de code ertussen erbij.
+> De cijfers hierboven tellen tot de afsluitende accolade op kolom nul, wat door de
+> opmaak van dit bestand exact is.
 
 En de scheve verhouding die alles bepaalt:
 
@@ -232,10 +240,36 @@ controles zijn mechanisch mogelijk en zouden gisteren elk een fout hebben gevang
 
 ### Stap 6 — De volgende drie reuzen
 
-`pasWijzigingenToe` (539), `toonConceptReview` (478), `buildPdfDef` (477). Samen 1.494
-regels, 11% van de code. Pas hieraan beginnen als stap 1 tot 5 staan: dan is er
-typecontrole om de verplaatsing te bewaken, en foutpad-dekking om te merken dat er iets
-brak.
+Ze verschillen sterk in hoe makkelijk ze zijn, en dat bepaalt de volgorde.
+
+**`buildPdfDef` (376) — verreweg de makkelijkste, en misschien wel vóór stap 4.**
+
+```js
+function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam, dossierNaam)
+```
+
+Alles komt binnen als parameter. **Nul DOM-aanroepen, nul `await`, nul globals.** Het is
+al een zuivere functie — hij bouwt een pdfmake-definitie uit het rapport. Verplaatsen naar
+`src/pdf/rapport-def.js` is knippen en plakken, en de test schrijft zichzelf: geef een
+rapport, controleer de opbouw.
+
+Waarom dit meer waard is dan zijn omvang doet vermoeden: dit is het cliëntenrapport dat de
+mediator uitprint en meestuurt. Een stille regressie — een verdwenen sectie, een verkeerd
+totaal — is daar onzichtbaar tot iemand hem in handen heeft. Van alle 376 regels in dit
+bestand is dit de enige plek waar een fout het pand verlaat.
+
+**`_assistVoegAssistBerichtToe` (367) — grotendeels HTML-opbouw.** Zeven DOM-aanroepen op
+367 regels; de rest is het samenstellen van tekst. De HTML-bouwers zijn eruit te halen als
+zuivere functies (`bubbelHtml`, `bronnenHtml`, `signalenHtml`), waarna er een aanroeper
+overblijft die alleen nog invoegt.
+
+**`toonConceptReview` (476) — de moeilijkste, en de laatste.** Veertig DOM-aanroepen en
+vier `await`s: paneel opbouwen, kaarten markeren die niet in de DOCX zijn toegepast,
+accept/afwijs/bulk via event-delegation. Hier valt weinig zuivers uit te halen; wat het
+verdient is een browsertest die de accept-afwijs-flow doorloopt, niet een verhuizing.
+
+Pas hieraan beginnen als stap 1 tot 5 staan — met één uitzondering: `buildPdfDef` mag
+altijd, want er is niets aan te ontkoppelen.
 
 ---
 
