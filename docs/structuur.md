@@ -18,7 +18,7 @@ api/             24 bestanden ·  4.661 regels · gemiddeld 194
 ESM-brug         34 modules ingeladen · 74 namen aan window gehangen
 ```
 
-Het gemiddelde van 47 regels verbergt de werkelijke verdeling:
+Het gemiddelde van 39 regels verbergt de werkelijke verdeling:
 
 | functies | aantal | samen | aandeel van de code |
 |---|---|---|---|
@@ -71,7 +71,7 @@ staan tot de ultrareview erop wees.
 ### B. Functies die te lang zijn om te overzien — 2 fouten
 
 `ReferenceError: _klaar is not defined`. Gedeclareerd met `let` binnen een try-blok,
-gelezen honderd regels verderop erbuiten — in `analyseDocument`, 939 regels. Elf dagen
+gelezen honderd regels verderop erbuiten — in `analyseDocument`, 937 regels. Elf dagen
 lang werd daardoor geen enkele analyse bewaard.
 
 En in `startAnalyse`: `geslaagd` wordt gezet ná het tekenen van het rapport en honderd
@@ -130,7 +130,7 @@ Drie dingen, en ze zijn niet allemaal even erg.
 getest, elk met een nota over de fout die eraan voorafging. Daar kwam gisteren geen enkele
 storing vandaan — behalve doordat een module níét werd aangeroepen.
 
-**Het probleem is de verdeling.** De helft van de frontendcode zit in negenentwintig
+**Het probleem is de verdeling.** De helft van de functiecode zit in drieëntwintig
 functies van meer dan honderd regels. Dat is waar toestand, DOM, netwerk en beslissingen
 door elkaar lopen, en waar een scope-fout onzichtbaar is.
 
@@ -145,7 +145,7 @@ klasse waar gisteren vier fouten uit kwamen.
 
 De volgorde is niet willekeurig: elke stap maakt de volgende goedkoper of veiliger.
 
-### Stap 1 — `analyseDocument` opknippen (939 → ~620 regels)
+### Stap 1 — `analyseDocument` opknippen (937 → ~620 regels)
 
 De langste functie én de bron van de duurste fout. Drie stukken kunnen eruit, elk een
 zuivere transformatie:
@@ -296,7 +296,7 @@ ligt zo hoog dat hij niets vangt. Dit staat hier omdat ik hem bijna had toegevoe
 ## 6. Kort
 
 De codebase is niet in verval; hij is scheef. `src/` is in orde en `api/` is werkbaar. De
-helft van de frontendcode zit in negenentwintig functies van meer dan honderd regels,
+helft van de functiecode zit in drieëntwintig functies van meer dan honderd regels,
 zonder unittests, met gedeelde veranderlijke toestand — en dáár kwamen gisteren vrijwel
 alle fouten vandaan.
 
