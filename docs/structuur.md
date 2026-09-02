@@ -5,7 +5,7 @@ zijn gedaan. Dat etmaal is het bewijsmateriaal: elke fout is een steekproef uit 
 structuur mogelijk maakt. Dit stuk redeneert daarvandaan terug, niet vanuit een ideaal.
 
 Leesvolgorde: eerst de meting, dan de foutenklassen, dan wat er te doen valt — in de
-volgorde waarin het loont. Wie alleen de conclusie wil: § 7; wie wil weten wat dit stuk NIET dekt: § 0.
+volgorde waarin het loont. Wie alleen de conclusie wil: § 6; wie wil weten wat dit stuk NIET dekt: § 0.
 
 ---
 
@@ -340,7 +340,7 @@ ligt zo hoog dat hij niets vangt. Dit staat hier omdat ik hem bijna had toegevoe
 
 ---
 
-## 7. Kort
+## 6. Kort
 
 De codebase is niet in verval; hij is scheef. `src/` is in orde en `api/` is werkbaar. De
 helft van de functiecode zit in drieëntwintig functies van meer dan honderd regels,
