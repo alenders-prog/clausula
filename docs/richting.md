@@ -200,6 +200,123 @@ architecturale spreiding.
 
 ---
 
+## 5. De keuze is gemaakt: flexibel, en genereren niet uitgesloten
+
+*Toegevoegd 3 september 2026, nadat Alexander de richtingvraag beantwoordde: de basis moet
+ook andere markten kunnen bedienen, en het opstellen van convenanten en ouderschapsplannen
+is voor later niet uitgesloten.*
+
+Dat verandert de volgorde uit `docs/structuur.md`. Hieronder wat het kost, gemeten.
+
+### Hoeveel domein zit er werkelijk in de code?
+
+387 regels noemen een documenttype. Maar die zijn niet gelijk — en het verschil bepaalt
+het werk:
+
+| soort | regels | moet mee veranderen? |
+|---|---|---|
+| commentaar | 105 (27%) | nee — wel bijwerken, geen risico |
+| overig (opsomming, tekstsamenstelling) | 118 (30%) | grotendeels niet |
+| **besturing** (`if`, `filter`, `.has()`) | **62 (16%)** | **ja — dit is het echte werk** |
+| **tabel/constante** | **51 (13%)** | **ja — dit is de kern** |
+| UI-tekst (labels, tabbladen) | 26 (7%) | ja, maar triviaal |
+| prompttekst | 25 (6%) | dit ís inhoud; hoort sowieso in gegevens |
+
+**Structureel gaat het dus om 113 regels die gedrag bepalen**, verspreid over een stuk of
+vijftien bestanden. Dat is een reëel maar begrensd karwei — geen herbouw.
+
+### Het meevallertje: één ingreep dient beide doelen
+
+`document_templates` bevat nu al per documenttype: `section_name`, `required`,
+`applies_when`, `section_order`, `instructions`. Dat **is** een documentskelet. Vandaag
+wordt het maar één kant op gelezen — als "VERWACHTE SECTIES" voor de volledigheidstoets.
+
+> Toetsen is: *welke van deze secties ontbreken?*
+> Genereren is: *vul deze secties.*
+>
+> Zelfde gegevens, andere leesrichting.
+
+Dat maakt de generatierichting goedkoper dan hij oogt, en het betekent dat de investering
+in "domein als gegevens" niet speculatief is: het is dezelfde tabel die je voor een tweede
+markt én voor genereren nodig hebt.
+
+Eén detail verraadt hoe dichtbij dit is — de tabel wordt nu bevraagd met een letterlijke
+documentsoort:
+
+```js
+supabase.from('document_templates')…eq('doc_type', 'convenant')
+supabase.from('document_templates')…eq('doc_type', 'ouderschapsplan')
+```
+
+Twee regels. Dáár begint de ontkoppeling.
+
+### Complexiteit: omlaag én omhoog
+
+**Omlaag**, want er verdwijnt dubbeling. `HOOFD_TYPES` en `MFN_ELEMENTEN` staan nu
+letterlijk twee keer — in `api/analyseer.js` en in `index.html`. Dat is dezelfde
+schaduwtabelklasse die op 1 september het waardeoverzicht vóór het convenant zette, nu op
+domeinniveau. Eén bron maakt de code korter, niet langer.
+
+**Omhoog**, want gedrag dat uit gegevens komt is moeilijker te volgen dan gedrag dat in een
+`if` staat. "Waarom staat dit tabblad hier?" is straks een vraag aan de database. Dat is de
+prijs, en hij is echt.
+
+Netto: voor twee rechtsgebieden is dit winst. Voor één rechtsgebied zou het verlies zijn —
+en dat is precies waarom deze richtingvraag eerst beantwoord moest worden.
+
+### Testbaarheid: hier zit de grootste, minst zichtbare winst
+
+Vandaag moet elke fixture een realistisch echtscheidingsdocument zijn. Dat heeft drie
+kosten die zelden worden opgeteld:
+
+- de eval kost ongeveer een dollar en zeven minuten per run;
+- fixtures mogen geen echte cliëntgegevens bevatten, dus ze moeten met de hand worden
+  verzonnen én realistisch blijven;
+- een randgeval als "drie hoofddocumenten" is niet te testen zonder een constante te
+  wijzigen.
+
+Met het domein als gegevens kun je in een test een **verzonnen rechtsgebied** neerzetten:
+twee documenttypes, drie secties, één regel. Dan toets je de mótor zonder een
+echtscheidingsdocument nodig te hebben — sneller, gratis, en zonder AVG-rand.
+
+Dat is meer waard dan de flexibiliteit zelf.
+
+### Inspanning, en waar hij vandaan komt
+
+Bij het huidige tempo, in ronden zoals we ze nu doen:
+
+| | ronden | opmerking |
+|---|---|---|
+| `HOOFD_TYPES` en `MFN_ELEMENTEN` ontdubbelen | 1 | pure winst, kan meteen |
+| `document_templates` niet meer op letterlijke doc_type | 1 | twee regels plus de gevolgen |
+| volgorde-, context- en labeltabellen naar één bron | 1–2 | `DOC_VOLGORDE`, `CONTEXT_HOOFD_MAP`, `DOC_TYPEN` |
+| de 62 besturingsregels langslopen | 3–4 | per stuk beoordelen; niet alles kán naar gegevens |
+| prompts een dimensie "rechtsgebied" geven | 1–2 | **elke ronde een eval: ~$1 en 7 minuten** |
+| **samen** | **7–10** | ruwweg een week |
+
+De promptstap is de enige met een terugkerende prijs. Dat is ook de stap waar de kwaliteit
+van de screening op het spel staat, dus daar hoort de eval-discipline uit `CLAUDE.md`:
+gerichte telling op één signaal, twee runs, niet de diff lezen als bewijs.
+
+**Wat hier níét in zit: genereren.** De skeletgegevens liggen klaar, maar een document
+samenstellen is iets anders dan een document patchen. `vervangInDocxXml` en `bewerkDocx`
+wijzigen een bestaande DOCX; een nieuwe opbouwen vraagt DOCX-assemblage en een
+invoerkant — en die invoerkant is precies het terrein van Mediationportaal. Dat is een
+eigen project, geen vervolgstap. Ik kan het pas begroten als duidelijk is of het om
+"vul een sjabloon" of "voer een gesprek en bouw daaruit op" gaat.
+
+### Wat dit doet met de volgorde uit `docs/structuur.md`
+
+Gemeten: binnen `analyseDocument` staan 21 domeinregels, en **nul** daarvan zijn
+besturing. De twee klussen zitten elkaar dus niet in de weg — opknippen en ontkoppelen
+kunnen in willekeurige volgorde.
+
+Maar de risicokaart en deze richting wijzen dezelfde kant op: `api/analyseer.js` heeft het
+hoogste reparatieaandeel (36% van 55 commits) én de meeste domeinconstanten. Dat is waar
+ik zou beginnen, niet bij de langste functie in `index.html`.
+
+---
+
 ## Bronnen
 
 - [Mediationportaal](https://mediationportaal.nl/) · [Nieuwe Stap — Mediationportaal](https://nieuwestap.nl/etalage/mediationportaal/)
