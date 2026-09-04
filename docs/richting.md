@@ -63,14 +63,33 @@ verwerkersovereenkomsten — die staan al op de backlog en worden hierdoor dring
 
 **De MfN-regelgeving is per 1 januari 2026 gewijzigd**, en de staatssecretaris van Justitie
 heeft de Tweede Kamer op 29 juni 2026 geïnformeerd over de voortgang van een **wettelijk
-mediatorsregister**. Komt dat er, dan komen er waarschijnlijk eisen aan dossiervorming en
-kwaliteitsborging mee. Een instrument dat aantoonbaar op MfN-normen toetst en dat
-vastlegt, wordt daarmee eerder een verplichting dan een gemak.
+mediatorsregister**.
 
-> **Architecturale gevolgtrekking.** De MfN-toets is nu een lijst in `MFN_ELEMENTEN` in
-> `api/analyseer.js`, met een score van 9 op 15. Wordt dat een norm waarop een kantoor
-> wordt beoordeeld, dan moet die lijst versioneerbaar zijn — welke versie van de norm gold
-> bij welke analyse — en dat is hij niet.
+> **Nagetrokken op 4 september 2026 — en mijn eerste lezing hiervan was fout.**
+>
+> Hier stond: *"Komt dat er, dan komen er waarschijnlijk eisen aan dossiervorming en
+> kwaliteitsborging mee. Een instrument dat aantoonbaar op MfN-normen toetst wordt daarmee
+> eerder een verplichting dan een gemak."* Dat was speculatie op grond van twee zinnen uit
+> een zoekresultaat, en ze houdt geen stand.
+>
+> Wat er per 1 januari 2026 werkelijk is veranderd: de losse toelichting is ín het
+> reglement opgenomen en het aparte document is vervallen, "geschil" is in de definities
+> vervangen door "kwestie", en de vertalingen zijn gepubliceerd. **Redactioneel en
+> terminologisch.** Niets over dossiervorming, niets over kwaliteitsborging.
+>
+> En het wettelijk register: de brief van 29 juni gaat over de vóórtgang, met een
+> kwartiermaker en een adviescommissie. In voorbereiding — geen wet, geen eisen, geen
+> termijn.
+>
+> **Er is dus vandaag geen enkele externe verplichting die Clausula raakt.** Wie dit stuk
+> leest en op grond hiervan haast maakt, doet dat op mijn gissing en niet op een feit.
+
+Wat wél overeind blijft, maar op eigen kracht en met minder gewicht: `MFN_ELEMENTEN` is een
+lijst in `api/analyseer.js` (en nog eens in `index.html`) waartegen een score van 9 op 15
+wordt afgegeven. Wordt die lijst ooit herzien, dan is de score van een oude analyse niet
+meer vergelijkbaar met een nieuwe, en er is niets dat vastlegt welke versie gold. Dat is
+een klein maar echt gebrek in de vergelijkbaarheid over tijd — geen aanleiding tot een
+verbouwing.
 
 ---
 
@@ -324,5 +343,5 @@ ik zou beginnen, niet bij de langste functie in `index.html`.
 - [AI-tools voor de juridische sector in Nederland 2026](https://aitoolhub.nl/gids/ai-tools-juridische-sector-nederland-2026) · [AI voor juristen en advocaten in 2026](https://aitoolhub.nl/gids/ai-voor-juristen-advocaten-2026)
 - [Wolters Kluwer — AI-gestuurde contractreview](https://www.wolterskluwer.com/nl-nl/expert-insights/ai-for-contract-review)
 - [LegalOn — AI-adoptie in contractreview verdubbeld](https://www.businesswire.com/news/home/20260112080673/en/LegalOn-Report-Finds-AI-Adoption-in-Contract-Review-Doubles-Year-Over-Year)
-- [MfN-register — regelgeving en documenten](https://mfnregister.nl/mediators/regelgeving-en-documenten/) · [MfN-register — nieuws](https://mfnregister.nl/categorie/nieuws/)
+- [MfN-register — vernieuwde regelgeving per 1 januari 2026](https://mfnregister.nl/nieuws/mfn-regelgeving-per-1-januari-2026/) · [regelgeving en documenten](https://mfnregister.nl/mediators/regelgeving-en-documenten/) · [nieuws](https://mfnregister.nl/categorie/nieuws/)
 - [Mr. Online — welke juridische AI-tool past bij jouw kantoor](https://www.mr-online.nl/welke-juridische-ai-tool-past-bij-jouw-advocatenkantoor/)
