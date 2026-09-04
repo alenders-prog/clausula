@@ -41,25 +41,50 @@ Een beoordelaar wordt aan het eind gebruikt, en is makkelijker weg te laten.
 ### De bredere legal-tech markt zit op review, maar niet hier
 
 De grote namen — Legora, Kira, Luminance, Harvey — doen contractreview en due diligence
-voor advocatenkantoren. Groot, Engelstalig, generiek contractrecht. Het gebruik van AI bij
-contractreview is in een jaar verdubbeld.
+voor advocatenkantoren. Groot, Engelstalig, generiek contractrecht. *(Een veelgeciteerd
+cijfer is dat het gebruik van AI bij contractreview in een jaar verdubbelde; dat komt uit
+een persbericht van leverancier LegalOn en is niet onafhankelijk geverifieerd — vermeld als
+richting, niet als maat.)*
 
 Wat daar níét zit: Nederlands familierecht, MfN-normen, convenant en ouderschapsplan als
 documenttype, en de meerpartijdigheid die een mediator moet bewaken. Dat is de nis waar
 Clausula in staat, en die is smal genoeg om door de grote spelers overgeslagen te worden.
 
 Eén Nederlandse partij is het vermelden waard: **LegalPA** presenteert zich als de enige
-Nederlandse aanbieder die juridische documenten automatisch anonimiseert. Clausula doet
-dat al — en strenger, want de pseudonimisering gebeurt in de browser vóórdat er iets naar
-een server gaat. Dat is nu een technisch detail; het kan een verkoopargument worden.
+Nederlandse aanbieder die juridische documenten automatisch anonimiseert.
+
+> **Hier stond dat Clausula dat "al doet, en strenger". Dat is geschrapt.** Ik heb LegalPA's
+> anonimisering nooit bekeken, dus de vergelijking had geen grond. En sinds de meting van
+> 3 september weten we dat Clausula's eigen anonimisering geboortedatum, geboorteplaats,
+> werkgever en sommige adressen laat staan (zie `docs/architectuurbeoordeling.md`, B1). Het
+> vroegtijdige moment van pseudonimiseren — in de browser, vóór verzending — is een echte
+> eigenschap; de volledigheid is dat niet. Als verkoopargument is dit ongeschikt tot B1 is
+> opgelost.
 
 ### Twee dingen die van buitenaf komen
 
-**De EU AI Act** scherpt in 2026 de eisen aan transparantie en risicobeheersing aan: wees
-tegenover cliënten duidelijk waar AI wordt ingezet, en zorg dat de verwerking en
-documentatie op orde zijn. Clausula toont die melding al ("Antwoorden zijn aanbevelingen.
-Eindverantwoordelijkheid ligt bij de mediator"). Wat nog ontbreekt zijn de
-verwerkersovereenkomsten — die staan al op de backlog en worden hierdoor dringender.
+**De EU AI Act is al van kracht, niet aankomend.** De transparantieverplichtingen voor
+systemen met beperkt risico gelden **sinds 2 augustus 2026** — ruim een maand geleden. De
+kern ervan: een gebruiker moet weten dát hij met een AI-systeem te maken heeft, en door AI
+gegenereerde inhoud moet als zodanig herkenbaar zijn. De zwaarste verplichtingen voor
+hoog-risico zijn uitgesteld naar december 2027; de transparantie-eisen zijn dat niet.
+
+> **Twee dingen die ik hier níét kan beantwoorden, en die van belang zijn:**
+>
+> 1. **In welke risicocategorie valt Clausula?** Dat is een juridische kwalificatie. De
+>    hoog-risico-bijlage noemt onder meer AI die rechtspraak ondersteunt; Clausula
+>    ondersteunt een mediator, geen rechterlijke instantie. Ik kan dat niet uitmaken, en
+>    het verschil is groot genoeg om het aan een jurist voor te leggen in plaats van er hier
+>    een gok over te doen.
+> 2. **Voldoet de huidige weergave?** Gemeten: de app noemt de assistent "AI Assistent" in
+>    knoptitel en paneelkop, en een clausulevoorstel draagt de tekst "Clausulevoorstel
+>    vanuit AI Assistent". Er staat ook een melding dat antwoorden aanbevelingen zijn. Of
+>    dat de toets van artikel 50 haalt — met name voor de bevindingen in het rapport zelf,
+>    die nergens als AI-gegenereerd worden aangemerkt — is opnieuw een juridisch oordeel.
+>
+> Wat hier eerder stond ("de verwerkersovereenkomsten worden hierdoor dringender") was mijn
+> gevolgtrekking, niet iets uit de verordening. De verwerkersovereenkomsten zijn nodig op
+> grond van de AVG; dat staat los van de AI Act.
 
 **De MfN-regelgeving is per 1 januari 2026 gewijzigd**, en de staatssecretaris van Justitie
 heeft de Tweede Kamer op 29 juni 2026 geïnformeerd over de voortgang van een **wettelijk
@@ -115,11 +140,15 @@ juiste plek voor.
 
 ### Middellang — vraagt een nieuw stuk, maar past in de vorm
 
-**Arbeidsmediation.** Dit is de opvallendste. MfN-registermediators doen niet alleen
-familiezaken maar ook arbeids- en zakelijke mediation, en de vaststellingsovereenkomst bij
-ontslag is een sterk geformaliseerd document: opzegtermijn, transitievergoeding,
-finale kwijting, concurrentiebeding, WW-veiligheid. Precies het soort tekst waar een
-checklist-toets werkt.
+**Arbeidsmediation.** Dit is de opvallendste, en het cijfer erachter is opgezocht in plaats
+van aangenomen: **25 tot 30 procent van alle mediations die MfN-registermediators uitvoeren
+is arbeidsmediation.** Na familie is dat het grootste vakgebied. Het MfN werkt bovendien
+aan een specialisatie arbeidsmediation, naast de familiemediator die nu de enige erkende
+specialisatie is.
+
+De vaststellingsovereenkomst bij ontslag is een sterk geformaliseerd document: opzegtermijn,
+transitievergoeding, finale kwijting, concurrentiebeding, WW-veiligheid. Precies het soort
+tekst waar een checklist-toets werkt.
 
 Het is dezelfde mediator, dezelfde werkwijze, een ander rechtsgebied. Dat maakt het de
 goedkoopste marktuitbreiding die er is — mits de architectuur het toelaat, en daar zit
@@ -343,5 +372,7 @@ ik zou beginnen, niet bij de langste functie in `index.html`.
 - [AI-tools voor de juridische sector in Nederland 2026](https://aitoolhub.nl/gids/ai-tools-juridische-sector-nederland-2026) · [AI voor juristen en advocaten in 2026](https://aitoolhub.nl/gids/ai-voor-juristen-advocaten-2026)
 - [Wolters Kluwer — AI-gestuurde contractreview](https://www.wolterskluwer.com/nl-nl/expert-insights/ai-for-contract-review)
 - [LegalOn — AI-adoptie in contractreview verdubbeld](https://www.businesswire.com/news/home/20260112080673/en/LegalOn-Report-Finds-AI-Adoption-in-Contract-Review-Doubles-Year-Over-Year)
+- [MfN-register — specialisatie arbeidsmediation (25-30% van alle mediations)](https://mfnregister.nl/nieuwsbrief/specialisatie-arbeidsmediation/)
+- [EU AI Act — transparantieverplichtingen vanaf 2 augustus 2026](https://www.computable.nl/2026/08/03/wat-je-moet-weten-van-de-ai-act-en-de-nieuwe-transparantie-eisen/) · [risicoklassen en deadlines](https://www.hetlaatsteainieuws.nl/regelgeving/eu-ai-act)
 - [MfN-register — vernieuwde regelgeving per 1 januari 2026](https://mfnregister.nl/nieuws/mfn-regelgeving-per-1-januari-2026/) · [regelgeving en documenten](https://mfnregister.nl/mediators/regelgeving-en-documenten/) · [nieuws](https://mfnregister.nl/categorie/nieuws/)
 - [Mr. Online — welke juridische AI-tool past bij jouw kantoor](https://www.mr-online.nl/welke-juridische-ai-tool-past-bij-jouw-advocatenkantoor/)
