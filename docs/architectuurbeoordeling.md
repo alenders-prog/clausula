@@ -101,6 +101,52 @@ Er is geen enkel mechanisme dat dossiers of screenings verwijdert. Voor de AVG i
 tekortkoming (opslagbeperking), en het is een schemawijziging die eenvoudiger is bij vier
 dossiers dan bij vierduizend. Bij A1 (100 kantoren) is "later" geen optie meer.
 
+> **Toegevoegd 5 september 2026 — dit punt is zwaarder geworden.** Op die dag bleek de
+> `documenten`-bucket zonder inloggen bereikbaar (zie
+> `docs/incident-2026-09-05-storage.md`). Daarbij kwam iets aan het licht dat B3 van een
+> nette maatregel in een dempende maatregel verandert.
+>
+> **De opgeslagen bestanden zijn de originelen.** Beide uploadpaden in `index.html`
+> sturen het `File`-object zoals de gebruiker het koos; er gaat nergens een bewerkte versie
+> naar Storage. De pseudonimisering werkt op de tekst die naar Anthropic gaat, niet op wat
+> er in de opslag ligt. Alles in het systeem is afgeleid — rapport, classificatie, feiten —
+> behalve deze bestanden. Dit is de bron, en daarmee het waardevolste doelwit.
+>
+> **En het besluit om dat zo te doen steunt op een voorwaarde die stil kan wegvallen.** De
+> skill `avg-beleid` motiveert het bewaren van ruwe waarden met *"eigen database, RLS per
+> organisatie"*. Precies die RLS ontbrak, en niets in deze repo kon dat laten zien, want de
+> afwijking was in het dashboard aangeklikt.
+>
+> Waarom bewaren tóch verdedigbaar is: het is de **werkkopie van de mediator**. Vier
+> gebruiksplekken in `index.html` — de viewer bij een opgeslagen analyse (13492), drie
+> downloadknoppen (12348, 12475, 12601), en de heranalyse die zonder opnieuw uploaden een
+> nieuwe versie maakt (4070). Een geanonimiseerde kopie bedient daarvan alleen de laatste:
+> een mediator moet het échte stuk zien.
+>
+> **Daarom is een bewaartermijn hier de goedkoopste maatregel die er is.** Hij houdt het
+> hele voordeel overeind en verkleint wat er bij een volgende misconfiguratie op straat
+> ligt van "alles wat er ooit is geüpload" naar "wat er nu loopt". Versleuteling at rest is
+> het zwaardere alternatief; de afweging daarvan staat hieronder.
+>
+> **Versleuteling at rest — afgewogen, niet nu.** Het patroon is aanwezig (`api/_crypto.js`,
+> AES-256-GCM, nu voor `namen_map`), maar toepassen op bestanden is geen kleine ingreep:
+>
+> - Zeven raakpunten: twee uploads en vijf leesplekken. Drie daarvan (12348, 12475, 12601)
+>   zetten nu `a.href = signedUrl` en laten de browser rechtstreeks downloaden — JS raakt de
+>   bytes nooit aan. Die moeten om naar ophalen, ontsleutelen, blob, downloaden.
+> - De Adobe-conversie blijft ongemoeid: `adobe-start.js` krijgt de bytes als `pdfBase64`
+>   uit de browser, niet uit Storage.
+> - **Nieuw risico dat er nu niet is: sleutelverlies is dossierverlies.** Bij `namen_map` is
+>   een verloren sleutel hinderlijk; bij bronbestanden is het het stuk van de cliënt kwijt.
+>   Dat vraagt een bewaar- en herstelprocedure vóór invoering, niet erna.
+> - **Wat het wél afdekt:** precies het scenario van 5 september — een verkeerd gezette
+>   Storage-policy is dan niet meer genoeg. **Wat het niet afdekt:** een gekaapte sessie, of
+>   iemand met de service-role-sleutel. De ontsleuteling gebeurt in de browser, dus wie een
+>   geldige sessie heeft, heeft de sleutel.
+>
+> Volgorde: **bewaartermijn eerst** (klein, dempt élke toekomstige misser), versleuteling
+> pas wanneer er echte cliëntdossiers in staan — en dan mét die herstelprocedure.
+
 ### B4 — De dossierlijst haalt élk rapport volledig op · *A1*
 
 ```js
