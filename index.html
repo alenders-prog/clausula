@@ -12349,7 +12349,7 @@ async function laadDossiers() {
           if (error) throw error;
           const a = document.createElement('a');
           a.href = s.signedUrl; a.download = btn.dataset.naam; a.target = '_blank'; a.click();
-        } catch (err) { alert('Download mislukt: ' + err.message); }
+        } catch (err) { alert(bronbestandMelding(err)); }
         finally { btn.textContent = orig; btn.disabled = false; }
       });
     });
@@ -12480,7 +12480,7 @@ async function toonDossierDetail(id) {
           a.target   = '_blank';
           a.click();
         } catch (e) {
-          alert('Download mislukt: ' + e.message);
+          alert(bronbestandMelding(e));
         } finally {
           btn.textContent = origTekst;
           btn.disabled = false;
@@ -12602,7 +12602,7 @@ async function _downloadModalBestand(pad, naam, btn) {
     if (error) throw error;
     const a = document.createElement('a');
     a.href = s.signedUrl; a.download = naam; a.target = '_blank'; a.click();
-  } catch (err) { alert('Download mislukt: ' + err.message); }
+  } catch (err) { alert(bronbestandMelding(err, app.rapport?._bronbestanden_verwijderd_op ?? null)); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
 }
 
@@ -16176,6 +16176,7 @@ import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport
 import { accentueerAanbeveling }                             from './src/rapport/vervang-accent.js';
 import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
 import { zoekResidu, vatResiduSamen }                        from './src/avg/residu.js';
+import { bronbestandMelding }                               from './src/avg/bewaartermijn.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16185,6 +16186,7 @@ window.bouwAnonMap       = (cls) => bouwAnonMap(cls,
 window.anonimiseerTekst  = anonimiseerTekst;
 window.zoekResidu        = zoekResidu;
 window.vatResiduSamen    = vatResiduSamen;
+window.bronbestandMelding = bronbestandMelding;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

@@ -401,8 +401,21 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // bewijst niets dat de bestaande e2e-smoketest niet al dekt. De grens omlaag houden door
 // code te verhuizen die geen toetsbare beslissing bevat, verplaatst het probleem en levert
 // een test op die alleen zichzelf bevestigt.
-const MAX_REGELS_INDEX = 16383;
-const MAX_REGELS_JS     = 13143;
+// 05-09-2026 (veertiende keer): 16383 → 16385 (+2, beide script), voor de bewaartermijn.
+// Dit is de goedkoopste verhoging die er is en toch hoort de afweging erbij, want de regel
+// mag alleen omlaag.
+//
+// De twee regels zijn de ESM-brug en niets anders: één import en één window-toewijzing van
+// `bronbestandMelding` uit src/avg/bewaartermijn.js (13 tests). Alle redenering — wanneer
+// een termijn verstreken is, en wat de mediator te zien krijgt als het bronbestand er niet
+// meer is — staat in die module, en drie aanroepplekken in index.html werden er juist
+// kórter van: `alert('Download mislukt: ' + err.message)` viel weg.
+//
+// Het alternatief was de melding in index.html zelf op te bouwen. Dat had de grens gehaald
+// en de toets onbereikbaar gemaakt: juist het onderscheid tussen "er is iets stuk" en "het
+// systeem deed wat het hoort te doen" is de beslissing die getoetst moet zijn.
+const MAX_REGELS_INDEX = 16385;
+const MAX_REGELS_JS     = 13145;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

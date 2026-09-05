@@ -168,6 +168,27 @@ dossiers dan bij vierduizend. Bij A1 (100 kantoren) is "later" geen optie meer.
 > Volgorde: **bewaartermijn eerst** (klein, dempt élke toekomstige misser), versleuteling
 > pas wanneer er echte cliëntdossiers in staan — en dan mét die herstelprocedure.
 
+> **Uitgevoerd 5 september 2026.** De termijn hoefde niet gebouwd te worden: hij stónd er
+> al. `organisaties.retention_maanden` bestaat sinds `001_multitenancy.sql`, staat op 12, en
+> werd door niets gelezen — gebouwd en nooit aangesloten, dezelfde vorm als `screening_id`
+> in `api_verbruik`. Er was dus geen schemawijziging nodig, alleen een mechanisme.
+>
+> De regel staat getoetst in `src/avg/bewaartermijn.js` (13 tests), het opruimen in
+> `scripts/opschonen.mjs` (`npm run opschonen`, droogloop tenzij `--ja`). Alleen het bestand
+> gaat weg; screening, rapport en bevindingen blijven. Een screening waarvan álle
+> bronbestanden verdwijnen krijgt `rapport._bronbestanden_verwijderd_op`, en de drie
+> downloadknoppen tonen daardoor niet meer "Object not found" maar wat er werkelijk gebeurd
+> is.
+>
+> Gemeten bij het bouwen: de bucket is `{organisatie_id}/{tijdstempel}-{willekeurig}.pdf`,
+> twaalf bestanden in één map, oudste 14 augustus 2026. Met twaalf maanden verdwijnt het
+> eerste op 14 augustus 2027 — er is vandaag dus niets te verwijderen, en dat is precies het
+> moment om dit te bouwen.
+>
+> **Wat hier niet mee is opgelost:** dossiers en screenings zelf kennen nog steeds geen
+> bewaartermijn. Dit dekt de bestanden, en die zijn de bron; de rest is afgeleid en
+> gepseudonimiseerd. Voor A1 (100 kantoren) blijft de rest staan.
+
 ### B4 — De dossierlijst haalt élk rapport volledig op · *A1*
 
 ```js
@@ -205,6 +226,32 @@ definitie niet. Wat A3 wél vraagt:
 - **onze eigen foutmeldingen bevatten cliëntnamen** —
   `Uploaden van '${item.bestand.name}' mislukt` en bestandsnamen zijn `Convenant
   Jansen-de Vries.pdf`. Dat moet dicht vóór er ook maar iets naar een externe dienst gaat.
+
+> **Uitgevoerd 5 september 2026 — en de controle vond zichzelf twee keer fout.**
+> `npm run check:data` (`scripts/datacontroles.mjs`) doet de drie controles op gedrag.
+>
+> De eerste versie koppelde `api_verbruik.screening_id` aan `screeningen.id`. Dat is geen
+> screening-id maar een **runId** die de browser vooraf aanmaakt (commit `088a53f`), omdat de
+> analyse begint voordat de screening bestaat; bij een heranalyse verschilt hij en staat hij
+> in `rapport._analyse_run_id`. Zonder die tweede sleutel meldt de controle élke heranalyse
+> als verloren — gemeten: 2 van 12 koppelden, beide via `_analyse_run_id`.
+>
+> De tweede versie meldde twaalf verloren analyses. Maar een analyse niet opslaan is gewoon
+> gedrag, en de gegevens kunnen "wilde niet bewaren" niet onderscheiden van "bewaren
+> mislukte". Dat is nu een notitie; de poort staat op het **dagpatroon**, want de storing die
+> elf dagen duurde was elf aaneengesloten dagen.
+>
+> **Wat de controle vond.** Van de vijf accounts hebben er twee geen rij in
+> `gebruikersprofiel`: het testaccount uit `.env` en één met een vertypt domein
+> (`@hotmail.ccom`). Dat is de oorzaak van álle 246 verbruiksregels zonder organisatie, en
+> het reikt verder dan de facturatie — zonder profielrij geeft `mijn_organisatie_id()` NULL,
+> dus elke RLS-policy geeft nul rijen terug. Zij kunnen inloggen en zien een lege applicatie.
+>
+> Voor 1.3 zijn de zes logregels in `api/analyseer.js` en de twee in `api/_iban.js` omgezet
+> naar `src/avg/logref.js`. Die gingen naar de Vercel-logs, en dat is een externe verwerker.
+> De browserconsole is bewust ongemoeid: die verlaat de machine niet, en de bestandsnaam is
+> daar juist nuttig. **Dat verandert zodra er foutmonitoring komt** — de na te lopen plekken
+> staan in de skill `avg-beleid`.
 
 ### B6 — Twaalf functies, negen in gebruik, en A8 vraagt om meer · *A1, A8*
 
@@ -282,11 +329,11 @@ daarná — het maakt het bouwen prettiger, maar het lost geen van die drie op.
 | # | wat | rust op | omvang |
 |---|---|---|---|
 | 1.1 | ~~Backuptabellen weg uit het API-schema~~ — **gedaan 5 sep 2026**, plus alle anon-tabelrechten ingetrokken | B2 | een halve ronde |
-| 1.2 | Datacontroles: analyses gemeten maar niet bewaard, screenings zonder rapport, verbruik zonder organisatie | B5, A3 | 1 ronde |
-| 1.3 | Cliëntnamen uit foutmeldingen | B5 | een halve ronde |
-| 1.4 | Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix | B1 | 2 ronden + eval |
+| 1.2 | ~~Datacontroles~~ — **gedaan 5 sep 2026**, `npm run check:data` | B5, A3 | 1 ronde |
+| 1.3 | ~~Cliëntnamen uit foutmeldingen~~ — **server gedaan 5 sep 2026**; browserconsole wacht op de komst van foutmonitoring | B5 | een halve ronde |
+| 1.4 | ~~Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix~~ — **eerste ronde gedaan** (67b5bd0); "af" kan dit punt niet zijn, zie hieronder | B1 | 2 ronden + eval |
 | 1.5 | Besluit over A4: sluitend maken of laten vallen en de doorgifte regelen | B1 | uw besluit |
-| 1.6 | Bewaartermijn en opschoning | B3 | 1–2 ronden, schemawijziging |
+| 1.6 | ~~Bewaartermijn en opschoning~~ — **gedaan 5 sep 2026**, `npm run opschonen`; geen schemawijziging nodig | B3 | 1–2 ronden, schemawijziging |
 
 *Waarom 1.4 niet "af" kan zijn:* "absoluut geanonimiseerd" is bij vrije tekst geen
 haalbare toestand, alleen een richting. Elke ronde maakt het beter en geen enkele maakt het

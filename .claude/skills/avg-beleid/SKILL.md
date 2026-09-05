@@ -270,6 +270,58 @@ verweesde PDF's was:
 
 **Wanneer Storage upload plaatsvindt**: alleen bij de eerste `opslaan()` call (INSERT), daarna niet meer. Herhaalde auto-saves updaten alleen de DB-rij (geen re-upload).
 
+## Bewaartermijn — de opgeslagen bestanden zijn de originelen
+
+**Alles in dit systeem is afgeleid — rapport, classificatie, feiten — behálve de bestanden
+in Storage.** Beide uploadpaden sturen het `File`-object zoals de mediator het koos; de
+pseudonimisering werkt op de tekst die naar Anthropic gaat, niet op wat er in de opslag
+ligt. Dat maakt de bucket het waardevolste doelwit dat er is, en het is precies wat er op
+5 september 2026 zonder inloggen bereikbaar bleek (`docs/incident-2026-09-05-storage.md`).
+
+**De termijn staat in `organisaties.retention_maanden`** — sinds `001_multitenancy.sql`,
+standaard 12 maanden. Die kolom werd tot 5 september 2026 door niets gelezen: gebouwd en
+nooit aangesloten, dezelfde vorm als `screening_id` in `api_verbruik`.
+
+| Wat | Waar |
+|---|---|
+| de regel (verlopen? vervaldatum? melding?) | `src/avg/bewaartermijn.js`, 13 tests |
+| het opruimen zelf | `scripts/opschonen.mjs` — `npm run opschonen`, **droogloop tenzij `--ja`** |
+
+**Alleen het bestand gaat weg.** De screening, het rapport en de bevindingen blijven; die
+zijn gepseudonimiseerd en dragen de waarde van het werk. Wat daarna niet meer kan: het
+originele stuk inzien, downloaden, en heranalyseren zonder opnieuw te uploaden.
+
+> **Bij twijfel blijft het staan.** `isVerlopen()` geeft `false` bij een ontbrekende datum
+> of een termijn van nul — een opruimscript dat bij twijfel weggooit, gooit precies één keer
+> te veel weg. Let daarbij op `new Date(null)`: dat is 1 januari 1970, een geldige datum
+> waarvan élke termijn verstreken is. Zonder een expliciete toets op ontbreken zou een
+> bestand zónder uploaddatum dus als eerste verdwijnen. Een test ving dat.
+
+Na het opruimen krijgt een screening waarvan **alle** bronbestanden weg zijn
+`rapport._bronbestanden_verwijderd_op`. `bronbestandMelding()` gebruikt dat om de mediator
+te vertellen wat er is gebeurd, in plaats van "Download mislukt: Object not found" — die
+twee horen niet hetzelfde te klinken.
+
+## Cliëntnamen horen niet in een logregel
+
+Een bestandsnaam is in dit vak "Convenant Jansen-de Vries.pdf". Zes logregels in
+`api/analyseer.js` zetten die in de **Vercel-logs**: een externe verwerker, met een
+bewaartermijn waar wij niet over gaan, voor een gegeven dat bij het opsporen van een storing
+niets toevoegt — het gaat om wélk document, niet om wiens document. Twee regels in
+`api/_iban.js` konden een volledig rekeningnummer loggen, juist omdat dat patroon bewust
+óók echte IBANs matcht.
+
+**Gebruik `docRef()` en `ibanRef()` uit `src/avg/logref.js`** in alles wat server-side
+logt. Dezelfde invoer geeft dezelfde verwijzing, dus logregels over hetzelfde document
+blijven aan elkaar te knopen. Placeholders als `[IBAN_0]` blijven staan — juist die
+nummering maakt een logregel bruikbaar.
+
+> **De browserconsole is bewust ongemoeid.** Die verlaat de machine niet, en daar is de
+> bestandsnaam juist nuttig. **Dat verandert zodra er foutmonitoring komt**: een SDK als
+> Sentry stuurt console-breadcrumbs én exception-teksten mee. Loop dan eerst deze plekken
+> in `index.html` na — de logregels rond 3839 (documentpassages), 4079, 4450, 4922, 4930,
+> 6871, 6901, en de `throw` op 7219 met de bestandsnaam erin.
+
 ## Wat NOOIT naar de server mag
 
 - `_teksten_per_pad` — ruwe bulk-tekst, bevat onbewerkte persoonsdata
