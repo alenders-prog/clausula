@@ -2,19 +2,36 @@
 --
 -- ── WAAROM ──────────────────────────────────────────────────────────────────
 --
--- Gemeten op 5 september: een anonieme aanvraag op screeningen, dossiers,
--- gebruikersprofiel, analyse_feiten, organisaties, api_verbruik en uitnodigingen komt tót
--- de policy en struikelt daar op `permission denied for function mijn_organisatie_id`.
---
--- Die melding zegt iets belangrijks: de anonieme rol **heeft leesrecht op die tabellen**.
--- Dat is de Supabase-standaard — bij aanmaak krijgen `anon` en `authenticated` alle rechten
--- op `public`, en RLS doet de rest. Er lekt niets, want de functie is niet uitvoerbaar en
--- zou hij dat wél zijn dan geeft hij NULL en levert het filter geen rijen.
+-- De anonieme rol heeft leesrecht op de tabellen in `public`. Dat is de Supabase-standaard:
+-- bij aanmaak krijgen `anon` en `authenticated` alle rechten op dat schema, en RLS doet de
+-- rest. Er lekt niets, want de policies filteren op `mijn_organisatie_id()` en die geeft
+-- zonder sessie NULL.
 --
 -- Maar dan is de muur twee toevalligheden dik waar hij een ontbrekend recht dik kan zijn.
 -- En elke tabel is daarmee één policy-fout verwijderd van openstaan. Dat is geen
 -- theoretisch bezwaar: diezelfde ochtend bleek de documenten-bucket open te staan doordat
 -- er drie policies naast de juiste waren geklikt.
+--
+-- ── CORRECTIE, 5 SEPTEMBER 2026, NA UITVOERING ──────────────────────────────
+--
+-- Hier stond dat de melding `permission denied for function mijn_organisatie_id` bewees dat
+-- anon leesrecht op die tabellen had: het verzoek zou tót de policy zijn gekomen. **Die
+-- gevolgtrekking is onjuist en is ingetrokken.**
+--
+-- Ná het intrekken hieronder gaf `has_table_privilege('anon','public.screeningen','select')`
+-- false, terwijl diezelfde melding bleef komen — ook rechtstreeks in de database met
+-- `set local role anon`. Het EXECUTE-recht op een functie in een policy-expressie wordt
+-- eerder getoetst dan het SELECT-recht op de tabel, dus de melding zegt niets over dat
+-- tabelrecht. Hij zegt alleen dat er een policy bestaat die voor élke rol geldt (aangemaakt
+-- zonder `TO`-clausule) en dat anon de functie daarin niet mag aanroepen.
+--
+-- Waar een policy wél `TO authenticated` staat — de verdeling-tabellen in
+-- `007_verdeling_rls.sql` — geldt er voor anon geen enkele policy, en komt het tabelrecht
+-- als eerste aan de beurt: `permission denied for table`. Dát is het verschil tussen de
+-- zeven en de drie hieronder, en niet een verschil in rechten.
+--
+-- De reden om in te trekken blijft staan; alleen het bewijs eronder was verkeerd gelezen.
+-- Wat er nu werkelijk staat, meet je met `supabase/anon-rechten-controle.sql`.
 --
 -- ── DAT DIT KAN, IS NAGEKEKEN ───────────────────────────────────────────────
 --
@@ -59,10 +76,12 @@ commit;
 --
 --   1. Log uit en log opnieuw in.
 --   2. Open een dossier en bekijk een opgeslagen analyse.
---   3. Draai `node scripts/anon-rechten-check.mjs` — die hoort te melden dat de
---      foutmelding is veranderd van "permission denied for function mijn_organisatie_id"
---      naar "permission denied for table". Dát is het bewijs dat het verzoek nu al vóór
---      de policy strandt.
+--   3. Draai `supabase/anon-rechten-controle.sql` in de SQL-editor. Deel A hoort
+--      `anon_select = false` te geven op elke tabel. Dát is het bewijs, en het is het
+--      enige bewijs dat er is.
+--   4. `npm run check:anon` blijft nuttig — hij ziet een lek — maar hij kan het intrekken
+--      niet aantonen. Op de zeven tabellen met een policy voor alle rollen meldt hij
+--      "onbeslist", vóór én na. Zie de correctie bovenaan dit bestand.
 --
 -- Gaat er iets stuk, dan is dit de terugweg:
 --

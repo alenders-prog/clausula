@@ -63,15 +63,22 @@ order  by case when permissive = 'PERMISSIVE'
          tabel, policy;
 
 -- ── 3. Wat de anonieme rol mag ──────────────────────────────────────────────
--- Gemeten op 5 september: een anonieme aanvraag op screeningen, dossiers,
--- gebruikersprofiel, analyse_feiten en organisaties komt tót de policy en struikelt daar
--- op `permission denied for function mijn_organisatie_id`.
+-- De anonieme rol heeft bij een nieuw Supabase-project leesrecht op alles in `public`; dat
+-- is de standaard bij aanmaak. Er lekt niets — de policies filteren op
+-- `mijn_organisatie_id()` en die geeft zonder sessie NULL — maar de bescherming is dan twee
+-- toevalligheden dik in plaats van een ontbrekend recht. Dezelfde dunne vorm die B2 bij de
+-- backuptabellen beschreef, en de Storage-policies lieten zien dat zoiets stil kan
+-- verschuiven. Ingetrokken met `2026-09-05-anon-rechten-intrekken.sql`.
 --
--- Dat betekent dat de anonieme rol leesrecht op die tabellen hééft. Er lekt niets — de
--- functie is niet uitvoerbaar, en zou hij dat wel zijn dan geeft hij NULL en levert het
--- filter geen rijen. Maar de bescherming is dan twee toevalligheden dik in plaats van een
--- ontbrekend recht. Dezelfde dunne vorm die B2 bij de backuptabellen beschreef, en de
--- Storage-policies lieten zien dat zoiets stil kan verschuiven.
+-- CORRECTIE 5 september 2026: hier stond dat de melding `permission denied for function
+-- mijn_organisatie_id` bij een anonieme aanvraag bewees dát die rol leesrecht had — het
+-- verzoek zou tót de policy zijn gekomen. Die gevolgtrekking is onjuist en is ingetrokken;
+-- de melding blijft komen nadat álle rechten zijn ingetrokken. De redenering staat in
+-- `2026-09-05-anon-rechten-intrekken.sql`, de juiste meting in `anon-rechten-controle.sql`.
+--
+-- Let ook op wat dit blok niet ziet: `information_schema.role_table_grants` toont geen
+-- rechten die via PUBLIC of via rollidmaatschap binnenkomen, en geen kolomrechten.
+-- `has_table_privilege` in `anon-rechten-controle.sql` telt die alle drie mee.
 
 select table_name as tabel, grantee as rol, string_agg(privilege_type, ', ' order by privilege_type) as rechten
 from   information_schema.role_table_grants
