@@ -18,7 +18,8 @@
         { "key": "X-Frame-Options",            "value": "DENY" },
         { "key": "X-Content-Type-Options",     "value": "nosniff" },
         { "key": "Referrer-Policy",            "value": "strict-origin-when-cross-origin" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
+        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://zanxprrymagsuwxddiln.supabase.co wss://zanxprrymagsuwxddiln.supabase.co https://cdn.jsdelivr.net; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" }
       ]
     }
   ]

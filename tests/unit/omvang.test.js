@@ -414,8 +414,21 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // Het alternatief was de melding in index.html zelf op te bouwen. Dat had de grens gehaald
 // en de toets onbereikbaar gemaakt: juist het onderscheid tussen "er is iets stuk" en "het
 // systeem deed wat het hoort te doen" is de beslissing die getoetst moet zijn.
-const MAX_REGELS_INDEX = 16385;
-const MAX_REGELS_JS     = 13145;
+// 05-09-2026 (vijftiende keer): 16385 → 16399 (+14, alle script). Tweede verhoging op
+// dezelfde dag, en dat verdient een reden die verder gaat dan "het paste niet".
+//
+// De code zelf werd één regel langer: `escH` ontsnapt nu ook " en ', en de knop in de
+// gebruikerslijst geeft de naam via `data-naam` door in plaats van in een inline
+// JS-string. De overige dertien regels zijn commentaar, en dat is hier het eigenlijke
+// werk: dat een attribuut éérst HTML-ontsnapt wordt en pas daarna als JavaScript gelezen,
+// is niet af te leiden uit de code die er staat. Zonder die uitleg is dit een fix die
+// iemand met goede bedoelingen terugdraait omdat hij er omslachtig uitziet.
+//
+// CLAUDE.md noemt precies dit geval: commentaar schrappen dat de code verklaart is geen
+// manier om de grens te halen. De toets zelf staat in tests/unit/esc-html.test.js, die de
+// vier escH-definities uit de bron leest en op aanhalingstekens controleert.
+const MAX_REGELS_INDEX = 16399;
+const MAX_REGELS_JS     = 13159;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

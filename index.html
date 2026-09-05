@@ -5135,8 +5135,15 @@ function docZoomWijzig(dir) {
   if (lbl) lbl.textContent = Math.round(_docZoom * 100) + '%';
 }
 
+// Ontsnapt ook " en ' — niet alleen &<>. Dat verschil is het verschil tussen tekst en
+// attribuut: `title="${escH(naam)}"` staat achttien keer in dit bestand, en zonder de
+// aanhalingstekens breekt een naam of bestandsnaam met een " daar gewoon uit en kan er een
+// onerror= achteraan. De varianten in src/dashboard/scherm.js en src/auth/mfa-scherm.js
+// deden dit al goed; deze en die in assistent-core.js liepen achter.
+// Bewaakt door tests/unit/esc-html.test.js.
 function escH(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 function _dossierNaam(cls) {
   const achtA = (cls?.partij_a_naam || '').trim().split(/\s+/).pop() || '';
@@ -7624,8 +7631,8 @@ async function laadGebruikersLijst() {
                    </label>`;
             return `
             <tr style="border-bottom:1px solid var(--line)">
-              <td style="padding:8px">${u.naam || '—'}</td>
-              <td style="padding:8px;color:var(--ink-soft);font-size:.82rem">${u.email}</td>
+              <td style="padding:8px">${escH(u.naam || '—')}</td>
+              <td style="padding:8px;color:var(--ink-soft);font-size:.82rem">${escH(u.email)}</td>
               <td style="padding:8px">
                 ${!isZelf ? `
                   <button onclick="wisselRol('${u.id}','${u.rol}')"
@@ -7642,7 +7649,14 @@ async function laadGebruikersLijst() {
               <td style="padding:8px">${toggleHtml}</td>
               <td style="padding:8px;text-align:right">
                 ${!isZelf ? `
-                  <button onclick="verwijderGebruiker('${u.id}','${u.naam||u.email}')"
+                  <!-- De naam gaat via data-naam en niet in de onclick zelf. Een attribuut
+                       wordt eerst HTML-ontsnapt en dán als JavaScript gelezen, dus escH()
+                       helpt binnen een JS-string niet: een naam met een ' erin sluit de
+                       string en de rest draait mee. En die naam typt de gebruiker zelf
+                       (registreer.html, en later te wijzigen), terwijl deze tabel het
+                       beheerdersscherm is waar rollen worden gewisseld. -->
+                  <button onclick="verwijderGebruiker('${u.id}', this.dataset.naam)"
+                    data-naam="${escH(u.naam || u.email)}"
                     style="font-size:.75rem;color:var(--terra);background:none;border:none;
                            cursor:pointer;padding:2px 6px">✕</button>
                 ` : '<span style="font-size:.75rem;color:var(--ink-soft)">(jij)</span>'}

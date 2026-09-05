@@ -8,8 +8,11 @@
   'use strict';
 
   // ── escH ─────────────────────────────────────────────────────────────────────
+  // Ook " en ', niet alleen &<>: het verschil tussen tekst en attribuut. Zie de toelichting
+  // bij dezelfde functie in index.html. Bewaakt door tests/unit/esc-html.test.js.
   function escH(s) {
-    return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   // ── renderMarkdown ────────────────────────────────────────────────────────────

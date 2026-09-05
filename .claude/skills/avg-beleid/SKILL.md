@@ -322,6 +322,42 @@ nummering maakt een logregel bruikbaar.
 > in `index.html` na — de logregels rond 3839 (documentpassages), 4079, 4450, 4922, 4930,
 > 6871, 6901, en de `throw` op 7219 met de bestandsnaam erin.
 
+## HTML-ontsnapping en de CSP
+
+**`escH()` ontsnapt `&<>"'` — óók de aanhalingstekens.** Dat verschil is het verschil tussen
+tekst en attribuut. Er staan achttien attributen in `index.html` van de vorm
+`title="${escH(bestandsnaam)}"`; ontsnapt `escH` de `"` niet, dan breekt een waarde daar
+gewoon uit en past er een `onerror=` achter. Tot 5 september 2026 deden `index.html` en
+`assistent-core.js` dat niet; `src/dashboard/scherm.js` en `src/auth/mfa-scherm.js` wel.
+Alle vier zijn nu gelijk en worden bewaakt door `tests/unit/esc-html.test.js`, die de
+definities uit de bron leest.
+
+> **`escH` is niet genoeg binnen een `on…`-attribuut.** Een attribuutwaarde wordt eerst
+> HTML-ontsnapt en pás daarna als JavaScript gelezen, dus `&#39;` wordt weer een `'` vóórdat
+> de JS-parser kijkt. `onclick="f('${escH(naam)}')"` is dus niet veilig. Geef zulke waarden
+> door via een `data-`attribuut en lees ze met `this.dataset.…`.
+>
+> Dat was geen theorie: de gebruikerslijst zette `u.naam` in zo'n string, en die naam typt de
+> gebruiker zelf bij registratie (en kan hij later wijzigen). Het scherm waar hij landt is
+> het **beheerdersscherm**, waar rollen worden gewisseld en dossiertoegang wordt aangezet.
+
+**De CSP staat bewust op `Report-Only`** (`vercel.json`). Wat hij wel en niet doet:
+
+| | |
+|---|---|
+| **wel** | geen externe scripts buiten jsdelivr/cdnjs, geen exfiltratie naar een vreemde host (`connect-src`), `object-src 'none'`, `base-uri 'none'`, `form-action 'self'` |
+| **niet** | ingespoten *inline* script tegenhouden — met 135 `on…`-attributen en de hele app in één inline `<script>` is `'unsafe-inline'` onvermijdelijk |
+
+Hij is dus diepteverdediging naast het ontsnappen, geen vervanging ervan.
+
+> **Waarom report-only en niet meteen afdwingen.** De OCR-route laadt op het moment zelf
+> zijn worker, wasm en taaldata bij een CDN (`Tesseract.createWorker` zonder paden — gemeten:
+> de bundel verwijst alleen naar `cdn.jsdelivr.net`), en pdf.js haalt zijn worker bij cdnjs.
+> Een te strakke CSP breekt dat stil, en dat merkt niemand tot een mediator erop stuit.
+> Loop dus eerst de zware routes door met de console open — OCR, PDF-export (pdfmake),
+> DOCX-voorbeeld (mammoth/docx-preview), downloaden — en zet hem pas daarna om naar
+> `Content-Security-Policy`.
+
 ## Wat NOOIT naar de server mag
 
 - `_teksten_per_pad` — ruwe bulk-tekst, bevat onbewerkte persoonsdata
