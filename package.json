@@ -15,7 +15,8 @@
     "eval:baseline": "node scripts/eval-baseline.mjs",
     "check:losse-eindjes": "node scripts/losse-eindjes.mjs",
     "check:storage": "node scripts/storage-toegang-check.mjs",
-    "check:anon": "node scripts/anon-rechten-check.mjs"
+    "check:anon": "node scripts/anon-rechten-check.mjs",
+    "check:data": "node scripts/datacontroles.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
