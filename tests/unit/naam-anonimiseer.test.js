@@ -556,3 +556,74 @@ describe('anonimiseerTekst — woonplaats zonder adres of postcode ervoor', () =
     expect(uit).toMatch(/rechtbank te Deventer/);
   });
 });
+
+describe('plaatsnamen die óók een gewoon woord zijn', () => {
+  // Aanleiding: na het invoeren van de woonplaatslijst werd in een echte analyse de
+  // tabelkop "Omschrijving Waarde" tot "Omschrijving [WOONPLAATS_3]" — Waarde is een dorp
+  // in Zeeland. Handmatig zulke namen uitzoeken bleek onbetrouwbaar; ze zijn nu afgeleid
+  // uit een frequentielijst van het Nederlands (zie src/avg/woonplaatsen.js).
+  //
+  // Voor die 25 namen beslist niet de naam maar de PLAATS IN DE ZIN. Drie aanwijzingen:
+  // een voorzetsel van plaats ervóór, een dagtekening, of iets identificerends in dezelfde
+  // zin. Een tabelkop haalt geen van drieën.
+  const tracker = () => {
+    const m = new Map(); const n = {};
+    return (type, waarde) => {
+      const k = `${type}:${waarde}`;
+      if (!m.has(k)) { n[type] = n[type] ?? 0; m.set(k, `[${type}_${n[type]++}]`); }
+      return m.get(k);
+    };
+  };
+  const anon = (t) => anonimiseerTekst(t, new Map(), tracker());
+  const vervangen = (t) => /\[WOONPLAATS_\d+\]/.test(anon(t));
+
+  it('laat een tabelkop met rust', () => {
+    expect(vervangen('Omschrijving Waarde\nInboedel\t2.500')).toBe(false);
+    expect(vervangen('Monster\tBedrag\tVerschil')).toBe(false);
+  });
+
+  it('laat een gewoon woord met een hoofdletter met rust', () => {
+    expect(vervangen('Dat zou Leiden tot problemen.')).toBe(false);
+    expect(vervangen('De Waarde van de inboedel bedraagt € 2.500.')).toBe(false);
+    expect(vervangen('Buren hebben geen recht van overpad.')).toBe(false);
+  });
+
+  it('vervangt wél na een voorzetsel van plaats', () => {
+    expect(vervangen('Partijen zijn woonachtig te Buren.')).toBe(true);
+    expect(vervangen('De woning in Huizen wordt verkocht.')).toBe(true);
+    expect(vervangen('De man verhuist naar Leiden.')).toBe(true);
+  });
+
+  it('vervangt wél in een dagtekening', () => {
+    expect(anon('Leiden, 12 maart 2026')).toMatch(/^\[WOONPLAATS_\d+\], 12 maart 2026$/);
+  });
+
+  it('vervangt wél als er al iets identificerends in de zin staat', () => {
+    expect(vervangen('Het adres is [ADRES_0] en de gemeente is Waarde.')).toBe(true);
+  });
+});
+
+describe('ondubbelzinnige plaatsnamen — overal, zonder ankerwoord', () => {
+  // Dit is waarvoor de lijst er kwam: van dertien gewone convenantformuleringen met een
+  // plaatsnaam lekten er twaalf, omdat de patronen de context herkenden en niet de plaats.
+  const tracker = () => {
+    const m = new Map(); const n = {};
+    return (type, waarde) => {
+      const k = `${type}:${waarde}`;
+      if (!m.has(k)) { n[type] = n[type] ?? 0; m.set(k, `[${type}_${n[type]++}]`); }
+      return m.get(k);
+    };
+  };
+  const anon = (t) => anonimiseerTekst(t, new Map(), tracker());
+
+  it('vangt de dagtekening en het kadaster', () => {
+    expect(anon('Holten, 12 maart 2026')).not.toContain('Holten');
+    expect(anon('kadastraal bekend gemeente Holten, sectie C')).not.toContain('Holten');
+  });
+
+  it('houdt een meerdelige naam heel', () => {
+    // Langste eerst: anders vangt "Loon" de eerste helft van "Loon op Zand".
+    expect(anon('Wonende te Loon op Zand.')).toMatch(/te \[WOONPLAATS_\d+\]\.$/);
+    expect(anon('Wonende te Hendrik-Ido-Ambacht.')).toMatch(/te \[WOONPLAATS_\d+\]\.$/);
+  });
+});

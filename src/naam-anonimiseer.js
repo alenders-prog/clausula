@@ -11,7 +11,7 @@
 
 import { ibanRe, ibanSleutel, rekeningOverigRe, rekeningSleutel } from './iban-patroon.js';
 import { vervangPersoonsdetails } from './avg/persoonsdetails.js';
-import { WOONPLAATSEN } from './avg/woonplaatsen.js';
+import { WOONPLAATSEN, DUBBELZINNIGE_PLAATSEN } from './avg/woonplaatsen.js';
 
 /**
  * Eén patroon voor alle 2379 ondubbelzinnige woonplaatsnamen, langste eerst.
@@ -26,11 +26,48 @@ import { WOONPLAATSEN } from './avg/woonplaatsen.js';
  *
  * Eén keer opgebouwd bij het laden. Gemeten op een convenant van 60.000 tekens: 0,4 ms.
  */
-const PLAATS_RE = (() => {
-  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const namen = [...WOONPLAATSEN].sort((a, b) => b.length - a.length).map(esc);
-  return new RegExp(`(?<![A-Za-zÀ-ÿ0-9])(?:${namen.join('|')})(?![A-Za-zÀ-ÿ0-9])`, 'g');
-})();
+const _esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const _plaatsRe = (namen) => new RegExp(
+  `(?<![A-Za-zÀ-ÿ0-9])(?:${[...namen].sort((a, b) => b.length - a.length).map(_esc).join('|')})(?![A-Za-zÀ-ÿ0-9])`, 'g');
+
+const PLAATS_RE        = _plaatsRe(WOONPLAATSEN);
+const PLAATS_DUBBEL_RE = _plaatsRe(DUBBELZINNIGE_PLAATSEN);
+
+/**
+ * Is dit twijfelgeval hier écht een plaatsnaam?
+ *
+ * `Waarde`, `Leiden`, `Huizen`, `Monster` en 21 andere zijn allebei: een woonplaats en een
+ * alledaags woord. Ze overal vervangen kostte in een echte analyse de tabelkop
+ * "Omschrijving Waarde"; ze nergens vervangen kost Leiden en Huizen in een dagtekening.
+ *
+ * Daarom niet de naam maar de PLAATS IN DE ZIN laten beslissen. Drie aanwijzingen, elk
+ * afzonderlijk voldoende:
+ *
+ *   1. er staat een voorzetsel van plaats vóór ("te Buren", "in Huizen", "naar Leiden")
+ *   2. het staat vooraan een regel met een datum erachter — de dagtekening
+ *      ("Leiden, 12 maart 2026")
+ *   3. er staat in dezelfde zin al iets identificerends: een adres- of postcode-placeholder,
+ *      of een woord dat over wonen gaat
+ *
+ * Een tabelkop haalt geen van drieën: "Omschrijving Waarde" heeft geen voorzetsel, geen
+ * datum en geen medebewijs. Dat is precies de bedoeling.
+ */
+function isEchtEenPlaats(tekst, index, naam) {
+  const voor = tekst.slice(Math.max(0, index - 60), index);
+  const na   = tekst.slice(index + naam.length, index + naam.length + 30);
+
+  // 1. voorzetsel van plaats er direct vóór
+  if (/\b(?:te|in|naar|uit|vanuit|richting|nabij|bij|vanaf)\s+$/i.test(voor)) return true;
+
+  // 2. dagtekening: begin van een regel, en een datum erachter
+  if (/(?:^|\n)[\s"'(]*$/.test(voor) && /^\s*,\s*\d{1,2}[\s-]/.test(na)) return true;
+
+  // 3. medebewijs in dezelfde zin
+  const zinStart = Math.max(voor.lastIndexOf('.'), voor.lastIndexOf('\n'), voor.lastIndexOf(';'));
+  const zin = voor.slice(zinStart + 1) + naam + na;
+  return /\[(?:ADRES|POSTCODE|WOONPLAATS|GEBOORTEPLAATS)_\d+\]/.test(zin)
+      || /\b(?:woon|wonen|wonende|woonachtig|gevestigd|verhuis|adres|woning|woonhuis|gemeente)\w*\b/i.test(zin);
+}
 
 // ── Nep-namenpools ────────────────────────────────────────────────────────────
 //
@@ -516,6 +553,61 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
     // Woonplaats direct na postcode-placeholder: "[POSTCODE_0] Almelo"
     t = t.replace(/(\[POSTCODE_\d+\])\s+([A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,}(?:\s+[A-Z][a-zA-ZÀ-ÿÀ-ɏ\-]{2,})?)/g,
       (_, ph, stad) => `${ph} ${piiPh('WOONPLAATS', stad.trim())}`);
+    // ── Plaatsnamen op naam herkend, ─────────────────────────────
+    //
+    // De patronen hierboven herkennen de CONTEXT ("geboren te", "wonende te", "de woning
+    // gelegen te"), en context is onbegrensd. Gemeten op 5 september 2026: van dertien
+    // gewone convenantformuleringen met een plaatsnaam erin lekten er twaalf — de
+    // dagtekening ("Holten, 12 maart 2026"), het kadaster ("gemeente Holten, sectie C"),
+    // de notaris ("ten overstaan van notaris mr. X te Deventer"), "verhuist naar",
+    // "blijft in … wonen". Elk daarvan een nieuw ankerwoord geven is dweilen.
+    //
+    // Deze stap draait het om: herken de plaats zelf, waar hij ook staat. Bewust ná de
+    // ankers, zodat het specifiekere type wint — "geboren te Deventer" wordt
+    // [GEBOORTEPLAATS_0] en niet [WOONPLAATS_0], en dat onderscheid staat in de prompt.
+    //
+    // Wat deze lijst niet dekt (buitenlandse plaatsen, verdwenen namen, spellingsvarianten)
+    // blijft de taak van de ankers, en wat geen van beide vangt meldt src/avg/residu.js.
+    // Zie de toelichting in src/avg/woonplaatsen.js.
+    //
+    // OVERWOGEN EN NIET GEDAAN: alleen vervangen als er in dezelfde zin een persoonsnaam,
+    // postcode of straatnaam staat. Dat sluit aan bij B1 — een plaats identificeert niet
+    // op zichzelf maar in combinatie — en het is hier goedkoop te bouwen, want die drie
+    // staan er op dit punt al als placeholder. Niet gedaan omdat de meting geen
+    // overmatching laat zien (op de vijf golden fixtures: vier treffers, alle vier een
+    // echte plaats) én omdat het precies de gevallen kost waarvoor deze stap er is: de
+    // dagtekening "Holten, 12 maart 2026" en "kadastraal bekend gemeente Holten" hebben
+    // geen naam of adres in dezelfde zin. Blijkt er later wél overmatching, dan is dit de
+    // eerstvolgende knop.
+    // NIET_WOONPLAATS geldt óók hier, en dat is niet vanzelfsprekend: "Nederland" is een
+    // échte BAG-woonplaats (een buurtschap bij Barneveld), net als "Zeeland" in Noord-Brabant.
+    // Zonder deze toets zou "partijen zijn woonachtig in Nederland" een placeholder worden
+    // en viel precies het gegeven weg waarop de IPR-toets draait. Gevonden doordat een
+    // bestaande test omviel.
+    t = t.replace(PLAATS_RE, (plaats, index, heel) => {
+      if (NIET_WOONPLAATS.test(plaats)) return plaats;
+      // Zittingsplaats van een gerecht blijft staan — besluit van de eigenaar, 5 september
+      // 2026, omwille van de leesbaarheid van het stuk.
+      //
+      // De afweging, zodat ze terug te vinden is als iemand dit wil omdraaien: de
+      // bevoegde rechtbank is die van de woonplaats van verweerder (art. 262 Rv), dus
+      // "rechtbank te Deventer" wijst in de praktijk naar waar een partij woont — terwijl
+      // die woonplaats er elders juist uit gaat. En pseudonimiseren zou de juridische
+      // toets niet kosten: dezelfde plaats krijgt dezelfde placeholder, dus "woonachtig te
+      // [WOONPLAATS_0] … rechtbank te [WOONPLAATS_0]" laat nog steeds zien dát het
+      // dezelfde plaats is. Omdraaien is deze `if` weghalen.
+      if (GERECHT_ERVOOR.test(heel.slice(Math.max(0, index - 40), index))) return plaats;
+      return piiPh('WOONPLAATS', plaats);
+    });
+
+    // De twijfelgevallen: alleen vervangen als hun plaats in de zin zegt dat het écht een
+    // plaatsnaam is. Zie isEchtEenPlaats hierboven.
+    t = t.replace(PLAATS_DUBBEL_RE, (plaats, index, heel) => {
+      if (NIET_WOONPLAATS.test(plaats)) return plaats;
+      if (GERECHT_ERVOOR.test(heel.slice(Math.max(0, index - 40), index))) return plaats;
+      return isEchtEenPlaats(heel, index, plaats) ? piiPh('WOONPLAATS', plaats) : plaats;
+    });
+
     // Woonplaats na "wonende te / woonachtig te / gevestigd te" — óók met "in".
     // "woonachtig in Holten" glipte erdoor omdat het patroon alleen "te" kende.
     //
@@ -565,54 +657,6 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
   // omheen werken ("geboren te [WOONPLAATS_0]" mag niet nog eens worden gevangen).
   t = vervangPersoonsdetails(t, piiPh);
 
-  // ── Plaatsnamen op naam herkend, als laatste vangnet ───────────────────────
-  //
-  // De patronen hierboven herkennen de CONTEXT ("geboren te", "wonende te", "de woning
-  // gelegen te"), en context is onbegrensd. Gemeten op 5 september 2026: van dertien
-  // gewone convenantformuleringen met een plaatsnaam erin lekten er twaalf — de
-  // dagtekening ("Holten, 12 maart 2026"), het kadaster ("gemeente Holten, sectie C"),
-  // de notaris ("ten overstaan van notaris mr. X te Deventer"), "verhuist naar",
-  // "blijft in … wonen". Elk daarvan een nieuw ankerwoord geven is dweilen.
-  //
-  // Deze stap draait het om: herken de plaats zelf, waar hij ook staat. Bewust ná de
-  // ankers, zodat het specifiekere type wint — "geboren te Deventer" wordt
-  // [GEBOORTEPLAATS_0] en niet [WOONPLAATS_0], en dat onderscheid staat in de prompt.
-  //
-  // Wat deze lijst niet dekt (buitenlandse plaatsen, verdwenen namen, spellingsvarianten)
-  // blijft de taak van de ankers, en wat geen van beide vangt meldt src/avg/residu.js.
-  // Zie de toelichting in src/avg/woonplaatsen.js.
-  //
-  // OVERWOGEN EN NIET GEDAAN: alleen vervangen als er in dezelfde zin een persoonsnaam,
-  // postcode of straatnaam staat. Dat sluit aan bij B1 — een plaats identificeert niet
-  // op zichzelf maar in combinatie — en het is hier goedkoop te bouwen, want die drie
-  // staan er op dit punt al als placeholder. Niet gedaan omdat de meting geen
-  // overmatching laat zien (op de vijf golden fixtures: vier treffers, alle vier een
-  // echte plaats) én omdat het precies de gevallen kost waarvoor deze stap er is: de
-  // dagtekening "Holten, 12 maart 2026" en "kadastraal bekend gemeente Holten" hebben
-  // geen naam of adres in dezelfde zin. Blijkt er later wél overmatching, dan is dit de
-  // eerstvolgende knop.
-  // NIET_WOONPLAATS geldt óók hier, en dat is niet vanzelfsprekend: "Nederland" is een
-  // échte BAG-woonplaats (een buurtschap bij Barneveld), net als "Zeeland" in Noord-Brabant.
-  // Zonder deze toets zou "partijen zijn woonachtig in Nederland" een placeholder worden
-  // en viel precies het gegeven weg waarop de IPR-toets draait. Gevonden doordat een
-  // bestaande test omviel.
-  if (piiPh) {
-    t = t.replace(PLAATS_RE, (plaats, index, heel) => {
-      if (NIET_WOONPLAATS.test(plaats)) return plaats;
-      // Zittingsplaats van een gerecht blijft staan — besluit van de eigenaar, 5 september
-      // 2026, omwille van de leesbaarheid van het stuk.
-      //
-      // De afweging, zodat ze terug te vinden is als iemand dit wil omdraaien: de
-      // bevoegde rechtbank is die van de woonplaats van verweerder (art. 262 Rv), dus
-      // "rechtbank te Deventer" wijst in de praktijk naar waar een partij woont — terwijl
-      // die woonplaats er elders juist uit gaat. En pseudonimiseren zou de juridische
-      // toets niet kosten: dezelfde plaats krijgt dezelfde placeholder, dus "woonachtig te
-      // [WOONPLAATS_0] … rechtbank te [WOONPLAATS_0]" laat nog steeds zien dát het
-      // dezelfde plaats is. Omdraaien is deze `if` weghalen.
-      if (GERECHT_ERVOOR.test(heel.slice(Math.max(0, index - 40), index))) return plaats;
-      return piiPh('WOONPLAATS', plaats);
-    });
-  }
 
   // Telefoonnummers: 06-xxxxxxxx, 0xx-xxxxxxx, +31-formaten, met spaties/streepjes
   // (?<![A-Z\d]) voorkomt dat IBAN-accountcijfers als telefoon worden gemaskeerd

@@ -106,7 +106,6 @@ export const WOONPLAATSEN = new Set([
   "Altforst",
   "Ambt Delden",
   "Ameide",
-  "Amen",
   "America",
   "Amerongen",
   "Amersfoort",
@@ -119,7 +118,6 @@ export const WOONPLAATSEN = new Set([
   "Amsterdam-Duivendrecht",
   "Andel",
   "Andelst",
-  "Anderen",
   "Andijk",
   "Ane",
   "Anerveen",
@@ -156,7 +154,6 @@ export const WOONPLAATSEN = new Set([
   "Baaiduinen",
   "Baaium",
   "Baambrugge",
-  "Baard",
   "Baarland",
   "Baarle-Nassau",
   "Baarlo",
@@ -321,7 +318,6 @@ export const WOONPLAATSEN = new Set([
   "Briltil",
   "Britsum",
   "Britswert",
-  "Broek",
   "Broek in Waterland",
   "Broek op Langedijk",
   "Broekhuizen",
@@ -354,7 +350,6 @@ export const WOONPLAATSEN = new Set([
   "Bunnik",
   "Bunschoten-Spakenburg",
   "Burdaard",
-  "Buren",
   "Burgerbrug",
   "Burgerveen",
   "Burgh-Haamstede",
@@ -472,7 +467,6 @@ export const WOONPLAATSEN = new Set([
   "Diemen",
   "Diepenheim",
   "Diepenveen",
-  "Dieren",
   "Diessen",
   "Diever",
   "Dieverbrug",
@@ -502,7 +496,6 @@ export const WOONPLAATSEN = new Set([
   "Doornspijk",
   "Doorwerth",
   "Dordrecht",
-  "Dorst",
   "Drachten",
   "Drachten-Azeven",
   "Drachtstercompagnie",
@@ -675,7 +668,6 @@ export const WOONPLAATSEN = new Set([
   "Gasselternijveenschemond",
   "Gastel",
   "Gasteren",
-  "Gauw",
   "Geelbroek",
   "Geerdijk",
   "Geersdijk",
@@ -779,7 +771,6 @@ export const WOONPLAATSEN = new Set([
   "Halle",
   "Hallum",
   "Halsteren",
-  "Handel",
   "Hansweert",
   "Hantum",
   "Hantumerútbuorren",
@@ -790,7 +781,6 @@ export const WOONPLAATSEN = new Set([
   "Hardenberg",
   "Harderwijk",
   "Hardinxveld-Giessendam",
-  "Haren",
   "Haren Gn",
   "Harfsen",
   "Harich",
@@ -817,7 +807,6 @@ export const WOONPLAATSEN = new Set([
   "Hazerswoude-Rijndijk",
   "Hedel",
   "Hedikhuizen",
-  "Hee",
   "Heeg",
   "Heelsum",
   "Heelweg",
@@ -855,7 +844,6 @@ export const WOONPLAATSEN = new Set([
   "Heino",
   "Hekelingen",
   "Hekendorp",
-  "Helden",
   "Helenaveen",
   "Hellendoorn",
   "Hellevoetsluis",
@@ -915,7 +903,6 @@ export const WOONPLAATSEN = new Set([
   "Hoensbroek",
   "Hoenzadriel",
   "Hoevelaken",
-  "Hoeven",
   "Hoge Hexel",
   "Hollandsche Rading",
   "Hollandscheveld",
@@ -964,7 +951,6 @@ export const WOONPLAATSEN = new Set([
   "Huisduinen",
   "Huisseling",
   "Huissen",
-  "Huizen",
   "Huizinge",
   "Hulsberg",
   "Hulsel",
@@ -1060,7 +1046,6 @@ export const WOONPLAATSEN = new Set([
   "Klazienaveen-Noord",
   "Klein Zundert",
   "Klijndijk",
-  "Klimmen",
   "Kloetinge",
   "Klooster Lidlum",
   "Kloosterburen",
@@ -1144,7 +1129,6 @@ export const WOONPLAATSEN = new Set([
   "Lauwersoog",
   "Lauwerzijl",
   "Ledeacker",
-  "Leek",
   "Leende",
   "Leens",
   "Leerbroek",
@@ -1153,7 +1137,6 @@ export const WOONPLAATSEN = new Set([
   "Leersum",
   "Leeuwarden",
   "Legemeer",
-  "Leiden",
   "Leiderdorp",
   "Leidschendam",
   "Leimuiden",
@@ -1345,7 +1328,6 @@ export const WOONPLAATSEN = new Set([
   "Molenschot",
   "Molkwerum",
   "Monnickendam",
-  "Monster",
   "Montfoort",
   "Montfort",
   "Mook",
@@ -1466,7 +1448,6 @@ export const WOONPLAATSEN = new Set([
   "Noordeinde",
   "Noordeinde Gld",
   "Noordeloos",
-  "Noorden",
   "Noordgouwe",
   "Noordhoek",
   "Noordhorn",
@@ -1560,7 +1541,6 @@ export const WOONPLAATSEN = new Set([
   "Oostzaan",
   "Ootmarsum",
   "Opeinde",
-  "Opende",
   "Ophemert",
   "Opheusden",
   "Opijnen",
@@ -1568,7 +1548,6 @@ export const WOONPLAATSEN = new Set([
   "Opmeer",
   "Oppenhuizen",
   "Opperdoes",
-  "Oranje",
   "Oranjewoud",
   "Orvelte",
   "Ospel",
@@ -2140,11 +2119,9 @@ export const WOONPLAATSEN = new Set([
   "Vrouwenparochie",
   "Vrouwenpolder",
   "Vught",
-  "Vuren",
   "Waaksens",
   "Waalre",
   "Waalwijk",
-  "Waarde",
   "Waardenburg",
   "Waarder",
   "Waardhuizen",
@@ -2272,7 +2249,6 @@ export const WOONPLAATSEN = new Set([
   "Wilsum",
   "Winde",
   "Windraak",
-  "Winkel",
   "Winneweer",
   "Winschoten",
   "Winssen",
@@ -2351,7 +2327,6 @@ export const WOONPLAATSEN = new Set([
   "Zelhem",
   "Zenderen",
   "Zennewijnen",
-  "Zetten",
   "Zevenaar",
   "Zevenbergen",
   "Zevenbergschen Hoek",
@@ -2409,6 +2384,60 @@ export const WOONPLAATSEN = new Set([
   "Zwijndrecht",
   "Zwinderen",
   "Zwolle",
+]);
+
+/**
+ * Woonplaatsnamen die óók een alledaags Nederlands woord zijn.
+ *
+ * Deze worden alleen vervangen als er in dezelfde zin nóg iets identificerends staat —
+ * een pseudoniem, een [ADRES_n], een [POSTCODE_n] of een woonplaats-ankerwoord. Zie de
+ * toelichting bij de aanroep in `naam-anonimiseer.js`.
+ *
+ * ── HOE DEZE LIJST IS BEPAALD ───────────────────────────────────────────────
+ *
+ * Niet op gevoel: dat faalde. Ik had er met de hand 48 gekozen en "Waarde" over het hoofd
+ * gezien — een dorp in Zeeland — waarna in een echte analyse de tabelkop "Omschrijving
+ * Waarde" tot "Omschrijving [WOONPLAATS_3]" werd.
+ *
+ * Nu afgeleid uit een frequentielijst van het Nederlands (hermitdave/FrequencyWords,
+ * nl_50k, OpenSubtitles 2018): een woonplaatsnaam waarvan de kleine-letterversie in de
+ * top 5000 staat, is ook een gewoon woord. `waarde` staat op rang 2082, `best` op 362,
+ * `echt` op 91 — terwijl `holten`, `deventer`, `bathmen` en `zwolle` niet eens in de
+ * top 50.000 voorkomen.
+ *
+ * De grens ligt op 5000 en niet hoger, en dat is gemeten: bij 10.000 valt **Amsterdam**
+ * erbinnen. Die frequentielijst bevat namelijk óók eigennamen, dus "komt vaak voor"
+ * betekent niet "is een gewoon woord". Bij 5000 blijft de lijst beperkt tot woorden die
+ * werkelijk dubbelzinnig zijn.
+ *
+ * De 48 met de hand gekozen namen zijn erbij gehouden, zodat er niets stil terugkeert.
+ */
+export const DUBBELZINNIGE_PLAATSEN = new Set([
+  "Amen",
+  "Anderen",
+  "Baard",
+  "Broek",
+  "Buren",
+  "Dieren",
+  "Dorst",
+  "Gauw",
+  "Handel",
+  "Haren",
+  "Hee",
+  "Helden",
+  "Hoeven",
+  "Huizen",
+  "Klimmen",
+  "Leek",
+  "Leiden",
+  "Monster",
+  "Noorden",
+  "Opende",
+  "Oranje",
+  "Vuren",
+  "Waarde",
+  "Winkel",
+  "Zetten",
 ]);
 
 /**
