@@ -11,6 +11,8 @@
  * de check werkt ongeacht welke key is geconfigureerd.
  */
 
+import { PROFIEL } from '../src/auth/toegang.js';
+
 export async function verifieerJWT(token) {
   if (!token) return false;
   const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
@@ -37,7 +39,13 @@ export async function verifieerJWT(token) {
  * plaats van null: de aanroep mag doorgaan, er ontbreekt alleen een label bij de
  * meting. Meten mag nooit een analyse tegenhouden.
  *
- * @returns {Promise<{gebruikerId: string, organisatieId: string|null}|null>}
+ * `profielStatus` zegt wáárom `organisatieId` leeg is, en dat onderscheid is de hele
+ * grond onder `magApiGebruiken` in src/auth/toegang.js: een gebruiker zonder profielrij
+ * is uit zijn kantoor verwijderd en hoort geweigerd te worden, maar een mislukte lookup
+ * is een storing en mag geen weigering worden. Op `organisatieId === null` beslissen
+ * gooit die twee op één hoop.
+ *
+ * @returns {Promise<{gebruikerId: string, organisatieId: string|null, profielStatus: string}|null>}
  */
 export async function gebruikerContext(token) {
   if (!token) return null;
@@ -52,6 +60,7 @@ export async function gebruikerContext(token) {
   if (!gebruikerId) return null;
 
   let organisatieId = null;
+  let profielStatus = PROFIEL.ONBEKEND;
   try {
     const sleutel = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (sleutel) {
@@ -59,11 +68,23 @@ export async function gebruikerContext(token) {
         `${process.env.SUPABASE_URL}/rest/v1/gebruikersprofiel`
         + `?id=eq.${gebruikerId}&select=organisatie_id`,
         { headers: { apikey: sleutel, Authorization: `Bearer ${sleutel}` } });
-      if (p.ok) organisatieId = (await p.json())?.[0]?.organisatie_id ?? null;
+      if (p.ok) {
+        const rijen = await p.json();
+        // Een leeg antwoord is een vaststelling en geen storing: de rij bestaat niet.
+        // Precies dat is de toestand die verwijder_gebruiker achterlaat.
+        if (!Array.isArray(rijen) || rijen.length === 0) {
+          profielStatus = PROFIEL.GEEN_PROFIEL;
+        } else {
+          organisatieId = rijen[0]?.organisatie_id ?? null;
+          profielStatus = organisatieId ? PROFIEL.GEVONDEN : PROFIEL.GEEN_ORG;
+        }
+      } else {
+        console.warn('[auth] profiel ophalen gaf HTTP', p.status);
+      }
     }
   } catch (e) {
     console.warn('[auth] organisatie ophalen mislukt:', e.message);
   }
 
-  return { gebruikerId, organisatieId };
+  return { gebruikerId, organisatieId, profielStatus };
 }

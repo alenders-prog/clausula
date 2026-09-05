@@ -4,6 +4,7 @@
 // maxDuration: 120 (zie vercel.json) geeft voldoende tijd voor streaming.
 
 import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 import { meetAanroep, usageUitSse, wachtOpVerbruik } from './_verbruik.js';
 
 export default async function handler(req, res) {
@@ -14,7 +15,9 @@ export default async function handler(req, res) {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
   const ctx = await gebruikerContext(token);
-  if (!ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Zie api/analyseer.js: een geldige token zegt niets over lidmaatschap van een kantoor.
+  const toegang = magApiGebruiken(ctx);
+  if (!toegang.toegestaan) return res.status(toegang.http).json({ error: toegang.melding });
 
   // Dit endpoint is een doorgeefluik: het stuurt de body van de browser ongewijzigd
   // door en weet dus niet wát het doet. De fase komt daarom uit een eigen header en

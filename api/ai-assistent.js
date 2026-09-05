@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { meetAanroep, usageUitSse, wachtOpVerbruik } from './_verbruik.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
@@ -721,7 +722,9 @@ async function _verwerk(req, res) {
   // gebruikerContext verifieert net als verifieerJWT, maar houdt vast wie het is —
   // nodig om verbruik per gebruiker en per kantoor te kunnen tellen.
   const _ctx = await gebruikerContext(token);
-  if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Zie api/analyseer.js: een geldige token zegt niets over lidmaatschap van een kantoor.
+  const _toegang = magApiGebruiken(_ctx);
+  if (!_toegang.toegestaan) return res.status(_toegang.http).json({ error: _toegang.melding });
   _meetOpslag.enterWith({ organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId,
                           fase: 'onbekend' });
 

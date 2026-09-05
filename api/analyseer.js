@@ -32,6 +32,7 @@ import { filterIssuesOpIban } from './_iban.js';
 import { bouwConsolidatieLijst } from './_dedup-passage.js';
 import { hoortBijDocument } from './_cross-doc-toewijzing.js';
 import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 // Logregels dragen een verwijzing naar het document, niet de bestandsnaam: die is hier
 // "Convenant Jansen-de Vries.pdf" en de logs staan bij Vercel. Zie src/avg/logref.js.
 import { docRef } from '../src/avg/logref.js';
@@ -455,7 +456,12 @@ export default async function handler(req, res) {
   // gebruikerContext doet dezelfde verificatie als verifieerJWT, maar houdt vast wie
   // het is — nodig om het verbruik per gebruiker en per kantoor te kunnen tellen.
   const _ctx = await gebruikerContext(token);
-  if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Een geldige token is niet genoeg: verwijder_gebruiker schrapt alleen de profielrij,
+  // dus zonder deze toets blijft een uit het kantoor verwijderde mediator analyses draaien
+  // op andermans rekening. Een mislukte lookup wordt bewust wél doorgelaten — zie
+  // src/auth/toegang.js.
+  const _toegang = magApiGebruiken(_ctx);
+  if (!_toegang.toegestaan) return res.status(_toegang.http).json({ error: _toegang.melding });
   // ── Body parsen ───────────────────────────────────────────────────────────
   const { classificatie, documenten, roepnamen, runId } = req.body || {};
 
