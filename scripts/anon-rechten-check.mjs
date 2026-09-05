@@ -63,6 +63,26 @@ const TABELLEN = [
   'verdeling_posten', 'verdeling_overzicht_totalen', 'zorgverdeling_dagdelen',
 ];
 
+/**
+ * Tabellen die de API helemaal niet meer hoort te kennen.
+ *
+ * De backuptabellen zijn op 5 september 2026 naar schema `archief` verhuisd
+ * (`2026-09-05-backuptabellen-uit-de-api.sql`), omdat PostgREST alleen `public` bedient.
+ * Ze droegen 111 rijen met volledige documenttekst, waarvan 57 zonder pseudonimisering.
+ *
+ * Hier hoort dus "bestaat niet" uit te komen. Komt er iets ánders — ook een keurige 200 met
+ * nul rijen — dan staan ze weer in `public` en hangt de bescherming aan een policy.
+ *
+ * LET OP WAT DIT NIET BEWIJST. PostgREST geeft PGRST205 ("niet in de schema-cache") ook als
+ * de tabel wél in `public` staat maar buiten de cache is gevallen — en die cache wordt bij
+ * elke DDL-opdracht herladen. Onbereikbaar via de API is dus niet hetzelfde als verhuisd.
+ * De vraag wáár ze staan hoort in de database:
+ *
+ *   select table_schema, table_name from information_schema.tables
+ *   where  table_name in ('_backup_screeningen', '_backup_dossiers');
+ */
+const MOETEN_WEG_ZIJN = ['_backup_screeningen', '_backup_dossiers'];
+
 const bevindingen = [];   // hard fout: lek, of aantoonbaar leesrecht
 const onbeslist = [];     // van buiten niet te beoordelen
 
@@ -105,6 +125,37 @@ for (const tabel of TABELLEN) {
     teken = '?'; onbeslist.push(`${tabel}: ${oordeel}`);
   }
 
+  console.log(`  ${teken} ${tabel.padEnd(30)} ${oordeel}`);
+}
+
+console.log('\nTabellen die de API niet meer hoort te kennen:');
+
+for (const tabel of MOETEN_WEG_ZIJN) {
+  let oordeel, teken;
+  try {
+    const res = await fetch(`${url}/rest/v1/${tabel}?select=*&limit=1`, { headers: { apikey: key } });
+    const tekst = await res.text();
+    let code = '', melding = '';
+    try { const j = JSON.parse(tekst); code = j.code ?? ''; melding = j.message ?? ''; } catch { /* lijst */ }
+
+    if (code === 'PGRST205' || res.status === 404) {
+      oordeel = 'bestaat niet in de API — zo hoort het';
+      teken = '✓';
+    } else if (res.ok) {
+      let rijen = '?';
+      try { rijen = JSON.parse(tekst).length; } catch { /* laat ? staan */ }
+      oordeel = rijen === 0
+        ? 'staat in public en anon mag hem lezen — alleen de policy houdt tegen'
+        : `LEK — ${rijen} rij(en) terug`;
+      teken = '✖'; bevindingen.push(`${tabel}: ${oordeel}`);
+    } else {
+      oordeel = `staat nog in public (${melding.slice(0, 50) || res.status})`;
+      teken = '✖'; bevindingen.push(`${tabel}: ${oordeel}`);
+    }
+  } catch (e) {
+    oordeel = `netwerkfout: ${e.message}`;
+    teken = '?'; onbeslist.push(tabel);
+  }
   console.log(`  ${teken} ${tabel.padEnd(30)} ${oordeel}`);
 }
 

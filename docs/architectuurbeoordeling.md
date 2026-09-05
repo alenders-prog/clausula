@@ -95,6 +95,27 @@ uitgaat bij een herstelactie, en 57 volledige dossiers met echte namen staan ope
 verwijderen (er is een reden waarom het backups zijn), ofwel verplaatsen naar een schema dat
 PostgREST niet bedient.
 
+> **Uitgevoerd 5 september 2026.** Beide tabellen staan nu in schema `archief`, dat PostgREST
+> niet bedient (`supabase/2026-09-05-backuptabellen-uit-de-api.sql`). Verplaatst en niet
+> verwijderd: omkeerbaar, en er is een reden waarom het backups zijn. Gecontroleerd in
+> `information_schema` (beide op `archief`) en van buitenaf: waar eerst HTTP 200 met nul
+> rijen kwam, geeft de API ze nu niet meer. `npm run check:anon` bewaakt dat.
+>
+> Tegelijk is `anon` alle tabelrechten in `public` kwijtgeraakt
+> (`supabase/2026-09-05-anon-rechten-intrekken.sql`), inclusief de kennisbanktabellen, met
+> `alter default privileges` erachteraan zodat een nieuwe tabel het recht niet stil
+> terugkrijgt.
+>
+> **Eén regel hierboven klopte niet.** "De actieve tabellen zijn beschermd doordat de
+> anonieme rol er geen enkel recht op heeft" was afgelezen uit `HTTP 401 permission denied`.
+> Die melding bewijst dat niet — hij kwam van het EXECUTE-recht op de functie in de
+> policy-expressie, dat eerder wordt getoetst dan het SELECT-recht op de tabel. De anonieme
+> rol hád op dat moment leesrecht op álle tabellen in `public`; dat is de Supabase-standaard
+> bij aanmaak. Het verschil met de backuptabellen dat deze bevinding beschrijft bestond dus
+> niet: beide leunden op RLS alleen. Dat maakt de bevinding niet minder juist, maar wel
+> ruimer dan hij was opgeschreven. Gemeten met `has_table_privilege`; zie
+> `supabase/anon-rechten-controle.sql`.
+
 ### B3 — Geen bewaartermijn, geen opschoning · *A8*
 
 Er is geen enkel mechanisme dat dossiers of screenings verwijdert. Voor de AVG is dat een
@@ -260,7 +281,7 @@ daarná — het maakt het bouwen prettiger, maar het lost geen van die drie op.
 
 | # | wat | rust op | omvang |
 |---|---|---|---|
-| 1.1 | Backuptabellen weg uit het API-schema | B2 | een halve ronde |
+| 1.1 | ~~Backuptabellen weg uit het API-schema~~ — **gedaan 5 sep 2026**, plus alle anon-tabelrechten ingetrokken | B2 | een halve ronde |
 | 1.2 | Datacontroles: analyses gemeten maar niet bewaard, screenings zonder rapport, verbruik zonder organisatie | B5, A3 | 1 ronde |
 | 1.3 | Cliëntnamen uit foutmeldingen | B5 | een halve ronde |
 | 1.4 | Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix | B1 | 2 ronden + eval |
