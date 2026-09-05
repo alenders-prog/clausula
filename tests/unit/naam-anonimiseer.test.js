@@ -483,3 +483,59 @@ describe('nep-namenpools dragen geen woordbetekenis', () => {
     expect(hersteld).not.toContain('Lenders en nieuw');
   });
 });
+
+describe('anonimiseerTekst — woonplaats zonder adres of postcode ervoor', () => {
+  // Aanleiding: een echte analyse op 5 september 2026. De residu-controle meldde "Holten"
+  // en "Deventer" als niet-vervangen. Nagemeten bleek waarom: de patronen dekten
+  // "geboren te X" en "wonende te <postcode> X", maar niet de vorm waarin een convenant
+  // de echtelijke woning meestal aanduidt — "de woning is gelegen te Holten" — en evenmin
+  // "woonachtig ín" in plaats van "te".
+  const tracker = () => {
+    const m = new Map(); const n = {};
+    return (type, waarde) => {
+      const k = `${type}:${waarde}`;
+      if (!m.has(k)) { n[type] = n[type] ?? 0; m.set(k, `[${type}_${n[type]++}]`); }
+      return m.get(k);
+    };
+  };
+  const anon = (t) => anonimiseerTekst(t, new Map(), tracker());
+
+  it('vervangt de plaats bij de woning zelf', () => {
+    expect(anon('De echtelijke woning is gelegen te Holten.')).not.toContain('Holten');
+    expect(anon('De woning te Holten wordt verkocht.')).not.toContain('Holten');
+    expect(anon('Het woonhuis in Almelo blijft bij de man.')).not.toContain('Almelo');
+  });
+
+  it('kent ook "in" naast "te"', () => {
+    expect(anon('Partijen zijn woonachtig in Holten.')).not.toContain('Holten');
+    expect(anon('De vrouw staat ingeschreven te Deventer.')).not.toContain('Deventer');
+  });
+
+  it('laat geen woord uit de tekst verdwijnen', () => {
+    // Dit was een echte fout, en de ernstigste van de twee: met de /i-vlag werd óók
+    // `[A-Z]` hoofdletterongevoelig, waardoor het tweede naamdeel het vólgende woord ving.
+    // "wonende te Holten wordt verkocht" leverde dan één placeholder voor "Holten wordt"
+    // op — er verdween tekst uit het document dat naar Claude gaat.
+    expect(anon('De woning te Holten wordt verkocht.')).toMatch(/wordt verkocht\.$/);
+    expect(anon('Het woonhuis in Almelo blijft bij de man.')).toMatch(/blijft bij de man\.$/);
+    expect(anon('Wonende te Almelo, verder te noemen de vrouw.')).toMatch(/verder te noemen de vrouw\.$/);
+  });
+
+  it('laat een land staan — dat is geen woonplaats maar een rechtsgebied', () => {
+    // De IPR-toets leidt uit "partijen wonen in verschillende landen" af welke verordening
+    // geldt. Zou "Duitsland" hier verdwijnen, dan valt precies dat gegeven weg.
+    expect(anon('De woning is gelegen in Duitsland.')).toContain('Duitsland');
+    const beide = anon('De vrouw is woonachtig in België, de man in Nederland.');
+    expect(beide).toContain('België');
+    expect(beide).toContain('Nederland');
+  });
+
+  it('grijpt niet naar een willekeurig woord na "te"', () => {
+    // Een los "te <woord>" komt in juridische tekst overal voor. Met de /i-vlag werd
+    // "de woning wordt te koop gezet" tot "te [WOONPLAATS_0]".
+    expect(anon('De woning wordt te koop gezet.')).toContain('te koop');
+    expect(anon('Dit dient te geschieden binnen twee weken.')).toContain('te geschieden');
+    // Een rechtbank is geen woonplaats, en de zittingsplaats is juridisch relevant.
+    expect(anon('De rechtbank te Deventer.')).toContain('Deventer');
+  });
+});

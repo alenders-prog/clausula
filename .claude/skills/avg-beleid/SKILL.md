@@ -129,6 +129,33 @@ Supabase record (nep-namen)
        └─ rapport met echte namen (alleen in browser-geheugen)
 ```
 
+## Woonplaatsen — waar ze wél en niet worden vervangen
+
+De plaatspatronen in `src/naam-anonimiseer.js` zijn **verankerd**, niet vrij. Een los
+`te <Hoofdletter>` komt in juridische tekst overal voor ("te zijner tijd", "te koop",
+"de rechtbank te Deventer"), dus elk patroon hangt aan een ankerwoord: `geboren`,
+`wonende/woonachtig/gevestigd/gedomicilieerd/ingeschreven`, of een woord over de woning
+(`gelegen`, `woning`, `woonhuis`, `pand`). Dat laatste blok kwam er op 5 september 2026 bij
+omdat de residu-controle op een echte analyse "Holten" bleef melden: *"de echtelijke woning
+is gelegen te Holten"* is in een convenant de gangbaarste vorm, en geen enkel patroon
+raakte hem.
+
+> **Nooit de `i`-vlag op deze patronen.** Met `/i` wordt óók `[A-Z]` hoofdletterongevoelig,
+> en dan matcht het optionele tweede naamdeel gewoon het volgende woord. Gemeten:
+> `"De woning te Holten wordt verkocht"` werd `"De woning te [WOONPLAATS_0] verkocht"` —
+> **er verdween tekst uit het document dat naar Claude gaat**, niet alleen een plaatsnaam.
+> Schrijf het ankerwoord daarom als `[Ww]onende`, niet als `wonende` met `/i`.
+>
+> Diezelfde vlag stond vanaf het begin op de `wonende te`-regel. Hij viel pas op door een
+> testbatterij die óók de gevallen bevatte die *niet* vervangen mogen worden — een battery
+> met alleen positieve gevallen had hem nooit gevonden.
+
+**Landen blijven staan** (`NIET_WOONPLAATS` in dezelfde module). Een land is geen woonplaats
+maar een rechtsgebied, en `src/rapport/internationaal.js` leidt uit "partijen wonen in
+verschillende landen" af welke verordening geldt. Wordt "Duitsland" een placeholder, dan
+verdwijnt precies het gegeven waarop de IPR-toets draait. Die lijst is een uitzondering op
+de bescherming en hoort dus alleen te groeien met een reden die opgeschreven kan worden.
+
 ## Datums en nationaliteit — generaliseren, niet pseudonimiseren
 
 Vastgelegd 8 augustus 2026. Geldt voor `huwelijksdatum`, `partij_*_geboortedatum`,
