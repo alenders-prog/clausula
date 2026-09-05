@@ -53,12 +53,22 @@ if (!url || !key) {
 const BUCKET = 'documenten';
 const kop = { apikey: key, 'Content-Type': 'application/json' };
 
-/** Statuscode ophalen zonder de body te lezen. */
+/**
+ * Statuscode ophalen zonder een document binnen te halen.
+ *
+ * `Range: bytes=0-0` vraagt hoogstens één byte op. Dat is bewust: bij een lek mag deze
+ * controle geen cliëntdata over de lijn trekken, laat staan in een logbestand zetten.
+ * De eerdere opzet brak de body af met `body.cancel()`, en dat liet Node omvallen met
+ * `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` — een controle die zelf crasht
+ * meldt niets.
+ */
 async function status(pad, opties = {}) {
   try {
-    const res = await fetch(`${url}${pad}`, { ...opties, headers: { ...kop, ...opties.headers } });
-    // Body nooit inlezen: bij een lek zou dat cliëntdata in de logs zetten.
-    try { await res.body?.cancel(); } catch { /* al gesloten */ }
+    const res = await fetch(`${url}${pad}`, {
+      ...opties,
+      headers: { ...kop, Range: 'bytes=0-0', ...opties.headers },
+    });
+    await res.arrayBuffer().catch(() => null);   // hoogstens één byte
     return res.status;
   } catch (e) {
     return `netwerkfout: ${e.message}`;
@@ -84,28 +94,40 @@ const meld = (naam, code, dicht) => {
 console.log(`Anonieme toegang tot bucket '${BUCKET}' op ${url}`);
 console.log('(alleen de publieke sleutel uit config.js, niet ingelogd)\n');
 
+// Het oordeel staat op wat er terugkomt, niet op de statuscode. Het opsommen geeft na
+// het herstel HTTP 200 met een lege lijst: het verzoek mag langs, maar RLS geeft geen
+// rijen. Dat is dezelfde vorm die de architectuurbeoordeling bij `_backup_screeningen`
+// beschreef — dunner dan een harde 401, want de bescherming hangt aan één policy in
+// plaats van aan het ontbreken van elk recht, maar er komt niets uit.
+//
+// Een eerdere versie van dit script rekende élke 200 als lek en meldde dus rood op een
+// bucket die dicht was. Een controle die vals alarm geeft, wordt genegeerd.
 const wortelLijst = await lijst('');
-meld('mappen opsommen', wortelLijst.code, wortelLijst.code !== 200);
+meld(`mappen opsommen (${wortelLijst.namen.length} terug)`, wortelLijst.code, wortelLijst.namen.length === 0);
 
 let pad = null;
 if (wortelLijst.namen.length) {
   const binnen = await lijst(wortelLijst.namen[0]);
-  meld('bestanden in een map opsommen', binnen.code, binnen.code !== 200);
+  meld(`bestanden in een map opsommen (${binnen.namen.length} terug)`, binnen.code, binnen.namen.length === 0);
   if (binnen.namen.length) pad = `${wortelLijst.namen[0]}/${binnen.namen[0]}`;
 }
 
+// Bij download en ondertekenen telt de statuscode wél: 200 (of 206 bij een Range) betekent
+// dat er een document uit komt. Er is geen onschuldige variant van "hier is het bestand".
+const GELUKT = new Set([200, 206]);
+
 if (pad) {
   const dl = await status(`/storage/v1/object/${BUCKET}/${pad}`);
-  meld('document downloaden', dl, dl !== 200);
+  meld('document downloaden', dl, !GELUKT.has(dl));
 
   const sign = await status(`/storage/v1/object/sign/${BUCKET}/${pad}`, {
     method: 'POST', body: JSON.stringify({ expiresIn: 60 }),
   });
-  meld('ondertekende URL aanvragen', sign, sign !== 200);
+  meld('ondertekende URL aanvragen', sign, !GELUKT.has(sign));
 } else {
-  // Geen pad betekent dat het opsommen al werd geweigerd — dan is er niets te downloaden
-  // en zijn de twee regels hierboven al de uitkomst.
-  console.log('  ·  geen pad om download te toetsen (het opsommen gaf al niets prijs)');
+  // Zonder pad valt er niets te downloaden — het opsommen gaf al geen namen prijs, en die
+  // regel hierboven is dan de uitkomst.
+  console.log('  ·  geen pad om download te toetsen — het opsommen gaf geen namen prijs');
 }
 
 console.log('');
@@ -114,7 +136,12 @@ if (bevindingen.length) {
   for (const b of bevindingen) console.error(`  - ${b}`);
   console.error('\nZie supabase/2026-09-05-storage-anon-dicht.sql. Let op: de INSERT-policy');
   console.error('wordt hier niet getoetst — kijk in het dashboard of er een op anon staat.');
-  process.exit(1);
+} else {
+  console.log('UITKOMST: dicht — geen anonieme toegang tot de bucket');
 }
-console.log('UITKOMST: dicht — geen anonieme toegang tot de bucket');
-process.exit(0);
+
+// `process.exitCode` en niet `process.exit()`: dat laatste kapt de nog openstaande
+// keep-alive-verbindingen van fetch af, waarop Node op Windows omvalt met
+// `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` en exitcode 127. Een poort die
+// 127 teruggeeft in plaats van 0 leest als een mislukking terwijl alles goed is.
+process.exitCode = bevindingen.length ? 1 : 0;
