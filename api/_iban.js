@@ -15,6 +15,9 @@
 // witruimte toe ("NL28 RABO 0328582298") en herkent beide placeholder-schrijfwijzen:
 // de browser nummert met [IBAN_0], de server met [IBAN-1].
 import { ibanOfTokenRe } from '../src/iban-patroon.js';
+// Juist omdat dit patroon óók echte IBANs matcht, mag er geen rekeningnummer in een
+// logregel belanden: die staan bij Vercel. Placeholders blijven staan. Zie src/avg/logref.js.
+import { ibanRef } from '../src/avg/logref.js';
 
 export const IBAN_RE = ibanOfTokenRe();
 
@@ -47,7 +50,7 @@ export function filterIssuesOpIban(issues, docTekst) {
     if (ibans.length === 0) return true;
     const onbekend = ibans.filter(iban => !ibanInDoc.has(iban));
     if (onbekend.length > 0) {
-      console.warn(`[iban] verwijderd (onbekend IBAN ${onbekend.join(', ')}): "${iss.onderwerp}"`);
+      console.warn(`[iban] verwijderd (onbekend IBAN ${onbekend.map(ibanRef).join(', ')}): "${iss.onderwerp}"`);
       return false;
     }
     return true;
@@ -71,7 +74,7 @@ export function filterIssuesOpIban(issues, docTekst) {
     const conflict = [...aanwezig, ...ontbreekt]
       .sort((a, b) => (ERNST_RANG[a.ernst] ?? 9) - (ERNST_RANG[b.ernst] ?? 9));
     for (const iss of conflict.slice(1)) {
-      console.warn(`[iban] tegenstrijdig verwijderd (${iban}): "${iss.onderwerp}"`);
+      console.warn(`[iban] tegenstrijdig verwijderd (${ibanRef(iban)}): "${iss.onderwerp}"`);
       teVerwijderen.add(iss);
     }
   }

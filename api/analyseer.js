@@ -32,6 +32,10 @@ import { filterIssuesOpIban } from './_iban.js';
 import { bouwConsolidatieLijst } from './_dedup-passage.js';
 import { hoortBijDocument } from './_cross-doc-toewijzing.js';
 import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
+// Logregels dragen een verwijzing naar het document, niet de bestandsnaam: die is hier
+// "Convenant Jansen-de Vries.pdf" en de logs staan bij Vercel. Zie src/avg/logref.js.
+import { docRef } from '../src/avg/logref.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
   verwijderDuplicaten,
@@ -289,6 +293,9 @@ const onderwerpBeschrijving =
 // de consolidatiestap: lijst erin, alleen de correcties eruit. Niet-fataal — mislukt
 // de aanroep, dan gaat de oorspronkelijke lijst door. Een ontbrekende controle mag
 // geen analyse kosten. Schema, prompt en toepassingslogica staan in api/_consistentie.js.
+//
+// `label` wordt uitsluitend gelogd. Geef er dus een `docRef()` in en niet de bestandsnaam:
+// die staat vol cliëntnamen en deze regels belanden bij Vercel.
 async function pasConsistentieToe(issues, label) {
   if (!Array.isArray(issues) || issues.length === 0) return issues;
   try {
@@ -344,7 +351,7 @@ const issueItem = {
     //
     // Nu alvast vullen betekent dat de omschakeling straks geen nieuw veld hoeft te
     // introduceren op het moment dat er ook van alles anders verandert. Zie
-    // docs/ontwerpbesluiten.md.
+    // de skill analyse-ontwerpbesluiten.
     passage_document: {
       type: 'string',
       description: 'Het documenttype waaruit de geciteerde passage komt: "convenant" of "ouderschapsplan". Neem de waarde over uit de kopregel === TYPE: bestandsnaam === boven de tekst waarin je het citaat vond.',
@@ -449,7 +456,12 @@ export default async function handler(req, res) {
   // gebruikerContext doet dezelfde verificatie als verifieerJWT, maar houdt vast wie
   // het is — nodig om het verbruik per gebruiker en per kantoor te kunnen tellen.
   const _ctx = await gebruikerContext(token);
-  if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Een geldige token is niet genoeg: verwijder_gebruiker schrapt alleen de profielrij,
+  // dus zonder deze toets blijft een uit het kantoor verwijderde mediator analyses draaien
+  // op andermans rekening. Een mislukte lookup wordt bewust wél doorgelaten — zie
+  // src/auth/toegang.js.
+  const _toegang = magApiGebruiken(_ctx);
+  if (!_toegang.toegestaan) return res.status(_toegang.http).json({ error: _toegang.melding });
   // ── Body parsen ───────────────────────────────────────────────────────────
   const { classificatie, documenten, roepnamen, runId } = req.body || {};
 
@@ -700,7 +712,7 @@ export default async function handler(req, res) {
         const { blijft, uitBijlage } = scheidBijlageIssues(result.issues, bijlageOpties);
         if (uitBijlage.length) {
           console.warn(`[analyseer] ${uitBijlage.length} bevinding(en) uit een bijlage geweerd bij `
-            + `${doc.bestandsnaam}/${type}: `
+            + `${docRef(doc.bestandsnaam)}/${type}: `
             + uitBijlage.map(i => i.onderwerp || '(zonder onderwerp)').join(' | '));
         }
         return { ...result, issues: blijft };
@@ -715,7 +727,7 @@ export default async function handler(req, res) {
           },
           err => {
             if (err.isMaxTokens) {
-              console.warn(`[analyseer] max_tokens: ${doc.bestandsnaam}/${type}`);
+              console.warn(`[analyseer] max_tokens: ${docRef(doc.bestandsnaam)}/${type}`);
               sse({ type: 'max_tokens', bestandsnaam: doc.bestandsnaam, tool: type });
               return { issues: [] };
             }
@@ -750,7 +762,7 @@ export default async function handler(req, res) {
       // (Frontend wacht op structuur + juridisch + balans; balans is nu samengevoegd met juridisch.)
       sse({ type: 'balans', bestandsnaam: doc.bestandsnaam, result: { issues: [] } });
 
-      console.log(`[analyseer] ${doc.bestandsnaam}: klaar (${(Array.isArray(structuurR?.issues) ? structuurR.issues.length : 0) + (Array.isArray(bevindingenR?.issues) ? bevindingenR.issues.length : 0)} issues totaal)`);
+      console.log(`[analyseer] ${docRef(doc.bestandsnaam)}: klaar (${(Array.isArray(structuurR?.issues) ? structuurR.issues.length : 0) + (Array.isArray(bevindingenR?.issues) ? bevindingenR.issues.length : 0)} issues totaal)`);
       return { bestandsnaam: doc.bestandsnaam, structuurR, bevindingenR };
     };
 
@@ -869,7 +881,7 @@ export default async function handler(req, res) {
         // IBAN-validatie: verwijder issues met niet-bestaande IBANs en tegenstrijdige IBAN-conclusies
         const allIssues = filterIssuesOpIban(rawIssues, vervangPii(doc.tekst ?? ''));
         if (allIssues.length < rawIssues.length)
-          console.log(`[iban] ${doc.bestandsnaam}: ${rawIssues.length - allIssues.length} issue(s) verwijderd door IBAN-validatie`);
+          console.log(`[iban] ${docRef(doc.bestandsnaam)}: ${rawIssues.length - allIssues.length} issue(s) verwijderd door IBAN-validatie`);
         if (allIssues.length < 2) {
           sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: allIssues } });
           continue;
@@ -908,7 +920,7 @@ export default async function handler(req, res) {
           const weggevallen = allIssues.filter((_, i) => !teBewarenSet.has(i));
           const verwijderd = allIssues.length - geconsolideerd.length;
           if (verwijderd > 0) {
-            console.log(`[analyseer] consolidatie ${doc.bestandsnaam}: ${verwijderd} van `
+            console.log(`[analyseer] consolidatie ${docRef(doc.bestandsnaam)}: ${verwijderd} van `
               + `${allIssues.length} duplicaat(en) verwijderd`);
             for (const w of weggevallen) {
               console.log(`[analyseer]   weg: ${(w.ernst || '?').padEnd(6)} `
@@ -916,10 +928,10 @@ export default async function handler(req, res) {
             }
           }
 
-          const definitief = await pasConsistentieToe(geconsolideerd, doc.bestandsnaam);
+          const definitief = await pasConsistentieToe(geconsolideerd, docRef(doc.bestandsnaam));
           sse({ type: 'consolidatie', bestandsnaam: doc.bestandsnaam, result: { issues: definitief } });
         } catch (err) {
-          console.warn(`[analyseer] consolidatie mislukt voor ${doc.bestandsnaam}:`, err.message);
+          console.warn(`[analyseer] consolidatie mislukt voor ${docRef(doc.bestandsnaam)}:`, err.message);
           // Niet-fataal: frontend valt terug op client-side dedupIssues
         }
       }

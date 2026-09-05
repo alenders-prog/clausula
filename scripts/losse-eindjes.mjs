@@ -67,9 +67,18 @@ function allePaden(map, uit = []) {
 const indexHtml = readFileSync(join(WORTEL, 'index.html'), 'utf8');
 const testPaden = allePaden(join(WORTEL, 'tests'));
 const srcPaden  = allePaden(join(WORTEL, 'src'));
+// Waar "wordt het gebruikt?" wordt beantwoord. Exports worden alleen uit src/ verzameld
+// (zie hieronder), dus deze lijst uitbreiden voegt nooit kandidaten toe — het voorkomt
+// alleen dat een echte gebruiker over het hoofd wordt gezien.
+//
+// scripts/ hoort er sinds 5 september 2026 bij. `isVerlopen` uit src/avg/bewaartermijn.js
+// werd door scripts/opschonen.mjs aangeroepen en toch als los eindje gemeld: de
+// onderhoudsscripts zijn geen tweederangs gebruikers — juist het opschoonscript hoort de
+// getoetste regel te gebruiken in plaats van zijn eigen datumrekenwerk te doen.
 const codePaden = [
   ...srcPaden,
   ...allePaden(join(WORTEL, 'api')),
+  ...allePaden(join(WORTEL, 'scripts')),
   join(WORTEL, 'index.html'),
   ...['assistent-mobiel.html', 'login.html'].map(f => join(WORTEL, f))
     .filter(p => { try { statSync(p); return true; } catch { return false; } }),

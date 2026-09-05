@@ -386,8 +386,49 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // tonen van het verschil in een vervangvoorstel. De redenering — wanneer is iets een
 // vervang-paar, en welke woorden verschillen — staat in src/rapport/vervang-accent.js met
 // 18 tests; hier bleef één aanroep en de kleuring over.
-const MAX_REGELS_INDEX = 16324;
-const MAX_REGELS_JS     = 13086;
+// 04-09-2026 (dertiende keer): 16324 → 16383 (+59, waarvan 57 script), voor de
+// residu-controle op de anonimisering. Bewust verhoogd, en de afweging hoort erbij.
+//
+// De redenering zit in src/avg/ — `persoonsdetails.js` (21 tests) verlaagt geboorte- en
+// huwelijksdatums en vervangt geboorteplaats, huwelijksplaats, werkgever en adressen zonder
+// straatsuffix; `residu.js` (13 tests) meet wat er dan nóg identificerend uitziet. Wat hier
+// in index.html landde is uitsluitend bedrading: de aanroep op de plek waar de tekst het
+// kantoor verlaat, en de balk die de vondsten toont. Dat is precies wat CLAUDE.md hier
+// toestaat.
+//
+// Het alternatief was de balk-opbouw óók naar src/ te verplaatsen. Afgewogen en niet
+// gedaan: dat is DOM-opbouw zonder eigen redenering, dus de test die eronder zou komen
+// bewijst niets dat de bestaande e2e-smoketest niet al dekt. De grens omlaag houden door
+// code te verhuizen die geen toetsbare beslissing bevat, verplaatst het probleem en levert
+// een test op die alleen zichzelf bevestigt.
+// 05-09-2026 (veertiende keer): 16383 → 16385 (+2, beide script), voor de bewaartermijn.
+// Dit is de goedkoopste verhoging die er is en toch hoort de afweging erbij, want de regel
+// mag alleen omlaag.
+//
+// De twee regels zijn de ESM-brug en niets anders: één import en één window-toewijzing van
+// `bronbestandMelding` uit src/avg/bewaartermijn.js (13 tests). Alle redenering — wanneer
+// een termijn verstreken is, en wat de mediator te zien krijgt als het bronbestand er niet
+// meer is — staat in die module, en drie aanroepplekken in index.html werden er juist
+// kórter van: `alert('Download mislukt: ' + err.message)` viel weg.
+//
+// Het alternatief was de melding in index.html zelf op te bouwen. Dat had de grens gehaald
+// en de toets onbereikbaar gemaakt: juist het onderscheid tussen "er is iets stuk" en "het
+// systeem deed wat het hoort te doen" is de beslissing die getoetst moet zijn.
+// 05-09-2026 (vijftiende keer): 16385 → 16399 (+14, alle script). Tweede verhoging op
+// dezelfde dag, en dat verdient een reden die verder gaat dan "het paste niet".
+//
+// De code zelf werd één regel langer: `escH` ontsnapt nu ook " en ', en de knop in de
+// gebruikerslijst geeft de naam via `data-naam` door in plaats van in een inline
+// JS-string. De overige dertien regels zijn commentaar, en dat is hier het eigenlijke
+// werk: dat een attribuut éérst HTML-ontsnapt wordt en pas daarna als JavaScript gelezen,
+// is niet af te leiden uit de code die er staat. Zonder die uitleg is dit een fix die
+// iemand met goede bedoelingen terugdraait omdat hij er omslachtig uitziet.
+//
+// CLAUDE.md noemt precies dit geval: commentaar schrappen dat de code verklaart is geen
+// manier om de grens te halen. De toets zelf staat in tests/unit/esc-html.test.js, die de
+// vier escH-definities uit de bron leest en op aanhalingstekens controleert.
+const MAX_REGELS_INDEX = 16399;
+const MAX_REGELS_JS     = 13159;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

@@ -24,7 +24,7 @@
  *
  * Waarom dat kan: deze aanroep zoekt inconsistenties TUSSEN documenten. De juridische
  * toetsing van elk document afzonderlijk gebeurt in `bevindingen`, en die houdt de
- * artikelen wél. Zie docs/ontwerpbesluiten.md.
+ * artikelen wél. Zie de skill analyse-ontwerpbesluiten.
  */
 export const bouwSysCrossDoc = ({ docTypenLabel }) =>
 `Je bent een ervaren familierechtjurist. Je legt twee documenten naast elkaar: ${docTypenLabel}.

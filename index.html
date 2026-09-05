@@ -2799,11 +2799,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
               <div class="awiz-sb-ico ok">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
               </div>
-              <div class="awiz-sb-txt"><div class="awiz-sb-name">Pseudonimisering</div><div class="awiz-sb-desc">Namen worden versleuteld vervangen vóór verwerking. Uw documenten verlaten het kantoor volledig geanonimiseerd.</div></div>
+              <div class="awiz-sb-txt"><div class="awiz-sb-name">Pseudonimisering</div><div class="awiz-sb-desc">Namen, adressen, BSN en rekeningnummers worden vervangen vóór verwerking; geboorte&#8209; en huwelijksdatums teruggebracht tot jaar. Na het vervangen controleert Clausula de tekst op wat er nog identificeerbaar in staat en meldt wat het vindt.</div></div>
             </div>
             <div style="padding:10px 16px;border-top:1px solid #C5BDB4;font-size:.75rem;color:var(--ink-soft);line-height:1.5;display:flex;gap:5px;align-items:flex-start">
               <span style="flex-shrink:0">🔒</span>
-              <div><strong>Volledig AVG-proof.</strong><br><a href="https://clausula.nl/avg" target="_blank" rel="noopener" style="color:var(--coral);text-decoration:none">Lees ons privacybeleid →</a></div>
+              <div><strong>Verwerking volgens de AVG.</strong><br><a href="https://clausula.nl/avg" target="_blank" rel="noopener" style="color:var(--coral);text-decoration:none">Lees ons privacybeleid →</a></div>
             </div>
           </div>
         </div>
@@ -4409,6 +4409,26 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     tekst:        anonimiseerTekst(documentDelen[i].tekst, naarAnon, _piiPh),
   }));
 
+  // Meten wat er ná het vervangen nog identificerend uitziet — zie src/avg/residu.js.
+  // De vervanging kent alleen de namen die de classificatie ophaalde; een kind dat daar
+  // niet in stond gaat er ongemerkt doorheen. Dit is de enige plek waar dat zichtbaar
+  // wordt, en het gebeurt vóór de tekst het kantoor verlaat.
+  app.anonResidu = [];
+  try {
+    const _bekend = [...naarEcht.keys()];
+    for (const doc of documentenVoorServer) {
+      for (const r of zoekResidu(doc.tekst, _bekend)) {
+        app.anonResidu.push({ ...r, bestandsnaam: _bnVanServer.get(doc.bestandsnaam) });
+      }
+    }
+  } catch (e) {
+    // Een fout in de méting mag de analyse niet tegenhouden, maar mag ook niet stil
+    // verdwijnen — anders lijkt "geen residu" hetzelfde als "niet gemeten".
+    console.error('[avg] residu-controle mislukt:', e);
+    app.anonResidu = null;
+  }
+  toonResiduWaarschuwing(app.anonResidu);
+
   // Voeg PII-placeholders toe aan naarEcht/naarEchtVolledig (voor passage-herstel)
   // en aan naarAnon (voor normalisatie bij passage-zoeken in opgeslagen tekst).
   for (const [ph, val] of _piiPhToVal) {
@@ -5115,8 +5135,15 @@ function docZoomWijzig(dir) {
   if (lbl) lbl.textContent = Math.round(_docZoom * 100) + '%';
 }
 
+// Ontsnapt ook " en ' — niet alleen &<>. Dat verschil is het verschil tussen tekst en
+// attribuut: `title="${escH(naam)}"` staat achttien keer in dit bestand, en zonder de
+// aanhalingstekens breekt een naam of bestandsnaam met een " daar gewoon uit en kan er een
+// onerror= achteraan. De varianten in src/dashboard/scherm.js en src/auth/mfa-scherm.js
+// deden dit al goed; deze en die in assistent-core.js liepen achter.
+// Bewaakt door tests/unit/esc-html.test.js.
 function escH(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 function _dossierNaam(cls) {
   const achtA = (cls?.partij_a_naam || '').trim().split(/\s+/).pop() || '';
@@ -7427,6 +7454,42 @@ function toonOpslagFout(bericht) {
   });
 }
 
+/**
+ * Meldt wat de residu-controle vond in de tekst die zojuist is verstuurd.
+ *
+ * Bewust géén blokkade en géén bevestigingsvraag: de tekst is op dit moment al onderweg,
+ * dus een vraag zou suggereren dat er nog iets te kiezen valt. Wat de mediator hier krijgt
+ * is een waarneming — welke woorden er nog in stonden en uit welk document — zodat hij bij
+ * de volgende upload kan ingrijpen en, als dat nodig is, zijn verwerkingsregister klopt.
+ *
+ * Zwijgen bij nul vondsten is opzet: een melding die altijd komt, leert men wegklikken.
+ */
+function toonResiduWaarschuwing(residu) {
+  document.getElementById('residuBalk')?.remove();
+  if (!residu || residu.length === 0) return;
+
+  const samen = vatResiduSamen(residu);
+  const perDoc = new Map();
+  for (const r of residu) {
+    if (!perDoc.has(r.bestandsnaam)) perDoc.set(r.bestandsnaam, []);
+    perDoc.get(r.bestandsnaam).push(r.waarde);
+  }
+  const regels = [...perDoc].map(([bn, ws]) =>
+    `<li><strong>${escH(bn || 'document')}</strong>: ${ws.map(escH).join(', ')}</li>`).join('');
+
+  const balk = document.createElement('div');
+  balk.id = 'residuBalk';
+  balk.className = 'opslag-fout-balk';
+  balk.innerHTML = `<span><strong>${samen.aantal} mogelijk herleidbaar gegeven${
+    samen.aantal === 1 ? '' : 's'} niet vervangen.</strong>
+    De vervanging kent alleen de namen die uit de documenten zijn herkend; deze stonden daar
+    niet bij en zijn meegestuurd.
+    <ul style="margin:6px 0 0;padding-left:18px">${regels}</ul></span>
+    <button type="button" id="residuSluitBtn">Gezien</button>`;
+  document.body.appendChild(balk);
+  balk.querySelector('#residuSluitBtn').addEventListener('click', () => balk.remove());
+}
+
 // De browser-terugknop en het sluiten van het tabblad. Alleen als er iets te verliezen
 // is: een waarschuwing die altijd komt, leert men wegklikken.
 window.addEventListener('beforeunload', (e) => {
@@ -7568,8 +7631,8 @@ async function laadGebruikersLijst() {
                    </label>`;
             return `
             <tr style="border-bottom:1px solid var(--line)">
-              <td style="padding:8px">${u.naam || '—'}</td>
-              <td style="padding:8px;color:var(--ink-soft);font-size:.82rem">${u.email}</td>
+              <td style="padding:8px">${escH(u.naam || '—')}</td>
+              <td style="padding:8px;color:var(--ink-soft);font-size:.82rem">${escH(u.email)}</td>
               <td style="padding:8px">
                 ${!isZelf ? `
                   <button onclick="wisselRol('${u.id}','${u.rol}')"
@@ -7586,7 +7649,14 @@ async function laadGebruikersLijst() {
               <td style="padding:8px">${toggleHtml}</td>
               <td style="padding:8px;text-align:right">
                 ${!isZelf ? `
-                  <button onclick="verwijderGebruiker('${u.id}','${u.naam||u.email}')"
+                  <!-- De naam gaat via data-naam en niet in de onclick zelf. Een attribuut
+                       wordt eerst HTML-ontsnapt en dán als JavaScript gelezen, dus escH()
+                       helpt binnen een JS-string niet: een naam met een ' erin sluit de
+                       string en de rest draait mee. En die naam typt de gebruiker zelf
+                       (registreer.html, en later te wijzigen), terwijl deze tabel het
+                       beheerdersscherm is waar rollen worden gewisseld. -->
+                  <button onclick="verwijderGebruiker('${u.id}', this.dataset.naam)"
+                    data-naam="${escH(u.naam || u.email)}"
                     style="font-size:.75rem;color:var(--terra);background:none;border:none;
                            cursor:pointer;padding:2px 6px">✕</button>
                 ` : '<span style="font-size:.75rem;color:var(--ink-soft)">(jij)</span>'}
@@ -12293,7 +12363,7 @@ async function laadDossiers() {
           if (error) throw error;
           const a = document.createElement('a');
           a.href = s.signedUrl; a.download = btn.dataset.naam; a.target = '_blank'; a.click();
-        } catch (err) { alert('Download mislukt: ' + err.message); }
+        } catch (err) { alert(bronbestandMelding(err)); }
         finally { btn.textContent = orig; btn.disabled = false; }
       });
     });
@@ -12424,7 +12494,7 @@ async function toonDossierDetail(id) {
           a.target   = '_blank';
           a.click();
         } catch (e) {
-          alert('Download mislukt: ' + e.message);
+          alert(bronbestandMelding(e));
         } finally {
           btn.textContent = origTekst;
           btn.disabled = false;
@@ -12546,7 +12616,7 @@ async function _downloadModalBestand(pad, naam, btn) {
     if (error) throw error;
     const a = document.createElement('a');
     a.href = s.signedUrl; a.download = naam; a.target = '_blank'; a.click();
-  } catch (err) { alert('Download mislukt: ' + err.message); }
+  } catch (err) { alert(bronbestandMelding(err, app.rapport?._bronbestanden_verwijderd_op ?? null)); }
   finally { btn.innerHTML = orig; btn.disabled = false; }
 }
 
@@ -16119,6 +16189,8 @@ import { beoordeelAfloop }                                   from './src/analyse
 import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport/doc-volgorde.js';
 import { accentueerAanbeveling }                             from './src/rapport/vervang-accent.js';
 import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
+import { zoekResidu, vatResiduSamen }                        from './src/avg/residu.js';
+import { bronbestandMelding }                               from './src/avg/bewaartermijn.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16126,6 +16198,9 @@ window.bouwAnonMap       = (cls) => bouwAnonMap(cls,
   Array.isArray(window.app?.bestanden) ? window.app.bestanden.map(f => f.name) : []
 );
 window.anonimiseerTekst  = anonimiseerTekst;
+window.zoekResidu        = zoekResidu;
+window.vatResiduSamen    = vatResiduSamen;
+window.bronbestandMelding = bronbestandMelding;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

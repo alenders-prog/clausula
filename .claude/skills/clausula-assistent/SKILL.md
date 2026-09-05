@@ -25,6 +25,41 @@ Instellingen worden opgeslagen in `localStorage` onder sleutel `assist_cmd_defau
 
 ---
 
+## `ai-assistent.js` draait op de SERVICE_ROLE-sleutel — RLS beschermt hier niets
+
+Dit endpoint maakt zijn Supabase-client met `SUPABASE_SERVICE_ROLE_KEY`. Die **omzeilt
+RLS**. Elke query die je hier toevoegt moet dus zélf afschermen wat RLS anders had gedaan;
+er is geen vangnet meer onder.
+
+> **Dat ging op 5 september 2026 mis, en het is de moeite om te weten hoe.** De
+> server-side `resolvedFields` werden zo opgehaald:
+>
+> ```js
+> .from('screeningen').select('classificatie, rapport')
+> .eq('dossier_id', dossierId)        // dossierId kwam rechtstreeks uit req.body
+> ```
+>
+> Geen organisatiefilter. Een ingelogde gebruiker van kantoor A kon het `dossier_id` van
+> kantoor B meesturen en kreeg het profiel van dat dossier terug: relatievorm, kinderen,
+> eigen woning, huwelijksdatum als maand-jaar, de leeftijd van beide partijen en beide
+> nationaliteiten exact. Geen namen — die belanden nooit in `serverFields` — maar wel een
+> herleidbaar profiel. `_ctx.organisatieId` was al opgehaald; hij werd alleen gebruikt om
+> verbruik te tellen.
+>
+> Dit raakte meer dan één endpoint. De skill `avg-beleid` legt vast dat ruwe waarden bij
+> opslag mogen blijven staan met als reden *"eigen database, RLS per organisatie"*. Deze
+> query haalde precies die reden weg.
+>
+> **Ophalen gaat sindsdien via `screeningVoorDossier()`** uit
+> `src/auth/dossier-toegang.js` (8 tests): eerst de eigendomsvraag op `dossiers`
+> (`organisatie_id` staat daar, niet op `screeningen`), dan pas de gegevens. Fail-closed —
+> `organisatieId: null` geeft géén toegang, want `gebruikerContext()` levert null zodra het
+> opzoeken van het profiel mislukt, en "geen filter" zou dan iedereen alles geven.
+>
+> Ter vergelijking, de goede vorm die al in de codebase stond: `api/uitnodigen.js` doet
+> zijn opzoekwerk met de anon-sleutel plus de JWT van de beller, zodat RLS gewoon geldt, en
+> houdt de service-role voor één nauw afgeschermde schrijfactie.
+
 ## API-routing: twee paden
 
 ### Pad 1 — Zoekloop (`/api/ai-assistent`, `rawModus=false`)

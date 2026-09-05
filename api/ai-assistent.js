@@ -7,11 +7,13 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { meetAanroep, usageUitSse, wachtOpVerbruik } from './_verbruik.js';
 import { verrijkResolvedFields, bouwFeitenBlok, valideerConsistentie, kenmerkNaarFields,
          maandJaarUitDatum, leeftijdUitDatum } from './_feiten.js';
 import { maakVeldVolger } from '../src/assistent/deelbare-json.js';
+import { screeningVoorDossier } from '../src/auth/dossier-toegang.js';
 import { maakSectieVolger } from '../src/assistent/gedeeltelijk-json.js';
 import { zoekChunks } from '../src/kennisbank/zoek.js';
 import { beoordeelClausuleBelofte, vulClausuleBelofteAan } from '../src/assistent/clausule-belofte.js';
@@ -720,7 +722,9 @@ async function _verwerk(req, res) {
   // gebruikerContext verifieert net als verifieerJWT, maar houdt vast wie het is —
   // nodig om verbruik per gebruiker en per kantoor te kunnen tellen.
   const _ctx = await gebruikerContext(token);
-  if (!_ctx) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Zie api/analyseer.js: een geldige token zegt niets over lidmaatschap van een kantoor.
+  const _toegang = magApiGebruiken(_ctx);
+  if (!_toegang.toegestaan) return res.status(_toegang.http).json({ error: _toegang.melding });
   _meetOpslag.enterWith({ organisatieId: _ctx.organisatieId, gebruikerId: _ctx.gebruikerId,
                           fase: 'onbekend' });
 
@@ -751,13 +755,15 @@ async function _verwerk(req, res) {
   let effectiveResolvedFields = resolvedFields;
   if (dossierId) {
     try {
-      const { data: rows } = await supabase
-        .from('screeningen')
-        .select('classificatie, rapport')
-        .eq('dossier_id', dossierId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      const screening = rows?.[0];
+      // `dossierId` komt uit het verzoek en `supabase` draait op de SERVICE_ROLE-sleutel,
+      // die RLS omzeilt. Dit endpoint moet de afscherming dus zélf doen — anders leest
+      // kantoor A het dossierprofiel van kantoor B. `_ctx.organisatieId` is serverkant
+      // afgeleid uit de geverifieerde JWT en komt niet uit de body.
+      // Zie src/auth/dossier-toegang.js met tests.
+      const screening = await screeningVoorDossier(supabase, {
+        dossierId,
+        organisatieId: _ctx.organisatieId,
+      });
       if (screening?.classificatie) {
         const cl = screening.classificatie;
         const kenmerken = cl.situatie_kenmerken || [];

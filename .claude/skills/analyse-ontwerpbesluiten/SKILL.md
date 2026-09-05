@@ -1,7 +1,18 @@
+---
+name: analyse-ontwerpbesluiten
+description: De gemeten ontwerpbesluiten achter de analysepijplijn van Clausula, elk met zijn meting en de voorwaarde om hem terug te draaien. Gebruik vóór élke wijziging aan de structuur van de analyse — het aantal of de indeling van Claude-aanroepen, de prompt-cache, tokenplafonds, dimensiegrenzen, tijdslimieten, of een voorstel om iets samen te voegen, op te splitsen of parallel te doen. Ook bij vragen over waarom een analyse traag of duur is.
+---
+
 # Ontwerpbesluiten
 
 Waaróm de analysepijplijn is zoals hij is. Eén besluit per kop, met de meting die
 eronder ligt en de voorwaarde waaronder je hem mag terugdraaien.
+
+> **Dit bestand stond tot 5 september 2026 in `docs/ontwerpbesluiten.md`.** Daar werd het
+> alleen gelezen als de instructie in CLAUDE.md werd opgevolgd. Als skill biedt de
+> `description` hierboven zichzelf aan zodra iemand aan de analysestructuur komt. Er is
+> bewust geen kopie achtergebleven: twee plekken lopen uiteen, en van de vijf bestaande
+> skills liepen er op de dag van deze verhuizing drie achter op de code die ze beschrijven.
 
 Dit bestand is er omdat de meeste van deze besluiten *tegenintuïtief* zijn. Wie ze niet
 kent, draait ze met de beste bedoelingen terug — en de metingen die ze onderbouwen kosten

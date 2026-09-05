@@ -95,11 +95,99 @@ uitgaat bij een herstelactie, en 57 volledige dossiers met echte namen staan ope
 verwijderen (er is een reden waarom het backups zijn), ofwel verplaatsen naar een schema dat
 PostgREST niet bedient.
 
+> **Uitgevoerd 5 september 2026.** Beide tabellen staan nu in schema `archief`, dat PostgREST
+> niet bedient (`supabase/2026-09-05-backuptabellen-uit-de-api.sql`). Verplaatst en niet
+> verwijderd: omkeerbaar, en er is een reden waarom het backups zijn. Gecontroleerd in
+> `information_schema` (beide op `archief`) en van buitenaf: waar eerst HTTP 200 met nul
+> rijen kwam, geeft de API ze nu niet meer. `npm run check:anon` bewaakt dat.
+>
+> Tegelijk is `anon` alle tabelrechten in `public` kwijtgeraakt
+> (`supabase/2026-09-05-anon-rechten-intrekken.sql`), inclusief de kennisbanktabellen, met
+> `alter default privileges` erachteraan zodat een nieuwe tabel het recht niet stil
+> terugkrijgt.
+>
+> **Eén regel hierboven klopte niet.** "De actieve tabellen zijn beschermd doordat de
+> anonieme rol er geen enkel recht op heeft" was afgelezen uit `HTTP 401 permission denied`.
+> Die melding bewijst dat niet — hij kwam van het EXECUTE-recht op de functie in de
+> policy-expressie, dat eerder wordt getoetst dan het SELECT-recht op de tabel. De anonieme
+> rol hád op dat moment leesrecht op álle tabellen in `public`; dat is de Supabase-standaard
+> bij aanmaak. Het verschil met de backuptabellen dat deze bevinding beschrijft bestond dus
+> niet: beide leunden op RLS alleen. Dat maakt de bevinding niet minder juist, maar wel
+> ruimer dan hij was opgeschreven. Gemeten met `has_table_privilege`; zie
+> `supabase/anon-rechten-controle.sql`.
+
 ### B3 — Geen bewaartermijn, geen opschoning · *A8*
 
 Er is geen enkel mechanisme dat dossiers of screenings verwijdert. Voor de AVG is dat een
 tekortkoming (opslagbeperking), en het is een schemawijziging die eenvoudiger is bij vier
 dossiers dan bij vierduizend. Bij A1 (100 kantoren) is "later" geen optie meer.
+
+> **Toegevoegd 5 september 2026 — dit punt is zwaarder geworden.** Op die dag bleek de
+> `documenten`-bucket zonder inloggen bereikbaar (zie
+> `docs/incident-2026-09-05-storage.md`). Daarbij kwam iets aan het licht dat B3 van een
+> nette maatregel in een dempende maatregel verandert.
+>
+> **De opgeslagen bestanden zijn de originelen.** Beide uploadpaden in `index.html`
+> sturen het `File`-object zoals de gebruiker het koos; er gaat nergens een bewerkte versie
+> naar Storage. De pseudonimisering werkt op de tekst die naar Anthropic gaat, niet op wat
+> er in de opslag ligt. Alles in het systeem is afgeleid — rapport, classificatie, feiten —
+> behalve deze bestanden. Dit is de bron, en daarmee het waardevolste doelwit.
+>
+> **En het besluit om dat zo te doen steunt op een voorwaarde die stil kan wegvallen.** De
+> skill `avg-beleid` motiveert het bewaren van ruwe waarden met *"eigen database, RLS per
+> organisatie"*. Precies die RLS ontbrak, en niets in deze repo kon dat laten zien, want de
+> afwijking was in het dashboard aangeklikt.
+>
+> Waarom bewaren tóch verdedigbaar is: het is de **werkkopie van de mediator**. Vier
+> gebruiksplekken in `index.html` — de viewer bij een opgeslagen analyse (13492), drie
+> downloadknoppen (12348, 12475, 12601), en de heranalyse die zonder opnieuw uploaden een
+> nieuwe versie maakt (4070). Een geanonimiseerde kopie bedient daarvan alleen de laatste:
+> een mediator moet het échte stuk zien.
+>
+> **Daarom is een bewaartermijn hier de goedkoopste maatregel die er is.** Hij houdt het
+> hele voordeel overeind en verkleint wat er bij een volgende misconfiguratie op straat
+> ligt van "alles wat er ooit is geüpload" naar "wat er nu loopt". Versleuteling at rest is
+> het zwaardere alternatief; de afweging daarvan staat hieronder.
+>
+> **Versleuteling at rest — afgewogen, niet nu.** Het patroon is aanwezig (`api/_crypto.js`,
+> AES-256-GCM, nu voor `namen_map`), maar toepassen op bestanden is geen kleine ingreep:
+>
+> - Zeven raakpunten: twee uploads en vijf leesplekken. Drie daarvan (12348, 12475, 12601)
+>   zetten nu `a.href = signedUrl` en laten de browser rechtstreeks downloaden — JS raakt de
+>   bytes nooit aan. Die moeten om naar ophalen, ontsleutelen, blob, downloaden.
+> - De Adobe-conversie blijft ongemoeid: `adobe-start.js` krijgt de bytes als `pdfBase64`
+>   uit de browser, niet uit Storage.
+> - **Nieuw risico dat er nu niet is: sleutelverlies is dossierverlies.** Bij `namen_map` is
+>   een verloren sleutel hinderlijk; bij bronbestanden is het het stuk van de cliënt kwijt.
+>   Dat vraagt een bewaar- en herstelprocedure vóór invoering, niet erna.
+> - **Wat het wél afdekt:** precies het scenario van 5 september — een verkeerd gezette
+>   Storage-policy is dan niet meer genoeg. **Wat het niet afdekt:** een gekaapte sessie, of
+>   iemand met de service-role-sleutel. De ontsleuteling gebeurt in de browser, dus wie een
+>   geldige sessie heeft, heeft de sleutel.
+>
+> Volgorde: **bewaartermijn eerst** (klein, dempt élke toekomstige misser), versleuteling
+> pas wanneer er echte cliëntdossiers in staan — en dan mét die herstelprocedure.
+
+> **Uitgevoerd 5 september 2026.** De termijn hoefde niet gebouwd te worden: hij stónd er
+> al. `organisaties.retention_maanden` bestaat sinds `001_multitenancy.sql`, staat op 12, en
+> werd door niets gelezen — gebouwd en nooit aangesloten, dezelfde vorm als `screening_id`
+> in `api_verbruik`. Er was dus geen schemawijziging nodig, alleen een mechanisme.
+>
+> De regel staat getoetst in `src/avg/bewaartermijn.js` (13 tests), het opruimen in
+> `scripts/opschonen.mjs` (`npm run opschonen`, droogloop tenzij `--ja`). Alleen het bestand
+> gaat weg; screening, rapport en bevindingen blijven. Een screening waarvan álle
+> bronbestanden verdwijnen krijgt `rapport._bronbestanden_verwijderd_op`, en de drie
+> downloadknoppen tonen daardoor niet meer "Object not found" maar wat er werkelijk gebeurd
+> is.
+>
+> Gemeten bij het bouwen: de bucket is `{organisatie_id}/{tijdstempel}-{willekeurig}.pdf`,
+> twaalf bestanden in één map, oudste 14 augustus 2026. Met twaalf maanden verdwijnt het
+> eerste op 14 augustus 2027 — er is vandaag dus niets te verwijderen, en dat is precies het
+> moment om dit te bouwen.
+>
+> **Wat hier niet mee is opgelost:** dossiers en screenings zelf kennen nog steeds geen
+> bewaartermijn. Dit dekt de bestanden, en die zijn de bron; de rest is afgeleid en
+> gepseudonimiseerd. Voor A1 (100 kantoren) blijft de rest staan.
 
 ### B4 — De dossierlijst haalt élk rapport volledig op · *A1*
 
@@ -138,6 +226,32 @@ definitie niet. Wat A3 wél vraagt:
 - **onze eigen foutmeldingen bevatten cliëntnamen** —
   `Uploaden van '${item.bestand.name}' mislukt` en bestandsnamen zijn `Convenant
   Jansen-de Vries.pdf`. Dat moet dicht vóór er ook maar iets naar een externe dienst gaat.
+
+> **Uitgevoerd 5 september 2026 — en de controle vond zichzelf twee keer fout.**
+> `npm run check:data` (`scripts/datacontroles.mjs`) doet de drie controles op gedrag.
+>
+> De eerste versie koppelde `api_verbruik.screening_id` aan `screeningen.id`. Dat is geen
+> screening-id maar een **runId** die de browser vooraf aanmaakt (commit `088a53f`), omdat de
+> analyse begint voordat de screening bestaat; bij een heranalyse verschilt hij en staat hij
+> in `rapport._analyse_run_id`. Zonder die tweede sleutel meldt de controle élke heranalyse
+> als verloren — gemeten: 2 van 12 koppelden, beide via `_analyse_run_id`.
+>
+> De tweede versie meldde twaalf verloren analyses. Maar een analyse niet opslaan is gewoon
+> gedrag, en de gegevens kunnen "wilde niet bewaren" niet onderscheiden van "bewaren
+> mislukte". Dat is nu een notitie; de poort staat op het **dagpatroon**, want de storing die
+> elf dagen duurde was elf aaneengesloten dagen.
+>
+> **Wat de controle vond.** Van de vijf accounts hebben er twee geen rij in
+> `gebruikersprofiel`: het testaccount uit `.env` en één met een vertypt domein
+> (`@hotmail.ccom`). Dat is de oorzaak van álle 246 verbruiksregels zonder organisatie, en
+> het reikt verder dan de facturatie — zonder profielrij geeft `mijn_organisatie_id()` NULL,
+> dus elke RLS-policy geeft nul rijen terug. Zij kunnen inloggen en zien een lege applicatie.
+>
+> Voor 1.3 zijn de zes logregels in `api/analyseer.js` en de twee in `api/_iban.js` omgezet
+> naar `src/avg/logref.js`. Die gingen naar de Vercel-logs, en dat is een externe verwerker.
+> De browserconsole is bewust ongemoeid: die verlaat de machine niet, en de bestandsnaam is
+> daar juist nuttig. **Dat verandert zodra er foutmonitoring komt** — de na te lopen plekken
+> staan in de skill `avg-beleid`.
 
 ### B6 — Twaalf functies, negen in gebruik, en A8 vraagt om meer · *A1, A8*
 
@@ -214,12 +328,12 @@ daarná — het maakt het bouwen prettiger, maar het lost geen van die drie op.
 
 | # | wat | rust op | omvang |
 |---|---|---|---|
-| 1.1 | Backuptabellen weg uit het API-schema | B2 | een halve ronde |
-| 1.2 | Datacontroles: analyses gemeten maar niet bewaard, screenings zonder rapport, verbruik zonder organisatie | B5, A3 | 1 ronde |
-| 1.3 | Cliëntnamen uit foutmeldingen | B5 | een halve ronde |
-| 1.4 | Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix | B1 | 2 ronden + eval |
+| 1.1 | ~~Backuptabellen weg uit het API-schema~~ — **gedaan 5 sep 2026**, plus alle anon-tabelrechten ingetrokken | B2 | een halve ronde |
+| 1.2 | ~~Datacontroles~~ — **gedaan 5 sep 2026**, `npm run check:data` | B5, A3 | 1 ronde |
+| 1.3 | ~~Cliëntnamen uit foutmeldingen~~ — **server gedaan 5 sep 2026**; browserconsole wacht op de komst van foutmonitoring | B5 | een halve ronde |
+| 1.4 | ~~Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix~~ — **eerste ronde gedaan** (67b5bd0); "af" kan dit punt niet zijn, zie hieronder | B1 | 2 ronden + eval |
 | 1.5 | Besluit over A4: sluitend maken of laten vallen en de doorgifte regelen | B1 | uw besluit |
-| 1.6 | Bewaartermijn en opschoning | B3 | 1–2 ronden, schemawijziging |
+| 1.6 | ~~Bewaartermijn en opschoning~~ — **gedaan 5 sep 2026**, `npm run opschonen`; geen schemawijziging nodig | B3 | 1–2 ronden, schemawijziging |
 
 *Waarom 1.4 niet "af" kan zijn:* "absoluut geanonimiseerd" is bij vrije tekst geen
 haalbare toestand, alleen een richting. Elke ronde maakt het beter en geen enkele maakt het

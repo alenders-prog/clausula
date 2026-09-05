@@ -247,12 +247,18 @@ daaraan; `api/_consistentie.js` valt onder dezelfde regel.
 > byte-exact door Anthropic gecachet — elke wijziging kost eenmalig een volledige
 > cache-miss op alle lopende analyses.
 
-## Ontwerpbesluiten staan in `docs/ontwerpbesluiten.md`
+## Ontwerpbesluiten staan in de skill `analyse-ontwerpbesluiten`
 
 Waaróm de analysepijplijn is zoals hij is, met de meting eronder en de voorwaarde
-waaronder je een besluit mag terugdraaien. **Lees dat bestand voordat je iets aan de
+waaronder je een besluit mag terugdraaien. **Raadpleeg die skill voordat je iets aan de
 structuur van de analyse verandert** — de meeste besluiten daar zijn tegenintuïtief en
 worden anders met de beste bedoelingen teruggedraaid.
+
+> Stond tot 5 september 2026 in `docs/ontwerpbesluiten.md`. Als skill biedt hij zichzelf
+> aan zodra iemand aan de analysestructuur komt, in plaats van alleen gelezen te worden
+> als deze regel wordt opgevolgd. **De skill is de bron**; de twee wetten hieronder staan
+> hier alleen omdat ze in elke sessie van pas komen. Wijzigt er iets aan de meting, dan
+> gaat dat in de skill en pas daarna hier.
 
 De twee verbanden waar alles uit volgt, allebei gemeten:
 
@@ -334,12 +340,26 @@ bijgewerkt moeten worden en doe dat **in dezelfde sessie, vóór de commit**:
 | Gewijzigd bestand | Betrokken skill(s) |
 |---|---|
 | `api/analyseer.js` | `screening-categorien`, `document-model` |
-| `api/genereer-concept.js` | `concept-generatie` |
-| `api/export-docx.js` | `concept-generatie` |
+| `api/claude-edge.js` | `concept-generatie`, `clausula-assistent` |
+| `api/adobe-result.js` | `concept-generatie` |
 | `api/ai-assistent.js` | `clausula-assistent` |
+| `src/naam-anonimiseer.js`, `src/avg/` | `avg-beleid` |
+| `api/_prompts/`, `src/api/prompt-cache.js`, `src/tijdsbudget.js` | `analyse-ontwerpbesluiten` |
 | `index.html` — analyse-flow | `screening-categorien`, `document-model` |
 | `index.html` — concept-flow | `concept-generatie` |
 | `index.html` — assistent-flow | `clausula-assistent` |
+
+> **Twee van deze regels wezen tot 5 september 2026 nergens naar.** `api/genereer-concept.js`
+> en `api/export-docx.js` bestaan niet (en hebben, voor zover de geschiedenis reikt, nooit
+> bestaan): de conceptgeneratie loopt via `index.html` met `api/claude-edge.js` als
+> doorgeefluik, en de DOCX-kant via `index.html` (JSZip, in de browser) met
+> `fixDocxArtifacts` in `api/adobe-result.js`. Twee van de zeven regels konden dus nooit
+> afgaan, en dat was nergens aan te zien — de tabel die het bijwerken moet afdwingen was
+> zelf niet bijgewerkt.
+>
+> `tests/unit/skill-tabel.test.js` bewaakt dit nu: elk pad in deze tabel moet bestaan, en
+> elke genoemde skill moet een `SKILL.md` hebben. Verplaats of hernoem je een bestand
+> hierboven, dan gaat die test rood in plaats van dat de regel stil verdampt.
 
 Update de skill alleen als de wijziging **non-obvieuze** kennis toevoegt of verandert
 (veldnamen, algoritmen, valkuilen, designbeslissingen). Triviale fixes hoeven niet.
