@@ -298,3 +298,42 @@ verweesde PDF's was:
 | PDF-upload naar Storage | `index.html` | `_wasInsert && huidigeBestandenLijst` |
 | PDF-download van Storage | `index.html` | `_document_bestanden` |
 | Storage cleanup bij delete | `index.html` | `Storage cleanup` |
+
+## Storage: het dashboard laat geen bestand achter
+
+Op 5 september 2026 stond de `documenten`-bucket open voor anonieme bezoekers. Met alleen
+de publieke sleutel uit `config.js` — die aan elke bezoeker van app.clausula.nl wordt
+geserveerd, en die géén geheim is — kon iemand zonder in te loggen:
+
+```
+mappen opsommen (dossier-UUID's)      HTTP 200
+bestanden in een map opsommen         HTTP 200   12 bestanden
+een cliëntdocument downloaden         HTTP 200   107.422 bytes
+een ondertekende URL aanvragen        HTTP 200
+```
+
+`supabase/001_multitenancy.sql` bevat wél de juiste drie policies: `TO authenticated`, en
+de eerste mapnaam moet de organisatie van de gebruiker zijn. Die stonden er ook. Ernaast
+stonden er drie op de anon-rol — `allow anon download / signed url / upload`, met de
+naamsuffix die de **policywizard in het Supabase-dashboard** genereert. Ook een
+INSERT-policy, dus anoniem plaatsen kon eveneens.
+
+**De les is niet "let op je policies".** Die stonden goed in de repo. De les is:
+
+> **Een wijziging via het Supabase-dashboard laat geen bestand achter.** Geen migratie,
+> geen diff, geen hook, geen test, geen review kan er iets van zien. Alles wat dit project
+> aan poorten heeft, kijkt naar bestanden — en dit stond buiten die hele wereld.
+
+Dezelfde faalvorm als de kennisbank-tags die je in het dashboard aanpast (zie CLAUDE.md);
+daar is het gevolg een chunk die nergens opduikt, hier waren het cliëntdossiers.
+
+**Daarom `npm run check:storage`** (`scripts/storage-toegang-check.mjs`): die leest geen
+beleid en gelooft geen migratie, maar doet wat een willekeurige bezoeker doet en kijkt wat
+er terugkomt. Exitcode 1 zodra er iets doorkomt. Draai hem na élke wijziging aan Storage,
+en bij voorkeur periodiek — dit is de enige controle in deze repo die een dashboardwijziging
+kan betrappen.
+
+Hij haalt bewust geen documentinhoud op (de body wordt afgebroken) en schrijft niets, dus
+de INSERT-kant blijft handwerk: kijk in het dashboard of er een INSERT-policy op anon staat.
+
+Herstel: `supabase/2026-09-05-storage-anon-dicht.sql`.
