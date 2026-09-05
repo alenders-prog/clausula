@@ -535,7 +535,24 @@ describe('anonimiseerTekst — woonplaats zonder adres of postcode ervoor', () =
     // "de woning wordt te koop gezet" tot "te [WOONPLAATS_0]".
     expect(anon('De woning wordt te koop gezet.')).toContain('te koop');
     expect(anon('Dit dient te geschieden binnen twee weken.')).toContain('te geschieden');
-    // Een rechtbank is geen woonplaats, en de zittingsplaats is juridisch relevant.
-    expect(anon('De rechtbank te Deventer.')).toContain('Deventer');
+  });
+
+  it('laat de zittingsplaats van een gerecht staan, maar de woonplaats niet', () => {
+    // Besluit van de eigenaar, 5 september 2026: de plaats ná "rechtbank" blijft staan,
+    // omwille van de leesbaarheid van het stuk.
+    //
+    // De afweging die daarbij op tafel lag, vastgelegd zodat ze terug te vinden is:
+    // de bevoegde rechtbank is die van de woonplaats van verweerder (art. 262 Rv), dus
+    // "rechtbank te Deventer" wijst in de praktijk naar waar een partij woont — terwijl
+    // die woonplaats er in dezelfde zin juist uit gaat. En pseudonimiseren zou de
+    // juridische toets niets gekost hebben: dezelfde plaats krijgt dezelfde placeholder.
+    // Gemeten vóór het besluit:
+    //   "woonachtig te Deventer … rechtbank te Deventer"  → [WOONPLAATS_0] … [WOONPLAATS_0]
+    //   "woonachtig te Deventer … rechtbank te Amsterdam" → [WOONPLAATS_0] … [WOONPLAATS_1]
+    const uit = anonimiseerTekst(
+      'Partijen zijn woonachtig te Deventer. De rechtbank te Deventer is bevoegd.',
+      new Map(), tracker());
+    expect(uit).toMatch(/woonachtig te \[WOONPLAATS_\d+\]/);
+    expect(uit).toMatch(/rechtbank te Deventer/);
   });
 });
