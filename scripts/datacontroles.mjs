@@ -194,10 +194,17 @@ const viaAccount   = [...perGebruiker].filter(([g]) => g !== '(geen gebruiker_id
 
 if (contextKwijt.length) {
   const n = contextKwijt.reduce((s, [, k]) => s + k, 0);
-  meld(`${n} verbruiksregel(s) zonder organisatie terwijl de gebruiker wél een profiel heeft`);
+  meld(`${n} verbruiksregel(s) zonder organisatie terwijl de gebruiker er nu wél een heeft`);
   for (const [g, k] of contextKwijt.sort((a, b) => b[1] - a[1])) {
-    console.log(`       ${String(k).padStart(5)}×  ${g}  ← de context ging onderweg verloren`);
+    console.log(`       ${String(k).padStart(5)}×  ${g}`);
   }
+  // Twee oorzaken, en van buiten niet te onderscheiden: de meetcontext ging onderweg
+  // verloren, óf de rij dateert van vóórdat die gebruiker een profiel had. Dat tweede is
+  // op 5 september 2026 gebeurd — het evalaccount kreeg zijn profielrij pas achteraf, en
+  // toen sloegen 246 rijen om van "geen profiel" naar "context kwijt" zonder dat er iets
+  // aan die rijen veranderde. Noem dus beide, en niet één als vaststaand.
+  console.log('       → of de meetcontext ging verloren, of de rijen dateren van vóór dat profiel.');
+  console.log('         In het tweede geval horen ze aangevuld te worden, niet gerepareerd.');
 } else if (zonderOrg.length) {
   goed('geen regel waarbij de context onderweg verloren ging');
 } else {
