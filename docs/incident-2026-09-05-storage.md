@@ -2,12 +2,19 @@
 
 **Datum vaststelling:** 5 september 2026
 **Datum herstel:** 5 september 2026, dezelfde dag
-**Status:** gedicht en van buitenaf geverifieerd
+**Status:** gedicht, van buitenaf geverifieerd, en afgehandeld — zie §7b
 **Opgesteld voor:** functionaris gegevensbescherming / juridisch adviseur
 
-Dit verslag bevat de feiten. De juridische weging — of hier sprake is van een meldplichtig
-datalek in de zin van art. 33 AVG — staat er bewust niet in; die hoort bij de FG of jurist,
-en wat daarvoor nodig is staat in §7.
+**§1 tot en met §7 bevatten uitsluitend de feiten**, zonder juridische duiding: wat er
+openstond, hoe het is vastgesteld, wat er is hersteld, en — even belangrijk — wat er níét
+kon worden vastgesteld. §7 benoemt de twee vragen die de weging bepalen, zodat een FG of
+jurist die zelf kan maken.
+
+**§7b bevat het besluit** van de verwerkingsverantwoordelijke, met de grond eronder. Dat
+staat er apart en achteraan, omdat art. 33 lid 5 AVG verlangt dat een inbreuk óók intern
+wordt vastgelegd wanneer er niet wordt gemeld — anders is niet aantoonbaar dat er is
+gewogen. De feiten blijven daarmee leesbaar zonder de conclusie, en de conclusie is
+navolgbaar zonder de feiten opnieuw te hoeven uitzoeken.
 
 ---
 
@@ -157,6 +164,36 @@ uitsluiting op basis van logs niet mogelijk is.
 
 De termijn van 72 uur uit art. 33 lid 1 AVG loopt vanaf het moment van bekend worden:
 **5 september 2026**.
+
+---
+
+## 7b. Het besluit
+
+**Genomen door:** Alexander Lenders, verwerkingsverantwoordelijke
+**Datum:** 5 september 2026, dezelfde dag als de vaststelling
+**Uitkomst:** geen melding aan de Autoriteit Persoonsgegevens, en geen bericht aan
+betrokkenen.
+
+**Grond:** de twaalf bestanden zijn eigen testanalyses. Er zijn geen betrokkenen — vraag
+7.1 hierboven is daarmee beantwoord met *nee*, en vraag 7.2 komt niet aan de orde. De
+toepassing is nog niet in gebruik genomen: er zijn geen klanten, en er is niets verspreid
+of aangeboden.
+
+**Wat bij dat besluit is meegewogen**, en wat er dus niet buiten is gebleven: dat de
+gegevens zonder enige drempel bereikbaar waren, en dat op grond van de logbewaring van één
+dag niet is uit te sluiten dát er toegang is geweest (§6). Dat verandert de uitkomst niet,
+omdat er geen persoonsgegevens van betrokkenen in het geding waren.
+
+> **De grond is voorwaardelijk, het besluit niet.** Dit besluit geldt voor dít incident,
+> met testdata. Gebeurt er iets vergelijkbaars wanneer er dossiers van cliënten in de opslag
+> staan, dan vervalt de redenering en begint de weging opnieuw — dan is 7.1 met *ja*
+> beantwoord en is 7.2 de vraag die telt.
+
+*Waarom dit hier staat.* Art. 33 lid 5 AVG verlangt dat elke inbreuk intern wordt
+gedocumenteerd — de feiten, de gevolgen en de genomen maatregelen — **ook wanneer er niet
+wordt gemeld**. Zonder deze paragraaf staan de feiten wel in dit dossier en de afweging
+nergens, en dan is niet aantoonbaar dát er is gewogen. De paragrafen hierboven blijven
+bewust feitelijk; dit is de vastlegging van het besluit, niet van de feiten.
 
 ---
 
