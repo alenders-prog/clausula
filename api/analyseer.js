@@ -344,7 +344,7 @@ const issueItem = {
     //
     // Nu alvast vullen betekent dat de omschakeling straks geen nieuw veld hoeft te
     // introduceren op het moment dat er ook van alles anders verandert. Zie
-    // docs/ontwerpbesluiten.md.
+    // de skill analyse-ontwerpbesluiten.
     passage_document: {
       type: 'string',
       description: 'Het documenttype waaruit de geciteerde passage komt: "convenant" of "ouderschapsplan". Neem de waarde over uit de kopregel === TYPE: bestandsnaam === boven de tekst waarin je het citaat vond.',
