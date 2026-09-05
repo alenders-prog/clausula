@@ -89,17 +89,31 @@ commit;
 
 -- ── STAP 2: de naslagtabellen ───────────────────────────────────────────────
 --
--- Pas uitvoeren als stap 1 goed is bevonden. Deze bevatten geen persoonsgegevens, dus de
--- winst is kleiner — maar `anon` heeft er evenmin iets te zoeken.
+-- STAP 1 IS UITGEVOERD EN GOED BEVONDEN op 5 september 2026: `has_table_privilege('anon',
+-- <tabel>, 'select')` gaf false op alle tien, zonder kolomrechten en zonder overerving.
+-- Inloggen, een dossier openen en een opgeslagen analyse bekijken werkten ongewijzigd.
+--
+-- Deze tabellen bevatten geen persoonsgegevens, dus de winst is kleiner — maar `anon` heeft
+-- er evenmin iets te zoeken.
+--
+-- DAT DIT KAN, IS NAGEKEKEN. Ze worden op drie plekken gelezen, en geen daarvan is anoniem:
+--
+--   api/analyseer.js:497, api/ai-assistent.js:745   service_role — raakt deze rechten niet
+--   index.html:4276 (situatie_kenmerken)            in de analyse-flow, dus na inloggen
+--   index.html:6294-6320, src/kennisbank/zoek.js    in de assistent-flow, idem
+--
+-- Alle browserqueries lopen dus als `authenticated`, en die rechten blijven staan.
+-- `api/_auth.js` gebruikt de anon-sleutel wél, maar uitsluitend tegen `/auth/v1/user` —
+-- dat is geen tabel.
 
--- begin;
--- revoke all on public.legal_chunks       from anon;
--- revoke all on public.situatie_kenmerken from anon;
--- revoke all on public.document_templates from anon;
--- revoke all on public.legal_sources      from anon;
--- revoke all on public.example_chunks     from anon;
--- revoke all on public.example_documents  from anon;
--- commit;
+begin;
+revoke all on public.legal_chunks       from anon;
+revoke all on public.situatie_kenmerken from anon;
+revoke all on public.document_templates from anon;
+revoke all on public.legal_sources      from anon;
+revoke all on public.example_chunks     from anon;
+revoke all on public.example_documents  from anon;
+commit;
 
 -- ── LET OP: nieuwe tabellen krijgen de rechten opnieuw ──────────────────────
 --
@@ -107,5 +121,12 @@ commit;
 -- regel hieronder krijgt elke nieuwe tabel weer volledige rechten voor `anon`, en dan is
 -- dit werk over een maand ongedaan gemaakt zonder dat iemand het merkt — dezelfde stille
 -- vorm als de dashboardwijziging bij Storage.
+--
+-- Let op: standaardrechten hangen aan de rol die de tabel aanmaakt. De regel hieronder
+-- geldt voor de rol die hem uitvoert (in de SQL-editor: `postgres`). Maakt iets later een
+-- tabel aan als een andere rol, dan valt die erbuiten — zichtbaar te maken met:
+--
+--   select defaclrole::regrole, defaclnamespace::regnamespace, defaclacl
+--   from   pg_default_acl;
 
--- alter default privileges in schema public revoke all on tables from anon;
+alter default privileges in schema public revoke all on tables from anon;
