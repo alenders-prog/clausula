@@ -142,7 +142,26 @@ export function zoekResidu(tekst, pseudoniemen = []) {
   // Het gat dat "Jochem" liet ontsnappen. Woorden aan het begin van een zin worden
   // overgeslagen: die staan er met een hoofdletter omdat het een zin is.
   const woord = String.raw`[A-ZÀ-Þ][a-zà-öø-ÿ'\-]{1,}`;
-  const reeks = new RegExp(String.raw`\b(?:${woord})(?:\s+(?:van|de|der|den|ter|te|ten|het|'t)\s+${woord}|\s+${woord}){0,3}\b`, 'g');
+
+  // Geen \b maar een eigen woordgrens. `\b` steunt in JavaScript op `\w`, en dat is
+  // [A-Za-z0-9_] — accenten tellen daar niet als letter. Tussen de spatie vóór "Öznur" en
+  // de Ö zit dus géén woordgrens (beide zijn 'non-word'), en hetzelfde geldt achteraan bij
+  // een naam die op ü of é eindigt. Gemeten vóór deze wijziging:
+  //
+  //   "Kinderen: Jochem Bergman."   → ["Jochem Bergman"]   goed
+  //   "Kinderen: Öznur Bergman."    → ["Bergman"]          voornaam gemist
+  //   "Kinderen: Ünal Öztürk."      → []                   beide gemist
+  //   "Geboren te Ünlü op …"        → []                   gemist
+  //
+  // Dat is precies het gat dat deze module moet dichten — een voornaam die niet in de
+  // namenkaart stond — en juist dáár bleef de meting stil terwijl de karakterklasse
+  // hierboven de letters op papier wél accepteert. De app meldde dan "nul residu".
+  // Accentnamen zijn in Nederland niet uitzonderlijk: Émile, Ünal, Örjan, Óscar, Özkan.
+  const geenLetter = String.raw`[A-Za-zÀ-ÿ0-9]`;
+  const reeks = new RegExp(
+    String.raw`(?<!${geenLetter})`
+    + String.raw`(?:${woord})(?:\s+(?:van|de|der|den|ter|te|ten|het|'t)\s+${woord}|\s+${woord}){0,3}`
+    + String.raw`(?!${geenLetter})`, 'g');
 
   for (const m of veilig.matchAll(reeks)) {
     const heel = m[0];

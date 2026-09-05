@@ -166,6 +166,51 @@ describe('nul residu op de golden fixtures, met een volledige namenkaart', () =>
   });
 });
 
+describe('namen met een accent in de eerste letter', () => {
+  // Gevonden door een code-review op 5 september 2026, en het was een echt gat: `\b` steunt
+  // in JavaScript op `\w` = [A-Za-z0-9_], dus tussen de spatie vóór "Öznur" en de Ö zit
+  // geen woordgrens. Hetzelfde achteraan bij een naam die op ü of é eindigt.
+  //
+  // Gemeten vóór de reparatie:
+  //   "Kinderen: Öznur Bergman."  → ["Bergman"]   de voornaam viel weg
+  //   "Kinderen: Ünal Öztürk."    → []            beide namen vielen weg
+  //
+  // Dat laatste is het ergste geval: de app meldde "nul residu" op een regel met twee
+  // volledige namen — precies de valse geruststelling die deze module moet voorkomen.
+  // Accentnamen zijn hier niet uitzonderlijk: Émile, Ünal, Örjan, Óscar, Özkan.
+
+  const namen = (t) => zoekResidu(t, []).map((r) => r.waarde);
+
+  it('ziet een voornaam die met een accentletter begint', () => {
+    expect(namen('Kinderen: Öznur Bergman.')).toEqual(['Öznur Bergman']);
+    expect(namen('Kinderen: Émile Bergman.')).toEqual(['Émile Bergman']);
+    expect(namen('Kinderen: Óscar Bergman.')).toEqual(['Óscar Bergman']);
+    expect(namen('Kinderen: Ørjan Bergman.')).toEqual(['Ørjan Bergman']);
+  });
+
+  it('ziet een regel waarvan álle namen met een accentletter beginnen', () => {
+    expect(namen('Kinderen: Ünal Öztürk.')).toEqual(['Ünal Öztürk']);
+  });
+
+  it('ziet een losse voornaam na een dubbele punt', () => {
+    expect(namen('Uit het huwelijk is geboren: Öznur.')).toEqual(['Öznur']);
+  });
+
+  it('ziet ook een naam die op een accentletter eindigt', () => {
+    // De afsluitende grens faalde net zo goed: na de ü van "Ünlü" volgt een spatie, en
+    // vanuit \w zijn dat allebei non-word.
+    expect(namen('Partij A is geboren te Ünlü op 12-12-1990.')).toEqual(['Ünlü']);
+  });
+
+  it('behandelt accentnamen niet anders dan ASCII-namen bij zinsbegin', () => {
+    // Een woord aan het begin van een zin wordt overgeslagen — een hoofdletter zegt daar
+    // niets. Dat is een bestaande afweging en geldt voor beide even hard; hier vastgelegd
+    // zodat het verschil niet later voor een accentbug wordt aangezien.
+    expect(namen('Geboren te Ünlü op 12-12-1990.')).toEqual([]);
+    expect(namen('Geboren te Kulve op 12-12-1990.')).toEqual([]);
+  });
+});
+
 describe('vatResiduSamen', () => {
   it('telt per soort en velt geen oordeel', () => {
     const samen = vatResiduSamen(zoekResidu('Contact: a@b.nl en 123456789.'));
