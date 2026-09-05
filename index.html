@@ -2799,11 +2799,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
               <div class="awiz-sb-ico ok">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
               </div>
-              <div class="awiz-sb-txt"><div class="awiz-sb-name">Pseudonimisering</div><div class="awiz-sb-desc">Namen worden versleuteld vervangen vóór verwerking. Uw documenten verlaten het kantoor volledig geanonimiseerd.</div></div>
+              <div class="awiz-sb-txt"><div class="awiz-sb-name">Pseudonimisering</div><div class="awiz-sb-desc">Namen, adressen, BSN en rekeningnummers worden vervangen vóór verwerking; geboorte&#8209; en huwelijksdatums teruggebracht tot jaar. Na het vervangen controleert Clausula de tekst op wat er nog identificeerbaar in staat en meldt wat het vindt.</div></div>
             </div>
             <div style="padding:10px 16px;border-top:1px solid #C5BDB4;font-size:.75rem;color:var(--ink-soft);line-height:1.5;display:flex;gap:5px;align-items:flex-start">
               <span style="flex-shrink:0">🔒</span>
-              <div><strong>Volledig AVG-proof.</strong><br><a href="https://clausula.nl/avg" target="_blank" rel="noopener" style="color:var(--coral);text-decoration:none">Lees ons privacybeleid →</a></div>
+              <div><strong>Verwerking volgens de AVG.</strong><br><a href="https://clausula.nl/avg" target="_blank" rel="noopener" style="color:var(--coral);text-decoration:none">Lees ons privacybeleid →</a></div>
             </div>
           </div>
         </div>
@@ -4408,6 +4408,26 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     type:         item.type,
     tekst:        anonimiseerTekst(documentDelen[i].tekst, naarAnon, _piiPh),
   }));
+
+  // Meten wat er ná het vervangen nog identificerend uitziet — zie src/avg/residu.js.
+  // De vervanging kent alleen de namen die de classificatie ophaalde; een kind dat daar
+  // niet in stond gaat er ongemerkt doorheen. Dit is de enige plek waar dat zichtbaar
+  // wordt, en het gebeurt vóór de tekst het kantoor verlaat.
+  app.anonResidu = [];
+  try {
+    const _bekend = [...naarEcht.keys()];
+    for (const doc of documentenVoorServer) {
+      for (const r of zoekResidu(doc.tekst, _bekend)) {
+        app.anonResidu.push({ ...r, bestandsnaam: _bnVanServer.get(doc.bestandsnaam) });
+      }
+    }
+  } catch (e) {
+    // Een fout in de méting mag de analyse niet tegenhouden, maar mag ook niet stil
+    // verdwijnen — anders lijkt "geen residu" hetzelfde als "niet gemeten".
+    console.error('[avg] residu-controle mislukt:', e);
+    app.anonResidu = null;
+  }
+  toonResiduWaarschuwing(app.anonResidu);
 
   // Voeg PII-placeholders toe aan naarEcht/naarEchtVolledig (voor passage-herstel)
   // en aan naarAnon (voor normalisatie bij passage-zoeken in opgeslagen tekst).
@@ -7425,6 +7445,42 @@ function toonOpslagFout(bericht) {
     if (!_opslaanLaatsteFout) balk.remove();
     else { e.target.disabled = false; e.target.textContent = 'Opnieuw opslaan'; }
   });
+}
+
+/**
+ * Meldt wat de residu-controle vond in de tekst die zojuist is verstuurd.
+ *
+ * Bewust géén blokkade en géén bevestigingsvraag: de tekst is op dit moment al onderweg,
+ * dus een vraag zou suggereren dat er nog iets te kiezen valt. Wat de mediator hier krijgt
+ * is een waarneming — welke woorden er nog in stonden en uit welk document — zodat hij bij
+ * de volgende upload kan ingrijpen en, als dat nodig is, zijn verwerkingsregister klopt.
+ *
+ * Zwijgen bij nul vondsten is opzet: een melding die altijd komt, leert men wegklikken.
+ */
+function toonResiduWaarschuwing(residu) {
+  document.getElementById('residuBalk')?.remove();
+  if (!residu || residu.length === 0) return;
+
+  const samen = vatResiduSamen(residu);
+  const perDoc = new Map();
+  for (const r of residu) {
+    if (!perDoc.has(r.bestandsnaam)) perDoc.set(r.bestandsnaam, []);
+    perDoc.get(r.bestandsnaam).push(r.waarde);
+  }
+  const regels = [...perDoc].map(([bn, ws]) =>
+    `<li><strong>${escH(bn || 'document')}</strong>: ${ws.map(escH).join(', ')}</li>`).join('');
+
+  const balk = document.createElement('div');
+  balk.id = 'residuBalk';
+  balk.className = 'opslag-fout-balk';
+  balk.innerHTML = `<span><strong>${samen.aantal} mogelijk herleidbaar gegeven${
+    samen.aantal === 1 ? '' : 's'} niet vervangen.</strong>
+    De vervanging kent alleen de namen die uit de documenten zijn herkend; deze stonden daar
+    niet bij en zijn meegestuurd.
+    <ul style="margin:6px 0 0;padding-left:18px">${regels}</ul></span>
+    <button type="button" id="residuSluitBtn">Gezien</button>`;
+  document.body.appendChild(balk);
+  balk.querySelector('#residuSluitBtn').addEventListener('click', () => balk.remove());
 }
 
 // De browser-terugknop en het sluiten van het tabblad. Alleen als er iets te verliezen
@@ -16119,6 +16175,7 @@ import { beoordeelAfloop }                                   from './src/analyse
 import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport/doc-volgorde.js';
 import { accentueerAanbeveling }                             from './src/rapport/vervang-accent.js';
 import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
+import { zoekResidu, vatResiduSamen }                        from './src/avg/residu.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16126,6 +16183,8 @@ window.bouwAnonMap       = (cls) => bouwAnonMap(cls,
   Array.isArray(window.app?.bestanden) ? window.app.bestanden.map(f => f.name) : []
 );
 window.anonimiseerTekst  = anonimiseerTekst;
+window.zoekResidu        = zoekResidu;
+window.vatResiduSamen    = vatResiduSamen;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

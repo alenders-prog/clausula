@@ -386,8 +386,23 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // tonen van het verschil in een vervangvoorstel. De redenering — wanneer is iets een
 // vervang-paar, en welke woorden verschillen — staat in src/rapport/vervang-accent.js met
 // 18 tests; hier bleef één aanroep en de kleuring over.
-const MAX_REGELS_INDEX = 16324;
-const MAX_REGELS_JS     = 13086;
+// 04-09-2026 (dertiende keer): 16324 → 16383 (+59, waarvan 57 script), voor de
+// residu-controle op de anonimisering. Bewust verhoogd, en de afweging hoort erbij.
+//
+// De redenering zit in src/avg/ — `persoonsdetails.js` (21 tests) verlaagt geboorte- en
+// huwelijksdatums en vervangt geboorteplaats, huwelijksplaats, werkgever en adressen zonder
+// straatsuffix; `residu.js` (13 tests) meet wat er dan nóg identificerend uitziet. Wat hier
+// in index.html landde is uitsluitend bedrading: de aanroep op de plek waar de tekst het
+// kantoor verlaat, en de balk die de vondsten toont. Dat is precies wat CLAUDE.md hier
+// toestaat.
+//
+// Het alternatief was de balk-opbouw óók naar src/ te verplaatsen. Afgewogen en niet
+// gedaan: dat is DOM-opbouw zonder eigen redenering, dus de test die eronder zou komen
+// bewijst niets dat de bestaande e2e-smoketest niet al dekt. De grens omlaag houden door
+// code te verhuizen die geen toetsbare beslissing bevat, verplaatst het probleem en levert
+// een test op die alleen zichzelf bevestigt.
+const MAX_REGELS_INDEX = 16383;
+const MAX_REGELS_JS     = 13143;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

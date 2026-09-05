@@ -153,12 +153,60 @@ de assistent dom op precies de punten waar hij scherp moet zijn.
 concrete nationaliteit bepaalt het toepasselijk recht (Rome III, Brussel IIb) en
 daarmee welke regels de assistent moet noemen.
 
-**Drie plekken, allemaal aangepast:**
+**Vier plekken, allemaal aangepast:**
 - `assistent-core.js` → `bouwDossierContext` (helper `_maandJaarUitDatum`)
 - `api/_feiten.js` → `bouwFeitenBlok` (helpers `maandJaarUitDatum`, `leeftijdUitDatum`)
 - `api/ai-assistent.js` → `serverFields` voor `[BEKENDE GEGEVENS]`; sleutelnamen
   blijven bewust `…datum` omdat de onbekenden-filter daarop matcht, alleen de
   waarde en het `VELD_LABEL` zijn gegeneraliseerd
+- `src/avg/persoonsdetails.js` → **de documenttekst zelf** (sinds 4 september 2026)
+
+> **Die vierde ontbrak drieënhalve week.** De regel gold voor het feitenblok van de
+> assistent, maar niet voor de documenttekst die naar `api/analyseer.js` gaat — en dáár
+> gaat het hele convenant doorheen. Nagespeeld op een gewone alinea bleef dit staan nádat
+> alle vervangingen hadden gedraaid:
+>
+>     Robin Bergman, geboren te Enschede op 12-12-1996, wonende te [POSTCODE_1]
+>     [WOONPLAATS_2] aan Markendoel 16, werkzaam bij Pensioenfonds Zorg en Welzijn.
+>
+> Geboortedatum, geboorteplaats, huwelijksplaats, werkgever, en een adres waarvan de
+> straatnaam niet op -straat/-laan/-weg eindigt (het bestaande patroon eist zo'n suffix).
+> Geboortedatum plus geboorteplaats plus werkgever is in Nederland vrijwel altijd tot één
+> persoon te herleiden.
+>
+> In de documenttekst wordt de geboortedatum tot **alleen het jaar** teruggebracht, niet tot
+> een leeftijd: een leeftijd verandert mee met de datum van vandaag en maakt de tekst
+> intern tegenstrijdig ("geboren 42, in 2011 geboren"). Het jaar houdt de 1-1-1970-grens
+> van art. 1:157 lid 3 BW toetsbaar. De huwelijksdatum blijft maand-jaar, gelijk aan de
+> tabel hierboven.
+
+## De belofte is een meting, geen garantie
+
+Sinds 4 september 2026 draait `src/avg/residu.js` na elke vervanging over de tekst die het
+kantoor verlaat, en meldt wat er nóg identificerend uitziet. Aangesloten in `index.html`
+op de plek waar `documentenVoorServer` wordt opgebouwd; de balk heet `#residuBalk`.
+
+**Waarom dit er moest komen.** De vervanging kent alleen de namen die de classificatie
+heeft opgehaald. Een kind dat daar niet bij zat gaat er ongemerkt doorheen — nagespeeld:
+"Uit het huwelijk is geboren: **Jochem** ter Bergman". Er was geen enkel signaal.
+
+**Wat patronen principieel niet vangen**, en waarom de tekst in de app is aangepast:
+
+    "de vrouw werkt als tandarts in het dorp waar beide partijen zijn opgegroeid"
+
+Geen naam, geen datum, geen adres — en herleidbaar. Daar bestaat geen regel voor, niet
+hier en niet in enig ander regelgebaseerd systeem. **"Volledig geanonimiseerd" en
+"Volledig AVG-proof" staan daarom niet meer in de app.** Wat er staat is wat waar te maken
+is: welke soorten gegevens worden vervangen, dát er daarna gecontroleerd wordt, en wat die
+controle vond. Nul residu betekent "geen van de patronen vond nog iets" — niet "deze tekst
+is niet herleidbaar". Houd dat onderscheid intact bij elke herformulering.
+
+**Bij wijzigen van `residu.js`:** de woordenlijst `BEKEND` bepaalt de valse meldingen, en
+een melder die te vaak afgaat wordt genegeerd — dat is een echt risico, geen netheidskwestie.
+`tests/unit/residu.test.js` legt beide kanten vast: nul meldingen op de golden fixtures mét
+volledige namenkaart, én een melding zodra er een kind ontbreekt. Die tweede is wat de
+eerste betekenis geeft. `tests/e2e/smoke/16-avg-residu.spec.js` toetst de bedrading in de
+browser — de brug-toewijzing weghalen maakt hem rood (nagegaan).
 
 **Bij opslag blijven de ruwe waarden staan** — bewuste uitzondering op regel 4
 hieronder, gedocumenteerd boven `bouwClassificatiePseudo` in `index.html`.

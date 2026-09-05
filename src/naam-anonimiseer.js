@@ -10,6 +10,7 @@
  */
 
 import { ibanRe, ibanSleutel, rekeningOverigRe, rekeningSleutel } from './iban-patroon.js';
+import { vervangPersoonsdetails } from './avg/persoonsdetails.js';
 
 // ── Nep-namenpools ────────────────────────────────────────────────────────────
 //
@@ -481,6 +482,11 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
         ? heel                                            // zinsbegin, geen plaatsnaam
         : `${ph}${tussen}${piiPh('WOONPLAATS', stad.trim())}`));
   }
+
+  // Geboortedatum, geboorteplaats, werkgever en adressen zonder straatsuffix.
+  // Ná de naam- en adresvervanging: die zetten placeholders neer waar deze patronen
+  // omheen werken ("geboren te [WOONPLAATS_0]" mag niet nog eens worden gevangen).
+  t = vervangPersoonsdetails(t, piiPh);
 
   // Telefoonnummers: 06-xxxxxxxx, 0xx-xxxxxxx, +31-formaten, met spaties/streepjes
   // (?<![A-Z\d]) voorkomt dat IBAN-accountcijfers als telefoon worden gemaskeerd
