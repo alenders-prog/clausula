@@ -453,8 +453,18 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // de volledige documenttekst onbewerkt de database in schreef. De vervanging is één vlag
 // (`_magPseudo`) en drie plekken die hem gebruiken; de veertien regels commentaar leggen
 // vast waarom de terugval precies andersom moet zijn dan hij was.
-const MAX_REGELS_INDEX = 16448;
-const MAX_REGELS_JS     = 13208;
+// 06-09-2026 (achttiende keer): 16448 → 16471 (+23, alle script). De opslagbeveiliging.
+//
+// De beslissing zelf staat in src/avg/opslag-veiligheid.js met 7 tests: mag een opslag een
+// rij overschrijven die gepseudonimiseerd was, terwijl we op dit moment niet kunnen
+// pseudonimiseren? Wat hier landde is de toestand die die vraag beantwoordt — één vlag die
+// bij het laden wordt gezet en bij een verse analyse weer vrijgegeven — plus de aanroep.
+//
+// Die vlag kán niet naar src/: hij hoort bij de levensloop van het scherm, niet bij een
+// berekening. Hem daarheen verhuizen zou een module opleveren die alleen een variabele
+// bewaart, met een test die bevestigt dat toewijzen werkt.
+const MAX_REGELS_INDEX = 16471;
+const MAX_REGELS_JS     = 13231;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
