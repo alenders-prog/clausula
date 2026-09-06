@@ -4763,6 +4763,8 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   // beoordeelAfloop; stond hij binnen, dan is dat een ReferenceError. Zie de nota daar.
   let _klaar = false;
 
+  // Buiten de try, zodat de catch hem kan uitlezen voor de melding.
+  let _stroomBewaker = null;
   try {
     const { data: { session: _analyseerSess } } = await db.auth.getSession();
     // De sleutel van deze analyse, vooraf gemaakt. De screening bestaat nog niet — die
@@ -4770,7 +4772,11 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     // kostenregels aan niets koppelen en is achteraf niet te zeggen wat één analyse
     // heeft gekost. Bij een heranalyse is de screening er al; dan is dit gewoon zijn id.
     app.analyseRunId = app.screeningId || crypto.randomUUID();
+    // Wandklokgrens op de hele stroom. Zonder dit bleef het scherm oneindig staan als
+    // de verbinding wegviel zonder te sluiten — zie src/analyse/stroom-bewaker.js.
+    _stroomBewaker = maakStroomBewaker();
     const _analyseerRes = await fetch('/api/analyseer', {
+      signal:  _stroomBewaker.signaal,
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
@@ -4793,6 +4799,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     while (!_klaar) {
       const { done, value } = await _reader.read();
       if (done) break;
+      _stroomBewaker.levensteken();
 
       _sseBuf += _decoder.decode(value, { stream: true });
       const _events = _sseBuf.split('\n\n');
@@ -4870,7 +4877,13 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       }
     }
   } catch (err) {
+    // Een afgebroken stroom komt hier binnen als "Failed to fetch" of AbortError. Dat
+    // zegt de mediator niets — de bewaker weet wél waarom, en of hij moet wachten of
+    // opnieuw moet beginnen.
+    if (_stroomBewaker?.reden) throw new Error(_stroomBewaker.melding());
     throw err; // doorspoelen — caller toont foutmelding
+  } finally {
+    _stroomBewaker?.stop();
   }
 
   onProgress('Bezig met analyseren…', 100);
@@ -7294,8 +7307,18 @@ async function opslaan() {
           },
           body: JSON.stringify({ entries: [..._encMap.entries()] }),
         });
-        if (encResp.ok) ({ namen_map } = await encResp.json());
-        else console.warn('[opslaan] naam-encrypt HTTP', encResp.status);
+        // Het antwoord heet `blob`, niet `namen_map` — de kolom heet zo, het API-veld niet.
+        // Hier stond `({ namen_map } = ...)`, en dat leverde stilzwijgend `undefined` op:
+        // de aanroep slaagde, dus er werd niets gelogd, en élke `namen_map ? … : …`
+        // hieronder viel in de else-tak. Gevolg: sinds deze functie bestaat is er geen
+        // enkele screening gepseudonimiseerd opgeslagen — rapport, classificatie,
+        // bestandsnaam en de volledige documenttekst gingen onbewerkt de database in.
+        // Vastgesteld op 6 september 2026: 4 van 4 rijen zonder namen_map.
+        if (encResp.ok) {
+          const { blob } = await encResp.json();
+          namen_map = blob ?? null;
+          if (!namen_map) console.warn('[opslaan] naam-encrypt gaf geen blob terug');
+        } else console.warn('[opslaan] naam-encrypt HTTP', encResp.status);
       } catch (e) {
         console.warn('[opslaan] naam-encrypt mislukt (niet-fataal):', e.message);
       }
@@ -16191,6 +16214,7 @@ import { accentueerAanbeveling }                             from './src/rapport
 import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
 import { zoekResidu, vatResiduSamen }                        from './src/avg/residu.js';
 import { bronbestandMelding }                               from './src/avg/bewaartermijn.js';
+import { maakStroomBewaker }                                from './src/analyse/stroom-bewaker.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16201,6 +16225,7 @@ window.anonimiseerTekst  = anonimiseerTekst;
 window.zoekResidu        = zoekResidu;
 window.vatResiduSamen    = vatResiduSamen;
 window.bronbestandMelding = bronbestandMelding;
+window.maakStroomBewaker  = maakStroomBewaker;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

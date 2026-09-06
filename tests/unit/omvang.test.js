@@ -427,8 +427,21 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // CLAUDE.md noemt precies dit geval: commentaar schrappen dat de code verklaart is geen
 // manier om de grens te halen. De toets zelf staat in tests/unit/esc-html.test.js, die de
 // vier escH-definities uit de bron leest en op aanhalingstekens controleert.
-const MAX_REGELS_INDEX = 16399;
-const MAX_REGELS_JS     = 13159;
+// 06-09-2026 (zestiende keer): 16399 → 16424 (+25, alle script). Twee reparaties, en in
+// beide gevallen is het commentaar het grootste deel.
+//
+// De wandklokgrens op de analyse-stroom: de fetch had geen AbortSignal en de leeslus geen
+// tijdslimiet, dus bij een weggevallen verbinding bleef het scherm oneindig staan. De
+// redenering en de twee grenzen staan in src/analyse/stroom-bewaker.js met 10 tests; hier
+// bleven een aanroep, een levensteken per stuk, en een catch die de melding toont.
+//
+// En de naam-encrypt-fix: index.html las `namen_map` uit een antwoord dat `blob` heet,
+// waardoor er sinds augustus geen enkele screening gepseudonimiseerd is opgeslagen. De
+// reparatie is één regel; de veertien regels commentaar erboven leggen vast waarom een
+// geslaagde aanroep zonder bruikbaar antwoord drie weken onzichtbaar bleef. Precies het
+// soort uitleg dat CLAUDE.md hier niet wil zien sneuvelen voor een regelgrens.
+const MAX_REGELS_INDEX = 16424;
+const MAX_REGELS_JS     = 13184;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
