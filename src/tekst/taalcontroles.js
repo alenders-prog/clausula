@@ -115,3 +115,42 @@ export function taalcontroles(tekst) {
     ...spatieVoorLeesteken(t),
   ].sort((a, b) => a.index - b.index);
 }
+
+/**
+ * Haalt de bevindingen weg die het model al heeft gemeld.
+ *
+ * ── WAAROM DIT MOET ─────────────────────────────────────────────────────────
+ *
+ * Deze controles draaien in de browser en worden ná de server-consolidatie aan de lijst
+ * toegevoegd. Die consolidatie ziet ze dus niet, en kan ze ook niet ontdubbelen.
+ *
+ * Dat is geen theoretisch risico. Gemeten over drie runs op hetzelfde documentpaar:
+ *
+ *     de de vrouw      model vindt hem 3 van de 3 keer   → altijd dubbel
+ *     etc:             model vindt hem 0 van de 3 keer   → nooit dubbel
+ *     wordtgekregen    1 van de 3
+ *
+ * Zonder deze filter zou een mediator bij élke analyse twee kaarten over hetzelfde
+ * dubbele woord krijgen. Precies het soort ruis dat een lijst onbetrouwbaar maakt.
+ *
+ * ── DE TOETS ────────────────────────────────────────────────────────────────
+ *
+ * Komt het gevonden fragment letterlijk voor in de titel, bevinding of passage van een
+ * bestaand issue, dan gaat dat over dezelfde fout. Dat is streng genoeg: "de de" of
+ * "etc:" zijn geen tekenreeksen die per ongeluk in een bevinding staan.
+ *
+ * Bij twijfel valt de deterministische weg — die vindt hem volgende keer weer, terwijl de
+ * modelbevinding meer uitleg draagt.
+ */
+export function filterAlGemeld(bevindingen, bestaandeIssues = []) {
+  if (!Array.isArray(bevindingen) || bevindingen.length === 0) return [];
+  const heleTekst = (bestaandeIssues ?? [])
+    .map((i) => `${i?.onderwerp ?? ''} ${i?.bevinding ?? ''} ${i?.passage ?? ''}`)
+    .join(' \n ')
+    .toLowerCase().replace(/\s+/g, ' ');
+  if (!heleTekst.trim()) return bevindingen;
+  return bevindingen.filter((b) => {
+    const fragment = String(b?.tekst ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+    return fragment ? !heleTekst.includes(fragment) : true;
+  });
+}

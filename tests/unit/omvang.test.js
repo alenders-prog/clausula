@@ -489,8 +489,19 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // Wat het oplevert, gemeten op een echt convenant van 60.389 tekens: 55 genormaliseerde
 // typografische tekens, en 3 taalbevindingen met nul valse meldingen — waaronder een
 // tweede "etc.:" die noch de gebruiker noch het model had opgemerkt.
-const MAX_REGELS_INDEX = 16527;
-const MAX_REGELS_JS     = 13287;
+// 06-09-2026 (eenentwintigste keer): 16527 → 16537 (+10, alle script). De dubbelingsfilter
+// op de deterministische taalbevindingen.
+//
+// Aanleiding is een meting: over drie runs vindt het model "de de vrouw" 3 van de 3 keer
+// en "etc:" 0 van de 3. Zonder filter zou de eerste bij élke analyse dubbel op het scherm
+// staan, want onze controles komen ná de server-consolidatie binnen en die kan ze niet
+// ontdubbelen.
+//
+// De toets staat in src/tekst/taalcontroles.js (filterAlGemeld, 5 tests). Hier bleef over:
+// de modelbevindingen apart benoemen zodat er iets is om tegen te filteren, en twee
+// aanroepen op de twee aanhechtpunten die de roepnaam-issues al gebruikten.
+const MAX_REGELS_INDEX = 16537;
+const MAX_REGELS_JS     = 13297;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

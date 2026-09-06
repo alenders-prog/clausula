@@ -18,7 +18,8 @@
     "check:anon": "node scripts/anon-rechten-check.mjs",
     "check:data": "node scripts/datacontroles.mjs",
     "opschonen": "node scripts/opschonen.mjs",
-    "check:csp": "node scripts/csp-check.mjs"
+    "check:csp": "node scripts/csp-check.mjs",
+    "meet:signalen": "node scripts/meet-signalen.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

@@ -4533,7 +4533,10 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       // Als consolidatie al klaar is: gebruik die; anders browser-side dedup
       // Zelfde _geenIssuePat-filter als _docResultaten — chip toont precies wat opgeslagen wordt.
       const _rp_geenIssuePat = /geen\s+issue|geen\s+actie\s+vereist|voldoet\s+aan|correct\s+geregeld|geen\s+probleem/i;
-      const alleI = [
+      // Modelbevindingen eerst apart, zodat de deterministische controles eruit gefilterd
+      // kunnen worden die het model al meldde. Zij komen ná de server-consolidatie binnen,
+      // dus die kan ze niet ontdubbelen — zie filterAlGemeld in src/tekst/taalcontroles.js.
+      const _modelI = [
         ...(
           Array.isArray(acc.consolidatie?.issues) && acc.consolidatie.issues.length
             ? acc.consolidatie.issues.filter(i => { const t = `${i.bevinding||''} ${i.aanbeveling||''}`; return !_rp_geenIssuePat.test(t); })
@@ -4544,8 +4547,13 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
                 Array.isArray(acc.cross_doc?.issues)  ? acc.cross_doc.issues  : [],
               ])
         ).map(i => ({ ...i, afgehandeld: false, opmerking: '' })),
+      ];
+      const alleI = [
+        ..._modelI,
         ...(acc.consolidatie ? (_roepnaamIssuesPerBestand.get(bestandsnaam) || []) : []),
-        ...(acc.consolidatie ? (_taalIssuesPerBestand.get(bestandsnaam) || []) : []),
+        ...(acc.consolidatie
+          ? filterAlGemeld(_taalIssuesPerBestand.get(bestandsnaam) || [], _modelI)
+          : []),
       ];
 
       // Zet global zodat issueKaart() en de checkbox-handlers kloppen
@@ -4983,8 +4991,9 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       checkIssueKwaliteit(item.bestandsnaam, alleIssues);
     }
     // Roepnaam-waarschuwingen als issue-kaart toevoegen (geen alert-popup)
+    // De deterministische taalbevindingen alleen als het model ze niet al meldde.
     alleIssues = [...alleIssues, ...(_roepnaamIssuesPerBestand.get(item.bestandsnaam) || []),
-                                 ...(_taalIssuesPerBestand.get(item.bestandsnaam) || [])];
+                                 ...filterAlGemeld(_taalIssuesPerBestand.get(item.bestandsnaam) || [], alleIssues)];
     return {
       doc_type:     item.type,
       bestandsnaam: item.bestandsnaam,
@@ -16312,7 +16321,7 @@ import { maakStroomBewaker }                                from './src/analyse/
 import { beoordeelOpslag }                                  from './src/avg/opslag-veiligheid.js';
 import { magSamenvoegen }                                   from './src/rapport/mag-samenvoegen.js';
 import { normaliseerTekst, telAfwijkendeTekens }            from './src/tekst/normaliseer.js';
-import { taalcontroles }                                    from './src/tekst/taalcontroles.js';
+import { taalcontroles, filterAlGemeld }                    from './src/tekst/taalcontroles.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16329,6 +16338,7 @@ window.magSamenvoegen     = magSamenvoegen;
 window.normaliseerTekst   = normaliseerTekst;
 window.telAfwijkendeTekens = telAfwijkendeTekens;
 window.taalcontroles      = taalcontroles;
+window.filterAlGemeld     = filterAlGemeld;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

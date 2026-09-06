@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { taalcontroles, dubbeleWoorden, leestekenNaAfkorting, spatieVoorLeesteken }
+import { taalcontroles, dubbeleWoorden, leestekenNaAfkorting, spatieVoorLeesteken, filterAlGemeld }
   from '../../src/tekst/taalcontroles.js';
 
 const onderwerpen = (t) => taalcontroles(t).map((b) => b.onderwerp);
@@ -99,5 +99,43 @@ describe('samen', () => {
     expect(taalcontroles('')).toEqual([]);
     expect(taalcontroles(null)).toEqual([]);
     expect(taalcontroles(undefined)).toEqual([]);
+  });
+});
+
+describe('filterAlGemeld — geen dubbele kaarten naast het model', () => {
+  // Deze controles draaien in de browser en worden ná de server-consolidatie toegevoegd.
+  // Die kan ze dus niet ontdubbelen. Gemeten over drie runs op hetzelfde documentpaar:
+  // het model vindt "de de vrouw" 3 van de 3 keer en "etc:" 0 van de 3. Zonder filter
+  // zou de eerste dus bij élke analyse dubbel op het scherm staan.
+  const deDe   = { soort: 'dubbel_woord', tekst: 'de de', onderwerp: "Tikfout: dubbel woord 'de de'" };
+  const etcDp  = { soort: 'leesteken',    tekst: 'etc:',  onderwerp: "Onjuiste dubbele punt na 'etc'" };
+
+  it('laat een bevinding vallen die het model al meldde', () => {
+    const modelIssues = [{
+      onderwerp: "Tikfout: dubbel woord 'de de vrouw' in artikel 3.12.2",
+      bevinding: 'Het woord de staat twee keer.',
+      passage: 'De man vrijwaart de de vrouw voor alle aanspraken.',
+    }];
+    expect(filterAlGemeld([deDe, etcDp], modelIssues)).toEqual([etcDp]);
+  });
+
+  it('houdt een bevinding die het model niet meldde', () => {
+    const modelIssues = [{ onderwerp: 'Ingangsdatum ontbreekt', bevinding: 'x', passage: 'y' }];
+    expect(filterAlGemeld([deDe, etcDp], modelIssues)).toEqual([deDe, etcDp]);
+  });
+
+  it('herkent het fragment ook als de passage anders is opgemaakt', () => {
+    const modelIssues = [{ onderwerp: '', bevinding: '', passage: 'vrijwaart   de   de   vrouw' }];
+    expect(filterAlGemeld([deDe], modelIssues)).toEqual([]);
+  });
+
+  it('houdt alles zonder bestaande issues', () => {
+    expect(filterAlGemeld([deDe, etcDp], [])).toEqual([deDe, etcDp]);
+    expect(filterAlGemeld([deDe, etcDp])).toEqual([deDe, etcDp]);
+  });
+
+  it('valt niet om op lege invoer', () => {
+    expect(filterAlGemeld([], [{ onderwerp: 'iets' }])).toEqual([]);
+    expect(filterAlGemeld(null, [])).toEqual([]);
   });
 });
