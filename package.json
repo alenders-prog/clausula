@@ -17,7 +17,8 @@
     "check:storage": "node scripts/storage-toegang-check.mjs",
     "check:anon": "node scripts/anon-rechten-check.mjs",
     "check:data": "node scripts/datacontroles.mjs",
-    "opschonen": "node scripts/opschonen.mjs"
+    "opschonen": "node scripts/opschonen.mjs",
+    "check:csp": "node scripts/csp-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
