@@ -440,8 +440,21 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // reparatie is één regel; de veertien regels commentaar erboven leggen vast waarom een
 // geslaagde aanroep zonder bruikbaar antwoord drie weken onzichtbaar bleef. Precies het
 // soort uitleg dat CLAUDE.md hier niet wil zien sneuvelen voor een regelgrens.
-const MAX_REGELS_INDEX = 16424;
-const MAX_REGELS_JS     = 13184;
+// 06-09-2026 (zeventiende keer): 16424 → 16448 (+24, alle script). Twee dingen die
+// bewust in de opslagfunctie zelf staan.
+//
+// Een herpoging op /api/naam-encrypt, in dezelfde vorm die claude-edge al had. Dat is
+// bedrading rond één fetch; er valt geen beslissing uit te lichten die een eigen test
+// verdient.
+//
+// En het loskoppelen van pseudonimiseren en versleutelen. Pseudonimiseren gebeurt hier —
+// anonimiseerObj draait in de browser — terwijl alleen de namenkaart een aanroep nodig
+// heeft. Tot vandaag hing álles aan het slagen van die aanroep, waardoor een mislukking
+// de volledige documenttekst onbewerkt de database in schreef. De vervanging is één vlag
+// (`_magPseudo`) en drie plekken die hem gebruiken; de veertien regels commentaar leggen
+// vast waarom de terugval precies andersom moet zijn dan hij was.
+const MAX_REGELS_INDEX = 16448;
+const MAX_REGELS_JS     = 13208;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

@@ -7299,14 +7299,26 @@ async function opslaan() {
         const _encMap = huidigeNaarEchtVolledig?.size
           ? new Map([...huidigeNaarEcht, ...huidigeNaarEchtVolledig])
           : huidigeNaarEcht;
-        const encResp = await fetch('/api/naam-encrypt', {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${_encSess?.access_token || ''}`,
-          },
-          body: JSON.stringify({ entries: [..._encMap.entries()] }),
-        });
+        // Twee herpogingen, want een weggevallen verbinding is precies wat een herpoging
+        // oplost — en falen kost hier de pseudonimisering. claude-edge doet dit al.
+        let encResp = null;
+        for (let _poging = 0; _poging <= 2; _poging++) {
+          try {
+            encResp = await fetch('/api/naam-encrypt', {
+              method:  'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                'Authorization': `Bearer ${_encSess?.access_token || ''}`,
+              },
+              body: JSON.stringify({ entries: [..._encMap.entries()] }),
+            });
+            break;
+          } catch (netFout) {
+            if (_poging === 2) throw netFout;
+            console.warn(`[opslaan] naam-encrypt netwerkfout — herpoging ${_poging + 1}/2`, netFout.message);
+            await new Promise(r => setTimeout(r, 1000 * (_poging + 1)));
+          }
+        }
         // Het antwoord heet `blob`, niet `namen_map` — de kolom heet zo, het API-veld niet.
         // Hier stond `({ namen_map } = ...)`, en dat leverde stilzwijgend `undefined` op:
         // de aanroep slaagde, dus er werd niets gelogd, en élke `namen_map ? … : …`
@@ -7327,15 +7339,27 @@ async function opslaan() {
     // Pseudonimiseer rapport en classificatie voor opslag —
     // strip ook _teksten_per_pad (grote bulk-tekst, herinstelbaar via Storage).
     // _document_tekst wordt gepseudonymiseerd bewaard (nodig voor vindDocVolgorde na laden).
-    const _opsl_classificatie = namen_map ? bouwClassificatiePseudo(app.classificatie) : app.classificatie;
+    // Pseudonimiseren heeft de server NIET nodig — anonimiseerObj draait hier. Alleen de
+    // namenkaart moet versleuteld worden, en dát vraagt een aanroep die kan mislukken.
+    //
+    // Tot 6 september 2026 hing alles aan namen_map: lukte het versleutelen niet, dan ging
+    // rapport, classificatie, bestandsnaam én de volledige documenttekst ONBEWERKT de
+    // database in. De terugval op een mislukking was dus het ergste wat er kon gebeuren.
+    // Nu andersom: altijd pseudonimiseren zolang er een namenkaart in het geheugen is, en
+    // alleen het terugzetten van namen opgeven als het versleutelen faalt.
+    const _magPseudo = (huidigeNaarAnon?.size ?? 0) > 0;
+    if (_magPseudo && !namen_map) {
+      console.warn('[opslaan] geen namenkaart bewaard — namen zijn straks niet terug te zetten');
+    }
+    const _opsl_classificatie = _magPseudo ? bouwClassificatiePseudo(app.classificatie) : app.classificatie;
     // De bestandsnaam is "{partij A} - {partij B}, {geüploade bestandsnamen}" en stond
     // als enige veld onbewerkt in de database — met volledige namen, terwijl rapport en
     // classificatie ernaast gepseudonimiseerd waren. laadScreening() zet hem terug.
-    const _opsl_bestandsnaam  = namen_map
+    const _opsl_bestandsnaam  = _magPseudo
       ? anonimiseerTekst(huidigeBestandsnaam || '', huidigeNaarAnon)
       : huidigeBestandsnaam;
     let   _opsl_rapport       = app.rapport;
-    if (namen_map) {
+    if (_magPseudo) {
       const { _teksten_per_pad, ...rapportZonderBulk } = app.rapport;
       _opsl_rapport = anonimiseerObj(rapportZonderBulk, huidigeNaarAnon);
     }
