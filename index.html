@@ -4020,6 +4020,12 @@ function dedupIssues(arrays) {
       // Gedeeld 9-char prefix: vangt samengestelde woorden met dezelfde wortel
       // bijv. "huwelijksvermogensregime" ≈ "huwelijksdatum" (beide starten met "huwelijks").
       const sharePrefix = topicA.length >= 9 && topicB.length >= 9 && topicA.slice(0, 9) === topicB.slice(0, 9);
+      // Titelgelijkenis alléén is niet genoeg. Wijzen de twee elk een EIGEN, andere zin
+      // aan (of een ander artikelnummer), dan zijn het twee vindplaatsen met elk een eigen
+      // correctie — samenvoegen maakt er één onbereikbaar. Zie src/rapport/mag-samenvoegen.js;
+      // de meting die laat zien dat woordoverlap alleen niet werkt staat in
+      // api/_prompts/consolidatie.js.
+      if (!magSamenvoegen(issues[i], issues[j])) continue;
       if (inter.length / union.size >= 0.5 || ((sameTopic || sharePrefix) && inter.length >= 1)) {
         // Samenvoegen: basis = hoogste prioriteit, dimensies gecombineerd
         const [basis, extra] = issuePrio(issues[i]) <= issuePrio(issues[j]) ? [i, j] : [j, i];
@@ -16267,6 +16273,7 @@ import { zoekResidu, vatResiduSamen }                        from './src/avg/res
 import { bronbestandMelding }                               from './src/avg/bewaartermijn.js';
 import { maakStroomBewaker }                                from './src/analyse/stroom-bewaker.js';
 import { beoordeelOpslag }                                  from './src/avg/opslag-veiligheid.js';
+import { magSamenvoegen }                                   from './src/rapport/mag-samenvoegen.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16279,6 +16286,7 @@ window.vatResiduSamen    = vatResiduSamen;
 window.bronbestandMelding = bronbestandMelding;
 window.maakStroomBewaker  = maakStroomBewaker;
 window.beoordeelOpslag    = beoordeelOpslag;
+window.magSamenvoegen     = magSamenvoegen;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

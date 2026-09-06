@@ -463,8 +463,18 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // Die vlag kán niet naar src/: hij hoort bij de levensloop van het scherm, niet bij een
 // berekening. Hem daarheen verhuizen zou een module opleveren die alleen een variabele
 // bewaart, met een test die bevestigt dat toewijzen werkt.
-const MAX_REGELS_INDEX = 16471;
-const MAX_REGELS_JS     = 13231;
+// 06-09-2026 (negentiende keer): 16471 → 16485 (+14, alle script). Twee reparaties.
+//
+// De ↺-knop: één regel die `disabled` weer wist, plus zes regels die vastleggen waarom
+// een klik op een disabled knop spoorloos verdwijnt. Zonder die uitleg leest de regel als
+// overbodig en haalt de volgende opruiming hem weg.
+//
+// En de vangregel in pass 4 van dedupIssues: samenvoegen op titelgelijkenis mag niet als
+// beide issues een eigen, andere passage aanwijzen. De beslissing staat in
+// src/rapport/mag-samenvoegen.js met 9 tests; hier bleef één `continue` over plus de
+// verwijzing naar de meting die laat zien dat woordoverlap alléén niet werkt.
+const MAX_REGELS_INDEX = 16485;
+const MAX_REGELS_JS     = 13245;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
