@@ -3485,12 +3485,24 @@ async function adobeConverteerPdf(file, onProgress = () => {}) {
 }
 
 // ── Tekst extraheren ──────────────────────────────────
+// Alle uitgelezen tekst gaat door normaliseerTekst. Een PDF draagt ligaturen als één
+// teken (ﬁ, ﬀ) — gemeten: 55 stuks in één convenant — en dan vindt geen enkele
+// letterlijke vergelijking in deze app nog iets: de passage bij een bevinding, het
+// zoek_tekst van de conceptgeneratie, het bijlagefilter. Zie src/tekst/normaliseer.js.
+/** Normaliseren én melden hoeveel er te normaliseren viel — zo is per document te zien
+ *  of het er veel bevat, zonder de tekst zelf te tonen. */
+function _normTekst(ruw) {
+  const aantal = telAfwijkendeTekens(ruw);
+  if (aantal) console.log(`[tekst] ${aantal} ligatuur/typografisch teken genormaliseerd`);
+  return normaliseerTekst(ruw);
+}
+
 async function extractText(file, onProgress = () => {}) {
   const ab = await file.arrayBuffer();
 
   if (file.name.toLowerCase().endsWith('.docx')) {
     const result = await mammoth.extractRawText({ arrayBuffer: ab });
-    return result.value;
+    return _normTekst(result.value);
   }
 
   if (file.name.toLowerCase().endsWith('.pdf')) {
@@ -4161,7 +4173,7 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
           docPanelGereed = false;
           const ab = await docxBlob.arrayBuffer();
           const result = await mammoth.extractRawText({ arrayBuffer: ab });
-          tekst = result.value;
+          tekst = _normTekst(result.value);
           onProgress(`${prefix}Tekst geëxtraheerd ✓`);
         } catch (adobeErr) {
           console.warn('[Adobe] mislukt, fallback naar PDF.js:', adobeErr.message);
@@ -4177,7 +4189,7 @@ async function analyseDocument(trayItems, onProgress = () => {}) {
         docxPerBestandsnaam.set(item.bestand.name, docxBlob);
         docPanelGereed = false;
         const result = await mammoth.extractRawText({ arrayBuffer: await docxBlob.arrayBuffer() });
-        tekst = result.value;
+        tekst = _normTekst(result.value);
       } else {
         // Contextdocumenten (HV, bijlage, etc.) en DOCX-bestanden: PDF.js / mammoth
         onProgress(`${prefix}Tekst uitlezen…`);
@@ -4453,6 +4465,25 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     }));
     const { perBestand, ongeplaatst } = bouwRoepnaamIssues(_roepnaamWaarschuwingen, _rnDocs);
     _roepnaamIssuesPerBestand = perBestand;
+
+    // Deterministische taalcontroles op dezelfde documentteksten. Ze draaien hier omdat
+    // de tekst hier al klaarligt, en ze kosten geen enkele aanroep: het model hoeft deze
+    // klasse fouten niet te vinden en er gaat geen uitvoertoken naartoe.
+    _taalIssuesPerBestand = new Map();
+    for (const d of _rnDocs) {
+      const gevonden = taalcontroles(d.tekst).map(b => ({
+        onderwerp:   b.onderwerp,
+        ernst:       'laag',
+        dimensies:   ['grammatica'],
+        bevinding:   b.bevinding,
+        aanbeveling: b.aanbeveling,
+        passage:     b.tekst,
+        bron:        'taalcontrole',
+      }));
+      if (gevonden.length) _taalIssuesPerBestand.set(d.bestandsnaam, gevonden);
+    }
+    const _taalTotaal = [..._taalIssuesPerBestand.values()].reduce((a, b) => a + b.length, 0);
+    if (_taalTotaal) console.log(`[taalcontrole] ${_taalTotaal} bevinding(en) zonder model gevonden`);
     if (ongeplaatst.length) {
       console.warn('[analyseer] roepnaam niet in enig document gevonden, kaart bij alle documenten:',
         ongeplaatst.map(w => w.roepnaam).join(', '));
@@ -4514,6 +4545,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
               ])
         ).map(i => ({ ...i, afgehandeld: false, opmerking: '' })),
         ...(acc.consolidatie ? (_roepnaamIssuesPerBestand.get(bestandsnaam) || []) : []),
+        ...(acc.consolidatie ? (_taalIssuesPerBestand.get(bestandsnaam) || []) : []),
       ];
 
       // Zet global zodat issueKaart() en de checkbox-handlers kloppen
@@ -4951,7 +4983,8 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       checkIssueKwaliteit(item.bestandsnaam, alleIssues);
     }
     // Roepnaam-waarschuwingen als issue-kaart toevoegen (geen alert-popup)
-    alleIssues = [...alleIssues, ...(_roepnaamIssuesPerBestand.get(item.bestandsnaam) || [])];
+    alleIssues = [...alleIssues, ...(_roepnaamIssuesPerBestand.get(item.bestandsnaam) || []),
+                                 ...(_taalIssuesPerBestand.get(item.bestandsnaam) || [])];
     return {
       doc_type:     item.type,
       bestandsnaam: item.bestandsnaam,
@@ -9495,6 +9528,10 @@ var anonimiseerTekst; // \u2192 src/naam-anonimiseer.js (geladen via ESM-bridge)
 // Issue-kaarten voor sterk afwijkende roepnamen (geen alert), per bestandsnaam —
 // een kaart hoort alleen bij het document waar die roepnaam in voorkomt.
 let _roepnaamIssuesPerBestand = new Map();
+// Deterministische taalfouten per document — dubbele woorden, leestekens. Geen
+// modelbevindingen: dit zijn regels met nul valse meldingen, gemeten op een echt
+// convenant. Zie src/tekst/taalcontroles.js.
+let _taalIssuesPerBestand = new Map();
 var bouwRoepnaamIssues; // → src/rapport/roepnaam-issues.js (geladen via ESM-bridge)
 var lijstZin;           // → src/ui/lijst-zin.js
 var kiesUniekFragment;  // → src/viewer/uniek-fragment.js
@@ -16274,6 +16311,8 @@ import { bronbestandMelding }                               from './src/avg/bewa
 import { maakStroomBewaker }                                from './src/analyse/stroom-bewaker.js';
 import { beoordeelOpslag }                                  from './src/avg/opslag-veiligheid.js';
 import { magSamenvoegen }                                   from './src/rapport/mag-samenvoegen.js';
+import { normaliseerTekst, telAfwijkendeTekens }            from './src/tekst/normaliseer.js';
+import { taalcontroles }                                    from './src/tekst/taalcontroles.js';
 
 window.piiAnonimiseer    = piiAnonimiseer;
 // bouwAnonMap-wrapper injecteert app.bestanden (globale staat) als bronNamen
@@ -16287,6 +16326,9 @@ window.bronbestandMelding = bronbestandMelding;
 window.maakStroomBewaker  = maakStroomBewaker;
 window.beoordeelOpslag    = beoordeelOpslag;
 window.magSamenvoegen     = magSamenvoegen;
+window.normaliseerTekst   = normaliseerTekst;
+window.telAfwijkendeTekens = telAfwijkendeTekens;
+window.taalcontroles      = taalcontroles;
 window.raadDocType       = raadDocType;
 window.contextVoorHoofd  = contextVoorHoofd;
 window.vindEigenBestanden = vindEigenBestanden;

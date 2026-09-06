@@ -473,8 +473,24 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // beide issues een eigen, andere passage aanwijzen. De beslissing staat in
 // src/rapport/mag-samenvoegen.js met 9 tests; hier bleef één `continue` over plus de
 // verwijzing naar de meting die laat zien dat woordoverlap alléén niet werkt.
-const MAX_REGELS_INDEX = 16485;
-const MAX_REGELS_JS     = 13245;
+// 06-09-2026 (twintigste keer): 16485 → 16527 (+42, alle script). De taalcontroles.
+//
+// Dit is de grootste sprong van vandaag en hij verdient uitleg, want er zit voor het eerst
+// een stuk in dat géén bedrading is: de lus die per document de deterministische controles
+// draait en er issue-kaarten van maakt (17 regels). Die had naar src/ gekund, maar dan zou
+// hij `_rnDocs` en de kaartvorm van dit scherm moeten kennen — dan verhuist de koppeling,
+// niet de beslissing. De beslissingen zélf staan wél in src/, met tests:
+// tekst/normaliseer.js (12 tests) en tekst/taalcontroles.js (14 tests).
+//
+// De rest is aansluiting: drie extractieplekken die door _normTekst gaan, twee
+// aanhechtpunten die de kaarten meenemen — dezelfde twee die de roepnaam-issues al
+// gebruikten — en een helper die meldt hoeveel ligaturen er zijn genormaliseerd.
+//
+// Wat het oplevert, gemeten op een echt convenant van 60.389 tekens: 55 genormaliseerde
+// typografische tekens, en 3 taalbevindingen met nul valse meldingen — waaronder een
+// tweede "etc.:" die noch de gebruiker noch het model had opgemerkt.
+const MAX_REGELS_INDEX = 16527;
+const MAX_REGELS_JS     = 13287;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
