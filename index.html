@@ -8643,6 +8643,12 @@ function updateConceptKnop() {
     if (bekijkBtn) bekijkBtn.style.display = 'none';
   } else if (heeftConcept) {
     genBtn.style.display = 'none';
+    // De ↺-knop hiernaast doet `genereerConceptBtn.click()`, en een `.click()` op een
+    // DISABLED knop doet niets — zonder foutmelding, zonder spoor. De tak hierboven zet
+    // `disabled = true` tijdens het genereren, en tot 6 september 2026 werd dat alleen in
+    // de laatste tak weer gewist. Dus precies wanneer er een concept ís — de enige
+    // situatie waarin ↺ zichtbaar wordt — bleef de knop dood.
+    genBtn.disabled = false;
     genBtn.classList.remove('bezig');
     if (hergenBtn) hergenBtn.style.display = '';
     if (bekijkBtn) bekijkBtn.style.display = '';
