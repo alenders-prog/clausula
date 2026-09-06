@@ -23,12 +23,23 @@
  * `rapport._document_bestanden` — en blijven er verweesde PDF's met persoonsgegevens
  * achter. Dat is hier eerder gebeurd: 336 stuks, augustus 2026.
  *
- * ── WAT BLIJFT STAAN ────────────────────────────────────────────────────────
+ * ── WAT BLIJFT STAAN, EN WAAROM DAT NIET VANZELF SPREEKT ────────────────────
  *
  * `api_verbruik`: tokens, kosten en duur per Claude-aanroep. Geen documentinhoud, en het
  * is de meetgeschiedenis waarop de tijd- en kostenbesluiten rusten. Gevolg: `npm run
  * check:data` meldt daarna verbruik zonder bewaarde screenings, tot er weer analyses
  * bewaard zijn. Dat is juist gedrag van die controle, geen nieuwe fout.
+ *
+ * `analyse_feiten`: **niet aanraken.** Die tabel bestaat er juist om verwijdering te
+ * ÓVERLEVEN — zie de eerste regel van `supabase/2026-08-28-analyse-feiten.sql`:
+ * "tellingen die blijven staan als het dossier verdwijnt". Geen cascade, en bewust geen
+ * inhoud: geen namen, geen titels, geen bestandsnamen, alleen tellingen. Er is dus ook
+ * geen AVG-reden om hem te wissen.
+ *
+ * Bij de eerste uitvoering op 6 september 2026 stond hij hier wél in, en zijn vier regels
+ * historie verloren gegaan. Terughalen kon niet: `feiten-sync.mjs` vult aan vanuit
+ * bestaande screenings, en die waren op dat moment ook weg. Vandaar deze regel, en de
+ * controle hieronder die het tegenhoudt.
  */
 
 import { readFileSync } from 'node:fs';
@@ -58,6 +69,11 @@ console.log(ECHT ? '*** --ja meegegeven: er wordt daadwerkelijk verwijderd ***\n
 const { data: screenings } = await db.from('screeningen').select('id, bestandsnaam, rapport, namen_map, created_at');
 const { data: dossiers }   = await db.from('dossiers').select('id, naam');
 const { data: feiten }     = await db.from('analyse_feiten').select('id');
+if ((feiten?.length ?? 0) === 0) {
+  console.log('LET OP: analyse_feiten is leeg. Die tabel hoort verwijdering te overleven —');
+  console.log('        staat hij op nul terwijl er analyses zijn gedraaid, dan is er eerder');
+  console.log('        iets misgegaan. Zie scripts/feiten-sync.mjs.\n');
+}
 
 console.log(`screeningen    ${screenings?.length ?? 0}`);
 for (const s of screenings ?? []) {
@@ -65,7 +81,7 @@ for (const s of screenings ?? []) {
   console.log(`   ${String(s.created_at).slice(0, 10)}  ${s.id}  namen_map: ${s.namen_map ? 'ja' : 'NEE'}${bulk ? '  documenttekst: JA' : ''}`);
 }
 console.log(`dossiers       ${dossiers?.length ?? 0}`);
-console.log(`analyse_feiten ${feiten?.length ?? 0}`);
+console.log(`analyse_feiten ${feiten?.length ?? 0}  (BLIJFT STAAN — historie)`);
 
 // De paden uit de rapporten halen vóór het verwijderen — daarna zijn ze weg.
 const paden = new Set();
@@ -100,7 +116,8 @@ for (let i = 0; i < lijst.length; i += 100) {
   else { weg += groep.length; console.log(`  storage ${weg}/${lijst.length}`); }
 }
 
-for (const [tabel, veld] of [['analyse_feiten', 'id'], ['screeningen', 'id'], ['dossiers', 'id']]) {
+// analyse_feiten staat hier bewust NIET tussen — zie de kop van dit bestand.
+for (const [tabel, veld] of [['screeningen', 'id'], ['dossiers', 'id']]) {
   const { error, count } = await db.from(tabel).delete({ count: 'exact' }).not(veld, 'is', null);
   if (error) console.error(`  ✖ ${tabel}: ${error.message}`);
   else console.log(`  ${tabel}: ${count} rij(en) verwijderd`);
