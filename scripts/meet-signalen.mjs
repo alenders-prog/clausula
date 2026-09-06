@@ -119,13 +119,18 @@ async function draaiAnalyse() {
 const gevondenPerFout = new Map(fixture.bekende_fouten.map((f) => [f.sleutel, 0]));
 const dimensieTellingen = [];
 const totalen = [];
+// Alleen geslaagde runs tellen mee. Stond hier tot 6 september 2026 niet, en toen viel
+// er één run om: elk recall-getal werd door 3 gedeeld terwijl er 2 metingen waren, dus
+// alles kwam te laag uit. Een meetfout die precies de kant op wijst waar je bang voor bent.
+let geslaagd = 0;
 
 for (let r = 1; r <= RUNS; r++) {
   process.stdout.write(`run ${r}/${RUNS} … `);
   const t0 = Date.now();
   let perDoc;
   try { perDoc = await draaiAnalyse(); }
-  catch (e) { console.log(`FOUT: ${e.message}`); continue; }
+  catch (e) { console.log(`FOUT: ${e.message} — deze run telt niet mee`); continue; }
+  geslaagd++;
 
   const alle = [...perDoc.values()].flat();
   totalen.push(alle.length);
@@ -144,11 +149,16 @@ for (let r = 1; r <= RUNS; r++) {
 
 // ── Uitkomst ─────────────────────────────────────────────────────────────────
 
-console.log(`\n── bekende fouten, gevonden in hoeveel van de ${RUNS} runs ──`);
+if (geslaagd === 0) { console.log('\nGEEN geslaagde run — er valt niets te melden.'); process.exit(1); }
+if (geslaagd < RUNS) {
+  console.log(`\nLET OP: ${RUNS - geslaagd} van de ${RUNS} runs mislukte. Hieronder telt`);
+  console.log('alleen wat werkelijk is gemeten — anders komt elk getal te laag uit.');
+}
+console.log(`\n── bekende fouten, gevonden in hoeveel van de ${geslaagd} geslaagde runs ──`);
 for (const f of fixture.bekende_fouten) {
   const n = gevondenPerFout.get(f.sleutel);
-  const merk = n === RUNS ? '✓ altijd' : n === 0 ? '✖ nooit ' : '~ soms  ';
-  console.log(`  ${merk} ${String(n)}/${RUNS}  ${f.sleutel.padEnd(22)} (${f.soort})`);
+  const merk = n === geslaagd ? '✓ altijd' : n === 0 ? '✖ nooit ' : '~ soms  ';
+  console.log(`  ${merk} ${String(n)}/${geslaagd}  ${f.sleutel.padEnd(22)} (${f.soort})`);
 }
 
 console.log(`\n── dimensies per run ──`);

@@ -36,6 +36,7 @@ import { magApiGebruiken } from '../src/auth/toegang.js';
 // Logregels dragen een verwijzing naar het document, niet de bestandsnaam: die is hier
 // "Convenant Jansen-de Vries.pdf" en de logs staan bij Vercel. Zie src/avg/logref.js.
 import { docRef } from '../src/avg/logref.js';
+import { beschermPassagegroepen } from '../src/rapport/consolidatie-grens.js';
 import {
   consistentieTool, sysConsistentie, bouwConsistentieLijst, pasCorrectiesToe,
   verwijderDuplicaten,
@@ -900,7 +901,14 @@ export default async function handler(req, res) {
           );
           const geldigeIndices = (Array.isArray(consolidatieRes?.te_bewaren) ? consolidatieRes.te_bewaren : [])
             .filter(i => typeof i === 'number' && i >= 0 && i < allIssues.length);
-          const teBewarenSet = new Set(geldigeIndices);
+          // Ondergrens: van elke groep issues die dezelfde passage aanwijzen moet er
+          // minstens één blijven staan. Op 6 september 2026 gooide de consolidatie twee
+          // kaarten over dezelfde tikfout allebei weg — dat is geen ontdubbeling meer.
+          // Zie src/rapport/consolidatie-grens.js.
+          const { indices: teBewarenSet, hersteld } = beschermPassagegroepen(allIssues, geldigeIndices);
+          for (const h of hersteld) {
+            console.warn(`[consolidatie] hersteld — hele passagegroep zou verdwijnen: "${h.onderwerp}"`);
+          }
           const geconsolideerd = teBewarenSet.size > 0
             ? allIssues.filter((_, i) => teBewarenSet.has(i))
             : allIssues; // veiligheidsfallback: bewaar alles
