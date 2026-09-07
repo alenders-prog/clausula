@@ -237,7 +237,13 @@ describe('analyseer.js past de herhalingen ook echt toe', () => {
   it('geeft de ontdubbelde lijst terug, niet de aangepaste', () => {
     // Een aanroep waarvan de uitkomst niet wordt gebruikt is precies het soort fout
     // dat geen enkele test ziet als je alleen de aanroep controleert.
-    expect(bron).toMatch(/return ontdubbeld;/);
+    //
+    // Sinds 7 september 2026 staat de passagegrens hier ook onder, dus is de teruggave
+    // voorwaardelijk: is er niets hersteld, dan gewoon `ontdubbeld`; is er wél iets
+    // hersteld, dan de lijst mét die herstellingen. Wat niet mag blijven staan is
+    // `aangepast` in zijn geheel — dan zou het ontdubbelen niets doen.
+    expect(bron).toMatch(/hersteld\.length \? aangepast\.filter\(\(_, i\) => indices\.has\(i\)\) : ontdubbeld/);
+    expect(bron).not.toMatch(/return aangepast;/);
   });
 });
 

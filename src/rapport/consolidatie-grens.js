@@ -70,6 +70,24 @@
  * het verlies is aangetoond. Blijkt een andere dimensie hetzelfde te doen, breid dan uit —
  * maar meet het eerst.
  *
+ * ── WAAR HIJ WORDT AANGEROEPEN: OP BEIDE ONTDUBBELINGEN ─────────────────────
+ *
+ * Er wordt twee keer ontdubbeld, en dat is makkelijk te missen:
+ *
+ *   1. de consolidatie (Haiku, `consolideer_issues`)
+ *   2. `verwijderDuplicaten` in de consistentiestap (Haiku, `controleer_consistentie`)
+ *
+ * Toen deze grens op 6 september 2026 werd toegevoegd, stond hij alleen onder de eerste.
+ * Het gevolg was dat hij in de praktijk niets deed: stap 2 gooide weg wat stap 1 net had
+ * gered. Negen runs lang onopgemerkt, want het eindresultaat zag er precies zo uit als
+ * zonder grens — de restauratie stond wél in het log, de verwijdering erna ook, en niemand
+ * legde die twee naast elkaar.
+ *
+ * Het commitbericht van die dag ("wordtgekregen van 1/3 naar 3/3") is dus gemeten en juist,
+ * maar de bescherming was half. Voeg je ooit een derde ontdubbeling toe, zet deze grens er
+ * dan meteen onder — `tests/unit/consolidatie-grens.test.js` bewaakt de twee bestaande
+ * aanroepplekken met een bronwachter.
+ *
  * ── WELKE BLIJFT ────────────────────────────────────────────────────────────
  *
  * Dezelfde volgorde die de prompt zelf voorschrijft: het exemplaar met een wetsverwijzing,

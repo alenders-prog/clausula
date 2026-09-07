@@ -334,10 +334,44 @@ daarná — het maakt het bouwen prettiger, maar het lost geen van die drie op.
 | 1.4 | ~~Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix~~ — **eerste ronde gedaan** (67b5bd0); "af" kan dit punt niet zijn, zie hieronder | B1 | 2 ronden + eval |
 | 1.5 | Besluit over A4: sluitend maken of laten vallen en de doorgifte regelen | B1 | uw besluit |
 | 1.6 | ~~Bewaartermijn en opschoning~~ — **gedaan 5 sep 2026**, `npm run opschonen`; geen schemawijziging nodig | B3 | 1–2 ronden, schemawijziging |
+| 1.7 | **Lidmaatschapscontrole op de laatste vijf endpoints** — zie hieronder | B2 | een halve ronde |
+| 1.8 | **CSP van report-only naar afdwingen** — wacht op één doorloop van de flows | B5 | uw handeling, dan een halve ronde |
+| 1.9 | **Foutmonitoring** — blokkeert de browserkant van 1.3 | B5 | 1 ronde |
 
 *Waarom 1.4 niet "af" kan zijn:* "absoluut geanonimiseerd" is bij vrije tekst geen
 haalbare toestand, alleen een richting. Elke ronde maakt het beter en geen enkele maakt het
-zeker. Daarom hoort 1.5 erbij als besluit, niet als sluitstuk.
+zeker. Daarom hoort 1.5 erbij als besluit, niet als sluitstuk. Sinds 5 september zijn er
+vier ronden bij gekomen: plaatsnamen op naam in plaats van op context, de woonplaats bij de
+woning zelf, namen die met een accentletter beginnen, en de positie in de zin als
+doorslaggevend bij twijfelgevallen.
+
+#### 1.7 — vijf endpoints kennen alleen de token, niet het kantoor
+
+Op 5 september bleek een geldige Supabase-token niets te zeggen over lidmaatschap van een
+kantoor: wie zich kon aanmelden maar geen profielrij had, kwam overal binnen. Dat is
+gerepareerd met `magApiGebruiken` (`src/auth/toegang.js`), maar op drie van de acht
+endpoints:
+
+| endpoint | JWT | lidmaatschap |
+|---|---|---|
+| `analyseer.js`, `ai-assistent.js`, `claude-edge.js` | ✅ | ✅ |
+| `naam-decrypt.js` | ✅ | ✗ |
+| `naam-encrypt.js` | ✅ | ✗ |
+| `adobe-start.js`, `adobe-result.js` | ✅ | ✗ |
+| `uitnodigen.js` | ✅ | ✗ |
+
+`naam-decrypt.js` is de zwaarste van de vijf: die ontsleutelt namen. `uitnodigen.js` de
+tweede, want daarmee kan iemand zonder kantoor uitnodigingen laten versturen vanaf het
+maildomein. De controle laat een Supabase-storing bewust door (`ONBEKEND` → toestaan), dus
+aansluiten maakt geen van deze endpoints storingsgevoeliger.
+
+#### 1.8 — de CSP staat te kijken, niet te weren
+
+`npm run check:csp` bestaat sinds 5 september en de header staat op `report-only`. Afdwingen
+kan pas als de flows die extern materiaal laden één keer met de console open zijn
+doorlopen: OCR, PDF-export, DOCX-voorbeeld en download. Dat is uw handeling — een
+report-only CSP meldt alleen wat hij zou blokkeren, en niemand leest die meldingen als er
+niemand kijkt.
 
 ### Blok 2 — Klaar voor honderd kantoren *(aansluitend)*
 

@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { beschermPassagegroepen } from '../../src/rapport/consolidatie-grens.js';
 
 const P = 'Ouders zijn overeengekomen dat beide hierover beheer wordtgekregen.';
@@ -172,6 +173,29 @@ describe('wat het bewust NIET doet', () => {
     ];
     const { hersteld } = beschermPassagegroepen(issues, []);
     expect(hersteld).toHaveLength(1);   // één groep, dus één hersteld exemplaar
+  });
+});
+
+describe('de bedrading — beide ontdubbelingen staan onder de grens', () => {
+  // Er wordt twee keer ontdubbeld: de consolidatie, en daarna verwijderDuplicaten in de
+  // consistentiestap. Tot 7 september 2026 keek de grens alleen bij de eerste mee, en de
+  // tweede haalde weg wat de eerste net had gered — negen runs lang, onopgemerkt, want het
+  // eindresultaat zag er precies zo uit als zonder grens.
+  const bron = readFileSync(new URL('../../api/analyseer.js', import.meta.url), 'utf8');
+
+  it('roept de grens aan ná de consolidatie', () => {
+    expect(bron).toMatch(/beschermPassagegroepen\(allIssues, geldigeIndices\)/);
+  });
+
+  it('roept de grens óók aan ná verwijderDuplicaten', () => {
+    const na = bron.slice(bron.indexOf('verwijderDuplicaten(aangepast'));
+    expect(na.slice(0, 2000)).toMatch(/beschermPassagegroepen\(aangepast, behouden\)/);
+  });
+
+  it('gebruikt de herstelde lijst als er iets hersteld is', () => {
+    // Zonder deze regel wordt de grens wel aangeroepen en zijn uitkomst weggegooid —
+    // precies de fout die de PostToolUse-hook in augustus met execFileSync maakte.
+    expect(bron).toMatch(/hersteld\.length \? aangepast\.filter\(\(_, i\) => indices\.has\(i\)\) : ontdubbeld/);
   });
 });
 

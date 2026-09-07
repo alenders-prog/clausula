@@ -321,7 +321,22 @@ async function pasConsistentieToe(issues, label) {
     }
     if (verwijderd.length) console.log(`[consistentie] ${label}: ${verwijderd.length} herhaling(en) verwijderd`);
     if (genegeerd) console.warn(`[consistentie] ${label}: ${genegeerd}`);
-    return ontdubbeld;
+
+    // De passagegrens geldt ook hier. Dit is de TWÉÉDE ontdubbeling in de pijplijn — de
+    // consolidatie is de eerste — en tot 7 september 2026 keek er niets mee. Gemeten over
+    // negen runs: élke balanskaart die de grens bij de consolidatie had gered, ging hier
+    // alsnog weg, terwijl de buurman op dezelfde passage bleef staan. De bescherming die
+    // één stap eerder was aangebracht, werd hier stilletjes weer ongedaan gemaakt.
+    //
+    // Nagespeeld op de echte uitvoer van die runs herstelt de grens vijf issues per run;
+    // in de pijplijn gebeurde er niets. Dat verschil wás de tweede ronde.
+    const wegIdx = new Set(verwijderd.map((d) => d.index));
+    const behouden = aangepast.map((_, i) => i).filter((i) => !wegIdx.has(i));
+    const { indices, hersteld } = beschermPassagegroepen(aangepast, behouden);
+    for (const h of hersteld) {
+      console.warn(`[consistentie] ${label} hersteld (${h.reden}): "${h.onderwerp}"`);
+    }
+    return hersteld.length ? aangepast.filter((_, i) => indices.has(i)) : ontdubbeld;
   } catch (err) {
     console.warn(`[consistentie] overgeslagen voor ${label}:`, err.message);
     return issues;

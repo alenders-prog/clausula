@@ -156,6 +156,42 @@ duplicaten; een smallere opdracht levert simpelweg diepere uitwerking op.
 > gelijk laat, is gemeten en klopt niet. Reken een splitsing dus nooit door alsof de
 > uitvoer een vast getal is dat je over meer aanroepen verdeelt.
 
+### Opnieuw geprobeerd op 7 september 2026: balans een eigen aanroep. Niet gedaan.
+
+Aanleiding was niet tijd maar wisselvalligheid: `balans` schommelde tussen 0 en 5
+bevindingen per run op hetzelfde documentpaar, met nul als normale uitkomst. Zeven
+varianten gemeten, drie runs elk.
+
+Het eerste antwoord leek overtuigend — balans van 1,2 naar 4,7 per run, en de analyse werd
+er 7 seconden *sneller* van, want balans is een kleine aanroep en de langste aanroep krimpt.
+**Dat antwoord was fout, en de fout zat in de meting.**
+
+De losgeknipte aanroep mag maar één dimensie gebruiken. Het model vindt iets, mag maar één
+etiket plakken, en plakt "balans" — ook op gemis-bevindingen. *"Regeling jongmeerderjarigen
+ontbreekt"* kwam binnen als balans terwijl dat volledigheid is. De teller telde dus de
+beperking, niet de vondst. Het viel op doordat een harde eval-assertie omviel die diezelfde
+bevinding onder `volledigheid` verwacht.
+
+Met een beperkingszin die hergebruik van het etiket verbiedt (*een gemis is nooit balans; een
+lege lijst is een geldig antwoord*), en geteld op inhoud in plaats van op etiket:
+
+| | echte balansbevindingen per run |
+|---|---|
+| gecombineerde aanroep | 1,7 |
+| balans als eigen aanroep | 1,7 |
+
+**Gelijk. De extra aanroep koopt niets** — wel andere bevindingen, niet méér. Teruggedraaid.
+
+> **De les die het duurst was vandaag: tel geen etiketten.** Twee keer op één dag is een
+> getal gemeten dat leek te zeggen wat er gevonden werd, en dat iets anders zei. Eerst
+> "overleeft de bevinding de consolidatie" gelezen als "vindt het model de fout"; daarna
+> "hoeveel issues dragen het label balans" gelezen als "hoeveel balansproblemen zijn
+> gevonden". Bouw bij elke dimensiemeting eerst een toets op de *inhoud* van de bevinding,
+> en draai die op de bestaande situatie om te zien of hij daar klopt.
+
+Wat wél is blijven staan: de passagegrens onder béíde ontdubbelingen
+(`src/rapport/consolidatie-grens.js`).
+
 ---
 
 ## Besluit: MfN blijft in de `structuur`-aanroep
