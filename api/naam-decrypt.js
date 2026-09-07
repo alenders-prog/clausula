@@ -11,7 +11,8 @@
  */
 
 import { ontsleutelNamen } from './_crypto.js';
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 
 export const config = { runtime: 'edge' };
 
@@ -23,10 +24,14 @@ export default async function handler(req) {
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
+  // Een geldige token zegt niets over lidmaatschap van een kantoor: wie zich kon aanmelden
+  // maar geen profielrij heeft, kwam hier tot 7 september 2026 gewoon binnen. Van alle
+  // endpoints is dit de zwaarste om zo te laten staan — hier komen cliëntnamen uit.
   const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
-  if (!await verifieerJWT(token)) {
-    return new Response(JSON.stringify({ error: 'Niet geautoriseerd' }), {
-      status: 401, headers: { 'Content-Type': 'application/json' },
+  const toegang = magApiGebruiken(await gebruikerContext(token));
+  if (!toegang.toegestaan) {
+    return new Response(JSON.stringify({ error: toegang.melding }), {
+      status: toegang.http, headers: { 'Content-Type': 'application/json' },
     });
   }
 

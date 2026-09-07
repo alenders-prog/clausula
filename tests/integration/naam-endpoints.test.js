@@ -10,14 +10,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const TEST_KEY = 'b'.repeat(64);
 const FAKE_TOKEN = 'geldig-jwt-token';
 
-// Mock fetch: supabase auth geeft 200 terug op token, 401 op alles anders
+// Mock fetch: supabase auth geeft 200 terug op token, 401 op alles anders.
+//
+// Sinds 7 september 2026 kijken deze endpoints niet alleen naar de token maar ook naar het
+// kantoorlidmaatschap (`gebruikerContext` + `magApiGebruiken`), dus de mock moet er twee
+// beantwoorden: de gebruiker én zijn profielrij. Geeft de eerste geen id terug, dan komt
+// er een 401 uit die op een auth-fout lijkt maar het niet is.
 vi.stubGlobal('fetch', async (url, opts) => {
   if (url.includes('/auth/v1/user')) {
     const auth = opts?.headers?.['Authorization'] || '';
     if (auth === `Bearer ${FAKE_TOKEN}`) {
-      return { ok: true };
+      return { ok: true, json: async () => ({ id: 'gebruiker-1' }) };
     }
     return { ok: false, status: 401 };
+  }
+  if (url.includes('/rest/v1/gebruikersprofiel')) {
+    return { ok: true, json: async () => [{ organisatie_id: 'org-1' }] };
   }
   return { ok: false, status: 500 };
 });

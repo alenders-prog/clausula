@@ -1,36 +1,32 @@
 /**
- * api/_auth.js — Gedeelde JWT-verificatie voor alle beveiligde endpoints
+ * api/_auth.js — Wie is dit, en hoort die hier?
  *
- * Gebruik:
- *   import { verifieerJWT } from './_auth.js';
+ * Gebruik in elk beveiligd endpoint:
+ *   import { gebruikerContext } from './_auth.js';
+ *   import { magApiGebruiken } from '../src/auth/toegang.js';
  *   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
- *   if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
+ *   const toegang = magApiGebruiken(await gebruikerContext(token));
+ *   if (!toegang.toegestaan) return res.status(toegang.http).json({ error: toegang.melding });
  *
- * Geeft true als de token geldig is, false als hij ontbreekt of verlopen is.
- * Gebruikt SUPABASE_ANON_KEY met fallback naar SUPABASE_SERVICE_ROLE_KEY zodat
- * de check werkt ongeacht welke key is geconfigureerd.
+ * ── Hier stond tot 7 september 2026 ook `verifieerJWT` ───────────────────────
+ *
+ * Die deed dezelfde aanroep naar /auth/v1/user maar gaf alleen true of false terug: geldig
+ * of niet. Dat is te weinig, want een geldige token zegt niets over lidmaatschap van een
+ * kantoor. Wie zich kon aanmelden maar geen profielrij had, kwam bij elk endpoint binnen
+ * dat op die functie leunde — en dat waren er vijf, waaronder `naam-decrypt.js`, dat
+ * cliëntnamen ontsleutelt.
+ *
+ * De functie is weg in plaats van gedeprecieerd. Een zwakkere variant die naast de goede
+ * blijft staan is precies hoe die vijf endpoints eraan kwamen: hij deed iets dat op
+ * beveiliging lijkt, en dat was aan de aanroepplek niet te zien.
+ * `tests/unit/endpoint-toegang.test.js` bewaakt nu dat élk endpoint behalve `registreer.js`
+ * de volledige controle doet, vóórdat het de payload aanraakt.
  */
 
 import { PROFIEL } from '../src/auth/toegang.js';
 
-export async function verifieerJWT(token) {
-  if (!token) return false;
-  const res = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'apikey': process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
-    },
-  });
-  return res.ok;
-}
-
 /**
  * Verifieert de token én geeft terug wie het is.
- *
- * `verifieerJWT` doet dezelfde aanroep maar gooit het antwoord weg. Sinds er verbruik
- * per gebruiker wordt vastgelegd (api/_verbruik.js) is die id nodig, en een tweede
- * ronde naar /auth/v1/user zou hetzelfde verzoek nog eens doen. Endpoints die de
- * context nodig hebben roepen deze aan in plaats van verifieerJWT.
  *
  * De organisatie komt uit `gebruikersprofiel` en vraagt dus een tweede aanroep. Dat is
  * één keer per verzoek, niet per Claude-aanroep.

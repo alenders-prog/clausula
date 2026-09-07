@@ -17,7 +17,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 
 const sbService = createClient(
   process.env.SUPABASE_URL,
@@ -30,7 +31,13 @@ export default async function handler(req, res) {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Dit endpoint was als enige van de vijf al gedekt: `org_info_voor_uitnodiging` geeft
+  // zonder kantoor geen org_id terug en dat wordt hieronder een 403. De controle staat er
+  // nu toch bij, en wel vóór de Supabase-client en de invoervalidatie — zo is "elk endpoint
+  // behalve registreer roept magApiGebruiken aan" een regel die een test kan bewaken, in
+  // plaats van iets dat per endpoint uit de code moet worden afgeleid.
+  const toegang = magApiGebruiken(await gebruikerContext(token));
+  if (!toegang.toegestaan) return res.status(toegang.http).json({ error: toegang.melding });
 
   // Supabase-client met JWT (voor RLS-functies)
   const sbUser = createClient(

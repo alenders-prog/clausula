@@ -12,7 +12,8 @@
  */
 
 import { versleutelNamen } from './_crypto.js';
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 
 export const config = { runtime: 'edge' };
 
@@ -25,9 +26,11 @@ export default async function handler(req) {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
-  if (!await verifieerJWT(token)) {
-    return new Response(JSON.stringify({ error: 'Niet geautoriseerd' }), {
-      status: 401, headers: { 'Content-Type': 'application/json' },
+  // Zie api/naam-decrypt.js: een geldige token zegt niets over lidmaatschap van een kantoor.
+  const toegang = magApiGebruiken(await gebruikerContext(token));
+  if (!toegang.toegestaan) {
+    return new Response(JSON.stringify({ error: toegang.melding }), {
+      status: toegang.http, headers: { 'Content-Type': 'application/json' },
     });
   }
 

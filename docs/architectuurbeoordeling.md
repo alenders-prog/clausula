@@ -334,7 +334,7 @@ daarná — het maakt het bouwen prettiger, maar het lost geen van die drie op.
 | 1.4 | ~~Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix~~ — **eerste ronde gedaan** (67b5bd0); "af" kan dit punt niet zijn, zie hieronder | B1 | 2 ronden + eval |
 | 1.5 | Besluit over A4: sluitend maken of laten vallen en de doorgifte regelen | B1 | uw besluit |
 | 1.6 | ~~Bewaartermijn en opschoning~~ — **gedaan 5 sep 2026**, `npm run opschonen`; geen schemawijziging nodig | B3 | 1–2 ronden, schemawijziging |
-| 1.7 | **Lidmaatschapscontrole op de laatste vijf endpoints** — zie hieronder | B2 | een halve ronde |
+| 1.7 | ~~Lidmaatschapscontrole op de laatste endpoints~~ — **gedaan 7 sep 2026**, met een test die de regel bewaakt | B2 | een halve ronde |
 | 1.8 | **CSP van report-only naar afdwingen** — wacht op één doorloop van de flows | B5 | uw handeling, dan een halve ronde |
 | 1.9 | **Foutmonitoring** — blokkeert de browserkant van 1.3 | B5 | 1 ronde |
 
@@ -345,25 +345,32 @@ vier ronden bij gekomen: plaatsnamen op naam in plaats van op context, de woonpl
 woning zelf, namen die met een accentletter beginnen, en de positie in de zin als
 doorslaggevend bij twijfelgevallen.
 
-#### 1.7 — vijf endpoints kennen alleen de token, niet het kantoor
+#### 1.7 — endpoints kenden alleen de token, niet het kantoor *(gedaan 7 sep 2026)*
 
 Op 5 september bleek een geldige Supabase-token niets te zeggen over lidmaatschap van een
-kantoor: wie zich kon aanmelden maar geen profielrij had, kwam overal binnen. Dat is
-gerepareerd met `magApiGebruiken` (`src/auth/toegang.js`), maar op drie van de acht
-endpoints:
+kantoor: wie zich kon aanmelden maar geen profielrij had, kwam overal binnen. Dat is toen
+gerepareerd met `magApiGebruiken` (`src/auth/toegang.js`) — maar op drie van de acht
+endpoints. De andere vijf bleven op `verifieerJWT` staan, en dat was aan niets te zien: ze
+hadden allemaal keurig een auth-blok.
 
-| endpoint | JWT | lidmaatschap |
-|---|---|---|
-| `analyseer.js`, `ai-assistent.js`, `claude-edge.js` | ✅ | ✅ |
-| `naam-decrypt.js` | ✅ | ✗ |
-| `naam-encrypt.js` | ✅ | ✗ |
-| `adobe-start.js`, `adobe-result.js` | ✅ | ✗ |
-| `uitnodigen.js` | ✅ | ✗ |
+Onder die vijf zat `naam-decrypt.js`, dat cliëntnamen ontsleutelt. Nu sluiten alle acht
+aan; `verifieerJWT` wordt nergens meer gebruikt.
 
-`naam-decrypt.js` is de zwaarste van de vijf: die ontsleutelt namen. `uitnodigen.js` de
-tweede, want daarmee kan iemand zonder kantoor uitnodigingen laten versturen vanaf het
-maildomein. De controle laat een Supabase-storing bewust door (`ONBEKEND` → toestaan), dus
-aansluiten maakt geen van deze endpoints storingsgevoeliger.
+> **Eén van de vijf bleek al gedekt, en anders dan ik eerst opschreef.** `uitnodigen.js`
+> haalt zijn organisatie op met de RPC `org_info_voor_uitnodiging`, en zonder kantoor geeft
+> die geen `org_id` terug — dat werd al een 403. De controle staat er nu toch bij, en wel
+> vóór de invoervalidatie, zodat *"elk endpoint behalve `registreer` roept `magApiGebruiken`
+> aan"* een regel is die een test kan nakijken in plaats van iets dat per endpoint uit de
+> code moet worden afgeleid.
+
+`tests/unit/endpoint-toegang.test.js` bewaakt drie dingen per endpoint: dat de controle er
+is, dat de uitkomst het verzoek ook echt stopt, en dat het gebeurt vóórdat de payload wordt
+aangeraakt. Een nieuw endpoint gaat rood tot het aansluit, of tot het bewust in
+`ZONDER_CONTROLE` wordt gezet — en dan staat die keuze in de diff.
+
+De controle laat een Supabase-storing bewust door (`ONBEKEND` → toestaan): een haperende
+profielopvraag hoort geen uitval te worden. Aansluiten maakt deze endpoints dus niet
+storingsgevoeliger.
 
 #### 1.8 — de CSP staat te kijken, niet te weren
 

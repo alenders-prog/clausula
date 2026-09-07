@@ -6,7 +6,8 @@
 //   { status: 'done', docxBase64: string }       — klaar, DOCX als base64
 //   HTTP 500 + { error }                         — mislukt
 
-import { verifieerJWT } from './_auth.js';
+import { gebruikerContext } from './_auth.js';
+import { magApiGebruiken } from '../src/auth/toegang.js';
 import JSZip from 'jszip';
 
 // Elke aanroep naar Adobe krijgt een eigen tijdslimiet.
@@ -28,7 +29,9 @@ export default async function handler(req, res) {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-  if (!await verifieerJWT(token)) return res.status(401).json({ error: 'Niet geautoriseerd' });
+  // Zie api/naam-decrypt.js: een geldige token zegt niets over lidmaatschap van een kantoor.
+  const toegang = magApiGebruiken(await gebruikerContext(token));
+  if (!toegang.toegestaan) return res.status(toegang.http).json({ error: toegang.melding });
 
   const clientId     = process.env.ADOBE_CLIENT_ID;
   const clientSecret = process.env.ADOBE_CLIENT_SECRET;
