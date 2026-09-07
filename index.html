@@ -1357,21 +1357,36 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 @media(min-width:920px){#dbKpi,#dbPaneel{min-width:860px;}}
 #dbVerwijderd{width:100%;max-width:1250px;margin:-6px auto 12px;font-size:.72rem;
   color:var(--ink-faint);line-height:1.4;}
-.db-statknop{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;
-  border:1px solid var(--border);background:var(--paper);color:var(--ink-mid);
-  font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
-.db-statknop[aria-expanded="true"]{background:var(--accent-faint);border-color:var(--accent);color:var(--accent);}
-
-.db-kpi-rij{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;}
-.db-kpi{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:13px 15px;
-  display:flex;gap:13px;align-items:center;box-shadow:0 1px 2px rgba(26,24,22,.05);}
-.db-kpi-icoon{width:46px;height:46px;border-radius:11px;flex:none;display:grid;place-items:center;
+/* Kerncijfers: één balk, even breed als de dossierlijst eronder. Was tot 7 september
+   2026 een auto-fit grid van zes kaarten — dat sprong bij elke vensterbreedte naar een
+   ander aantal per rij en stond op een smal scherm drie regels hoog vóór de lijst. */
+.db-kpi-balk{background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 1px 2px rgba(26,24,22,.05);display:flex;align-items:stretch;overflow:hidden;}
+.db-cel{flex:1;min-width:0;display:flex;align-items:center;gap:11px;padding:13px 18px;
+  border-right:1px solid var(--line);}
+.db-cel:first-child{padding-left:20px;}
+.db-cel-icoon{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;
   background:var(--tint);color:var(--spoor);}
-.db-kpi-icoon svg{width:25px;height:25px;}
-.db-kpi-lbl{font-size:.69rem;font-weight:600;color:var(--ink-soft);line-height:1.3;}
-.db-kpi-waarde{font-size:1.55rem;font-weight:800;line-height:1.15;margin-top:2px;
+.db-cel-icoon svg{width:19px;height:19px;}
+.db-cel-tekst{min-width:0;}
+.db-cel-waarde{font-size:1.3rem;font-weight:800;line-height:1.1;
   font-variant-numeric:tabular-nums;letter-spacing:-.02em;}
+.db-cel-lbl{font-size:.68rem;font-weight:600;color:var(--ink-soft);line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .db-eenh{font-size:.8rem;font-weight:700;color:var(--ink-soft);}
+
+/* De pijl verving de knop "Statistieken" in de bovenbalk. */
+.db-kpi-pijl{flex:none;width:52px;display:grid;place-items:center;background:var(--paper);
+  color:var(--ink-soft);cursor:pointer;border:0;border-left:1px solid var(--line);
+  font:inherit;transition:background .15s,color .15s;}
+.db-kpi-pijl:hover{background:var(--accent-faint);color:var(--accent);}
+.db-kpi-pijl[aria-expanded="true"]{background:var(--accent-faint);color:var(--accent);}
+.db-kpi-pijl svg{transition:transform .22s ease;}
+.db-kpi-pijl[aria-expanded="true"] svg{transform:rotate(180deg);}
+.db-kpi-pijl:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+/* Alleen voor schermlezers: de pijl heeft verder geen woorden. */
+.db-pijl-tekst{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
+  clip-path:inset(50%);white-space:nowrap;}
 
 .db-paneel{background:var(--paper);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .db-periodebalk{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:11px 16px;
@@ -2428,12 +2443,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             <button class="dos-filter-tab" data-filter="gearchiveerd">Gearchiveerd</button>
           </div>
           <button class="rp-btn-primary" id="nieuwDossierBtn" style="flex-shrink:0">+ Nieuw dossier</button>
-          <button class="db-statknop" id="dbStatBtn" aria-expanded="false" style="flex-shrink:0">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
-            Statistieken
-          </button>
         </div>
         <!-- Kerncijfers: altijd zichtbaar boven de dossiers, huidige stand.
              Het uitklappaneel eronder volgt wél de periodekiezer. -->
@@ -2458,9 +2467,6 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
           <div class="db-secties">
             <details open><summary><span class="db-sectitel">Verbeterpunten per categorie en ernst</span></summary>
               <div class="db-secbody" id="dbCategorie"></div></details>
-            <details><summary><span class="db-sectitel">Verloop tussen versies</span>
-              <span class="db-secsub">wat is er van de bevindingen geworden?</span></summary>
-              <div class="db-secbody" id="dbVerloop"></div></details>
             <details><summary><span class="db-sectitel">MfN-compatibiliteit</span>
               <span class="db-secsub" id="dbMfnSub"></span></summary>
               <div class="db-secbody" id="dbMfn"></div></details>
@@ -7865,7 +7871,8 @@ function tekenDashboard() {
   const live = bouwStatistieken({ dossiers, screeningen: plat(false) });
   const feitenAlles = _dbFeitenCache;
   kpiEl.innerHTML = kpiStripHtml(
-    feitenAlles ? statistiekenUitFeiten({ dossiers, feiten: feitenAlles }) : live);
+    feitenAlles ? statistiekenUitFeiten({ dossiers, feiten: feitenAlles }) : live,
+    !document.getElementById('dbPaneel')?.hidden);
 
   // Het verschil tussen "wat er nu is" en "wat er ooit is gedaan" hoort zichtbaar te
   // zijn. Zonder dit regeltje lijkt het dashboard simpelweg meer te tellen dan er in
@@ -7896,7 +7903,10 @@ function tekenDashboard() {
         verloop: liveP.verloop, topIssues: liveP.topIssues }
     : liveP;
   document.getElementById('dbCategorie').innerHTML = categorieHtml(stats);
-  document.getElementById('dbVerloop').innerHTML   = verloopHtml(stats);
+  // De sectie "Verloop tussen versies" is op 7 september 2026 uit het paneel gehaald: hij
+  // stond permanent op "Nog geen dossier met een tweede analyse". Een tweede analyse
+  // vervángt sindsdien de eerste — bewust — dus die tweede versie komt er niet meer.
+  // `verloopHtml` en `stats.verloop` blijven bestaan voor als versies terugkeren.
   document.getElementById('dbMfn').innerHTML       = mfnHtml(stats, _dbDoctype);
   document.getElementById('dbTop').innerHTML       = topIssuesHtml(stats);
   document.getElementById('dbMfnSub').textContent  =
@@ -7925,12 +7935,15 @@ function dbSegKlik(groep, attr, zet) {
 dbSegKlik('dbPeriode', 'p', v => { _dbPeriode = v; });
 dbSegKlik('dbDoctype', 't', v => { _dbDoctype = v; });
 
-document.getElementById('dbStatBtn')?.addEventListener('click', () => {
+// De pijl zit sinds 7 september 2026 ín de kerncijferbalk, en die balk wordt bij elke
+// tekenDashboard() opnieuw opgebouwd. Een luisteraar rechtstreeks op de knop overleeft
+// dat niet: na de eerste render klikt hij nergens meer op. Vandaar delegatie.
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#dbStatBtn')) return;
   const paneel = document.getElementById('dbPaneel');
-  const open   = paneel.hidden;
-  paneel.hidden = !open;
-  document.getElementById('dbStatBtn').setAttribute('aria-expanded', String(open));
-  if (open) tekenDashboard();
+  if (!paneel) return;
+  paneel.hidden = !paneel.hidden;
+  tekenDashboard();   // tekent de balk opnieuw, mét de pijl in de nieuwe stand
 });
 
 // ── Tweefactorauthenticatie ────────────────────────────────────────────────

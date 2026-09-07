@@ -51,7 +51,7 @@ test.describe('dashboard', () => {
     await wachtOpBrug(page, ['bouwStatistieken', 'kpiStripHtml']);
   });
 
-  test('de kaartenrij toont zes cijfers uit echte gegevens', async ({ page }) => {
+  test('de kerncijferbalk toont vijf cijfers uit echte gegevens', async ({ page }) => {
     const fouten = volgPaginafouten(page);
 
     const uit = await page.evaluate(([dossiers, screeningen]) => {
@@ -59,28 +59,30 @@ test.describe('dashboard', () => {
       const el = document.getElementById('dbKpi');
       el.innerHTML = kpiStripHtml(stats);
       return {
-        kaarten: el.querySelectorAll('.db-kpi').length,
+        cellen:  el.querySelectorAll('.db-cel').length,
+        pijl:    !!el.querySelector('#dbStatBtn'),
         tekst:   el.textContent.replace(/\s+/g, ' '),
         stats:   { actief: stats.kpi.actief, afgerond: stats.kpi.afgerond,
                    gesignaleerd: stats.kpi.gesignaleerd, afgevinkt: stats.kpi.afgevinkt },
       };
     }, [DOSSIERS, SCREENINGEN]);
 
-    expect(uit.kaarten).toBe(6);
+    expect(uit.cellen).toBe(5);
+    expect(uit.pijl).toBe(true);
     expect(uit.stats).toEqual({ actief: 2, afgerond: 1, gesignaleerd: 5, afgevinkt: 1 });
     expect(uit.tekst).toContain('Actieve dossiers');
-    expect(uit.tekst).toContain('Documentscore');
+    // De documentscore stond permanent op "— nog geen tweede versie" en is 07-09-2026 weg.
+    expect(uit.tekst).not.toContain('Documentscore');
     verwachtGeenPaginafouten(fouten);
   });
 
-  test('de vier secties vullen zich zonder fout', async ({ page }) => {
+  test('de drie secties vullen zich zonder fout', async ({ page }) => {
     const fouten = volgPaginafouten(page);
 
     const uit = await page.evaluate(([dossiers, screeningen]) => {
       const stats = bouwStatistieken({ dossiers, screeningen });
       const vul = (id, html) => { const el = document.getElementById(id); el.innerHTML = html; return el; };
       const cat = vul('dbCategorie', categorieHtml(stats));
-      const ver = vul('dbVerloop',   verloopHtml(stats));
       const mfn = vul('dbMfn',       mfnHtml(stats, 'alle'));
       const top = vul('dbTop',       topIssuesHtml(stats));
       return {
@@ -90,8 +92,6 @@ test.describe('dashboard', () => {
         mfnRingen:   mfn.querySelectorAll('.db-donut').length,
         totaalRegel: !!cat.querySelector('tfoot'),
         catRijen: cat.querySelectorAll('.db-tabel tbody tr').length,
-        verBalken: ver.querySelectorAll('.db-vbalk').length,
-        verTekst: ver.textContent.replace(/\s+/g, ' '),
         mfnTekst: mfn.textContent.replace(/\s+/g, ' '),
         topRijen: top.querySelectorAll('.db-toprij').length,
       };
@@ -105,26 +105,28 @@ test.describe('dashboard', () => {
     expect(uit.mfnRingen).toBe(1);
     expect(uit.totaalRegel).toBe(true);
     expect(uit.catRijen).toBeGreaterThan(0);
-    expect(uit.verBalken).toBe(2);         // versie 1 en de laatste versie
-    // Het punt van het verloop: er is er één bijgekomen bij het herschrijven.
-    expect(uit.verTekst).toContain('Nieuw · 1');
-    expect(uit.verTekst).toContain('Genegeerd · 1');
     expect(uit.mfnTekst).toContain('Aanwezig');
     expect(uit.topRijen).toBeGreaterThan(0);
     verwachtGeenPaginafouten(fouten);
   });
 
-  test('de knop Statistieken klapt het paneel open en dicht', async ({ page }) => {
+  test('de pijl in de kerncijferbalk klapt het paneel open en dicht', async ({ page }) => {
     const fouten = volgPaginafouten(page);
+    // De pijl zit sinds 07-09-2026 ín de balk, en die wordt bij elke verversing opnieuw
+    // opgebouwd. Juist daarom loopt deze test twee klikken: een luisteraar rechtstreeks
+    // op de knop zou na de eerste hertekening dood zijn, en dat is van buiten niet te zien.
     const knop   = page.locator('#dbStatBtn');
     const paneel = page.locator('#dbPaneel');
 
+    await expect(knop).toBeVisible();
     await expect(paneel).toBeHidden();
     await knop.click();
     await expect(paneel).toBeVisible();
     await expect(knop).toHaveAttribute('aria-expanded', 'true');
+    // Tweede klik, ná een hertekening — hier zou een dode luisteraar zichtbaar worden.
     await knop.click();
     await expect(paneel).toBeHidden();
+    await expect(knop).toHaveAttribute('aria-expanded', 'false');
 
     verwachtGeenPaginafouten(fouten);
   });

@@ -500,8 +500,22 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // De toets staat in src/tekst/taalcontroles.js (filterAlGemeld, 5 tests). Hier bleef over:
 // de modelbevindingen apart benoemen zodat er iets is om tegen te filteren, en twee
 // aanroepen op de twee aanhechtpunten die de roepnaam-issues al gebruikten.
-const MAX_REGELS_INDEX = 16537;
-const MAX_REGELS_JS     = 13297;
+// 07-09-2026 (tweeëntwintigste keer): 16537 → 16550 (+13, waarvan 7 script). De
+// kerncijferbalk: zes losse KPI-kaarten werden vijf cellen in één balk met een
+// uitklappijl, en de knop "Statistieken" verdween uit de bovenbalk.
+//
+// Dit is een verhoging en dus een besluit. Wat eraan voorafging: de opmaak zelf ging naar
+// src/dashboard/scherm.js (kpiStripHtml, met de paneelstand als parameter zodat er geen
+// synchronisatiefunctie in index.html nodig is — dat scheelde elf regels). Wat overbleef
+// is CSS, die nergens heen kan zonder bouwstap, plus zeven scriptregels: de gedelegeerde
+// klikafhandeling (de pijl wordt bij elke verversing opnieuw gemaakt, dus een luisteraar
+// op de knop zelf overleeft dat niet) en twee toelichtingen bij weggehaalde onderdelen.
+//
+// Die toelichtingen zouden de grens halen als ik ze schrapte. Dat is precies het
+// averechtse effect waar CLAUDE.md voor waarschuwt: commentaar weggooien dat verklaart
+// waaróm de documentscore en het versieverloop weg zijn, om regels te sparen.
+const MAX_REGELS_INDEX = 16550;
+const MAX_REGELS_JS     = 13304;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

@@ -80,10 +80,16 @@ describe('index.html — de wachtvormen', () => {
   });
 
   it('zet élke bewegende vorm uit bij prefers-reduced-motion', () => {
-    // Het blok zelf uitknippen en kijken welke selectors erin staan.
-    const blok = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\}/.exec(tekst);
-    expect(blok, 'Geen prefers-reduced-motion-blok gevonden in index.html').not.toBeNull();
-    const gedekt = blok[1];
+    // ÁLLE reduced-motion-blokken uitknippen, niet alleen het eerste.
+    //
+    // Dit stond hier met `.exec()` en pakte dus alleen het eerste blok. Op 7 september
+    // 2026 kwam er hogerop in het bestand een eenregelig blok bij en las deze test dat —
+    // waarna alle negen gedekte selectors als ongedekt werden gemeld. Verwarrend, maar
+    // het had ook stil de andere kant op kunnen gaan: een vroeg blok dat toevallig de
+    // juiste woorden bevat, en de controle dekt niets meer af zonder dat iemand het ziet.
+    const blokken = [...tekst.matchAll(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{([\s\S]*?)\n\}/g)];
+    expect(blokken.length, 'Geen prefers-reduced-motion-blok gevonden in index.html').toBeGreaterThan(0);
+    const gedekt = blokken.map(b => b[1]).join('\n');
 
     const ongedekt = animatieGebruikers(tekst)
       .filter(g => !gedekt.includes(g.sel.split(',')[0].trim()))

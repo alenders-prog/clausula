@@ -54,32 +54,55 @@ describe('kpiStripHtml', () => {
     ],
   });
 
-  it('toont de zes kaarten met de juiste getallen', () => {
+  it('toont de vijf cellen met de juiste getallen', () => {
     const h = kpiStripHtml(stats);
     expect(h).toMatch(/Actieve dossiers/);
-    expect(h).toMatch(/Afgeronde dossiers/);
+    expect(h).toMatch(/Afgerond/);
     expect(h).toMatch(/Analyses uitgevoerd/);
     expect(h).toMatch(/Verbeterpunten gesignaleerd/);
-    expect(h).toMatch(/Punten afgevinkt/);
-    expect(h).toMatch(/Documentscore/);
-    expect((h.match(/db-kpi-lbl/g) || [])).toHaveLength(6);
+    expect(h).toMatch(/Afgevinkt/);
+    expect((h.match(/db-cel-lbl/g) || [])).toHaveLength(5);
   });
 
-  it('toont het scoretraject als eerste → laatste', () => {
+  it('draagt geen documentscore meer', () => {
+    // De kaart toonde `scoreEerste → scoreLaatste%` en stond permanent op
+    // "— nog geen tweede versie". Een tweede analyse vervángt sinds een bewust besluit
+    // de eerste, dus een dossier houdt één rij en het traject kón niet gevuld raken.
     const h = kpiStripHtml(stats);
-    expect(h).toMatch(/→ \d+%/);
+    expect(h).not.toMatch(/Documentscore/);
+    expect(h).not.toMatch(/nog geen tweede versie/);
+    expect(h).not.toMatch(/→ \d+%/);
   });
 
-  it('zegt het eerlijk als er nog geen tweede versie is', () => {
-    // Een traject zonder tweede meting bestaat niet; "0 → 0%" zou een verbetering van
-    // nul suggereren die niet gemeten is.
-    const leeg = bouwStatistieken({ dossiers: [], screeningen: [scr('d1', 1, { issues: [] })] });
-    expect(kpiStripHtml(leeg)).toMatch(/nog geen tweede versie/);
+  it('geeft het korte label een titel met de volledige betekenis', () => {
+    // "Afgerond" en "Afgevinkt" zijn alleen naast hun buren te begrijpen; het volledige
+    // label mag daarom niet zomaar verdwijnen.
+    const h = kpiStripHtml(stats);
+    expect(h).toMatch(/title="Afgeronde dossiers"/);
+    expect(h).toMatch(/title="Punten afgevinkt"/);
+  });
+
+  it('draagt de uitklappijl, dicht en met een koppeling naar het paneel', () => {
+    const h = kpiStripHtml(stats);
+    expect(h).toMatch(/id="dbStatBtn"/);
+    expect(h).toMatch(/aria-expanded="false"/);
+    expect(h).toMatch(/aria-controls="dbPaneel"/);
+    expect(h).toMatch(/title="Statistieken tonen"/);
+    // Zonder type="button" verstuurt hij een formulier als de balk ooit in een <form> belandt.
+    expect(h).toMatch(/type="button"/);
+  });
+
+  it('tekent de pijl open als het paneel openstaat', () => {
+    // De balk wordt bij elke verversing opnieuw opgebouwd. Zonder deze parameter zou de
+    // pijl dan dichtklappen terwijl het paneel eronder gewoon openstaat.
+    const h = kpiStripHtml(stats, true);
+    expect(h).toMatch(/aria-expanded="true"/);
+    expect(h).toMatch(/title="Statistieken verbergen"/);
   });
 
   it('valt niet om op ontbrekende statistieken', () => {
     expect(() => kpiStripHtml(undefined)).not.toThrow();
-    expect(kpiStripHtml({})).toMatch(/db-kpi-rij/);
+    expect(kpiStripHtml({})).toMatch(/db-kpi-balk/);
   });
 });
 

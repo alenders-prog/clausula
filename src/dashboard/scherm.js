@@ -73,33 +73,71 @@ const ICONEN = {
   document: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
   attentie: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   vakje:    '<path d="M20 6 9 17l-5-5"/><path d="M22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10"/>',
-  stijging: '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
 };
 
-function kaart({ icoon, kleur, tint, lbl, waarde, eenheid = '' }) {
-  return `<article class="db-kpi" style="--spoor:${kleur};--tint:${tint}">
-    <div class="db-kpi-icoon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+/**
+ * Eén cel in de kerncijferbalk.
+ *
+ * `lbl` is wat er staat, `volledig` wat het betekent. Die twee lopen uiteen waar het
+ * korte label alleen naast zijn buren te begrijpen is: "Afgerond" staat naast "Actieve
+ * dossiers", "Afgevinkt" naast het getal `118 / 312`. Vijf volledige labels passen niet
+ * op de 860 px die de dossierlijst als ondergrens heeft, en afkappen met een ellips
+ * maakt een label onleesbaar in plaats van korter.
+ */
+function cel({ icoon, kleur, tint, lbl, volledig, waarde, eenheid = '' }) {
+  return `<div class="db-cel" style="--spoor:${kleur};--tint:${tint}" title="${escH(volledig || lbl)}">
+    <div class="db-cel-icoon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
       stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icoon}</svg></div>
-    <div>
-      <div class="db-kpi-lbl">${escH(lbl)}</div>
-      <div class="db-kpi-waarde">${escH(waarde)}${eenheid ? `<span class="db-eenh">${escH(eenheid)}</span>` : ''}</div>
+    <div class="db-cel-tekst">
+      <div class="db-cel-waarde">${escH(waarde)}${eenheid ? `<span class="db-eenh">${escH(eenheid)}</span>` : ''}</div>
+      <div class="db-cel-lbl">${escH(lbl)}</div>
     </div>
-  </article>`;
+  </div>`;
 }
 
-export function kpiStripHtml(stats) {
+/**
+ * De kerncijferbalk boven de dossierlijst — één regel, even breed als de lijst eronder.
+ *
+ * ── WAT HIER OP 7 SEPTEMBER 2026 UIT IS GEGAAN ──────────────────────────────
+ *
+ * De kaart "Documentscore" toonde `scoreEerste → scoreLaatste%`, en die stond permanent
+ * op "— nog geen tweede versie". Niet bij toeval: een tweede analyse van een dossier
+ * vervángt de eerste (zie index.html, stap 2 van opslaan(); dat is een bewust besluit).
+ * Eén dossier houdt dus één rij, `scoreTraject` eist er twee, en `versie_nr` wordt
+ * nergens meer geschreven. De kaart kón niet gevuld raken.
+ *
+ * `scoreTraject` en `scoreTrajectUitFeiten` blijven wél staan. Ze zijn nu dood, maar het
+ * is het stuk dat je terugwilt zodra versies terugkomen — en dat is het duurst om
+ * opnieuw te schrijven. Hetzelfde geldt voor `verloopHtml` hieronder.
+ *
+ * De pijlknop rechts verving de losse knop "Statistieken" in de bovenbalk: hij staat waar
+ * de cijfers ophouden, en zijn stand is aan de draaiing te zien.
+ *
+ * `open` komt van buiten omdat de waarheid over die stand bij het paneel ligt, niet bij
+ * deze balk. De balk wordt bij elke tekenDashboard() opnieuw opgebouwd; zou hij de stand
+ * zelf onthouden, dan klapt de pijl bij elke verversing dicht terwijl het paneel openstaat.
+ */
+export function kpiStripHtml(stats, open = false) {
   const k = stats?.kpi || {};
-  const traject = (k.scoreEerste === null || k.scoreEerste === undefined)
-    ? { waarde: '—', eenheid: 'nog geen tweede versie' }
-    : { waarde: `${k.scoreEerste}`, eenheid: ` → ${k.scoreLaatste}%` };
 
-  return `<div class="db-kpi-rij">
-    ${kaart({ icoon: ICONEN.map,      kleur: 'var(--blue)',   tint: '#EBF3FC', lbl: 'Actieve dossiers',   waarde: getal(k.actief) })}
-    ${kaart({ icoon: ICONEN.vink,     kleur: 'var(--ok)',     tint: 'var(--ok-light)', lbl: 'Afgeronde dossiers', waarde: getal(k.afgerond) })}
-    ${kaart({ icoon: ICONEN.document, kleur: 'var(--accent)', tint: 'var(--accent-faint)', lbl: 'Analyses uitgevoerd', waarde: getal(k.analyses) })}
-    ${kaart({ icoon: ICONEN.attentie, kleur: 'var(--warn)',   tint: 'var(--warn-light)', lbl: 'Verbeterpunten gesignaleerd', waarde: getal(k.gesignaleerd) })}
-    ${kaart({ icoon: ICONEN.vakje,    kleur: 'var(--ok)',     tint: 'var(--ok-light)', lbl: 'Punten afgevinkt', waarde: getal(k.afgevinkt), eenheid: ` / ${getal(k.gesignaleerd)}` })}
-    ${kaart({ icoon: ICONEN.stijging, kleur: 'var(--ok)',     tint: 'var(--ok-light)', lbl: 'Documentscore', ...traject })}
+  return `<div class="db-kpi-balk">
+    ${cel({ icoon: ICONEN.map,      kleur: 'var(--blue)',   tint: '#EBF3FC',
+            lbl: 'Actieve dossiers', waarde: getal(k.actief) })}
+    ${cel({ icoon: ICONEN.vink,     kleur: 'var(--ok)',     tint: 'var(--ok-light)',
+            lbl: 'Afgerond', volledig: 'Afgeronde dossiers', waarde: getal(k.afgerond) })}
+    ${cel({ icoon: ICONEN.document, kleur: 'var(--accent)', tint: 'var(--accent-faint)',
+            lbl: 'Analyses uitgevoerd', waarde: getal(k.analyses) })}
+    ${cel({ icoon: ICONEN.attentie, kleur: 'var(--warn)',   tint: 'var(--warn-light)',
+            lbl: 'Verbeterpunten gesignaleerd', waarde: getal(k.gesignaleerd) })}
+    ${cel({ icoon: ICONEN.vakje,    kleur: 'var(--ok)',     tint: 'var(--ok-light)',
+            lbl: 'Afgevinkt', volledig: 'Punten afgevinkt', waarde: getal(k.afgevinkt),
+            eenheid: ` / ${getal(k.gesignaleerd)}` })}
+    <button class="db-kpi-pijl" id="dbStatBtn" type="button" aria-expanded="${open ? 'true' : 'false'}"
+      aria-controls="dbPaneel" title="Statistieken ${open ? 'verbergen' : 'tonen'}">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      <span class="db-pijl-tekst">Statistieken</span>
+    </button>
   </div>`;
 }
 
@@ -232,6 +270,15 @@ export function categorieHtml(stats) {
 }
 
 // ── Verloop tussen versies ──────────────────────────────────────────────────
+//
+// STAAT SINDS 7 SEPTEMBER 2026 NIET MEER OP HET SCHERM. De sectie is uit het uitklappaneel
+// gehaald omdat hij permanent op "Nog geen dossier met een tweede analyse" stond: een
+// tweede analyse vervángt de eerste (bewust besluit, zie stap 2 van opslaan() in
+// index.html), dus een dossier houdt één rij en er is nooit iets te vergelijken.
+//
+// Bewust blijven staan, mét zijn tests. Dit is het stuk dat je terugwilt zodra versies
+// terugkeren, en het is het duurst om opnieuw te schrijven. Hetzelfde geldt voor
+// scoreTraject() en scoreTrajectUitFeiten() die het voeden.
 export function verloopHtml(stats) {
   const v = stats?.verloop;
   if (!v || !v.dossiers) {
