@@ -907,7 +907,9 @@ export default async function handler(req, res) {
           // Zie src/rapport/consolidatie-grens.js.
           const { indices: teBewarenSet, hersteld } = beschermPassagegroepen(allIssues, geldigeIndices);
           for (const h of hersteld) {
-            console.warn(`[consolidatie] hersteld — hele passagegroep zou verdwijnen: "${h.onderwerp}"`);
+            console.warn(h.reden === 'balans'
+              ? `[consolidatie] hersteld — balanskaart verruild tegen buurman op dezelfde passage: "${h.onderwerp}"`
+              : `[consolidatie] hersteld — hele passagegroep zou verdwijnen: "${h.onderwerp}"`);
           }
           const geconsolideerd = teBewarenSet.size > 0
             ? allIssues.filter((_, i) => teBewarenSet.has(i))

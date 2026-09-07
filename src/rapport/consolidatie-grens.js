@@ -38,6 +38,38 @@
  * Wil je alsnog de smalle variant: sla in de lus hieronder de groepen met lengte 1 over.
  * Dan verdwijnt de bescherming van bevindingen die als enige naar hun zin verwijzen.
  *
+ * ── DE TWEEDE REGEL: BALANS VERLIEST NOOIT VAN EEN BUURMAN (6 september 2026) ─
+ *
+ * **Een issue met de dimensie `balans` wordt niet verwijderd ten gunste van een issue op
+ * dezelfde passage dat die dimensie niet draagt.**
+ *
+ * De dimensie `balans` bleef structureel laag: 1 à 2 bevindingen per run tegen 15 à 20
+ * voor `volledigheid`. Bij navraag bleek er géén verborgen laag verkeerd gelabelde
+ * balansbevindingen te zijn — het model máákt er weinig, en van de weinige die het maakt
+ * verdween er telkens één in de consolidatie. Gemeten geval, twee runs achter elkaar:
+ *
+ *     weg:    [juridisch+balans] Zorgkortingspercentages wijken af van Tremanormen
+ *                                en zijn niet gemotiveerd
+ *     bleef:  [volledigheid]     Zorgkorting vader (30%) en moeder (39%) niet gemotiveerd
+ *
+ * Dat is de merge-regel die precies doet wat er staat: *"verwijder het issue met de lagere
+ * ernst of lagere juridische prioriteit"*, en in de voorrangsvolgorde staat balans vierde
+ * van vijf. Voor `conflicten` staat er in de consolidatieprompt een uitdrukkelijke
+ * NOOIT-SAMENVOEGEN-regel tegen ditzelfde patroon; voor balans stond er niets.
+ *
+ * **Waarom in code en niet in de prompt.** Die promptregel is geschreven, gemeten en weer
+ * teruggedraaid: de consolidatie voegde hetzelfde paar opnieuw samen. Dat is geen verrassing
+ * — in de kop van `api/_prompts/consolidatie.js` staat sinds 24 augustus 2026 dat twee
+ * eerdere herformuleringen van diezelfde regels ook niets deden. Drie pogingen is genoeg.
+ *
+ * **Waarom alleen balans en niet elke dimensie.** De algemene variant ("elke dimensie die
+ * op deze passage verdwijnt komt terug") bewaart ook een grammaticakaart naast een
+ * volledigheidskaart over dezelfde zin, en dát zijn meestal wél dubbelingen. Balans is de
+ * gemeten uitzondering: het staat laag in de voorrangsvolgorde, het is de dimensie die het
+ * gesprek met partijen aanstuurt in plaats van een tekstcorrectie, en het is de enige waar
+ * het verlies is aangetoond. Blijkt een andere dimensie hetzelfde te doen, breid dan uit —
+ * maar meet het eerst.
+ *
  * ── WELKE BLIJFT ────────────────────────────────────────────────────────────
  *
  * Dezelfde volgorde die de prompt zelf voorschrijft: het exemplaar met een wetsverwijzing,
@@ -52,6 +84,9 @@ const kaal = (p) => String(p ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
 /** Verwijst dit issue naar een wetsartikel? Dat maakt het het meest informatieve exemplaar. */
 const heeftWet = (i) => /\bart(?:ikel)?\.?\s*\d|\bbw\b|\brv\b|\bwvps\b/i.test(
   `${i?.onderwerp ?? ''} ${i?.bevinding ?? ''} ${i?.aanbeveling ?? ''}`);
+
+/** Draagt dit issue de dimensie balans? Ook als tweede of derde dimensie. */
+const heeftBalans = (i) => Array.isArray(i?.dimensies) && i.dimensies.includes('balans');
 
 /** Welke van een groep verdient het om te blijven? Lager is beter. */
 function rang(issue) {
@@ -73,7 +108,7 @@ function beter(a, b) {
  *
  * @param {Array} alleIssues        de issues zoals ze aan de consolidatie zijn aangeboden
  * @param {Iterable<number>} teBewaren  indices die de consolidatie wil bewaren
- * @returns {{indices: Set<number>, hersteld: Array<{index: number, onderwerp: string}>}}
+ * @returns {{indices: Set<number>, hersteld: Array<{index: number, reden: string, onderwerp: string}>}}
  */
 export function beschermPassagegroepen(alleIssues, teBewaren) {
   const bewaard = new Set([...(teBewaren ?? [])].filter((i) => Number.isInteger(i)));
@@ -90,12 +125,24 @@ export function beschermPassagegroepen(alleIssues, teBewaren) {
     groepen.get(p).push(i);
   });
 
-  for (const indices of groepen.values()) {
-    if (indices.some((i) => bewaard.has(i))) continue;   // er blijft er al één staan
+  /** De beste uit een reeks indices toevoegen, en noteren waaróm. */
+  const herstel = (indices, reden) => {
     let winnaar = indices[0];
     for (const i of indices) if (beter(alleIssues[i], alleIssues[winnaar])) winnaar = i;
     bewaard.add(winnaar);
-    hersteld.push({ index: winnaar, onderwerp: alleIssues[winnaar]?.onderwerp ?? '(zonder titel)' });
+    hersteld.push({ index: winnaar, reden, onderwerp: alleIssues[winnaar]?.onderwerp ?? '(zonder titel)' });
+  };
+
+  for (const indices of groepen.values()) {
+    // Regel 1 — van elke passage blijft er minstens één staan.
+    if (!indices.some((i) => bewaard.has(i))) {
+      herstel(indices, 'passage');
+      continue;   // deze groep heeft nu een overlevende; regel 2 kijkt naar de volgende
+    }
+    // Regel 2 — draagt iemand in deze groep `balans` en geen enkele overlevende, dan
+    // heeft de consolidatie de balanskaart tegen een buurman verruild. Terugdraaien.
+    const balans = indices.filter((i) => heeftBalans(alleIssues[i]));
+    if (balans.length && !balans.some((i) => bewaard.has(i))) herstel(balans, 'balans');
   }
 
   return { indices: bewaard, hersteld };

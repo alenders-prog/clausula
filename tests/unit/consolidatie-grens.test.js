@@ -84,6 +84,62 @@ describe('ook een issue dat als enige naar zijn zin verwijst', () => {
   });
 });
 
+describe('balans verliest nooit van een buurman op dezelfde passage', () => {
+  // Het gemeten geval, twee runs achter elkaar identiek: de consolidatie bewaarde de
+  // volledigheidskaart en gooide de balanskaart over exact dezelfde zorgkortingszin weg.
+  const Z = 'Vader (rekening gehouden met een zorgkorting van 30%): € 441,-';
+  const issues = [
+    { onderwerp: 'Zorgkorting 30%/39% wijkt af van Tremanormen en is niet gemotiveerd',
+      ernst: 'midden', dimensies: ['juridisch', 'balans'], passage: Z },
+    { onderwerp: 'Zorgkorting vader (30%) en moeder (39%) niet gemotiveerd',
+      ernst: 'midden', dimensies: ['volledigheid'], passage: Z },
+  ];
+
+  it('herstelt de balanskaart als alleen de buurman blijft staan', () => {
+    const { indices, hersteld } = beschermPassagegroepen(issues, [1]);
+    expect(indices.has(0)).toBe(true);
+    expect(indices.has(1)).toBe(true);   // de buurman blijft óók staan
+    expect(hersteld).toEqual([{ index: 0, reden: 'balans', onderwerp: issues[0].onderwerp }]);
+  });
+
+  it('doet niets als de balanskaart zelf al bewaard is', () => {
+    const { hersteld } = beschermPassagegroepen(issues, [0]);
+    expect(hersteld).toEqual([]);
+  });
+
+  it('herstelt er één, niet allemaal, als er twee balanskaarten zijn', () => {
+    const twee = [...issues,
+      { onderwerp: 'Zorgkorting eenzijdig', ernst: 'laag', dimensies: ['balans'], passage: Z }];
+    const { indices, hersteld } = beschermPassagegroepen(twee, [1]);
+    expect(hersteld).toHaveLength(1);
+    expect(indices.has(0)).toBe(true);   // midden wint van laag
+    expect(indices.has(2)).toBe(false);
+  });
+
+  it('laat balans op een ANDERE passage met rust', () => {
+    const anders = [
+      { onderwerp: 'Balanskwestie elders', ernst: 'midden', dimensies: ['balans'], passage: 'Een andere zin.' },
+      { onderwerp: 'Buurman', ernst: 'midden', dimensies: ['volledigheid'], passage: Z },
+      { onderwerp: 'Nog een', ernst: 'laag', dimensies: ['grammatica'], passage: Z },
+    ];
+    // Index 0 is als enige van zijn passage weggegooid → regel 1 pakt hem, niet regel 2.
+    const { hersteld } = beschermPassagegroepen(anders, [1]);
+    expect(hersteld).toEqual([{ index: 0, reden: 'passage', onderwerp: 'Balanskwestie elders' }]);
+  });
+
+  it('beschermt géén andere dimensie — grammatica naast volledigheid blijft ontdubbeld', () => {
+    // De algemene variant zou hier de grammaticakaart terughalen. Dat is bewust niet zo:
+    // twee kaarten over dezelfde zin zijn daar meestal wél een dubbeling.
+    const gram = [
+      { onderwerp: 'Tikfout in de zin', ernst: 'laag', dimensies: ['grammatica'], passage: Z },
+      { onderwerp: 'Zin onvolledig', ernst: 'midden', dimensies: ['volledigheid'], passage: Z },
+    ];
+    const { indices, hersteld } = beschermPassagegroepen(gram, [1]);
+    expect(hersteld).toEqual([]);
+    expect(indices.has(0)).toBe(false);
+  });
+});
+
 describe('wat het bewust NIET doet', () => {
   it('beschermt issues zonder passage niet', () => {
     // De consolidatieprompt zegt het zelf: een gebrek heeft van nature geen eigen zin,
