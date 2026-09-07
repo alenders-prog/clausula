@@ -1,30 +1,30 @@
 {
   "fixture": "cross-doc-verschillende-dossiers.json",
-  "aantal": 22,
+  "aantal": 30,
   "perErnst": {
-    "midden": 14,
-    "laag": 2,
-    "hoog": 6
+    "midden": 23,
+    "hoog": 5,
+    "laag": 2
   },
   "onderwerpen": [
     {
-      "onderwerp": "Geboortedatum en -plaats van partijen ontbreken in de personalia",
+      "onderwerp": "Geboortedatum man ontbreekt in persoonsgegevens",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Persoonsgegevens kinderen onvolledig: geboorteplaats ontbreekt niet, maar woon- en verblijfplaats ontbreekt",
-      "ernst": "laag"
-    },
-    {
-      "onderwerp": "Kinderalimentatie: ingangsdatum onvoldoende bepaald en indexering ontbreekt",
+      "onderwerp": "Geboortedatum vrouw ontbreekt in persoonsgegevens",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Woning: hypotheek, ontslag hoofdelijke aansprakelijkheid en afrekendatum niet geregeld",
-      "ernst": "hoog"
+      "onderwerp": "Geboortedatum en -plaats kinderen slechts gedeeltelijk vermeld (alleen geboortejaar)",
+      "ernst": "midden"
     },
     {
-      "onderwerp": "Pensioenverevening niet geregeld en geen schriftelijke afwijking",
+      "onderwerp": "Kinderalimentatie: indexering ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
       "ernst": "hoog"
     },
     {
@@ -32,8 +32,8 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Schulden: geen regeling over verdeling en aansprakelijkheid",
-      "ernst": "midden"
+      "onderwerp": "Pensioenverevening: geen regeling of schriftelijke afwijking opgenomen",
+      "ernst": "hoog"
     },
     {
       "onderwerp": "Partneralimentatie: geen regeling of nihilbeding opgenomen",
@@ -44,7 +44,31 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Ondertekeningsblok: datum en handtekeningen ontbreken",
+      "onderwerp": "Schulden: geen regeling opgenomen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Inboedel: geen regeling opgenomen",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Ondertekeningsdatum ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie in convenant terwijl ouderschapsplan alle kinderafspraken regelt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie niet onderbouwd conform Tremanormen en afwijking niet gemotiveerd",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Partneralimentatie niet geregeld en geen nihilbeding opgenomen",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Verdeling huwelijksgemeenschap onvolledig: geen peildatum, geen schuldenregeling, geen finale kwijting",
       "ernst": "midden"
     },
     {
@@ -52,19 +76,15 @@
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Zorgregeling zonder concrete dagen, tijden of wisselschema",
+      "onderwerp": "Concrete zorgregeling (weekomgang met dagen en tijden) ontbreekt",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Vakantieregeling volledig afwezig",
+      "onderwerp": "Vakantieregeling ontbreekt volledig",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Feestdagen- en bijzondere dagenregeling volledig afwezig",
-      "ernst": "hoog"
-    },
-    {
-      "onderwerp": "Kinderalimentatie zonder draagkrachtberekening of onderbouwing conform Tremanormen",
+      "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
       "ernst": "midden"
     },
     {
@@ -72,11 +92,19 @@
       "ernst": "midden"
     },
     {
+      "onderwerp": "Draagkrachtberekening conform Tremanormen ontbreekt",
+      "ernst": "midden"
+    },
+    {
       "onderwerp": "Indexeringsclausule kinderalimentatie ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Informatieplicht onvolledig uitgewerkt",
+      "onderwerp": "Regeling voor school- en opleidingsbeslissingen ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Regeling voor medische beslissingen ontbreekt",
       "ernst": "midden"
     },
     {
@@ -88,11 +116,15 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie: geen regeling voor periode na 18e jaar (jongmeerderjarigen)",
+      "onderwerp": "Geboortejaren kinderen vermeld in plaats van volledige geboortedatum",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Datum van opstelling of ondertekening ontbreekt",
+      "onderwerp": "Kinderalimentatie: geen regeling voor periode na 18e jaar (art. 1:395a BW)",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Zorgverdeling Novi en Kimi: concrete tijdsverdeling per kind ontbreekt, balans niet beoordeelbaar",
       "ernst": "midden"
     }
   ]

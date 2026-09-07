@@ -1,13 +1,30 @@
 {
   "fixture": "convenant-incompleet.json",
-  "aantal": 9,
+  "aantal": 15,
   "perErnst": {
-    "hoog": 2,
-    "midden": 7
+    "midden": 10,
+    "hoog": 4,
+    "laag": 1
   },
   "onderwerpen": [
     {
-      "onderwerp": "Ouderschapsplan en kinderafspraken volledig afwezig",
+      "onderwerp": "Huwelijksdatum onvolledig: dag ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Geboortedatum partijen onvolledig: alleen jaar vermeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Geboortedatum kinderen onvolledig: alleen jaar vermeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Ouderschapsplan en kinderalimentatie niet geregeld en geen verwijzing naar afzonderlijk document",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Hypotheek: ontslag hoofdelijke aansprakelijkheid niet geregeld",
       "ernst": "hoog"
     },
     {
@@ -15,23 +32,15 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Echtelijke woning: hypotheek en ontslag hoofdelijke aansprakelijkheid niet geregeld",
+      "onderwerp": "Pensioenverevening: WVPS-conformiteit niet geborgd (geen intern of extern melding)",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Bankrekeningen: saldi op peildatum en gezamenlijke rekening niet gespecificeerd",
+      "onderwerp": "Bankrekeningen: rekeningnummers en saldi op peildatum ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Schulden: geen regeling over verdeling en aansprakelijkheid",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Pensioenverevening: geen verwijzing naar WVPS of afwijkingsbeding",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Persoonsgegevens onvolledig: adressen en BSN ontbreken",
+      "onderwerp": "Inboedel: geen regeling opgenomen",
       "ernst": "midden"
     },
     {
@@ -39,8 +48,24 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Pensioenafspraak beschrijft conversie maar mist wettelijke grondslag (art. 5 WVPS)",
+      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Mediatorgegevens ontbreken",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Pensioenafspraak beschrijft conversie maar mist wettelijke grondslag (art. 5 WVPS) en instemming pensioenuitvoerder",
       "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Kinderalimentatie en ouderschapsplan niet geregeld en niet verwezen naar ander document",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Huwelijksgemeenschap niet volledig afgewikkeld: geen peildatum, geen vermogensopstelling, geen schuldenregeling",
+      "ernst": "midden"
     }
   ]
 }

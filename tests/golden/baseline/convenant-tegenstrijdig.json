@@ -1,13 +1,17 @@
 {
   "fixture": "convenant-tegenstrijdig.json",
-  "aantal": 8,
+  "aantal": 13,
   "perErnst": {
-    "midden": 6,
+    "midden": 11,
     "laag": 2
   },
   "onderwerpen": [
     {
-      "onderwerp": "Naam op bankrekening wijkt af van geïntroduceerde naam man",
+      "onderwerp": "Naamsinconsistentie: ING-rekening op naam 'Alexander Schreven' wijkt af van geïntroduceerde naam 'Sander Alexander Schreven'",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Huwelijksdatum onvolledig: dag ontbreekt",
       "ernst": "midden"
     },
     {
@@ -15,28 +19,44 @@
       "ernst": "midden"
     },
     {
+      "onderwerp": "Overbedelingsberekening: verhouding taxatiewaarde, hypotheek en vergoeding niet inzichtelijk gemotiveerd",
+      "ernst": "laag"
+    },
+    {
       "onderwerp": "Fiscale afwikkeling ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Handtekeningen en ondertekeningsblok ontbreken",
+      "onderwerp": "Inboedelverdeling ontbreekt",
+      "ernst": "laag"
+    },
+    {
+      "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Indexering partneralimentatie-nihilbeding niet gemotiveerd conform wettelijke vereisten",
-      "ernst": "laag"
+      "onderwerp": "Schulden niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Nihilbeding partneralimentatie: geen expliciete grondslag art. 1:158 BW en geen termijn",
+      "ernst": "midden"
     },
     {
       "onderwerp": "Bijzonder partnerpensioen niet geregeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Overbedelingsvergoeding woning: berekening niet controleerbaar zonder nadere toelichting",
+      "onderwerp": "Meldingsplicht pensioenuitvoerder (art. 11 WVPS) niet opgenomen",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Finale kwijting ontbreekt",
-      "ernst": "laag"
+      "onderwerp": "Passeerdatum / leveringsdatum woning niet vermeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Fiscaal partnerschap: einddatum en verdeling aanslagen niet geregeld",
+      "ernst": "midden"
     }
   ]
 }

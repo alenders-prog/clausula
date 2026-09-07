@@ -1,12 +1,16 @@
 {
   "fixture": "ouderschapsplan-onvolledig.json",
-  "aantal": 12,
+  "aantal": 15,
   "perErnst": {
     "midden": 10,
-    "hoog": 1,
-    "laag": 1
+    "laag": 4,
+    "hoog": 1
   },
   "onderwerpen": [
+    {
+      "onderwerp": "Indexeringsmaatstaf kinderalimentatie niet leesbaar (plaatshouder)",
+      "ernst": "midden"
+    },
     {
       "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld",
       "ernst": "midden"
@@ -17,10 +21,10 @@
     },
     {
       "onderwerp": "Informatie- en consultatieverplichting ontbreekt",
-      "ernst": "hoog"
+      "ernst": "midden"
     },
     {
-      "onderwerp": "Ingangsdatum kinderalimentatie niet vermeld",
+      "onderwerp": "Draagkrachtberekening conform Tremanormen ontbreekt",
       "ernst": "midden"
     },
     {
@@ -28,31 +32,39 @@
       "ernst": "midden"
     },
     {
+      "onderwerp": "Medische beslissingen en zorgbeslissingen niet geregeld",
+      "ernst": "midden"
+    },
+    {
       "onderwerp": "Regeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Geschillenregeling onvolledig: geen mediationclausule",
+      "onderwerp": "Geschillenregeling of mediationclausule ontbreekt",
       "ernst": "midden"
+    },
+    {
+      "onderwerp": "Wisselmomenten niet volledig gespecificeerd (wie haalt/brengt)",
+      "ernst": "laag"
     },
     {
       "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
-      "ernst": "midden"
+      "onderwerp": "Actuele situatie van partijen niet beschreven",
+      "ernst": "laag"
     },
     {
-      "onderwerp": "Indexering kinderalimentatie: verwijzing naar NVI onjuist (wettelijk CBS-indexcijfer)",
-      "ernst": "midden"
+      "onderwerp": "Rechten van de kinderen en mate van betrokkenheid niet beschreven",
+      "ernst": "laag"
     },
     {
-      "onderwerp": "Zorgkorting niet vermeld bij kinderalimentatieberekening",
-      "ernst": "midden"
+      "onderwerp": "Informatieplicht (art. 1:377b BW) ontbreekt",
+      "ernst": "hoog"
     },
     {
-      "onderwerp": "Zomervakantieregeling: tweede helft in oneven jaren en verdeling even jaren niet uitgewerkt",
+      "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     }
   ]
