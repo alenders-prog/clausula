@@ -514,7 +514,16 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // Die toelichtingen zouden de grens halen als ik ze schrapte. Dat is precies het
 // averechtse effect waar CLAUDE.md voor waarschuwt: commentaar weggooien dat verklaart
 // waaróm de documentscore en het versieverloop weg zijn, om regels te sparen.
-const MAX_REGELS_INDEX = 16550;
+// 07-09-2026 (drieëntwintigste keer): 16550 → 16575 (+25, waarvan NUL script). Het
+// uitklappaneel schuift open in plaats van te verschijnen.
+//
+// Deze verhoging raakt alleen het totaal, en dat is precies het onderscheid waarvoor de
+// tweede grens bestaat: CSS en markup kunnen zonder bouwstap nergens heen, en groei daarin
+// zegt niets over toetsbaarheid. De scriptgrens bleef ongemoeid (13300 van 13304) doordat
+// de paneelstand een klasse werd in plaats van het `hidden`-attribuut — op display:none
+// valt niets te animeren, en de tussenvorm had een animatiefunctie in JavaScript gekost.
+// Nu zijn het drie eenregelige wijzigingen en doet CSS de rest.
+const MAX_REGELS_INDEX = 16575;
 const MAX_REGELS_JS     = 13304;
 
 function regels(pad) {

@@ -1352,8 +1352,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .mfn-el-toe{display:block;font-size:.75rem;color:var(--ink-soft);margin-top:2px;font-style:italic;}
 /* ═══ Dashboard boven de dossierlijst ═════════════════ */
 /* Zelfde breedte als de dossierkaarten: .rp-home-lijst>* staat op 1250/860. */
-#dbKpi,#dbPaneel{width:100%;max-width:1250px;margin:0 auto 14px;}
-#dbKpi{margin-top:14px;}
+#dbKpi,#dbPaneel{width:100%;max-width:1250px;margin-left:auto;margin-right:auto;}
+#dbKpi{margin-top:14px;margin-bottom:14px;}
+/* Bewust geen margin-bottom hier: die hoort bij de open stand van het paneel en wordt
+   meegeanimeerd (zie .db-paneel). Een `margin:0 auto 14px` op deze ID-selector zou daar
+   overheen gaan en dicht een gat van 14px laten staan. */
 @media(min-width:920px){#dbKpi,#dbPaneel{min-width:860px;}}
 #dbVerwijderd{width:100%;max-width:1250px;margin:-6px auto 12px;font-size:.72rem;
   color:var(--ink-faint);line-height:1.4;}
@@ -1388,7 +1391,22 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
 .db-pijl-tekst{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);
   clip-path:inset(50%);white-space:nowrap;}
 
-.db-paneel{background:var(--paper);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+/* Het paneel klapt uit in plaats van te verschijnen: zonder beweging is niet te zien
+   dát er iets opengaat, en de dossierlijst eronder verspringt zonder aanleiding.
+   `grid-template-rows: 0fr → 1fr` animeert een hoogte die niemand vooraf kent — dat kan
+   met een max-height alleen door een getal te verzinnen dat bij langere inhoud afkapt.
+   De binnenrand zit daarom op .db-paneel-inner: de buitenlaag is puur de maatvoering.
+
+   De stand is een klasse en niet meer het `hidden`-attribuut. Op `display:none` valt niets
+   te animeren, en de tussenvorm (hidden weghalen, dan een frame later een klasse zetten,
+   en bij sluiten wachten op transitionend) kost een animatiefunctie in JavaScript. Dicht
+   staat hij op `visibility:hidden`, dus hij blijft buiten de voorleesvolgorde en is niet
+   met tab te bereiken — precies wat `hidden` deed. */
+.db-paneel{display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;margin-bottom:0;
+  transition:grid-template-rows .24s ease,opacity .18s ease,visibility .24s,margin-bottom .24s ease;}
+.db-paneel.db-open{grid-template-rows:1fr;opacity:1;visibility:visible;margin-bottom:14px;}
+.db-paneel-inner{overflow:hidden;min-height:0;background:var(--paper);
+  border:1px solid var(--border);border-radius:10px;}
 .db-periodebalk{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:11px 16px;
   background:var(--bg);border-bottom:1px solid var(--line);}
 .db-lbl{font-size:.74rem;font-weight:600;color:var(--ink-soft);}
@@ -1976,6 +1994,11 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   .a-fiche-chip--laden .a-fiche-h,
   .a-fiche-chip--laden .a-fiche-m,
   .a-fiche-chip--laden .a-fiche-l{animation:none;}
+  /* Geen animaties maar overgangen; horen in ditzelfde blok, want de test leest de
+     reduced-motion-blokken en niet de losse regels. Het paneel staat dan meteen open
+     in plaats van uit te schuiven: de stand klopt, alleen de beweging is weg. */
+  .db-kpi-pijl svg,
+  .db-paneel{transition:none;}
 }
 
 /* Het `hidden`-attribuut verliest van een eigen display-regel: `[hidden]` en
@@ -2448,7 +2471,8 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
              Het uitklappaneel eronder volgt wél de periodekiezer. -->
         <div id="dbKpi"></div>
         <p id="dbVerwijderd" class="db-verwijderd" hidden></p>
-        <div id="dbPaneel" class="db-paneel" hidden>
+        <div id="dbPaneel" class="db-paneel">
+         <div class="db-paneel-inner">
           <div class="db-periodebalk">
             <span class="db-lbl">Periode</span>
             <div class="db-seg" id="dbPeriode">
@@ -2473,6 +2497,7 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
             <details><summary><span class="db-sectitel">Top terugkerende verbeterpunten</span></summary>
               <div class="db-secbody" id="dbTop"></div></details>
           </div>
+         </div>
         </div>
         <div class="rp-home-lijst" id="dossierLijst">
           <p style="padding:14px;font-size:.85rem;color:var(--ink-soft)">Bezig met laden…</p>
@@ -7872,7 +7897,7 @@ function tekenDashboard() {
   const feitenAlles = _dbFeitenCache;
   kpiEl.innerHTML = kpiStripHtml(
     feitenAlles ? statistiekenUitFeiten({ dossiers, feiten: feitenAlles }) : live,
-    !document.getElementById('dbPaneel')?.hidden);
+    !!document.getElementById('dbPaneel')?.classList.contains('db-open'));
 
   // Het verschil tussen "wat er nu is" en "wat er ooit is gedaan" hoort zichtbaar te
   // zijn. Zonder dit regeltje lijkt het dashboard simpelweg meer te tellen dan er in
@@ -7889,7 +7914,7 @@ function tekenDashboard() {
   }
 
   const paneel = document.getElementById('dbPaneel');
-  if (!paneel || paneel.hidden) return;
+  if (!paneel || !paneel.classList.contains('db-open')) return;
   // docType gaat naar de héle aggregatie, niet alleen naar MfN: de categorietabel, het
   // verloop en de top-lijst horen mee te bewegen met de knop. Deed alleen MfN dat, dan
   // staat er een keuze die zichtbaar niets doet — erger dan geen keuze.
@@ -7942,7 +7967,7 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#dbStatBtn')) return;
   const paneel = document.getElementById('dbPaneel');
   if (!paneel) return;
-  paneel.hidden = !paneel.hidden;
+  paneel.classList.toggle('db-open');
   tekenDashboard();   // tekent de balk opnieuw, mét de pijl in de nieuwe stand
 });
 

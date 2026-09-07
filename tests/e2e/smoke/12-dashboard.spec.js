@@ -120,6 +120,13 @@ test.describe('dashboard', () => {
 
     await expect(knop).toBeVisible();
     await expect(paneel).toBeHidden();
+
+    // Het paneel schuift uit met grid-template-rows 0fr → 1fr. Zonder deze controle kan
+    // die overgang er bij een opruimronde stil uit vallen: het paneel werkt dan nog
+    // steeds, het klapt alleen weer open zonder dat je ziet dát er iets gebeurt.
+    const overgang = await paneel.evaluate(el => getComputedStyle(el).transitionProperty);
+    expect(overgang).toContain('grid-template-rows');
+
     await knop.click();
     await expect(paneel).toBeVisible();
     await expect(knop).toHaveAttribute('aria-expanded', 'true');
