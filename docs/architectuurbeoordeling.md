@@ -464,7 +464,7 @@ vrijwel volledig in het streamen.
    die bleek meevallen; zie hieronder.
 3. De prijs per token verschilt op Bedrock en Vertex van die bij Anthropic. Niet nagekeken.
 
-#### Adobe: omgezet naar de EU-regio *(8 sep 2026, nog te toetsen)*
+#### Adobe: omgezet naar de EU-regio *(8 sep 2026, getoetst en werkend)*
 
 De PDF→DOCX-conversie stuurt het **originele** bestand naar Adobe — `pdfBase64`, met
 cliëntnamen erin. Het is de enige plek in de keten waar een onbewerkt document het apparaat
@@ -479,11 +479,23 @@ Adobe kent twee regio's, en het verschil is een hostnaam:
 verwerkt en opgeslagen in eu-west-1 (Ierland). De vier aanroepen bouwen hun URL nu met
 `adobeHost()` uit `src/conversie/adobe-regio.js`, standaard Europa.
 
-**Nog te toetsen, en alleen met een echte conversie.** De ontwikkelaarsdocumentatie noemt
-geen voorwaarde (*"Once you purchase PDF Services API, its APIs can be configured to
-process the documents in a specified region"*), maar Adobe's Trust Center zegt *"Enterprise
-customers can choose the region"*. Die twee sluiten een abonnementsafhankelijkheid niet uit.
-Werkt het niet, dan is `ADOBE_REGIO=us` de terugval — exact de oude hostnaam.
+**Getoetst op 8 september 2026 en het werkt op dit abonnement.** Er was twijfel: de
+ontwikkelaarsdocumentatie noemt geen voorwaarde (*"Once you purchase PDF Services API, its
+APIs can be configured to process the documents in a specified region"*), maar Adobe's
+Trust Center zegt *"Enterprise customers can choose the region"*. Alleen een echte conversie
+kon dat beslechten.
+
+Volledige rondgang lokaal, met een openbaar leveranciersdocument van 445 kB:
+
+```
+✓ job gestart (4s)
+  https://pdf-services-ew1.adobe.io/operation/exportpdf/…/status
+✓ KLAAR na 22s — DOCX van 99 kB
+```
+
+De job-URL die Adobe zelf teruggeeft draagt `-ew1`, dus het is niet alleen de hostnaam
+waar wij naartoe bellen: de job stáát in de Europese regio. Blijkt het later toch te
+haperen, dan is `ADOBE_REGIO=us` de terugval — exact de oude hostnaam.
 
 Onbekende waarden vallen bewust naar Europa. Een typefout in een omgevingsvariabele hoort
 geen doorgifte naar de Verenigde Staten op te leveren die niemand ziet.
