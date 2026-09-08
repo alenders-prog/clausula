@@ -68,3 +68,28 @@ describe('randgevallen', () => {
     expect(vindHalveNamen('Erwin Bergman', ['Bergman', 'Jan de Vries Bergman'])).toEqual([]);
   });
 });
+
+// ── De bedrading ────────────────────────────────────────────────────────────
+//
+// Bij de eerste versie stond "Erwin Bergman" tweemaal in de residubalk: één keer in de
+// gewone lijst en één keer als half vervangen. Hetzelfde gegeven dubbel geteld, en de balk
+// leek voller dan hij was.
+import { readFileSync } from 'node:fs';
+
+describe('de bedrading in index.html', () => {
+  const bron = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+
+  it('haalt half vervangen namen uit de algemene residulijst', () => {
+    const idx = bron.indexOf('vindHalveNamen(doc.tekst');
+    expect(idx).toBeGreaterThan(-1);
+    const blok = bron.slice(idx, idx + 700);
+    expect(blok).toMatch(/_alGemeld/);
+    expect(blok).toMatch(/continue;/);
+  });
+
+  it('bepaalt de halve namen vóór de algemene controle', () => {
+    // Anders is er nog niets om tegen te filteren.
+    expect(bron.indexOf('vindHalveNamen(doc.tekst'))
+      .toBeLessThan(bron.indexOf('zoekResidu(doc.tekst'));
+  });
+});

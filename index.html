@@ -4478,11 +4478,18 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
     const _nepVol = [...new Set(_bekend.filter(n => n.includes(' ') && !n.startsWith('[')))];
     for (const doc of documentenVoorServer) {
       const _bn = _bnVanServer.get(doc.bestandsnaam);
-      for (const r of zoekResidu(doc.tekst, _bekend)) {
-        app.anonResidu.push({ ...r, bestandsnaam: _bn });
-      }
-      for (const naam of vindHalveNamen(doc.tekst, _nepVol)) {
+      // Eerst de halve namen: die verklaren waaróm iets identificerend oogt, en dat is
+      // meer dan zoekResidu erover kan zeggen. Wat hier uitkomt hoort dus niet ook nog
+      // eens in de algemene lijst te staan — anders telt hetzelfde gegeven dubbel en
+      // lijkt de balk voller dan het is.
+      const _halveNamen = vindHalveNamen(doc.tekst, _nepVol);
+      for (const naam of _halveNamen) {
         app.anonResidu.push({ soort: 'half_vervangen', waarde: naam, bestandsnaam: _bn });
+      }
+      const _alGemeld = new Set(_halveNamen.map(n => n.toLowerCase()));
+      for (const r of zoekResidu(doc.tekst, _bekend)) {
+        if (_alGemeld.has(String(r.waarde ?? '').toLowerCase())) continue;
+        app.anonResidu.push({ ...r, bestandsnaam: _bn });
       }
     }
   } catch (e) {
