@@ -307,6 +307,11 @@ een **bronwachter** die afgaat zodra iemand er een tweede weg naast bouwt. Zie
 `tests/unit/feiten-bewaartermijn.test.js` (beide schrijvers passen de bewaartermijn toe).
 Een lijst met bewuste uitzonderingen erin hoort erbij: dan staat een afwijking in de diff.
 
+> **Wat er nog verspreid staat:** `docs/centraliseren.md`. Het terugvinden van een passage
+> gebeurt op acht plekken met vier normalisaties, en de lijst met dimensies bestaat in zes
+> varianten met drie verschillende volgordes — waarvan er één de voorrangsregel uit de
+> prompt draagt. Lees dat stuk vóór je een van die twee aanraakt.
+
 ## Nieuwe logica gaat naar `src/`
 
 `index.html` telt bijna 15.000 regels en 286 functies. Het refactorplan in
