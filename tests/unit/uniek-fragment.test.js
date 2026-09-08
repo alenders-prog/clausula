@@ -116,3 +116,54 @@ describe('kiesUniekFragment', () => {
     expect(r.fragment).toBe('kind 2de kerstdag viert');
   });
 });
+
+// ── Het venster groeit (8 september 2026) ───────────────────────────────────
+//
+// Idee van de gebruiker: komt een fragment meer dan eens voor, neem er dan een woord bij,
+// tot er één overblijft. Dat is dan aantoonbaar de juiste plek in plaats van de eerste de
+// beste. Daarvóór keek deze functie alleen naar vensters van vier woorden en gaf hij bij
+// dubbelzinnigheid het minst voorkomende terug — nog altijd een gok.
+describe('het venster groeit tot er één overblijft', () => {
+  // Met opzet geconstrueerd: élk viertal uit de passage komt twee keer voor, het vijftal
+  // maar één keer. In echte documenten lost een viertal het meestal al op — deze groei is
+  // het vangnet voor korte passages en sterk herhalende stukken.
+  const doc = [
+    'de ouder waar het huis staat',       // levert "de ouder waar het"
+    'een ouder waar het kind woont',      // levert "ouder waar het kind"
+    'bij waar het kind verblijft',        // levert "waar het kind verblijft"
+    'de ouder waar het kind verblijft',   // hier staat de passage echt
+  ].join('. ');
+
+  it('vindt het vijftal als geen enkel viertal uniek is', () => {
+    const uit = kiesUniekFragment('de ouder waar het kind verblijft', doc);
+    expect(uit).not.toBeNull();
+    expect(uit.voorkomens).toBe(1);
+    expect(uit.venster).toBeGreaterThan(4);
+  });
+
+  it('blijft bij vier woorden als dat al genoeg is', () => {
+    // Niet groeien om het groeien: een kort fragment overleeft kleine verschillen tussen
+    // de geanalyseerde tekst en de viewertekst beter.
+    const uit = kiesUniekFragment(
+      'de ouder waar het kind 2de kerstdag viert',
+      'in beheer bij de ouder waar het kind staat ingeschreven. de ouder waar het kind 2de kerstdag viert.',
+    );
+    expect(uit.voorkomens).toBe(1);
+    expect(uit.venster).toBe(4);
+  });
+
+  it('geeft het minst voorkomende terug als niets uniek te maken is', () => {
+    // Twee identieke alinea's: dan is er geen juiste plek aan te wijzen, en dat hoort de
+    // aanroeper te weten via `voorkomens` in plaats van een gok te krijgen.
+    const tweeling = 'de ouder betaalt de kosten. de ouder betaalt de kosten.';
+    const uit = kiesUniekFragment('de ouder betaalt de kosten', tweeling);
+    expect(uit.voorkomens).toBeGreaterThan(1);
+  });
+
+  it('stopt met groeien zodra er niets meer voorkomt', () => {
+    // Anders zou hij tot maxVenster doorzoeken op steeds langere fragmenten die per
+    // definitie nul keer voorkomen.
+    const uit = kiesUniekFragment('een zin die er helemaal niet in staat', 'iets heel anders');
+    expect(uit).toBeNull();
+  });
+});

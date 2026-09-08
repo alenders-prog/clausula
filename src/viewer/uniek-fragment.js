@@ -40,35 +40,59 @@ export function telVoorkomens(hooiberg, naald) {
 }
 
 /**
- * Zoekt het meest onderscheidende venster van `venster` woorden uit de passage.
+ * Zoekt het kortste fragment uit de passage dat het document maar één keer bevat.
  *
- * Voorkeur: een fragment dat precies één keer voorkomt. Bestaat dat niet, dan het
- * fragment met de mínste voorkomens — nog altijd beter dan het eerste het beste.
- * Komt geen enkel venster voor, dan null: dan valt de aanroeper terug op zijn
- * eigen gedrag in plaats van iets te markeren wat er niet staat.
+ * ── HET VENSTER GROEIT (8 september 2026) ───────────────────────────────────
+ *
+ * Dit keek alleen naar vensters van vier woorden. Was daar geen unieke bij, dan gaf het
+ * het minst voorkomende terug — nog altijd dubbelzinnig, en de viewer markeerde dus
+ * alsnog een plek die de verkeerde kon zijn.
+ *
+ * Het idee om door te groeien komt van de gebruiker en is precies de goede: komt een
+ * fragment meer dan eens voor, neem er dan een woord bij. Bij "De ouder waar het" (dat
+ * in een ouderschapsplan overal staat) levert vijf woorden meestal al één treffer op, en
+ * die is dan aantoonbaar de juiste in plaats van de eerste de beste.
+ *
+ * Twee grenzen. Komt bij een bepaalde lengte GEEN enkel venster meer voor, dan stoppen we:
+ * langer maken kan dan alleen maar naar nul. En blijft alles dubbelzinnig, dan komt het
+ * minst voorkomende terug — met `voorkomens` erbij, zodat de aanroeper weet dat hij het
+ * niet zeker weet.
  *
  * @param {string} passage        het citaat uit de bevinding
  * @param {string} documentTekst  de volledige tekst waarin gezocht wordt
- * @param {{venster?: number}} opties
- * @returns {{fragment: string, voorkomens: number, index: number} | null}
+ * @param {{venster?: number, maxVenster?: number}} opties
+ * @returns {{fragment: string, voorkomens: number, index: number, venster: number} | null}
  *   `fragment` is genormaliseerd; `index` is de positie in de genormaliseerde tekst.
  */
-export function kiesUniekFragment(passage, documentTekst, { venster = 4 } = {}) {
+export function kiesUniekFragment(passage, documentTekst, { venster = 4, maxVenster = 14 } = {}) {
   const doc = normaliseer(documentTekst);
   const woorden = normaliseer(passage).split(' ').filter(Boolean);
   if (!doc || woorden.length < venster) return null;
 
   let beste = null;
-  for (let i = 0; i + venster <= woorden.length; i++) {
-    const fragment = woorden.slice(i, i + venster).join(' ');
-    const voorkomens = telVoorkomens(doc, fragment);
-    if (voorkomens === 0) continue;
-    if (voorkomens === 1) {
-      return { fragment, voorkomens, index: doc.indexOf(fragment) };
+
+  for (let v = venster; v <= Math.min(maxVenster, woorden.length); v++) {
+    let ietsGevonden = false;
+
+    for (let i = 0; i + v <= woorden.length; i++) {
+      const fragment = woorden.slice(i, i + v).join(' ');
+      const voorkomens = telVoorkomens(doc, fragment);
+      if (voorkomens === 0) continue;
+      ietsGevonden = true;
+
+      // Eén treffer: dit is aantoonbaar de juiste plek. Klaar.
+      if (voorkomens === 1) return { fragment, voorkomens, index: doc.indexOf(fragment), venster: v };
+
+      // Anders onthouden als hij scherper is dan wat we hadden. Bij gelijk aantal wint
+      // het kortste fragment: dat overleeft kleine verschillen in de viewertekst beter.
+      if (!beste || voorkomens < beste.voorkomens) {
+        beste = { fragment, voorkomens, index: doc.indexOf(fragment), venster: v };
+      }
     }
-    if (!beste || voorkomens < beste.voorkomens) {
-      beste = { fragment, voorkomens, index: doc.indexOf(fragment) };
-    }
+
+    // Kwam bij deze lengte niets meer voor, dan levert langer maken alleen nul op.
+    if (!ietsGevonden) break;
   }
+
   return beste;
 }

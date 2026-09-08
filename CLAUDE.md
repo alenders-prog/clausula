@@ -277,6 +277,36 @@ het andere meestal slechter. En bovenal: **toets bij elke voorgestelde herstruct
 eerst of het geen promptprobleem is.** Vijf keer in twee dagen leek iets architectuur en
 was het een instructie of een instelling.
 
+## Drie vragen vóór een bug "af" is
+
+Een reparatie die het gemelde symptoom wegneemt is niet hetzelfde als een reparatie. Stel
+deze drie vragen vóór je iets afvinkt, en schrijf op wat je koos.
+
+**1. Wie doet dit nog meer?** Eén grep. Repareer je iets aan een schrijver, een aanroeper of
+een controle, zoek dan de andere. Op 8 september 2026 bleek dat vijf plekken naar
+`screeningen.rapport` schreven, twee naar `analyse_feiten`, en acht endpoints hun
+toegangscontrole deelden — steeds met één die de afspraak kende en de rest niet.
+
+**2. Levert het mechanisme zijn belofte?** Niet "is de gemelde fout weg", maar "geldt de
+eigenschap". `kiesUniekFragment` heette een fragment te vinden dat maar één keer voorkomt,
+en gebruikte een vást venster van vier woorden — lukte dat niet, dan gaf hij het minst
+voorkomende terug. In de kop stond dat als besluit geformuleerd. Het was een onaf stuk.
+
+**3. Kan dit stil mislukken?** Een `continue` zonder log, een filter dat leeg teruggeeft, een
+sectie op `display:none`. Alles wat verdwijnt zonder spoor kost later een halve dag, en
+wordt meestal door een gebruiker gevonden in plaats van door een test.
+
+> **Het antwoord mag "smal repareren" zijn.** Niet elke bug verdient een herstructurering, en
+> structureel werk kan doorschieten. Maar dan is dat een uitgesproken keuze, geen gewoonte —
+> en de reden staat in de commit.
+
+**Wat een structureel antwoord hier vorm geeft:** de regel in `src/` met een unittest, plus
+een **bronwachter** die afgaat zodra iemand er een tweede weg naast bouwt. Zie
+`tests/unit/endpoint-toegang.test.js` (elk endpoint controleert lidmaatschap),
+`tests/unit/rapport-veld.test.js` (één deur naar de rapportkolom) en
+`tests/unit/feiten-bewaartermijn.test.js` (beide schrijvers passen de bewaartermijn toe).
+Een lijst met bewuste uitzonderingen erin hoort erbij: dan staat een afwijking in de diff.
+
 ## Nieuwe logica gaat naar `src/`
 
 `index.html` telt bijna 15.000 regels en 286 functies. Het refactorplan in
