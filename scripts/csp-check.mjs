@@ -6,10 +6,14 @@
  *
  * ── WAAROM ──────────────────────────────────────────────────────────────────
  *
- * De CSP staat op `Content-Security-Policy-Report-Only` (vercel.json). Omzetten naar
- * afdwingen kan pas als vaststaat dat hij niets breekt, en een CSP die iets blokkeert doet
- * dat stil: er verschijnt geen foutmelding op het scherm, alleen een regel in de console
- * van de bezoeker.
+ * De CSP staat sinds 8 september 2026 op AFDWINGEN. Daarvóór op report-only, want een CSP
+ * die iets blokkeert doet dat stil: er verschijnt geen foutmelding op het scherm, alleen
+ * een regel in de console van de bezoeker.
+ *
+ * Wat de omzetting rechtvaardigde: een volledige doorloop op productie met de console open
+ * — analyse, rapport, conceptgeneratie, DOCX-voorbeeld — zonder één enkele melding. Dit
+ * script blijft draaien omdat het de statische helft bewaakt: komt er een nieuwe externe
+ * bron in de HTML, dan valt die nu niet meer op met een waarschuwing maar met een blokkade.
  *
  * Dit script haalt elke pagina op en legt elke externe bron ernaast langs de policy. Dat is
  * de helft van het antwoord.
@@ -22,9 +26,14 @@
  * pdf.js-worker staat hard in index.html op cdnjs. Beide staan in de policy — maar
  * "staat erin" is geen "werkt".
  *
- * Voordat de header omgaat naar afdwingen: loop met de console open één keer OCR,
- * PDF-export, DOCX-voorbeeld en downloaden door. Elke melding die daar verschijnt is een
- * bron die hier niet uit kwam.
+ * WAT ER BIJ DE OMZETTING NIET IS GELOPEN, en dus nog open staat: OCR op een gescand
+ * document, de PDF-export en het downloaden van het Word-bestand. Die drie halen pas
+ * tijdens het gebruik iets op — de OCR-worker, wasm en taaldata via `Tesseract.createWorker`
+ * — en dat ziet dit script niet. Alle bronnen die zij nodig hebben stáán in de policy, maar
+ * "staat erin" is geen "werkt".
+ *
+ * Breekt daar iets, dan is het één regel terug: `Content-Security-Policy` weer
+ * `Content-Security-Policy-Report-Only` maken in vercel.json.
  */
 
 const BASIS = process.argv.find((a) => a.startsWith('--host='))?.split('=')[1]
