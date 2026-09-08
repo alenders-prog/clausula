@@ -28,9 +28,13 @@
  */
 
 import { lijstZin } from '../ui/lijst-zin.js';
+import { WEERGAVE_DIMENSIES } from './dimensies.js';
 
-/** Vaste volgorde, zodat de zin niet van volgorde wisselt tussen twee tekenbeurten. */
-export const DIM_VOLGORDE = ['juridisch', 'volledigheid', 'balans', 'conflicten', 'cross_doc', 'grammatica'];
+/**
+ * Vaste volgorde, zodat de zin niet van volgorde wisselt tussen twee tekenbeurten.
+ * Dezelfde volgorde als de filterknoppen — die lijst staat in src/analyse/dimensies.js.
+ */
+export { WEERGAVE_DIMENSIES as DIM_VOLGORDE };
 
 /** Hoe lang de afrondingsmelding blijft staan. */
 export const AFRONDING_MS = 6000;
@@ -45,7 +49,7 @@ export const AFRONDING_TEKST = 'Analyse compleet';
  * niet "nog bezig".
  */
 export function lopendeDimensies(dimLoadt = {}, labels = {}) {
-  return DIM_VOLGORDE
+  return WEERGAVE_DIMENSIES
     .filter(d => dimLoadt?.[d] === true)
     .map(d => String(labels[d] || d).toLowerCase());
 }

@@ -15,9 +15,17 @@
  * Alles hieronder gaat door `documentenVan()`, zodat die tweevorm op één plek zit.
  */
 import { berekenGemiddeldeScore } from '../rapport/score.js';
+import { WEERGAVE_ZONDER_CROSSDOC, zwaarsteDimensie } from '../analyse/dimensies.js';
 
-/** De vijf dimensies die een bevinding kan hebben. MfN staat hier bewust niet bij. */
-export const CATEGORIEEN = ['juridisch', 'volledigheid', 'balans', 'conflicten', 'grammatica'];
+/**
+ * De vijf dimensies die een bevinding kan hebben, in de volgorde waarin ze in de tabel
+ * staan. MfN staat hier bewust niet bij.
+ *
+ * Dit is een wéérgavevolgorde. Tot 8 september 2026 liep `hoofdCategorie` deze lijst af
+ * om "de zwaarste categorie" te kiezen, en dat is een andere volgorde — zie
+ * src/analyse/dimensies.js.
+ */
+export const CATEGORIEEN = WEERGAVE_ZONDER_CROSSDOC;
 export const ERNSTEN     = ['hoog', 'midden', 'laag'];
 
 /** Het aantal MfN-elementen per documenttype. Spiegelt MFN_ELEMENTEN in index.html. */
@@ -77,14 +85,14 @@ export function telErnst(issues) {
 export const isAfgevinkt = (iss) => iss?.afgehandeld === true && iss?.negeer !== true;
 export const isGenegeerd = (iss) => iss?.negeer === true;
 
-/** De zwaarste categorie van een bevinding, voor de indeling in de tabel. */
+/**
+ * De zwaarste categorie van een bevinding, voor de indeling in de tabel.
+ *
+ * De voorrang komt uit de prompt en staat in src/analyse/dimensies.js — niet in
+ * CATEGORIEEN hierboven, want dat is de volgorde van de tabelrijen.
+ */
 export function hoofdCategorie(iss) {
-  const dims = Array.isArray(iss?.dimensies) ? iss.dimensies : [];
-  for (const c of CATEGORIEEN) if (dims.includes(c)) return c;
-  // cross_doc is geen eigen rij in de tabel — het is een juridische bevinding die
-  // tussen twee documenten zichtbaar werd.
-  if (dims.includes('cross_doc')) return 'juridisch';
-  return 'volledigheid';
+  return zwaarsteDimensie(iss?.dimensies);
 }
 
 /** Lege telling per categorie en ernst. */

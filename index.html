@@ -3363,65 +3363,12 @@ const classificatieTool = {
   },
 };
 
-const rapportTool = {
-  name: 'registreer_rapport',
-  description: 'Registreert het screeningsrapport als een gededupliceerde lijst van unieke issues.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      // mfn_score staat EERSTE: Claude genereert in schema-volgorde, dus de MfN-check
-      // heeft volledige tokenruimte vóór de issues-lijst.
-      mfn_score: {
-        type: 'object',
-        description: 'MfN-compliantie-score. VERPLICHT voor convenant en ouderschapsplan — vul alle elementen in. Gebruik null voor andere documenttypen.',
-        properties: {
-          elementen: {
-            type: 'array',
-            description: 'Elk MfN-vereist element afzonderlijk beoordeeld. Toelichting max 1 zin.',
-            items: {
-              type: 'object',
-              properties: {
-                element:     { type: 'string', description: 'Naam exact zoals in de MfN-lijst.' },
-                status:      { type: 'string', enum: ['aanwezig','onvolledig','ontbreekt'] },
-                toelichting: { type: 'string', description: 'Max 1 zin; verplicht bij onvolledig of ontbreekt.' },
-              },
-              required: ['element','status'],
-            },
-          },
-          extra_elementen: {
-            type: 'array',
-            description: 'Aanwezige bedingen die niet op de MfN-lijst staan — positieve toevoeging.',
-            items: { type: 'string' },
-          },
-          score_aanwezig: { type: 'integer', description: 'Aantal elementen met status aanwezig.' },
-          score_totaal:   { type: 'integer', description: 'Totaal MfN-elementen (vaste waarde uit de lijst).' },
-        },
-        required: ['elementen','score_aanwezig','score_totaal'],
-      },
-      samenvatting: { type: 'string', description: 'Beknopte samenvatting van het document en de voornaamste bevindingen (3-5 zinnen).' },
-      issues: {
-        type: 'array',
-        description: 'Alle gevonden problemen. Elk probleem verschijnt SLECHTS ÉÉN keer. Sorteer op ernst: hoog eerst, dan midden, dan laag.',
-        items: {
-          type: 'object',
-          properties: {
-            onderwerp:   { type: 'string', description: 'Korte naam van het probleem.' },
-            ernst:       { type: 'string', enum: ['laag','midden','hoog'],
-                          description: 'hoog = rechtsgevolgen of significante benadeling. midden = onduidelijkheid of discussierisico. laag = aandachtspunt of kleine fout.' },
-            dimensies:   { type: 'array',
-                          items: { type: 'string', enum: ['volledigheid','juridisch','balans','grammatica'] },
-                          description: 'Welke dimensies dit issue raakt. Minimaal één.' },
-            bevinding:   { type: 'string', description: 'Wat er mis is.' },
-            aanbeveling: { type: 'string', description: 'Wat de mediator concreet moet doen om dit op te lossen.' },
-            passage:     { type: 'string', description: 'Verbatim citaat van DE ZIN OF BULLET die de fout bevat (niet de voorgaande zin als context). Max 120 tekens. Kopieer de exacte tekst.' },
-          },
-          required: ['onderwerp','ernst','dimensies','bevinding','aanbeveling','passage'],
-        },
-      },
-    },
-    required: ['samenvatting','issues'],
-  },
-};
+// `rapportTool` stond hier: het tool-schema van de screening, uit de tijd dat de analyse
+// in de browser draaide. Sinds die naar de server verhuisde is het schema in
+// `api/analyseer.js` de echte, en werd dit exemplaar door niets meer aangeroepen. Het liep
+// stil achter — `conflicten` ontbrak in de dimensie-enum — en dat was nergens aan te zien,
+// want een schema dat niemand gebruikt geeft ook geen foutmelding. Verwijderd op
+// 8 september 2026, samen met het samentrekken van de dimensielijsten.
 
 // ── OCR via Tesseract.js ──────────────────────────────
 // Drempelwaarde: minder dan dit gemiddelde tekens per pagina → gescand
@@ -4720,7 +4667,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
         ? `<div class="samenvatting">${escH(app.rapport.samenvatting)}</div>` : '';
 
       // Filter-knopjes — loading-dims krijgen kop-pulse animatie; klare dims gekleurde tellers
-      const dims = ['juridisch','volledigheid','balans','conflicten','cross_doc','grammatica'];
+      const dims = WEERGAVE_DIMENSIES;
       const dimLoadt = {
         volledigheid: _structuurLoadt,
         juridisch:    _juridischLoadt,
@@ -6891,7 +6838,7 @@ async function toonRapport(cls, rp) {
       : '';
 
     // Dimensie-filter knoppen
-    const dims = ['juridisch','volledigheid','balans','conflicten','cross_doc','grammatica'];
+    const dims = WEERGAVE_DIMENSIES;
     const dimCounts = {};
     dims.forEach(d => { dimCounts[d] = issues.filter(i => Array.isArray(i.dimensies) && i.dimensies.includes(d)).length; });
 
@@ -8614,7 +8561,9 @@ function buildPdfDef(naam, cls, rp, versieNr, versieLabel, mediatorNaam, orgNaam
 
     if (docIssues) {
       // ── Categorieën grid 3 × 2 ────────────────────────────────────────────────
-      const DIMVOLGORDE = ['juridisch','conflicten','volledigheid','balans','grammatica'];
+      // Bewust de voorrangsvolgorde en niet de weergavevolgorde: het raster zet de
+      // zwaarste categorie linksboven. Zie src/analyse/dimensies.js.
+      const DIMVOLGORDE = VOORRANG_DIMENSIES;
       const catItems = [...DIMVOLGORDE.map(d=>dimCatBox(d,docIssues)), mfnCatBox(mfnAanw,mfnTot)];
       const catRijen = [];
       for (let i = 0; i < catItems.length; i += 3) {
@@ -9732,6 +9681,9 @@ var bepaalMfaStap, mfaVerplicht, mfaFoutTekst, mfaInschrijfFoutTekst; // → src
 var mfaStatusHtml, mfaInschrijfHtml;              // → src/auth/mfa-scherm.js
 var berekenGemiddeldeScore, rapportScore;         // → src/rapport/score.js
 var bouwStatistieken;                             // → src/dashboard/statistieken.js
+// De dimensielijsten stonden tot 8 september 2026 zesmaal los in dit bestand, in drie
+// volgordes. Zie src/analyse/dimensies.js voor het verschil tussen voorrang en weergave.
+var VOORRANG_DIMENSIES, WEERGAVE_DIMENSIES, WEERGAVE_ZONDER_CROSSDOC;
 var bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe;  // → src/dashboard/feiten.js
 var magZoeken;                                    // → src/concept/vervangbaar.js
 var bouwRapportUpdate;                            // → src/opslag/rapport-veld.js
@@ -12307,7 +12259,10 @@ const maakDocCircels = (drp) => {
   // Nieuw schema v2: circles per dimensie op basis van issues[]
   if (Array.isArray(drp.issues)) {
     const issues = drp.issues;
-    const dims   = ['volledigheid','juridisch','balans','grammatica','conflicten'];
+    // Stond hier tot 8 september 2026 in een eigen volgorde (vol, jur, bal, gram, conf).
+    // Nu dezelfde als de filterknoppen, zodat de mediator niet drie volgordes voor
+    // dezelfde vijf dimensies ziet.
+    const dims   = WEERGAVE_ZONDER_CROSSDOC;
     const lbl    = { volledigheid:'Vol', juridisch:'Jur', balans:'Bal', grammatica:'Gram', conflicten:'Conf+' };
     let c = '';
     dims.forEach(d => {
@@ -16519,6 +16474,8 @@ import { bepaalMfaStap, mfaVerplicht, mfaFoutTekst,
 import { mfaStatusHtml, mfaInschrijfHtml }                 from './src/auth/mfa-scherm.js';
 import { berekenGemiddeldeScore, rapportScore }            from './src/rapport/score.js';
 import { bouwStatistieken }                                from './src/dashboard/statistieken.js';
+import { VOORRANG_DIMENSIES, WEERGAVE_DIMENSIES,
+         WEERGAVE_ZONDER_CROSSDOC }                       from './src/analyse/dimensies.js';
 import { bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe } from './src/dashboard/feiten.js';
 import { magZoeken }                                      from './src/concept/vervangbaar.js';
 import { bouwRapportUpdate }                              from './src/opslag/rapport-veld.js';
@@ -16602,6 +16559,9 @@ window.mfaInschrijfHtml       = mfaInschrijfHtml;
 window.berekenGemiddeldeScore = berekenGemiddeldeScore;
 window.rapportScore           = rapportScore;
 window.bouwStatistieken       = bouwStatistieken;
+window.VOORRANG_DIMENSIES        = VOORRANG_DIMENSIES;
+window.WEERGAVE_DIMENSIES        = WEERGAVE_DIMENSIES;
+window.WEERGAVE_ZONDER_CROSSDOC  = WEERGAVE_ZONDER_CROSSDOC;
 window.bouwFeitRegels         = bouwFeitRegels;
 window.pasBewaartermijnToe    = pasBewaartermijnToe;
 window.magZoeken              = magZoeken;
