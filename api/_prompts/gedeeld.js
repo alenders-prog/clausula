@@ -135,16 +135,15 @@ een eis is. Vraag je bij elk "ontbreekt" af of de wet het voorschrijft of slecht
 // ligt. Gevolg: het blok verandert dagelijks en mist dan eenmalig de cache.
 export const bouwPseudonimiseringNota = (vandaag) =>
 `PSEUDONIMISERING — VERPLICHTE UITSLUITINGSREGEL:
-Het document is vóór verzending automatisch pseudonimiseerd. Adressen, postcodes, woonplaatsen en andere PII zijn vervangen door placeholders:
-  [ADRES]      → straatadres incl. huisnummer (bijv. "Grotestraat 140")
-  [WOONPLAATS] → woonplaatsnaam (bijv. "Almelo")
-  [POSTCODE]   → Nederlandse postcode
-  [BSN] / [TEL] / [EMAIL] → overige persoonsgegevens
-  [IBAN-1], [IBAN-2], … → rekeningnummers (automatisch genummerd; hetzelfde nummer = zelfde placeholder)
-GEVOLG: formaat-validatie op zulke velden levert valse positieven op.
-- Maak GEEN issue aan als een BSN, telefoonnummer of e-mailadres niet het verwachte formaat heeft.
-- Maak GEEN issue over een ontbrekende of generieke woonplaats of adres — het [ADRES]/[WOONPLAATS] staat WEL in het originele document.
-- Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau.
+Het document is vóór verzending automatisch pseudonimiseerd. Persoonsgegevens zijn vervangen door placeholders.
+
+HERKEN ZE AAN DE VORM, NIET AAN EEN LIJST: alles tussen vierkante haken in HOOFDLETTERS, eventueel met een volgnummer — [ADRES], [WOONPLAATS], [POSTCODE], [BSN], [TEL], [EMAIL], [IBAN_0], [REKENING_1], [GEBOORTEPLAATS_0], [HUWELIJKSPLAATS_0], [WERKGEVER_0], [GEBOORTEDAG_0]. Kom je een vorm tegen die hier niet bij staat maar er wel zo uitziet, behandel hem dan hetzelfde.
+
+DE REGEL: waar een placeholder staat, STAAT DE ECHTE WAARDE IN HET ORIGINELE DOCUMENT. Hij is niet leeg, niet onvolledig en niet onleesbaar — hij is door ons vervangen.
+- Maak NOOIT een issue omdat een placeholder er staat, of omdat een waarde "niet is ingevuld", "ontbreekt", "onleesbaar is" of "een plaatshouder bevat".
+- Maak GEEN issue als een BSN, telefoonnummer, e-mailadres of datum niet het verwachte formaat heeft.
+- "op [GEBOORTEDAG_0]-1986" betekent dat de volledige geboortedatum in het document staat; meld NIET dat alleen het geboortejaar vermeld is.
+- Controleer WEL of een waarde ONTBREEKT of INCONSISTENT is op inhoudelijk niveau — een ontbrekend bedrag, een datum die nergens staat, twee plaatsen die elkaar tegenspreken.
 Gebruik in jouw aanbevelingen NOOIT letterlijke woonplaatsen of straatnamen — schrijf altijd [WOONPLAATS] resp. [ADRES].
 
 HUIDIGE DATUM: ${vandaag}. Gebruik deze datum bij alle temporele beoordelingen — bijv. of een peildatum, ondertekeningsdatum of ingangsdatum in het verleden of de toekomst ligt. Rapporteer een datum NOOIT als "in de toekomst" als die datum eerder is dan de huidige datum.`;

@@ -75,10 +75,32 @@ export function vervangPersoonsdetails(tekst, piiPh = null) {
   let t = String(tekst ?? '');
   if (!t) return t;
 
-  // ── Geboortedatum → alleen het jaar ───────────────────────────────────────
-  // Zowel "geboren op 12-12-1996" als "geboren 03-04-2011 te Deventer".
+  // ── Geboortedatum → dag en maand als plaatshouder, het jaartal blijft ─────
+  //
+  // Dit maakte er "geboren in 1996" van: dag en maand verdwenen zonder spoor. Goed voor de
+  // gegevensbeperking, maar op 8 september 2026 bleek wat het kost. Het model kreeg
+  // "geboren te [GEBOORTEPLAATS_0] in 1986" te zien en meldde — volkomen terecht voor wat
+  // hét zag — dat alleen het geboortejaar vermeld stond. In het document staat gewoon
+  // "op 06-11-1986". Een bevinding over een gebrek dat wij zelf hadden gemaakt, en de
+  // mediator kon niet zien waar hij vandaan kwam.
+  //
+  // Nu dezelfde vorm als bij IBAN en BSN: een genummerde plaatshouder die op de terugweg
+  // exact wordt hersteld. Dag en maand verlaten het apparaat niet, het model ziet dát er
+  // een volledige datum staat, en het citaat matcht weer met het document.
+  //
+  // Het jaartal blijft leesbaar, en dat is geen slordigheid: art. 1:157 lid 3 BW kent een
+  // aparte alimentatietermijn voor wie op of vóór 1 januari 1970 is geboren, en de leeftijd
+  // van een kind bepaalt het hoorrecht. Zonder jaar kan de analyse die toetsen niet doen.
+  //
+  // Zonder `piiPh` — passage-normalisatie, geen serveraanroep — blijft het oude gedrag:
+  // dan is er niets om naar terug te herstellen, en is weglaten veiliger dan laten staan.
   t = t.replace(new RegExp(String.raw`(\bgeboren\b[^.,;]{0,25}?\b(?:op\s+)?)${DATUM}`, 'gi'),
-    (heel, voor, ...rest) => `${voor.replace(/\bop\s+$/i, 'in ')}${jaarEnMaand(['', ...rest]).jaar}`);
+    (heel, voor, ...rest) => {
+      const { jaar, maand } = jaarEnMaand(['', ...rest]);
+      const dag = rest[0] ?? rest[3] ?? '';
+      if (!piiPh || !dag || !maand) return `${voor.replace(/\bop\s+$/i, 'in ')}${jaar}`;
+      return `${voor}${piiPh('GEBOORTEDAG', `${dag}-${maand}`)}-${jaar}`;
+    });
 
   // ── Huwelijksdatum → maand en jaar ────────────────────────────────────────
   // Beide woordvolgordes: "gehuwd op 26-08-2022" én "op 26-08-2022 te X gehuwd".
@@ -116,7 +138,12 @@ export function vervangPersoonsdetails(tekst, piiPh = null) {
   // "werkzaam bij X", "in dienst bij X", en losstaande rechtsvormen.
   t = t.replace(/(\b(?:werkzaam|in\s+dienst|werkgever|dienstverband)\b[^.;]{0,20}?\bbij\s+)(?!\[)([A-Z][^,.;]{2,60}?)(?=\s*[,.;]|$)/gi,
     (heel, voor, org) => `${voor}${piiPh('WERKGEVER', org.trim())}`);
-  t = t.replace(/(?<!\[)\b((?:[A-Z][\w'&-]*\s+){0,4}(?:B\.?V\.?|N\.?V\.?|V\.?O\.?F\.?|Stichting|Pensioenfonds)(?:\s+[A-Z][\w'&-]*){0,4})/g,
+  // De woordgrens aan het eind is niet decoratief. Zonder `(?![A-Za-z])` matcht `N\.?V\.?`
+  // de "NV" binnenin "NVI", en dan werd "de door de NVI vastgestelde index" tot
+  // "de door de [WERKGEVER_0]I vastgestelde index". Het model meldde dat vervolgens als een
+  // onleesbare plaatshouder — een bevinding over een gebrek dat wij zelf maakten, en die
+  // stond dagenlang in de evalbaseline zonder dat iemand hem als fout herkende.
+  t = t.replace(/(?<!\[)\b((?:[A-Z][\w'&-]*\s+){0,4}(?:B\.?V\.?|N\.?V\.?|V\.?O\.?F\.?|Stichting|Pensioenfonds)(?![A-Za-z])(?:\s+[A-Z][\w'&-]*){0,4})/g,
     (heel, org) => piiPh('WERKGEVER', org.trim()));
 
   // ── Adres zonder herkenbaar straatsuffix ──────────────────────────────────

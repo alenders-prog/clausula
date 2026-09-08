@@ -1,61 +1,49 @@
 {
   "fixture": "convenant-tegenstrijdig.json",
-  "aantal": 13,
+  "aantal": 10,
   "perErnst": {
-    "midden": 11,
-    "laag": 2
+    "midden": 9,
+    "hoog": 1
   },
   "onderwerpen": [
-    {
-      "onderwerp": "Naamsinconsistentie: ING-rekening op naam 'Alexander Schreven' wijkt af van geïntroduceerde naam 'Sander Alexander Schreven'",
-      "ernst": "midden"
-    },
     {
       "onderwerp": "Huwelijksdatum onvolledig: dag ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Ontslag hoofdelijke aansprakelijkheid hypotheek niet geregeld",
+      "onderwerp": "Naam op bankrekening wijkt af van persoonsgegevens man",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Overbedelingsberekening: verhouding taxatiewaarde, hypotheek en vergoeding niet inzichtelijk gemotiveerd",
-      "ernst": "laag"
+      "onderwerp": "Ontslag hoofdelijke aansprakelijkheid hypotheek niet geregeld",
+      "ernst": "hoog"
+    },
+    {
+      "onderwerp": "Peildatum verdeling niet vastgesteld",
+      "ernst": "midden"
     },
     {
       "onderwerp": "Fiscale afwikkeling ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Inboedelverdeling ontbreekt",
-      "ernst": "laag"
-    },
-    {
       "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Schulden niet geregeld",
+      "onderwerp": "Partneralimentatie: nihilbeding ontbreekt, alleen feitelijke motivering",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Nihilbeding partneralimentatie: geen expliciete grondslag art. 1:158 BW en geen termijn",
+      "onderwerp": "Pensioen: bijzonder partnerpensioen niet geregeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Bijzonder partnerpensioen niet geregeld",
+      "onderwerp": "Woning: passeerdatum/leveringsdatum bij notaris niet vermeld",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Meldingsplicht pensioenuitvoerder (art. 11 WVPS) niet opgenomen",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Passeerdatum / leveringsdatum woning niet vermeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Fiscaal partnerschap: einddatum en verdeling aanslagen niet geregeld",
+      "onderwerp": "Overbedelingsberekening woning: bedrag niet controleerbaar zonder hypotheeksaldo op naam man",
       "ernst": "midden"
     }
   ]

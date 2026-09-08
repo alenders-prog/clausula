@@ -1,26 +1,14 @@
 {
   "fixture": "convenant-incompleet.json",
-  "aantal": 15,
+  "aantal": 14,
   "perErnst": {
+    "hoog": 3,
     "midden": 10,
-    "hoog": 4,
     "laag": 1
   },
   "onderwerpen": [
     {
-      "onderwerp": "Huwelijksdatum onvolledig: dag ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Geboortedatum partijen onvolledig: alleen jaar vermeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Geboortedatum kinderen onvolledig: alleen jaar vermeld",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Ouderschapsplan en kinderalimentatie niet geregeld en geen verwijzing naar afzonderlijk document",
+      "onderwerp": "Kinderalimentatie volledig afwezig bij twee minderjarige kinderen",
       "ernst": "hoog"
     },
     {
@@ -28,43 +16,51 @@
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Partneralimentatie: ingangsdatum ontbreekt",
+      "onderwerp": "Huwelijksdatum onvolledig: dag ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Pensioenverevening: WVPS-conformiteit niet geborgd (geen intern of extern melding)",
+      "onderwerp": "Partneralimentatie: ingangsdatum en duur ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Bankrekeningen: rekeningnummers en saldi op peildatum ontbreken",
+      "onderwerp": "Pensioenverevening: uitvoeringsdetails onvolledig",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Inboedel: geen regeling opgenomen",
+      "onderwerp": "Bankrekeningen: rekeningnummers, saldi en peildatum ontbreken",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Fiscale afwikkeling: verdeling aanslagen en teruggaven niet geregeld",
+      "onderwerp": "Fiscale afwikkeling: verdeling aanslagen en teruggaven ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "onderwerp": "Schuldenregeling ontbreekt",
       "ernst": "midden"
     },
     {
-      "onderwerp": "Mediatorgegevens ontbreken",
+      "onderwerp": "Woning: waarde en eigendomsverhouding niet vermeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Adressen van partijen zelf ontbreken in de personalia",
       "ernst": "laag"
     },
     {
-      "onderwerp": "Pensioenafspraak beschrijft conversie maar mist wettelijke grondslag (art. 5 WVPS) en instemming pensioenuitvoerder",
+      "onderwerp": "Pensioenregeling beschrijft conversie maar noemt art. 5 WVPS niet",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Kinderalimentatie en ouderschapsplan niet geregeld en niet verwezen naar ander document",
-      "ernst": "hoog"
+      "onderwerp": "Bijzonder partnerpensioen niet geregeld",
+      "ernst": "midden"
     },
     {
-      "onderwerp": "Huwelijksgemeenschap niet volledig afgewikkeld: geen peildatum, geen vermogensopstelling, geen schuldenregeling",
+      "onderwerp": "Ontslag uit hoofdelijke aansprakelijkheid hypotheek niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie en ouderschapsplan niet vermeld of verwezen",
       "ernst": "midden"
     }
   ]

@@ -1,30 +1,18 @@
 {
   "fixture": "ouderschapsplan-onvolledig.json",
-  "aantal": 15,
+  "aantal": 14,
   "perErnst": {
     "midden": 10,
-    "laag": 4,
+    "laag": 3,
     "hoog": 1
   },
   "onderwerpen": [
-    {
-      "onderwerp": "Indexeringsmaatstaf kinderalimentatie niet leesbaar (plaatshouder)",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Vakantieregeling onvolledig: alleen zomervakantie geregeld",
-      "ernst": "midden"
-    },
     {
       "onderwerp": "Feestdagen- en bijzondere dagenregeling ontbreekt volledig",
       "ernst": "midden"
     },
     {
       "onderwerp": "Informatie- en consultatieverplichting ontbreekt",
-      "ernst": "midden"
-    },
-    {
-      "onderwerp": "Draagkrachtberekening conform Tremanormen ontbreekt",
       "ernst": "midden"
     },
     {
@@ -36,7 +24,7 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Regeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
+      "onderwerp": "Omgangsregeling bij ziekte of afwezigheid (inhaalregeling) ontbreekt",
       "ernst": "laag"
     },
     {
@@ -44,28 +32,36 @@
       "ernst": "midden"
     },
     {
-      "onderwerp": "Wisselmomenten niet volledig gespecificeerd (wie haalt/brengt)",
+      "onderwerp": "Wisselmomenten niet volledig gespecificeerd: geen afspraak over wie haalt/brengt",
       "ernst": "laag"
     },
     {
       "onderwerp": "Ondertekeningsblok ontbreekt",
       "ernst": "midden"
-    },
-    {
-      "onderwerp": "Actuele situatie van partijen niet beschreven",
-      "ernst": "laag"
-    },
-    {
-      "onderwerp": "Rechten van de kinderen en mate van betrokkenheid niet beschreven",
-      "ernst": "laag"
     },
     {
       "onderwerp": "Informatieplicht (art. 1:377b BW) ontbreekt",
       "ernst": "hoog"
     },
     {
-      "onderwerp": "Ondertekeningsblok ontbreekt",
+      "onderwerp": "Kinderalimentatie: indexering verwijst naar NVI in plaats van wettelijk CBS-indexcijfer",
       "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: doorloop na 18e jaar (art. 1:395a BW) niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Kinderalimentatie: Tremanormen-onderbouwing ontbreekt",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Zomervakantieregeling: even jaren niet geregeld",
+      "ernst": "midden"
+    },
+    {
+      "onderwerp": "Betalingswijze kinderalimentatie niet gespecificeerd",
+      "ernst": "laag"
     }
   ]
 }

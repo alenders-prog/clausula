@@ -33,9 +33,25 @@ function tracker() {
 }
 const vv = (t) => vervangPersoonsdetails(t, tracker());
 
-describe('geboortedatum → alleen het jaar', () => {
-  it('haalt dag en maand weg maar houdt het jaar', () => {
-    expect(vv('geboren te Enschede op 12-12-1996')).toMatch(/geboren te \[GEBOORTEPLAATS_0\] in 1996/);
+describe('geboortedatum → dag en maand als plaatshouder', () => {
+  it('vervangt dag en maand en houdt het jaar leesbaar', () => {
+    // Dit maakte er tot 8 september 2026 "in 1996" van. Het model meldde vervolgens dat
+    // alleen het geboortejaar vermeld stond — terecht voor wat hét zag, maar in het
+    // document staat de volle datum. Een plaatshouder toont dát er een datum is en is op
+    // de terugweg exact te herstellen, net als [IBAN_0].
+    expect(vv('geboren te Enschede op 12-12-1996'))
+      .toMatch(/geboren te \[GEBOORTEPLAATS_0\] op \[GEBOORTEDAG_0\]-1996/);
+  });
+
+  it('stuurt dag en maand niet mee', () => {
+    expect(vv('geboren te Enschede op 12-12-1996')).not.toContain('12-12');
+  });
+
+  it('valt terug op alleen het jaar als er geen plaatshouders zijn', () => {
+    // Bij passage-normalisatie is er niets om naar terug te herstellen; weglaten is dan
+    // veiliger dan laten staan.
+    expect(vervangPersoonsdetails('geboren te Enschede op 12-12-1996'))
+      .toMatch(/geboren te Enschede in 1996/);
   });
 
   it('werkt ook als de datum vóór de plaats staat', () => {
@@ -156,5 +172,28 @@ describe('huwelijksplaats', () => {
   it('raakt "wonende te" niet — dat is een andere plaats met een eigen patroon', () => {
     const uit = vv('wonende te Almelo, en werkzaam elders.');
     expect(uit).not.toContain('HUWELIJKSPLAATS');
+  });
+});
+
+// ── De woordgrens achter een rechtsvorm ─────────────────────────────────────
+//
+// Gevonden op 8 september 2026 in een evaldiff die er al dagen stond: "de door de NVI
+// vastgestelde index" werd "de door de [WERKGEVER_0]I vastgestelde index". `N.?V.?` matchte
+// de NV binnenin NVI. Het model meldde dat als een onleesbare plaatshouder — een bevinding
+// over een gebrek dat wij zelf maakten.
+describe('rechtsvormen worden niet middenin een woord herkend', () => {
+  it('laat NVI met rust', () => {
+    const uit = vv('De alimentatie wordt verhoogd met het door de NVI vastgestelde percentage.');
+    expect(uit).toContain('NVI');
+    expect(uit).not.toContain('WERKGEVER');
+  });
+
+  it('laat andere woorden die met een rechtsvorm beginnen met rust', () => {
+    expect(vv('conform de BVA-norm')).toContain('BVA');
+  });
+
+  it('herkent een échte rechtsvorm nog steeds', () => {
+    expect(vv('De man werkt bij Jansen BV in Almelo.')).toMatch(/\[WERKGEVER_\d+\]/);
+    expect(vv('Stichting Pensioenfonds Zorg en Welzijn')).toMatch(/\[WERKGEVER_\d+\]/);
   });
 });
