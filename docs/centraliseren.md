@@ -113,7 +113,27 @@ bestaan al en zijn de vangnetten. De e2e-test `14-doc-volgorde.spec.js` loopt de
 
 Dezelfde vraag op de rest van de code. Op volgorde van risico, niet van omvang.
 
-### B1. De lijst met dimensies — zes varianten, drie volgordes
+### B1. De lijst met dimensies — zes varianten, drie volgordes  ✔ gedaan 8 sep 2026
+
+> **Uitgevoerd** in `4e2e388`. `src/analyse/dimensies.js` draagt nu `VOORRANG_DIMENSIES`,
+> `WEERGAVE_DIMENSIES` en `zwaarsteDimensie()`; de zes lijsten wijzen daarheen.
+> `tests/unit/dimensies.test.js` bewaakt het, en die wachter is getoetst door hem te
+> laten afgaan.
+>
+> **Wat er onder bleek te zitten.** Twee dingen die het voorstel hierboven nog niet wist:
+>
+> - `rapportTool` in `index.html` was een zevende lijst, en de enige waar `conflicten`
+>   in ontbrak. Hij werd nergens meer aangeroepen — het schema verhuisde met de analyse
+>   naar `api/analyseer.js` en dit exemplaar bleef staan. Verwijderd (50 regels).
+> - `statistieken.hoofdCategorie` liep `CATEGORIEEN` af om "de zwaarste categorie" te
+>   kiezen. Dat is een *weergave*volgorde en zet conflicten op vier. Een bevinding met
+>   `["balans","conflicten"]` telde op het dashboard dus als balans. Het risico dat
+>   hierboven als hypothetisch stond — "iemand verschuift ongemerkt de voorrangsregel" —
+>   was al opgetreden.
+>
+> De cirkels bij een bewaarde analyse volgen nu de filterknoppen in plaats van een derde
+> eigen volgorde. Dat is de enige zichtbare wijziging, en bewust.
+
 
 Er bestaat een geëxporteerde constante, `DIM_VOLGORDE` in
 `src/analyse/voortgang-status.js`. Daarnaast staan er vijf kopieën:
