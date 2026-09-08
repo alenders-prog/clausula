@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   statistiekenUitFeiten, scoreTrajectUitFeiten, mfnUitFeiten, uitVerwijderdeDossiers,
 } from '../../src/dashboard/feiten-statistiek.js';
-import { bouwFeitRegel } from '../../src/dashboard/feiten.js';
+import { bouwFeitRegels } from '../../src/dashboard/feiten.js';
 import { bouwStatistieken } from '../../src/dashboard/statistieken.js';
 
 /** Een feitregel zoals hij uit de database komt. */
@@ -93,12 +93,32 @@ describe('statistiekenUitFeiten — documenttype', () => {
     expect(statistiekenUitFeiten({ feiten: rijen }).kpi.gesignaleerd).toBe(10);
   });
 
-  it('neemt een gecombineerde analyse mee bij beide typen', () => {
-    // Bij een analyse van beide stukken is niet te zeggen welke bevinding bij welk
-    // stuk hoorde — de feitregel telt ze samen. Grover dan de live-berekening; dat
-    // staat in de uitleg bij de module.
-    expect(statistiekenUitFeiten({ feiten: rijen, docType: 'convenant' }).kpi.gesignaleerd).toBe(7);
-    expect(statistiekenUitFeiten({ feiten: rijen, docType: 'ouderschapsplan' }).kpi.gesignaleerd).toBe(8);
+  it('telt bij één type alleen de regels van dát type', () => {
+    // Deze test legde tot 08-09-2026 het omgekeerde vast: een gecombineerde regel telde
+    // bij béíde typen mee (7 en 8), inclusief de bevindingen van het andere stuk. Daar
+    // kwam de melding uit dat de keuze Convenant/Ouderschapsplan niets deed — het
+    // staafdiagram bleef simpelweg op het totaal staan.
+    expect(statistiekenUitFeiten({ feiten: rijen, docType: 'convenant' }).kpi.gesignaleerd).toBe(2);
+    expect(statistiekenUitFeiten({ feiten: rijen, docType: 'ouderschapsplan' }).kpi.gesignaleerd).toBe(3);
+  });
+
+  it('laat een oude samengestelde regel alleen onder "alle" meetellen', () => {
+    // Regels van vóór de splitsing dragen nog 'convenant+ouderschapsplan'. Hun verdeling
+    // over de twee stukken is werkelijk onbekend, dus ze horen bij geen van beide keuzes.
+    const alleen = rijen.filter(r => r.doc_type.includes('+'));
+    expect(statistiekenUitFeiten({ feiten: alleen, docType: 'alle' }).kpi.gesignaleerd).toBe(5);
+    expect(statistiekenUitFeiten({ feiten: alleen, docType: 'convenant' }).kpi.gesignaleerd).toBe(0);
+  });
+
+  it('telt analyses op screening en niet op regels', () => {
+    // Eén analyse van twee stukken levert twee regels. Zou "Analyses uitgevoerd" die
+    // tellen, dan verdubbelt het getal zodra iemand beide documenten samen analyseert.
+    const twee = [
+      feit({ screening_id: 's9', doc_type: 'convenant', issues_totaal: 1 }),
+      feit({ screening_id: 's9', doc_type: 'ouderschapsplan', issues_totaal: 1 }),
+    ];
+    expect(statistiekenUitFeiten({ feiten: twee }).kpi.analyses).toBe(1);
+    expect(statistiekenUitFeiten({ feiten: twee }).kpi.gesignaleerd).toBe(2);
   });
 });
 
@@ -207,7 +227,7 @@ describe('feiten en screeningen geven dezelfde cijfers', () => {
     { id: 's2', dossier_id: 'd1', versie_nr: 2, created_at: '2026-08-05T10:00:00Z',
       rapport: { documenten: [{ doc_type: 'convenant', issues: [iss('a', 'hoog')] }] } },
   ];
-  const feiten = screeningen.map(s => bouwFeitRegel(s, { organisatie_id: 'o1' }));
+  const feiten = screeningen.flatMap(s => bouwFeitRegels(s, { organisatie_id: 'o1' }));
 
   const uitScreeningen = bouwStatistieken({ screeningen });
   const uitFeiten = statistiekenUitFeiten({ feiten });

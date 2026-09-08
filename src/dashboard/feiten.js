@@ -1,5 +1,6 @@
 /**
- * src/dashboard/feiten.js — van één bewaarde screening naar één regel `analyse_feiten`
+ * src/dashboard/feiten.js — van één bewaarde screening naar `analyse_feiten`-regels,
+ * één per documenttype
  *
  * De feitentabel bestaat omdat het dashboard anders meezakt als een dossier wordt
  * verwijderd: de screeningen gaan mee en de tellingen met hen. Voor "hoe staan we
@@ -33,27 +34,57 @@ function legeCategorieen() {
 const KORT = { hoog: 'h', midden: 'm', laag: 'l' };
 
 /**
- * Bouwt de feitregel voor één bewaarde screening.
+ * Bouwt de feitregels voor één bewaarde screening — ÉÉN PER DOCUMENTTYPE.
  *
- * Eén regel per SCREENING, niet per document. Een analyse van een convenant én een
- * ouderschapsplan levert dus één regel met de tellingen bij elkaar op. Per document
- * splitsen zou nauwkeuriger zijn, maar `screening_id` is de sleutel die uniek moet
- * blijven — anders levert opnieuw opslaan dubbele regels op in plaats van een
- * bijgewerkte. `doc_type` bevat bij meerdere documenten de gesorteerde typen.
+ * ── WAAROM PER DOCUMENT (7/8 september 2026) ────────────────────────────────
+ *
+ * Dit was één regel per screening, met de tellingen van alle documenten opgeteld en
+ * `doc_type` als 'convenant+ouderschapsplan'. Dat maakte de keuze Convenant /
+ * Ouderschapsplan in het statistiekenpaneel zinloos: het staafdiagram bleef het totaal
+ * tonen (het filter hield de hele regel) en de MfN-ring verdween juist (dat filter deed
+ * een exacte vergelijking). Twee filters op hetzelfde veld, allebei fout, en achteraf
+ * niet te repareren — in een optelling zit niet meer welke bevinding bij welk stuk hoorde.
+ *
+ * De reden dat het zo begon was de sleutel: `screening_id` moest uniek blijven, anders
+ * levert opnieuw opslaan dubbele regels op. Die sleutel is nu `(screening_id, doc_type)`
+ * — zie supabase/2026-09-08-feiten-per-document.sql.
+ *
+ * Documenten van hetzelfde type binnen één analyse gaan samen in één regel. Dat is geen
+ * verlies: het dashboard groepeert toch per type, en twee convenanten in één dossier is
+ * geen onderscheid dat iemand terugvraagt.
+ *
+ * `doc_type` is nooit leeg. Een document zonder herkenbaar type krijgt 'onbekend', want
+ * de unique index in de database telt NULL's als van elkaar verschillend — met NULL erin
+ * zou opnieuw opslaan alsnog rijen bíjschrijven in plaats van bijwerken.
  *
  * @param {object} screening  rij uit `screeningen` — {id, dossier_id, versie_nr,
  *                            rapport, classificatie, created_at, gebruiker_id}
  * @param {object} context    {organisatie_id, gebruiker_id} — gebruiker_id valt terug
  *                            op die van de screening
- * @returns {object|null}     kolommen voor analyse_feiten, of null als er niets te
- *                            tellen valt
+ * @returns {object[]}        kolommen voor analyse_feiten, één per documenttype; leeg
+ *                            als er niets te tellen valt
  */
-export function bouwFeitRegel(screening, context = {}) {
-  if (!screening?.id) return null;
+export function bouwFeitRegels(screening, context = {}) {
+  if (!screening?.id) return [];
 
   const docs = documentenVan(screening.rapport);
-  if (!docs.length) return null;
+  if (!docs.length) return [];
 
+  // Documenten groeperen op type; elk groepje levert straks één regel.
+  const perType = new Map();
+  for (const doc of docs) {
+    const type = typeVanDocument(doc, screening) || 'onbekend';
+    if (!perType.has(type)) perType.set(type, []);
+    perType.get(type).push(doc);
+  }
+
+  return [...perType.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([type, groep]) => bouwRegel(screening, context, type, groep));
+}
+
+/** De telling voor één documenttype binnen één screening. */
+function bouwRegel(screening, context, docType, docs) {
   const perCategorie = legeCategorieen();
   const telling = { hoog: 0, midden: 0, laag: 0 };
   // Per ernst apart bijhouden wat er nog openstaat. Uit gevonden-min-afgevinkt is dat
@@ -63,12 +94,9 @@ export function bouwFeitRegel(screening, context = {}) {
 
   const mfn = { totaal: null, aanwezig: 0, onvolledig: 0, ontbreekt: 0, extra: 0 };
   let heeftMfn = false;
-  const typen = new Set();
   const scores = [];
 
   for (const doc of docs) {
-    typen.add(typeVanDocument(doc, screening));
-
     for (const iss of (Array.isArray(doc?.issues) ? doc.issues : [])) {
       issuesTotaal++;
       const e = ERNSTEN.includes(iss?.ernst) ? iss.ernst : 'midden';
@@ -82,10 +110,9 @@ export function bouwFeitRegel(screening, context = {}) {
     const m = doc?.mfn_score;
     if (m?.elementen?.length) {
       heeftMfn = true;
-      const type = typeVanDocument(doc, screening);
       // Vaste noemer per documenttype, nooit de lengte van de lijst: een afgekapte
       // lijst zou de noemer stilletjes verkleinen en de score opblazen.
-      mfn.totaal = (mfn.totaal || 0) + (m.score_totaal || MFN_TOTAAL[type] || m.elementen.length);
+      mfn.totaal = (mfn.totaal || 0) + (m.score_totaal || MFN_TOTAAL[docType] || m.elementen.length);
       mfn.aanwezig   += m.elementen.filter(x => x.status === 'aanwezig').length;
       mfn.onvolledig += m.elementen.filter(x => x.status === 'onvolledig').length;
       mfn.ontbreekt  += m.elementen.filter(x => x.status === 'ontbreekt').length;
@@ -102,7 +129,7 @@ export function bouwFeitRegel(screening, context = {}) {
     dossier_sleutel: screening.dossier_id ?? null,
     screening_id:    screening.id,
     versie_nr:       screening.versie_nr ?? null,
-    doc_type:        [...typen].filter(t => t && t !== 'onbekend').sort().join('+') || null,
+    doc_type:        docType,
     geanalyseerd_op: screening.created_at ?? new Date().toISOString(),
 
     issues_totaal: issuesTotaal,

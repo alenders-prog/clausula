@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { bouwFeitRegel, keurFeitRegel } from '../../src/dashboard/feiten.js';
+import { bouwFeitRegels, keurFeitRegel } from '../../src/dashboard/feiten.js';
+
+// Veruit de meeste tests hieronder gaan over één document. bouwFeitRegels levert sinds
+// 08-09-2026 een lijst met één regel per documenttype; deze helper pakt de enige.
+const bouwFeitRegel = (...a) => bouwFeitRegels(...a)[0] ?? null;
 
 const iss = (onderwerp, ernst = 'midden', dimensies = ['juridisch'], extra = {}) =>
   ({ onderwerp, ernst, dimensies, ...extra });
@@ -45,20 +49,37 @@ describe('bouwFeitRegel — tellingen', () => {
     expect(r.per_categorie.juridisch.h).toBe(1);
   });
 
-  it('telt over meerdere documenten in één analyse', () => {
-    const r = bouwFeitRegel(screening({ rapport: { documenten: [
-      { doc_type: 'convenant',       issues: [iss('a', 'hoog')] },
+  it('splitst een analyse met twee documenttypen in twee regels', () => {
+    // Dit was één regel met doc_type 'convenant+ouderschapsplan' en de tellingen
+    // opgeteld. Daardoor deed de keuze Convenant/Ouderschapsplan in het dashboard
+    // zichtbaar niets: het filter hield de hele regel, inclusief het andere stuk.
+    const rs = bouwFeitRegels(screening({ rapport: { documenten: [
       { doc_type: 'ouderschapsplan', issues: [iss('b', 'laag')] },
+      { doc_type: 'convenant',       issues: [iss('a', 'hoog')] },
     ] } }));
-    expect(r.issues_totaal).toBe(2);
-    expect(r.doc_type).toBe('convenant+ouderschapsplan');
+    expect(rs).toHaveLength(2);
+    // Gesorteerd op type, zodat de uitvoer niet van de documentvolgorde afhangt.
+    expect(rs.map(r => r.doc_type)).toEqual(['convenant', 'ouderschapsplan']);
+    expect(rs[0]).toMatchObject({ issues_totaal: 1, hoog: 1, laag: 0 });
+    expect(rs[1]).toMatchObject({ issues_totaal: 1, hoog: 0, laag: 1 });
+    // Beide regels wijzen naar dezelfde analyse; samen vormen ze de sleutel.
+    expect(new Set(rs.map(r => r.screening_id)).size).toBe(1);
   });
 
-  it('geeft null als er niets te tellen valt', () => {
-    expect(bouwFeitRegel(null)).toBeNull();
-    expect(bouwFeitRegel(screening({ rapport: null }))).toBeNull();
-    expect(bouwFeitRegel(screening({ rapport: { documenten: [] } }))).toBeNull();
-    expect(bouwFeitRegel({ rapport: { issues: [] } })).toBeNull();   // geen id
+  it('voegt documenten van hetzelfde type samen tot één regel', () => {
+    const rs = bouwFeitRegels(screening({ rapport: { documenten: [
+      { doc_type: 'convenant', issues: [iss('a', 'hoog')] },
+      { doc_type: 'convenant', issues: [iss('b', 'laag')] },
+    ] } }));
+    expect(rs).toHaveLength(1);
+    expect(rs[0].issues_totaal).toBe(2);
+  });
+
+  it('geeft een lege lijst als er niets te tellen valt', () => {
+    expect(bouwFeitRegels(null)).toEqual([]);
+    expect(bouwFeitRegels(screening({ rapport: null }))).toEqual([]);
+    expect(bouwFeitRegels(screening({ rapport: { documenten: [] } }))).toEqual([]);
+    expect(bouwFeitRegels({ rapport: { issues: [] } })).toEqual([]);   // geen id
   });
 });
 
@@ -74,14 +95,17 @@ describe('bouwFeitRegel — MfN', () => {
     issues: [],
   });
 
-  it('telt de noemers van beide documenten op', () => {
-    const r = bouwFeitRegel(screening({ rapport: { documenten: [
+  it('geeft elk documenttype zijn eigen noemer', () => {
+    // Dit telde de noemers op tot 27 (15 + 12), waarna niet meer uiteen te halen was
+    // wat van welk stuk kwam — en het MfN-filter, dat exact vergelijkt, liet de ring
+    // bij een typekeuze helemaal verdwijnen.
+    const rs = bouwFeitRegels(screening({ rapport: { documenten: [
       mfnDoc('convenant', 15, 12, 2), mfnDoc('ouderschapsplan', 12, 9, 2),
     ] } }));
-    expect(r.mfn_totaal).toBe(27);
-    expect(r.mfn_aanwezig).toBe(21);
-    expect(r.mfn_onvolledig).toBe(4);
-    expect(r.mfn_ontbreekt).toBe(2);
+    expect(rs.map(r => [r.doc_type, r.mfn_totaal, r.mfn_aanwezig])).toEqual([
+      ['convenant', 15, 12],
+      ['ouderschapsplan', 12, 9],
+    ]);
   });
 
   it('gebruikt de vaste noemer als score_totaal ontbreekt', () => {
@@ -124,17 +148,22 @@ describe('bouwFeitRegel — sleutels en score', () => {
     expect(r.gebruiker_id).toBe('33333333-3333-3333-3333-333333333333');
   });
 
-  it('middelt de score over de documenten', () => {
-    const r = bouwFeitRegel(screening({ rapport: { documenten: [
+  it('geeft elk documenttype zijn eigen score in plaats van één gemiddelde', () => {
+    const rs = bouwFeitRegels(screening({ rapport: { documenten: [
       { doc_type: 'convenant',       issues: [iss('a', 'laag', ['juridisch'])] },  // 100
       { doc_type: 'ouderschapsplan', issues: [iss('b', 'hoog', ['juridisch'])] },  // 0
     ] } }));
-    expect(r.score).toBe(50);
+    expect(rs.map(r => [r.doc_type, r.score])).toEqual([
+      ['convenant', 100], ['ouderschapsplan', 0],
+    ]);
   });
 
-  it('laat doc_type leeg als geen document een herkenbaar type heeft', () => {
+  it('zet doc_type op "onbekend" als het type niet te bepalen is', () => {
+    // Nooit null: in Postgres zijn twee NULL's in een unique index van elkaar
+    // verschillend, dus met NULL erin zou opnieuw opslaan rijen bíjschrijven in
+    // plaats van bijwerken.
     const r = bouwFeitRegel(screening({ rapport: { issues: [iss('a')] } }));
-    expect(r.doc_type).toBeNull();
+    expect(r.doc_type).toBe('onbekend');
   });
 });
 

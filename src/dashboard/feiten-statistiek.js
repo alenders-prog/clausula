@@ -38,14 +38,20 @@ const som = (rijen, veld) => rijen.reduce((a, r) => a + (r?.[veld] ?? 0), 0);
  * @param {string} invoer.docType  'alle' | 'convenant' | 'ouderschapsplan'
  */
 export function statistiekenUitFeiten({ dossiers = [], feiten = [], docType = 'alle' } = {}) {
-  // Filteren op documenttype. Een feitregel draagt de typen van één analyse, met een
-  // plus ertussen bij meerdere ("convenant+ouderschapsplan"). Bij een gecombineerde
-  // analyse is niet te zeggen welke bevinding bij welk stuk hoorde — die telt daarom
-  // mee zodra het gekozen type erin voorkomt. Grover dan de live-berekening, en dat
-  // hoort in de uitleg te staan in plaats van weggemoffeld.
+  // Filteren op documenttype. Sinds 8 september 2026 draagt elke feitregel precies één
+  // type, dus een gewone gelijkheid volstaat — en dezelfde die mfnUitFeiten al deed.
+  //
+  // Hier stond `doc_type.split('+').includes(docType)`, omdat een regel toen de typen
+  // van een hele analyse droeg ('convenant+ouderschapsplan'). Dat hield bij een
+  // gecombineerde analyse de héle regel, inclusief de bevindingen van het andere stuk:
+  // het staafdiagram bewoog dan niet en de keuze deed zichtbaar niets.
+  //
+  // Regels van vóór die datum kunnen nog een samengesteld type dragen. Die vallen nu
+  // onder geen van beide typen, en dat is de eerlijke uitkomst: hun verdeling over de
+  // twee stukken is werkelijk onbekend. Onder "Alle" tellen ze gewoon mee.
   const rijen = docType === 'alle'
     ? feiten
-    : feiten.filter(r => String(r?.doc_type || '').split('+').includes(docType));
+    : feiten.filter(r => r?.doc_type === docType);
 
   const perCategorie = legeCategorieen();
   const catIndex = Object.fromEntries(perCategorie.map(r => [r.naam, r]));
@@ -90,7 +96,10 @@ export function statistiekenUitFeiten({ dossiers = [], feiten = [], docType = 'a
     kpi: {
       actief:   dossiers.filter(d => d?.status === 'actief').length,
       afgerond: dossiers.filter(d => d?.status === 'afgerond').length,
-      analyses: rijen.length,
+      // Eén analyse kan meerdere regels hebben (één per documenttype), dus tellen op
+      // screening_id en niet op rijen. Deed dat laatste, dan zou "Analyses uitgevoerd"
+      // verdubbelen bij een dossier met een convenant én een ouderschapsplan.
+      analyses: new Set(rijen.map(r => r?.screening_id).filter(Boolean)).size,
       gesignaleerd, afgevinkt, genegeerd,
       ...scoreTrajectUitFeiten(rijen),
     },
@@ -139,11 +148,14 @@ export function scoreTrajectUitFeiten(rijen) {
 /**
  * MfN per documenttype.
  *
- * Een feitregel telt de MfN-scores van álle documenten in die analyse bij elkaar op,
- * inclusief de noemer. Bij een gecombineerde analyse staat er dus 27 (15 + 12) en is
- * niet meer uiteen te halen wat van welk stuk kwam. Filteren op één documenttype levert
- * dan alleen de analyses op die uitsluitend dat type bevatten — anders zou de noemer
- * niet kloppen met het label.
+ * Sinds 8 september 2026 draagt een feitregel één documenttype, met de noemer van dát
+ * type. Filteren is daarmee een gewone gelijkheid en de noemer klopt met het label.
+ *
+ * Daarvóór telde een regel de MfN-scores van álle documenten in een analyse bij elkaar
+ * op, noemer incluis: bij een gecombineerde analyse stond er 27 (15 + 12) en was niet
+ * meer uiteen te halen wat van welk stuk kwam. Zulke oude regels dragen nog een
+ * samengesteld type ('convenant+ouderschapsplan') en vallen daarom buiten elk van beide
+ * keuzes — terecht, want hun verdeling is werkelijk onbekend.
  */
 export function mfnUitFeiten(rijen, docType = 'alle') {
   const bruikbaar = rijen.filter(r => r?.mfn_totaal);
@@ -183,7 +195,8 @@ export function uitVerwijderdeDossiers(feiten, bestaandeScreeningIds) {
     ? bestaandeScreeningIds : new Set(bestaandeScreeningIds || []);
   const weg = (feiten || []).filter(r => r?.screening_id && !bestaat.has(r.screening_id));
   return {
-    analyses: weg.length,
+    // Zie kpi.analyses: tellen op screening, niet op regels.
+    analyses: new Set(weg.map(r => r.screening_id)).size,
     bevindingen: som(weg, 'issues_totaal'),
     dossiers: new Set(weg.map(r => r.dossier_sleutel).filter(Boolean)).size,
   };

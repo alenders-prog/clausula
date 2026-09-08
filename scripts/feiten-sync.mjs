@@ -22,7 +22,7 @@
  * de historie waar de tabel voor bestaat; die mogen nooit worden opgeruimd.
  */
 import { readFileSync } from 'node:fs';
-import { bouwFeitRegel, keurFeitRegel } from '../src/dashboard/feiten.js';
+import { bouwFeitRegels, keurFeitRegel } from '../src/dashboard/feiten.js';
 
 const modus = process.argv.includes('--controle') ? 'controle'
             : process.argv.includes('--alles')    ? 'alles' : 'aanvullen';
@@ -54,7 +54,7 @@ async function haal(pad) {
 }
 
 async function upsert(rijen) {
-  const r = await fetch(`${URL}/rest/v1/analyse_feiten?on_conflict=screening_id`, {
+  const r = await fetch(`${URL}/rest/v1/analyse_feiten?on_conflict=screening_id,doc_type`, {
     method: 'POST',
     headers: { ...kop, Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify(rijen),
@@ -110,10 +110,12 @@ async function main() {
   const screeningen = await haal(
     'screeningen?select=id,dossier_id,versie_nr,rapport,classificatie,created_at,gebruiker_id'
     + ',dossiers!dossier_id(organisatie_id)&order=created_at.asc');
+  // Sleutel is sinds 08-09-2026 (screening_id, doc_type): één regel per document.
+  const sleutel = (r) => `${r.screening_id}|${r.doc_type ?? ''}`;
   const bestaand = new Map(
     (await haal('analyse_feiten?select='
-      + ['screening_id', 'gebruiker_id', ...VERGELIJK, 'per_categorie'].join(',')))
-      .map(r => [r.screening_id, r]));
+      + ['screening_id', 'doc_type', 'gebruiker_id', ...VERGELIJK, 'per_categorie'].join(',')))
+      .map(r => [sleutel(r), r]));
 
   console.log(`${screeningen.length} screeningen, ${bestaand.size} feitregels\n`);
 
@@ -123,12 +125,10 @@ async function main() {
   const onzuiver = [];
 
   for (const s of screeningen) {
-    const regel = bouwFeitRegel(s, { organisatie_id: s.dossiers?.organisatie_id });
-    if (!regel) continue;
-
+   for (const regel of bouwFeitRegels(s, { organisatie_id: s.dossiers?.organisatie_id })) {
     // Vangnet: nooit inhoud in deze tabel. Zie docs/avg-verwerkersovereenkomst.md.
     const bezwaren = keurFeitRegel(regel);
-    if (bezwaren.length) { onzuiver.push(`${s.id}: ${bezwaren.join('; ')}`); continue; }
+    if (bezwaren.length) { onzuiver.push(`${s.id} (${regel.doc_type}): ${bezwaren.join('; ')}`); continue; }
 
     // ── De bewaartermijn mag nooit door onderhoud worden teruggedraaid ──────
     // `bouwFeitRegel` haalt gebruiker_id uit de screening, en die blijft bestaan als de
@@ -138,7 +138,7 @@ async function main() {
     //
     //   bestaande regel : gebruiker_id nooit aanraken, wat er ook staat
     //   nieuwe regel    : meteen de termijn toepassen
-    const oud = bestaand.get(s.id);
+    const oud = bestaand.get(sleutel(regel));
     if (oud) {
       regel.gebruiker_id = oud.gebruiker_id ?? null;
     } else if (new Date(regel.geanalyseerd_op) < grensDatum()) {
@@ -148,8 +148,9 @@ async function main() {
     if (!oud) { nieuw++; teSchrijven.push(regel); continue; }
 
     const diff = verschillen(regel, oud);
-    if (diff.length) { afwijkend.push({ id: s.id, diff }); teSchrijven.push(regel); }
+    if (diff.length) { afwijkend.push({ id: `${s.id} (${regel.doc_type})`, diff }); teSchrijven.push(regel); }
     else { gelijk++; if (modus === 'alles') teSchrijven.push(regel); }
+   }
   }
 
   console.log(`gelijk      : ${gelijk}`);

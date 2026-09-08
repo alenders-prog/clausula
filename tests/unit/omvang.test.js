@@ -523,8 +523,23 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // de paneelstand een klasse werd in plaats van het `hidden`-attribuut — op display:none
 // valt niets te animeren, en de tussenvorm had een animatiefunctie in JavaScript gekost.
 // Nu zijn het drie eenregelige wijzigingen en doet CSS de rest.
-const MAX_REGELS_INDEX = 16575;
-const MAX_REGELS_JS     = 13304;
+// 08-09-2026 (vierentwintigste keer): 16575 → 16586 (+11, alle script). analyse_feiten
+// schrijft één regel per document in plaats van per analyse, zodat de keuze
+// Convenant/Ouderschapsplan in het dashboard eindelijk iets doet.
+//
+// Derde verhoging in twee dagen, dus met opzet nagegaan wat hier écht niet weg kan. Het
+// telwerk zat al in src/dashboard/feiten.js en is daar gebleven (bouwFeitRegel werd
+// bouwFeitRegels, 22 tests). Wat in index.html overblijft is databasebedrading: een
+// upsert van een lijst in plaats van één rij, en een gerichte delete van regels waarvan
+// het documenttype uit de analyse is verdwenen.
+//
+// Die delete is geen detail. Een upsert raakt alleen wat je aanbiedt, dus zonder hem
+// blijft een ouderschapsplan meetellen nadat het uit de analyse is gehaald. En hij moet
+// gericht zijn: "alles weg, dan opnieuw" zou gebruiker_id terugzetten op regels waar de
+// bewaartermijn hem al had weggehaald — een AVG-belofte ongedaan gemaakt door een
+// opslagroutine.
+const MAX_REGELS_INDEX = 16586;
+const MAX_REGELS_JS     = 13315;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
