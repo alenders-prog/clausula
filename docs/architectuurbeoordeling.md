@@ -407,6 +407,70 @@ En voor de site, kort:
 > Cliëntnamen bereiken het AI-model niet. De documenttekst wordt in uw eigen browser
 > gepseudonimiseerd voordat hij wordt verstuurd.
 
+#### De EU-route: wat er kan, en wat het kost *(uitgezocht 8 sep 2026)*
+
+**Rechtstreeks bij Anthropic kan het niet.** Uit hun eigen privacycentrum, bijgewerkt
+15 juni 2026:
+
+> "By default, we may route customer traffic to select countries in the US, Europe, Asia
+> and Australia, unless otherwise agreed upon" — **"Note that data is stored in the US."**
+
+Verkeer kan dus in Europa landen, maar de opslag staat in de VS, ongeacht de routering. Er
+is geen EU-residency-instelling op de gewone API.
+
+> **Let op waar "Frankfurt" vandaan komt.** `vercel.json` staat op `"regions": ["fra1"]`,
+> dus de serverless functies draaien in de EU, en het Supabase-project waarschijnlijk ook.
+> Dat zegt niets over waar Anthropic verwerkt: de functie in Frankfurt stuurt het verzoek
+> naar `api.anthropic.com`, en de doorgifte gebeurt op het moment dat het die functie
+> verlaat. Eigen infrastructuur EU, AI-verwerking niet.
+
+**Twee routes die het wél doen:**
+
+| | AWS Bedrock `eu-central-1` | Google Vertex AI `europe-west4` |
+|---|---|---|
+| authenticatie | SigV4 — SDK erbij of zelf ondertekenen | OAuth-token van een serviceaccount |
+| berichtformaat | vrijwel identiek (`anthropic_version: bedrock-…`, model in de URL) | idem (`vertex-2023-10-16`) |
+| **streaming** | **AWS event-stream, binair** | **SSE** |
+| overeenkomst met | AWS | Google |
+
+**Die streamingregel is de hele afweging.** `claude-edge.js` en `ai-assistent.js` sluizen de
+SSE van Anthropic vrijwel ongewijzigd door naar de browser. Bedrock levert binaire
+event-stream-frames: die passthrough breekt en moet server-side worden gedecodeerd en
+opnieuw uitgezonden. Vertex levert SSE, dus daar blijft die code grotendeels staan.
+
+**Bedrock is de bekendere keuze; Vertex past beter op wat hier is gebouwd.** Dat is niet
+wat je verwacht, en het is de reden om dit op te schrijven in plaats van het later opnieuw
+af te wegen.
+
+Wat de ombouw raakt — vier aanroepplekken, alle vier `fetch` met `x-api-key`:
+
+- een provideradapter in `src/api/` die URL, headers en body samenstelt (daar zit de
+  redenering, dus met tests)
+- de twee streamende endpoints
+- `_verbruik.js`: het `usage`-blok komt bij beide anders binnen, en bij streamen in twee
+  stukken
+- de model-ids, inclusief de Haiku-consolidatie
+- omgevingsvariabelen en `vercel.json`
+- een evalrun, om te bevestigen dat de screeningkwaliteit niet verschuift
+
+**Schatting, geen meting: Vertex anderhalve dag, Bedrock twee à drie.** Het verschil zit
+vrijwel volledig in het streamen.
+
+**Drie dingen die de EU-route níét oplost:**
+
+1. De verwerkersovereenkomst is dan met AWS of Google in plaats van met Anthropic. Eén
+   doorgifte verdwijnt, het papierwerk niet.
+2. **Adobe krijgt nog steeds het originele PDF-bestand, met namen erin, en dat is een
+   Amerikaanse dienst.** Zolang de PDF→DOCX-conversie erin zit, is Clausula niet "EU-only".
+   Dat is een aparte en waarschijnlijk lastigere vraag.
+3. De prijs per token verschilt op Bedrock en Vertex van die bij Anthropic. Niet nagekeken.
+
+*Ter vergelijking, want het verklaart waarom dit meer is dan een formaliteit:* LegalPA
+verwerkt binnen de EU (opslag Amsterdam, AI-verwerking Zweden) en verkoopt anonimisering
+als onderscheid; LegalMike houdt alles in de EER via het Europese OpenAI-endpoint en zegt
+juist dat anonimiseren dáárom niet nodig is. Beide vermijden de doorgifte in plaats van
+hem te regelen. Clausula is van de drie de enige die documenttekst naar de VS stuurt.
+
 #### 1.7 — endpoints kenden alleen de token, niet het kantoor *(gedaan 7 sep 2026)*
 
 Op 5 september bleek een geldige Supabase-token niets te zeggen over lidmaatschap van een
