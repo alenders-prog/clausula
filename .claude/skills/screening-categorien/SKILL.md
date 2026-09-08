@@ -253,6 +253,22 @@ Elke bevinding krijgt exact één waarde in `dimensies`. Bij overlap geldt deze 
 Dus: een tegenstrijdigheid die ook juridisch ongeldig is → `juridisch`.
 Dupliceer nooit dezelfde bevinding over meerdere dimensies.
 
+**Die volgorde staat sinds 8 september 2026 op één plek in code: `VOORRANG_DIMENSIES` in
+`src/analyse/dimensies.js`.** Wijzig je hem in de prompt, wijzig hem daar dan mee — anders
+labelt het model anders dan het dashboard telt.
+
+> **Waarom dat is vastgelegd.** De vijf namen stonden zesmaal los in de code, in drie
+> volgordes, en `statistieken.hoofdCategorie` liep per ongeluk de *weergave*volgorde af om
+> "de zwaarste categorie" te kiezen. Die zet conflicten op vier. Een bevinding met
+> `["balans","conflicten"]` telde op het dashboard dus als balans — geen foutmelding,
+> alleen een cijfer op de verkeerde kaart.
+>
+> Het onderscheid dat ontbrak: **`VOORRANG_DIMENSIES` is een regel** (komt uit de prompt),
+> **`WEERGAVE_DIMENSIES` is een keuze** (waar de knoppen staan, inclusief `cross_doc`). Dat
+> het categorieënraster de eerste aanhoudt en de filterknoppen de tweede is dus geen
+> slordigheid. `tests/unit/dimensies.test.js` bewaakt dat beide lijsten dezelfde vijf
+> dimensies bevatten en dat er geen zevende kopie bij komt.
+
 ---
 
 ## Ernst-niveaus
