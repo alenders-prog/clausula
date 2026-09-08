@@ -5530,11 +5530,15 @@ function vindPassageFractie(passage) {
   if (idx < 0 && pasNorm.length > 50)
     idx = docNorm.indexOf(pasNorm.slice(0, 50));
 
-  // 3. Glijdend venster van 4 inhoudswoorden (>3 tekens, geen stopwoord)
+  // 3. Een fragment dat maar één keer voorkomt — niet het eerste dat ergens raakt.
+  //
+  // Dit was een glijdend venster dat de eerste treffer nam. Deze functie levert de
+  // positiehint waarmee de viewer uit meerdere markeringen de juiste kiest; wijst de hint
+  // naar de verkeerde alinea, dan doet de markering dat ook. Dezelfde fout als in de
+  // zoekterugval, alleen een laag eerder en daardoor minder zichtbaar.
   if (idx < 0) {
-    const wrd = pasNorm.split(' ').filter(w => w.length > 3 && !STOP.has(w));
-    for (let i = 0; i + 3 < wrd.length && idx < 0; i++)
-      idx = docNorm.indexOf(wrd.slice(i, i + 4).join(' '));
+    const uniek = kiesUniekFragment(pasNorm, docNorm);
+    if (uniek && uniek.voorkomens === 1) idx = uniek.index;
   }
 
   return idx >= 0 ? idx / docNorm.length : null;
@@ -5555,22 +5559,40 @@ function bepaalPassageDocIdx(passage) {
     'zijn','voor','aan','met','bij','uit','als','ook','maar','niet','naar','om','over']);
   const secties = docTekst.split(/(?=^=== )/m);
 
+  // Sterke treffers eerst: een sectie die de hele passage bevat, of de eerste vijftig
+  // tekens ervan, is aantoonbaar de juiste. Daar is geen afweging bij nodig.
   for (let idx = 0; idx < app.documenten.length; idx++) {
-    const doc    = app.documenten[idx];
-    const sectie = secties.find(s => s.startsWith('=== ') && s.includes(doc.bestandsnaam));
-    if (!sectie) continue;
-    const secNorm = normPassage(sectie);
-
+    const secNorm = sectieNorm(idx);
+    if (!secNorm) continue;
     if (secNorm.includes(pasNorm)) return idx;
     if (pasNorm.length > 50 && secNorm.includes(pasNorm.slice(0, 50))) return idx;
-
-    const wrd = pasNorm.split(' ').filter(w => w.length > 3 && !STOP.has(w));
-    for (let i = 0; i + 3 < wrd.length; i++) {
-      if (secNorm.includes(wrd.slice(i, i + 4).join(' '))) return idx;
-    }
   }
 
-  return null;
+  // Zwakke treffer: vier inhoudswoorden op rij. Dit gaf HET EERSTE document terug dat ze
+  // bevatte, en dat is bij twee stukken over dezelfde mensen te vaak het verkeerde — een
+  // convenant en een ouderschapsplan delen moeiteloos "ouder kind verblijft hoofdverblijf".
+  // De viewer sprong dan naar het andere tabblad, wat erger is dan een verkeerde markering.
+  //
+  // Nu tellen we hoeveel documenten zo'n treffer hebben. Precies één: dat is hem. Meer dan
+  // één: onbeslist, en dan blijft de gebruiker waar hij is. Zie ook de kop van
+  // src/viewer/uniek-fragment.js — daar staat waarom uniekheid het betere criterium is dan
+  // een stopwoordenlijst, en dat inzicht hoort hier net zo goed.
+  const wrd = pasNorm.split(' ').filter(w => w.length > 3 && !STOP.has(w));
+  const raak = [];
+  for (let idx = 0; idx < app.documenten.length; idx++) {
+    const secNorm = sectieNorm(idx);
+    if (!secNorm) continue;
+    for (let i = 0; i + 3 < wrd.length; i++) {
+      if (secNorm.includes(wrd.slice(i, i + 4).join(' '))) { raak.push(idx); break; }
+    }
+  }
+  return raak.length === 1 ? raak[0] : null;
+
+  function sectieNorm(idx) {
+    const doc = app.documenten[idx];
+    const sectie = secties.find(s => s.startsWith('=== ') && s.includes(doc.bestandsnaam));
+    return sectie ? normPassage(sectie) : null;
+  }
 }
 
 // Fractie-hint vanuit _document_tekst voor de volgende passage-zoekpoging.
@@ -9913,7 +9935,14 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
     const patroon   = escaped.replace(/ /g, `\\s+${BULLET_PAT}\\s*`);
 
     let match = null;
-    try { match = new RegExp(patroon, 'i').exec(tekst); } catch { continue; }
+    // Een onbouwbaar zoekpatroon telt mee als gemist. Dit was een kale `catch { continue }`:
+    // de wijziging verdween dan uit de telling én uit het log, dus de slotregel meldde
+    // 'n toegepast, 0 niet gevonden' terwijl er wel degelijk iets was overgeslagen.
+    try { match = new RegExp(patroon, 'i').exec(tekst); }
+    catch (e) {
+      console.warn('[tekst-heranalyse] Zoekpatroon ongeldig, overgeslagen:', e.message);
+      _gemist++; continue;
+    }
 
     if (!match) {
       // Fallback: verwijder tokens die niet in de tekst voorkomen (pseudo-artefacten)

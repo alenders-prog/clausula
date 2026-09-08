@@ -587,8 +587,16 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 //
 // Vijf regels daarvan zijn CSS voor die waarschuwing; de rest is de melding zelf plus de
 // uitleg waarom een stille verkeerde markering erger is dan geen.
-const MAX_REGELS_INDEX = 16668;
-const MAX_REGELS_JS     = 13390;
+// En +22 uit de audit op de eigen bugfixes van die dag. Met de vraag "levert dit
+// mechanisme zijn belofte?" bleek hetzelfde glijdende venster van vier woorden nog op twee
+// plekken te staan — en op de zwaarste: bepaalPassageDocIdx koos HET EERSTE document dat
+// vier inhoudswoorden bevatte, dus bij een convenant en een ouderschapsplan over dezelfde
+// mensen het verkeerde tabblad. Nu alleen antwoord bij precies één treffer.
+//
+// Het inzicht dat uniekheid het betere criterium is stond al in
+// src/viewer/uniek-fragment.js, en was niet toegepast op de twee functies ernaast.
+const MAX_REGELS_INDEX = 16697;
+const MAX_REGELS_JS     = 13419;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
