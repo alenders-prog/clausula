@@ -62,6 +62,16 @@
  * — in de kop van `api/_prompts/consolidatie.js` staat sinds 24 augustus 2026 dat twee
  * eerdere herformuleringen van diezelfde regels ook niets deden. Drie pogingen is genoeg.
  *
+ * **Ruilen, niet toevoegen (bijgesteld 8 september 2026).** Deze regel voegde eerst een
+ * kaart toe, en dat leverde een rapport op met twee kaarten over dezelfde zorgkorting —
+ * één juridisch, één balans, vrijwel gelijke titel. Voor een mediator is dat dubbel werk,
+ * hinderlijker dan een dimensie minder.
+ *
+ * Bewaarde de consolidatie precies één exemplaar uit de groep, dan heeft hij die groep als
+ * één gebrek beoordeeld; dat oordeel laten we staan en ruilen alleen het exemplaar om.
+ * Bewaarde hij er méér, dan vond hij ze juist verschillend — en dan komt de balanskaart
+ * erbij, want ruilen zou dan een echt onderscheid weggooien.
+ *
  * **Waarom alleen balans en niet elke dimensie.** De algemene variant ("elke dimensie die
  * op deze passage verdwijnt komt terug") bewaart ook een grammaticakaart naast een
  * volledigheidskaart over dezelfde zin, en dát zijn meestal wél dubbelingen. Balans is de
@@ -158,9 +168,23 @@ export function beschermPassagegroepen(alleIssues, teBewaren) {
       continue;   // deze groep heeft nu een overlevende; regel 2 kijkt naar de volgende
     }
     // Regel 2 — draagt iemand in deze groep `balans` en geen enkele overlevende, dan
-    // heeft de consolidatie de balanskaart tegen een buurman verruild. Terugdraaien.
+    // heeft de consolidatie de balanskaart tegen een buurman verruild.
     const balans = indices.filter((i) => heeftBalans(alleIssues[i]));
-    if (balans.length && !balans.some((i) => bewaard.has(i))) herstel(balans, 'balans');
+    if (!balans.length || balans.some((i) => bewaard.has(i))) continue;
+
+    // RUILEN, NIET TOEVOEGEN — als de consolidatie precies één exemplaar uit deze groep
+    // bewaarde. Dan heeft hij de groep als ÉÉN gebrek beoordeeld; die beoordeling laten we
+    // staan, alleen koos hij het exemplaar zonder de balansdimensie.
+    //
+    // Dit stond eerst als toevoegen, en dat leverde op 8 september een rapport op met twee
+    // kaarten over dezelfde zorgkorting: één juridisch, één balans, vrijwel gelijke titel.
+    // Voor een mediator is dat dubbel werk — hinderlijker dan een dimensie minder.
+    //
+    // Bewaarde de consolidatie er MEER dan één, dan vond hij ze juist verschillend. Die
+    // beoordeling staat ook, en dan komt de balanskaart er gewoon bij.
+    const bewaardHier = indices.filter((i) => bewaard.has(i));
+    if (bewaardHier.length === 1) bewaard.delete(bewaardHier[0]);
+    herstel(balans, 'balans');
   }
 
   return { indices: bewaard, hersteld };

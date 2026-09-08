@@ -9856,8 +9856,14 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
     const aangp = (w.aangepaste_tekst || w.vervang_door  || '').trim();
     if (!orig || !aangp || orig === aangp) continue;
 
-    const fp = aangp.replace(/\s+/g, ' ').slice(0, 200);
-    if (_gezien.has(fp)) continue;
+    // Zelfde sleutel als in het concept-pad hieronder, en hier gebeurde het bovendien
+    // stil: er werd niets gelogd, dus een weggedrukte correctie was van buiten niet te zien.
+    const kort = (t) => t.replace(/\s+/g, ' ').slice(0, 200);
+    const fp = kort(orig) + ' » ' + kort(aangp);
+    if (_gezien.has(fp)) {
+      console.warn('[docx] Overgeslagen — deze wijziging kwam al voorbij:', kort(orig).slice(0, 60));
+      _gemist++; continue;
+    }
     _gezien.add(fp);
 
     const normOrig = orig
@@ -11079,10 +11085,13 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
         const aangp = herstelAnonObj((w.aangepaste_tekst || w.vervang_door  || ''), snapNaarEcht).trim();
         if (!orig || !aangp || orig === aangp) continue;
 
-        // Dedup — zelfde verbetering nooit tweemaal aanbrengen
-        const fp = aangp.replace(/\s+/g, ' ').slice(0, 200);
+        // Dedup op origineel EN vervanging. Stond alleen op de vervanging, waardoor twee
+        // correcties met dezelfde uitkomst maar een verschillend origineel elkaar
+        // wegdrukten: 'etc:' en 'etc.:' worden allebei 'etc.', maar het zijn twee fouten.
+        const kortC = (t) => t.replace(/\s+/g, ' ').slice(0, 200);
+        const fp = kortC(orig) + ' » ' + kortC(aangp);
         if (_gezienAangp.has(fp)) {
-          console.warn('[concept] Overgeslagen — zelfde aangepaste_tekst al verwerkt:', aangp.slice(0, 60));
+          console.warn('[concept] Overgeslagen — deze wijziging kwam al voorbij:', kortC(orig).slice(0, 60));
           continue;
         }
         _gezienAangp.add(fp);

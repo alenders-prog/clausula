@@ -96,11 +96,30 @@ describe('balans verliest nooit van een buurman op dezelfde passage', () => {
       ernst: 'midden', dimensies: ['volledigheid'], passage: Z },
   ];
 
-  it('herstelt de balanskaart als alleen de buurman blijft staan', () => {
+  it('RUILT de buurman om voor de balanskaart, en voegt er niet één bij', () => {
+    // Dit stond eerst als toevoegen. Het rapport van 8 september toonde daardoor twee
+    // kaarten over dezelfde zorgkorting — één juridisch, één balans, vrijwel gelijke
+    // titel. Dubbel werk voor de mediator, hinderlijker dan een dimensie minder.
+    //
+    // De consolidatie bewaarde hier precies één exemplaar uit de groep; hij heeft de
+    // groep dus als één gebrek beoordeeld. Die beoordeling laten we staan.
     const { indices, hersteld } = beschermPassagegroepen(issues, [1]);
-    expect(indices.has(0)).toBe(true);
-    expect(indices.has(1)).toBe(true);   // de buurman blijft óók staan
+    expect(indices.has(0)).toBe(true);    // de balanskaart komt terug
+    expect(indices.has(1)).toBe(false);   // de buurman gaat eruit
+    expect(indices.size).toBe(1);         // het aantal kaarten verandert niet
     expect(hersteld).toEqual([{ index: 0, reden: 'balans', onderwerp: issues[0].onderwerp }]);
+  });
+
+  it('voegt wél toe als de consolidatie er méér dan één bewaarde', () => {
+    // Twee bewaarde exemplaren betekent dat het model ze juist verschillend vond. Die
+    // beoordeling staat ook — dan is ruilen het weggooien van een echt onderscheid.
+    const drie = [...issues,
+      { onderwerp: 'Iets anders over dezelfde zin', ernst: 'laag',
+        dimensies: ['grammatica'], passage: Z }];
+    const { indices } = beschermPassagegroepen(drie, [1, 2]);
+    expect(indices.has(0)).toBe(true);
+    expect(indices.has(1)).toBe(true);
+    expect(indices.has(2)).toBe(true);
   });
 
   it('doet niets als de balanskaart zelf al bewaard is', () => {

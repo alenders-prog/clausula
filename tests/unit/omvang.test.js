@@ -570,8 +570,13 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // afspraak kende. Dat is dezelfde vorm als de vier schrijvers naar screeningen.rapport
 // hierboven, en de reparatie ook: de regel staat nu in src/dashboard/feiten.js, waar beide
 // erbij kunnen, met een bronwachter die controleert dat ze hem allebei aanroepen.
-const MAX_REGELS_INDEX = 16632;
-const MAX_REGELS_JS     = 13361;
+// Diezelfde dag nog +9: de ontdubbeling in de conceptvervanging keek alleen naar de
+// VERVANGENDE tekst. Twee correcties met dezelfde uitkomst maar een verschillend
+// origineel — 'etc:' en 'etc.:' worden allebei 'etc.' — drukten elkaar daardoor weg. In
+// het DOCX-pad gebeurde dat bovendien zonder enige log. De sleutel is nu origineel plus
+// vervanging, en beide paden melden wat ze overslaan.
+const MAX_REGELS_INDEX = 16641;
+const MAX_REGELS_JS     = 13370;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
