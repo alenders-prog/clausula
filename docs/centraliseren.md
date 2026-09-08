@@ -62,6 +62,18 @@ document met een wit rondje wordt door de ene wél en door de andere niet herken
 
 **Drie kopieën van dezelfde stopwoordenlijst**, waarvan twee letterlijk identiek.
 
+**En ze zoeken niet in dezelfde ruimte.** `vindPassageFractie` pseudonimiseert de passage
+eerst terug en zoekt dus in de pseudonieme tekst. De viewer zoekt in de herstelde tekst,
+met echte namen. Dat herstel is niet symmetrisch: er zijn twee kaarten, `naarEcht`
+(roepnaam, kort) en `naarEchtVolledig`, en `herstelAnonObj` past de tweede speciaal toe op
+`passage` en `bevinding` — juist omdát het anders niet matcht. Dat is een pleister op een
+mismatch die het herstel zelf veroorzaakt.
+
+Eén ruimte kiezen — de pseudonieme, waarin beide kanten hetzelfde zijn opgeschreven —
+haalt die hele klasse weg. Het idee komt van de gebruiker, bij een geval waarin het
+overigens niet de oorzaak was: daar had het model "op 06-11-1986" geparafraseerd tot "in
+1986", en dat is geen herstelprobleem maar een onjuiste bevinding. Zie hieronder.
+
 ### Voorstel
 
 Eén module — `src/tekst/passage-zoeken.js` — met drie dingen:
@@ -145,6 +157,25 @@ er iets over te zeggen valt:
 - **datumopmaak** naar het Nederlands
 
 ---
+
+## Los hiervan: een citaat dat niet in het document staat
+
+Bij het nalopen van de CSP-flows kwam een bevinding voorbij die luidde "Geboortedatum
+partijen niet volledig vermeld", met als citaat *"geboren te Deventer in 1986"*. In het
+document staat *"geboren te Deventer op 06-11-1986"*. Het model had geparafraseerd en
+vervolgens op zijn eigen parafrase een gebrek vastgesteld.
+
+Dat is aanname A3 in het klein: een foute bevinding waarop een mediator handelt. En het is
+te zien zonder het document te lezen — het citaat komt niet letterlijk in de tekst voor.
+
+Die berekening bestaat al: de viewer weet sinds 8 september of een markering zeker of
+onzeker is, en `vindPositie` kent trappen van letterlijk tot zwak. Alleen belandt die
+uitkomst in de viewer en niet op de kaart. **Een bevinding waarvan het citaat niet
+letterlijk in het document staat, hoort een zichtbaar voorbehoud te krijgen** — dan ziet de
+mediator meteen waaróm zo'n punt rammelt, in plaats van het te moeten narekenen.
+
+Kosten: klein, want het rekenwerk is er. Het is vooral een keuze over hoe opdringerig het
+voorbehoud mag zijn.
 
 ## Volgorde van uitvoeren
 
