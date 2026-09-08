@@ -807,6 +807,11 @@ button.primair:hover{background:var(--coral-dark);}
   background:#FFF9F0;border-bottom:2px solid var(--coral);
   padding:9px 16px 10px;box-shadow:0 2px 8px rgba(0,0,0,.10);}
 .passage-banner.zichtbaar{display:block;}
+/* Onzeker: de markering in het document is met een ruime zoekmethode gevonden en kan
+   de verkeerde alinea aanwijzen. Andere kleur, zodat het verschil met een gewone
+   verwijzing meteen te zien is. */
+.passage-banner.onzeker{background:#FFF7E6;border-bottom-color:var(--warn);}
+.passage-banner.onzeker .passage-banner-kop{color:var(--gold);}
 .passage-banner-kop{font-size:.72rem;font-weight:700;color:var(--coral-dark);
   text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
 .passage-banner-tekst{font-size:.85rem;color:var(--ink);line-height:1.55;
@@ -1859,8 +1864,10 @@ mark.hl-match{background:rgba(255,213,0,.55);border-radius:2px;padding:0 1px;}
   /* Sectietitels starten altijd op nieuwe pagina, blijven geplakt aan volgende inhoud */
   .sectie-kop { break-before:page !important; page-break-before:always !important;
     break-after:avoid !important; page-break-after:avoid !important; }
-  /* MfN start altijd op nieuwe pagina (kop zit erin, geen aparte break nodig) */
-  #mfnSectie { display:block !important; }
+  /* MfN begint op een eigen pagina. Er stond hier dat de kop dat zelf regelde, maar het
+     blok heeft geen .sectie-kop — alleen .mfn-score-kop — dus die brak nergens af. */
+  #mfnSectie { display:block !important;
+    break-before:page !important; page-break-before:always !important; }
   .opmerking { display:none !important; }
   .rp-hero { flex-wrap:nowrap !important; }
   .rp-hero-rechts { width:300px !important; }
@@ -4785,7 +4792,7 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
       document.getElementById('analysePanel').innerHTML =
         `<div class="analyse-scroll-boven">${onvolledigBalkHtml()}${_progHeroHtml}</div>` +
         `<div class="sticky-chips-bar">${filterBar}</div>` +
-        `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div>${_mfnSectieHtml ? '<div id="mfnSectie" style="display:none">' + _mfnSectieHtml + '</div>' : ''}</div>`;
+        `<div class="anal-tab-body" id="analTabBody"><div id="issuesLijst">${issuesHtml}</div>${_mfnSectieHtml ? '<div id="mfnSectie">' + _mfnSectieHtml + '</div>' : ''}</div>`;
       requestAnimationFrame(ajusteerDonutPositie);
       setupChipsCompact(document.getElementById('analysePanel'));
       const _stickyTitelEl = document.getElementById('stickySectieTitel');
@@ -6926,7 +6933,7 @@ async function toonRapport(cls, rp) {
       `<div class="sticky-chips-bar">${filterBar}</div>` +
       `<div class="anal-tab-body" id="analTabBody">` +
       `<div id="issuesLijst">${issueKaartenHtml}</div>` +
-      (mfnHtml ? `<div id="mfnSectie" style="display:none">${mfnHtml}</div>` : '') +
+      (mfnHtml ? `<div id="mfnSectie">${mfnHtml}</div>` : '') +
       `</div>`;
   }
 
@@ -7041,7 +7048,9 @@ function zoektermenVoorIssue(issue) {
 
 // Toon of verberg de passage-banner bovenin het doc-panel (voor gescande documenten
 // waarbij de tekst niet in de PDF-canvas gemarkeerd kan worden).
-function toonPassageBanner(passage) {
+// `onzeker` maakt van de banner een waarschuwing in plaats van een mededeling: de
+// markering staat er wel, maar is gevonden met een zoekmethode die overal kan raken.
+function toonPassageBanner(passage, onzeker = false) {
   const panel = document.getElementById('documentPanel');
   if (!panel) return;
   let banner = panel.querySelector('.passage-banner');
@@ -7050,7 +7059,7 @@ function toonPassageBanner(passage) {
     banner.className = 'passage-banner';
     banner.innerHTML =
       `<button class="passage-banner-sluiten" title="Sluiten">✕</button>
-       <div class="passage-banner-kop">📌 Relevante passage</div>
+       <div class="passage-banner-kop"></div>
        <div class="passage-banner-tekst"></div>`;
     banner.querySelector('.passage-banner-sluiten').addEventListener('click', () => {
       banner.classList.remove('zichtbaar');
@@ -7058,6 +7067,10 @@ function toonPassageBanner(passage) {
     panel.prepend(banner);
   }
   if (passage) {
+    banner.querySelector('.passage-banner-kop').textContent = onzeker
+      ? '⚠ Markering onzeker — dit is het letterlijke citaat'
+      : '📌 Relevante passage';
+    banner.classList.toggle('onzeker', !!onzeker);
     banner.querySelector('.passage-banner-tekst').textContent = passage;
     banner.classList.add('zichtbaar');
   } else {
@@ -7162,7 +7175,10 @@ async function zoekEnScrollNaarPassage(passage) {
     _passageHintFrac = vindPassageFractie(passage);
     await renderDocPanel(_uniek.fragment);
     _passageHintFrac = null;
-    if (isGehighlightd()) return _uniek.voorkomens === 1;
+    if (isGehighlightd()) {
+      if (_uniek.voorkomens !== 1 && passage?.trim()) toonPassageBanner(passage, true);
+      return _uniek.voorkomens === 1;
+    }
   }
 
   // Fallback 3: alsnog het glijdende venster, voor documenten waarvan de
@@ -7170,7 +7186,15 @@ async function zoekEnScrollNaarPassage(passage) {
   for (let i = 0; i + 3 < woorden.length; i++) {
     const fragment = woorden.slice(i, i + 4).join(' ');
     await renderDocPanel(fragment);
-    if (isGehighlightd()) return false; // gevonden maar lage kwaliteit
+    if (isGehighlightd()) {
+      // Gevonden met vier willekeurige woorden op rij — dat raakte in september de
+      // alinea over identiteitsbewijzen bij een bevinding over de kerstregeling. De
+      // markering blijft staan (bij gescande documenten is het vaak de enige), maar
+      // het citaat komt erbij mét waarschuwing, zodat de mediator zelf kan zien of
+      // de aangewezen plek klopt. Een stille verkeerde markering is erger dan geen.
+      if (passage?.trim()) toonPassageBanner(passage, true);
+      return false;
+    }
   }
 
   // Niets gevonden (gescand document of passage niet letterlijk in viewer) —
@@ -8689,8 +8713,11 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
     </div>`;
   document.getElementById('analysePanel').prepend(hdr);
 
-  // Toon MfN tijdelijk voor print
+  // MfN staat standaard aan, maar kan door een dimensiefilter verborgen zijn. Voor het
+  // printen hoort hij er altijd bij — en daarna terug naar wat het WAS, niet naar
+  // verborgen: dat laatste haalde hem na één keer printen uit de gewone weergave.
   const mfnSectie = document.getElementById('mfnSectie');
+  const mfnStandVoorPrint = mfnSectie ? mfnSectie.style.display : '';
   if (mfnSectie) mfnSectie.style.display = '';
 
   window.print();
@@ -8698,7 +8725,7 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
   // Herstel na print
   setTimeout(() => {
     hdr.remove();
-    if (mfnSectie) mfnSectie.style.display = 'none';
+    if (mfnSectie) mfnSectie.style.display = mfnStandVoorPrint;
   }, 500);
 });
 

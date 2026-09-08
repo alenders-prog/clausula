@@ -575,8 +575,20 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // origineel — 'etc:' en 'etc.:' worden allebei 'etc.' — drukten elkaar daardoor weg. In
 // het DOCX-pad gebeurde dat bovendien zonder enige log. De sleutel is nu origineel plus
 // vervanging, en beide paden melden wat ze overslaan.
-const MAX_REGELS_INDEX = 16641;
-const MAX_REGELS_JS     = 13370;
+// En +5 voor de MfN-sectie: die stond op display:none en werd alleen zichtbaar door op de
+// MfN-chip te klikken. De filterlogica toonde hem al bij "Alle issues", maar die liep pas
+// na de eerste klik. Nu standaard aan, bij het printen op een eigen pagina, en na het
+// printen terug naar de stand van dávoor in plaats van naar verborgen.
+// En +22 voor de onzekere passagemarkering. Een bevinding over de kerstregeling wees de
+// alinea over identiteitsbewijzen aan — de kaartvolgorde klopte, de plek niet. De oorzaak
+// stond al beschreven bij fallback 2, maar fallback 3 doet hetzelfde glijdende venster en
+// meldde niet dat zijn uitkomst onbetrouwbaar is. De markering blijft (bij gescande stukken
+// is het vaak de enige), maar komt nu met het citaat en een waarschuwing erbij.
+//
+// Vijf regels daarvan zijn CSS voor die waarschuwing; de rest is de melding zelf plus de
+// uitleg waarom een stille verkeerde markering erger is dan geen.
+const MAX_REGELS_INDEX = 16668;
+const MAX_REGELS_JS     = 13390;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
