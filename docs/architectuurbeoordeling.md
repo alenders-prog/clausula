@@ -460,10 +460,43 @@ vrijwel volledig in het streamen.
 
 1. De verwerkersovereenkomst is dan met AWS of Google in plaats van met Anthropic. Eén
    doorgifte verdwijnt, het papierwerk niet.
-2. **Adobe krijgt nog steeds het originele PDF-bestand, met namen erin, en dat is een
-   Amerikaanse dienst.** Zolang de PDF→DOCX-conversie erin zit, is Clausula niet "EU-only".
-   Dat is een aparte en waarschijnlijk lastigere vraag.
+2. Adobe krijgt het originele PDF-bestand, met namen erin. Dat is een aparte vraag — en
+   die bleek meevallen; zie hieronder.
 3. De prijs per token verschilt op Bedrock en Vertex van die bij Anthropic. Niet nagekeken.
+
+#### Adobe: omgezet naar de EU-regio *(8 sep 2026, nog te toetsen)*
+
+De PDF→DOCX-conversie stuurt het **originele** bestand naar Adobe — `pdfBase64`, met
+cliëntnamen erin. Het is de enige plek in de keten waar een onbewerkt document het apparaat
+verlaat; de tekst voor de AI-analyse gaat wél gepseudonimiseerd de deur uit.
+
+Adobe kent twee regio's, en het verschil is een hostnaam:
+
+> "For invoking region specific PDF Services API endpoints, hostnames needs to be changed
+> to the following pattern: `https://pdf-services-{regionCode}.adobe.io`"
+
+`ue1` is de Verenigde Staten en de standaard — precies wat hier stond. `ew1` is Europa,
+verwerkt en opgeslagen in eu-west-1 (Ierland). De vier aanroepen bouwen hun URL nu met
+`adobeHost()` uit `src/conversie/adobe-regio.js`, standaard Europa.
+
+**Nog te toetsen, en alleen met een echte conversie.** De ontwikkelaarsdocumentatie noemt
+geen voorwaarde (*"Once you purchase PDF Services API, its APIs can be configured to
+process the documents in a specified region"*), maar Adobe's Trust Center zegt *"Enterprise
+customers can choose the region"*. Die twee sluiten een abonnementsafhankelijkheid niet uit.
+Werkt het niet, dan is `ADOBE_REGIO=us` de terugval — exact de oude hostnaam.
+
+Onbekende waarden vallen bewust naar Europa. Een typefout in een omgevingsvariabele hoort
+geen doorgifte naar de Verenigde Staten op te leveren die niemand ziet.
+
+**Twee wegen als het abonnement de EU-regio niet draagt:**
+
+- **ConvertAPI of CloudConvert.** Beide kunnen PDF→DOCX en noemen AVG-naleving, maar geen
+  van beide adverteert een harde EU-datalocatie. Je ruilt dan één verwerker zonder
+  EU-garantie voor een andere — alleen winst als ze het schriftelijk geven.
+- **De conversie overslaan.** De DOCX wordt al in de browser gebouwd met JSZip; Adobe is er
+  uitsluitend om de *opmaak van het origineel* te behouden. Als een mediator net zo goed
+  een schoon Word-document met de aangepaste tekst kan krijgen, verdwijnt deze verwerker
+  volledig uit de keten. Dat is een productvraag, geen technische.
 
 *Ter vergelijking, want het verklaart waarom dit meer is dan een formaliteit:* LegalPA
 verwerkt binnen de EU (opslag Amsterdam, AI-verwerking Zweden) en verkoopt anonimisering

@@ -31,6 +31,12 @@ Open daarna: http://localhost:3000
      op clausula.nl, voor uitnodigings-e-mails via `api/uitnodigen.js`
    - `ADOBE_CLIENT_ID` — voor PDF→DOCX conversie via Adobe PDF Services
    - `ADOBE_CLIENT_SECRET`
+   - `ADOBE_REGIO` — **optioneel, standaard Europa.** De conversie stuurt het originele
+     PDF-bestand naar Adobe, mét cliëntnamen erin: de enige plek waar een onbewerkt
+     document de deur uit gaat. Sinds 8 september 2026 gaat dat naar de EU-regio
+     (`pdf-services-ew1.adobe.io`, verwerkt in Ierland) in plaats van de Amerikaanse
+     standaard. Blijkt het abonnement dat niet te dragen, zet dan `ADOBE_REGIO=us` —
+     dat geeft exact de oude hostnaam terug. Zie `src/conversie/adobe-regio.js`.
    - `TEST_EMAIL`, `TEST_PASSWORD` — testaccount voor `npm run test:eval`. Daarmee
      haalt de eval bij elke run zelf een verse Supabase-token op. Zonder deze twee
      valt hij terug op `TEST_JWT_TOKEN`, en die verloopt binnen een uur — met een

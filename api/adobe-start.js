@@ -5,6 +5,7 @@
 
 import { gebruikerContext } from './_auth.js';
 import { magApiGebruiken } from '../src/auth/toegang.js';
+import { adobeHost, buitenEu } from '../src/conversie/adobe-regio.js';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '25mb' } },
@@ -23,6 +24,13 @@ export const config = {
 // De waarden blijven ruim onder de maxDuration van dit endpoint, zodat een
 // afgelopen limiet hier een nette foutmelding oplevert in plaats van een
 // doodgeschoten functie.
+
+// Waar Adobe onze PDF's verwerkt. Standaard Europa; ADOBE_REGIO=us valt terug op de
+// Amerikaanse standaard. Zie src/conversie/adobe-regio.js voor de afweging.
+const ADOBE = adobeHost(process.env.ADOBE_REGIO);
+if (buitenEu(process.env.ADOBE_REGIO)) {
+  console.warn('[adobe] regio staat op de Verenigde Staten — originele documenten verlaten de EU');
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
@@ -53,7 +61,7 @@ export default async function handler(req, res) {
 
   try {
     // ── Stap 1: Access token ophalen ──────────────────────
-    const tokRes = await fetch('https://pdf-services.adobe.io/token', {
+    const tokRes = await fetch(`${ADOBE}/token`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body:    new URLSearchParams({ client_id: clientId, client_secret: clientSecret }),
@@ -65,7 +73,7 @@ export default async function handler(req, res) {
     const { access_token } = await tokRes.json();
 
     // ── Stap 2: Presigned upload-URL + asset-ID ophalen ───
-    const assetRes = await fetch('https://pdf-services.adobe.io/assets', {
+    const assetRes = await fetch(`${ADOBE}/assets`, {
       method:  'POST',
       headers: {
         'X-API-Key':     clientId,
@@ -93,7 +101,7 @@ export default async function handler(req, res) {
     }
 
     // ── Stap 4: Export-job starten (PDF → DOCX) ───────────
-    const jobRes = await fetch('https://pdf-services.adobe.io/operation/exportpdf', {
+    const jobRes = await fetch(`${ADOBE}/operation/exportpdf`, {
       method:  'POST',
       headers: {
         'X-API-Key':     clientId,

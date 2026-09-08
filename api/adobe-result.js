@@ -8,6 +8,7 @@
 
 import { gebruikerContext } from './_auth.js';
 import { magApiGebruiken } from '../src/auth/toegang.js';
+import { adobeHost, buitenEu } from '../src/conversie/adobe-regio.js';
 import JSZip from 'jszip';
 
 // Elke aanroep naar Adobe krijgt een eigen tijdslimiet.
@@ -23,6 +24,13 @@ import JSZip from 'jszip';
 // De waarden blijven ruim onder de maxDuration van dit endpoint, zodat een
 // afgelopen limiet hier een nette foutmelding oplevert in plaats van een
 // doodgeschoten functie.
+
+// Waar Adobe onze PDF's verwerkt. Standaard Europa; ADOBE_REGIO=us valt terug op de
+// Amerikaanse standaard. Zie src/conversie/adobe-regio.js voor de afweging.
+const ADOBE = adobeHost(process.env.ADOBE_REGIO);
+if (buitenEu(process.env.ADOBE_REGIO)) {
+  console.warn('[adobe] regio staat op de Verenigde Staten — originele documenten verlaten de EU');
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Alleen POST toegestaan' });
@@ -44,7 +52,7 @@ export default async function handler(req, res) {
 
   try {
     // ── Nieuw access token (tokens zijn kortlevend) ───────
-    const tokRes = await fetch('https://pdf-services.adobe.io/token', {
+    const tokRes = await fetch(`${ADOBE}/token`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body:    new URLSearchParams({ client_id: clientId, client_secret: clientSecret }),
