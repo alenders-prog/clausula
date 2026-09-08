@@ -178,3 +178,56 @@ export function keurFeitRegel(regel) {
   }
   return bezwaren;
 }
+
+// ── De bewaartermijn mag nooit door een schrijfactie worden teruggedraaid ────
+//
+// `analyse_feiten.gebruiker_id` verwijst via auth.users naar een e-mailadres en dus naar
+// een persoon. `anonimiseer_oude_feiten()` haalt die verwijzing na achttien maanden weg —
+// dat is de belofte in docs/avg-verwerkersovereenkomst.md.
+//
+// `bouwFeitRegels` haalt gebruiker_id uit de screening, en die blijft bestaan nadat de
+// feitregel is geanonimiseerd. Wie dus opnieuw wegschrijft, zet de verwijzing er weer op.
+//
+// Op 8 september 2026 bleek dat scripts/feiten-sync.mjs die regel wél toepaste en de
+// browser niet. Twee schrijvers naar dezelfde tabel, één die de afspraak kende. Dezelfde
+// vorm als de vier schrijvers naar screeningen.rapport die diezelfde dag acht PDF's
+// verweesd achterlieten — vandaar dat de regel nu hier staat, waar beide erbij kunnen.
+//
+// Er is geen schade geweest: de termijn is achttien maanden en de oudste regel was dagen
+// oud. Het mechanisme stond er wel, en het zou niemand zijn opgevallen.
+
+/** Hoe lang een feitregel een gebruikersverwijzing mag dragen. */
+export const BEWAARTERMIJN_MAANDEN = 18;
+
+/** Alles daarvóór hoort geen gebruiker_id meer te hebben. */
+export const bewaargrens = (nu = Date.now()) =>
+  new Date(nu - BEWAARTERMIJN_MAANDEN * 30.44 * 864e5);
+
+/** De sleutel van een feitregel: sinds 08-09-2026 (screening_id, doc_type). */
+export const feitSleutel = (r) => `${r?.screening_id}|${r?.doc_type ?? ''}`;
+
+/**
+ * Zet de bewaartermijn goed op regels die op het punt staan weggeschreven te worden.
+ *
+ *   bestaande regel : gebruiker_id overnemen zoals hij in de database staat, wat er ook
+ *                     in de nieuwe regel zit — is hij daar geanonimiseerd, dan blijft dat zo
+ *   nieuwe regel    : ouder dan de termijn? meteen zonder verwijzing wegschrijven
+ *
+ * @param {object[]} regels     wat er geschreven gaat worden (wordt niet gewijzigd)
+ * @param {Iterable} bestaande  rijen uit analyse_feiten met screening_id, doc_type, gebruiker_id
+ * @returns {object[]} kopieën met het juiste gebruiker_id
+ */
+export function pasBewaartermijnToe(regels, bestaande = [], nu = Date.now()) {
+  const perSleutel = new Map();
+  for (const r of bestaande ?? []) perSleutel.set(feitSleutel(r), r);
+  const grens = bewaargrens(nu);
+
+  return (regels ?? []).map((regel) => {
+    const oud = perSleutel.get(feitSleutel(regel));
+    if (oud) return { ...regel, gebruiker_id: oud.gebruiker_id ?? null };
+    if (regel?.geanalyseerd_op && new Date(regel.geanalyseerd_op) < grens) {
+      return { ...regel, gebruiker_id: null };
+    }
+    return { ...regel };
+  });
+}

@@ -22,7 +22,7 @@
  * de historie waar de tabel voor bestaat; die mogen nooit worden opgeruimd.
  */
 import { readFileSync } from 'node:fs';
-import { bouwFeitRegels, keurFeitRegel } from '../src/dashboard/feiten.js';
+import { bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe } from '../src/dashboard/feiten.js';
 
 const modus = process.argv.includes('--controle') ? 'controle'
             : process.argv.includes('--alles')    ? 'alles' : 'aanvullen';
@@ -130,20 +130,11 @@ async function main() {
     const bezwaren = keurFeitRegel(regel);
     if (bezwaren.length) { onzuiver.push(`${s.id} (${regel.doc_type}): ${bezwaren.join('; ')}`); continue; }
 
-    // ── De bewaartermijn mag nooit door onderhoud worden teruggedraaid ──────
-    // `bouwFeitRegel` haalt gebruiker_id uit de screening, en die blijft bestaan als de
-    // feitregel al is geanonimiseerd. Zonder deze twee regels zet dit script de
-    // gebruikersverwijzing er weer op — de AVG-belofte ongedaan gemaakt door een
-    // opruimscript, zonder dat iemand het ziet.
-    //
-    //   bestaande regel : gebruiker_id nooit aanraken, wat er ook staat
-    //   nieuwe regel    : meteen de termijn toepassen
+    // De bewaartermijn mag nooit door onderhoud worden teruggedraaid. De regel staat sinds
+    // 08-09-2026 in src/dashboard/feiten.js, zodat de browser hem óók toepast — die deed
+    // dat niet, en dat was aan geen van beide bestanden te zien.
     const oud = bestaand.get(sleutel(regel));
-    if (oud) {
-      regel.gebruiker_id = oud.gebruiker_id ?? null;
-    } else if (new Date(regel.geanalyseerd_op) < grensDatum()) {
-      regel.gebruiker_id = null;
-    }
+    Object.assign(regel, pasBewaartermijnToe([regel], oud ? [oud] : [])[0]);
 
     if (!oud) { nieuw++; teSchrijven.push(regel); continue; }
 

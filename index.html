@@ -7816,6 +7816,32 @@ async function laadGebruikersLijst() {
   }
 }
 
+// ── Eén veld in het rapport bijwerken ──────────────────────────────────────
+// De enige manier om een deel van screeningen.rapport te wijzigen. Begint bij wat er in
+// de database staat, zodat er niets verloren kan gaan — zie src/opslag/rapport-veld.js
+// voor wat er misging toen vier plekken hun eigen geheugenversie wegschreven.
+//
+// Pseudonimiseren hoort hier en niet in die module: de namenkaart zit in dit bestand. Het
+// bewaarde rapport is pseudoniem, dus wat erin gaat moet dat ook zijn — anders staan er
+// echte namen in een kolom waarvan iedereen aanneemt dat ze er niet staan.
+// `screeningId` en `naarAnon` zijn expliciet meegeefbaar omdat de conceptgeneratie op de
+// achtergrond loopt: die legt bij de start een momentopname vast (snapId, snapNaarAnon) en
+// mag níét de kaart van het dossier gebruiken dat de gebruiker inmiddels open heeft. Zonder
+// dat onderscheid worden de namen van dossier A met de kaart van dossier B vervangen.
+async function bewaarRapportVeld(veld, waarde, { screeningId = app.screeningId, naarAnon = huidigeNaarAnon } = {}) {
+  if (!screeningId) return;
+  const { data, error: leesFout } = await db.from('screeningen')
+    .select('rapport').eq('id', screeningId).maybeSingle();
+  if (leesFout) { console.warn('[rapport-veld] lezen mislukt, niet geschreven:', leesFout.message); return; }
+  const _pseudo = (naarAnon?.size ?? 0) > 0 ? anonimiseerObj(waarde, naarAnon) : waarde;
+  let _nieuwRapport;
+  try { _nieuwRapport = bouwRapportUpdate(data?.rapport, veld, _pseudo); }
+  catch (e) { console.warn('[rapport-veld]', e.message); return; }
+  const { error } = await db.from('screeningen')
+    .update({ rapport: _nieuwRapport }).eq('id', screeningId);
+  if (error) console.warn('[rapport-veld] schrijven mislukt:', error.message);
+}
+
 // ── Feitregel wegschrijven ─────────────────────────────────────────────────
 // Het tellen zelf staat in src/dashboard/feiten.js, met achttien tests. Hier alleen
 // het ophalen van de zojuist bewaarde rij en het wegschrijven.
@@ -7839,8 +7865,12 @@ async function schrijfFeitRegel(screeningId) {
   const bezwaren = regels.flatMap(keurFeitRegel);
   if (bezwaren.length) { console.error('[feiten] geweigerd:', bezwaren); return; }
 
+  // De bewaartermijn mag niet door een gewone opslagactie worden teruggedraaid: staat er
+  // al een geanonimiseerde regel, dan blijft die zonder gebruiker_id. Zie feiten.js.
+  const { data: bestaand } = await db.from('analyse_feiten')
+    .select('screening_id, doc_type, gebruiker_id').eq('screening_id', screeningId);
   const { error } = await db.from('analyse_feiten')
-    .upsert(regels, { onConflict: 'screening_id,doc_type' });
+    .upsert(pasBewaartermijnToe(regels, bestaand ?? []), { onConflict: 'screening_id,doc_type' });
   if (error) { console.warn('[feiten] wegschrijven mislukt:', error.message); return; }
 
   // Regels opruimen van een documenttype dat niet meer in deze analyse zit. Een upsert
@@ -9598,8 +9628,9 @@ var bepaalMfaStap, mfaVerplicht, mfaFoutTekst, mfaInschrijfFoutTekst; // → src
 var mfaStatusHtml, mfaInschrijfHtml;              // → src/auth/mfa-scherm.js
 var berekenGemiddeldeScore, rapportScore;         // → src/rapport/score.js
 var bouwStatistieken;                             // → src/dashboard/statistieken.js
-var bouwFeitRegels, keurFeitRegel;                // → src/dashboard/feiten.js
+var bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe;  // → src/dashboard/feiten.js
 var magZoeken;                                    // → src/concept/vervangbaar.js
+var bouwRapportUpdate;                            // → src/opslag/rapport-veld.js
 var statistiekenUitFeiten, uitVerwijderdeDossiers; // → src/dashboard/feiten-statistiek.js
 var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
                                                   // → src/dashboard/scherm.js
@@ -10504,9 +10535,7 @@ function toonConceptReview(documentTekst, wijzigingen, pdfBestand = null, origin
         if (!app.screeningId || !_conceptDocType) return;
         if (!app.rapport?._concepts?.[_conceptDocType]) return;
         try {
-          await db.from('screeningen')
-            .update({ rapport: app.rapport })
-            .eq('id', app.screeningId);
+          await bewaarRapportVeld('_concepts', app.rapport._concepts);
         } catch (e) { console.warn('[acceptatie] Supabase-opslag mislukt:', e.message); }
       }, 1500);
     };
@@ -10594,7 +10623,7 @@ async function slaConceptOp(documentTekst, wijzigingen) {
   if (bekijkBtn) bekijkBtn.style.display = 'inline-flex';
   if (app.screeningId && app.rapport) {
     try {
-      await db.from('screeningen').update({ rapport: app.rapport }).eq('id', app.screeningId);
+      await bewaarRapportVeld('_concepts', app.rapport._concepts);
     } catch (e) {
       console.warn('Concept opslaan mislukt (niet-fataal):', e.message);
     }
@@ -11159,7 +11188,8 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
       snapRapport._concepts[snapDocType] = conceptData;
       if (snapId) {
         try {
-          await db.from('screeningen').update({ rapport: snapRapport }).eq('id', snapId);
+          await bewaarRapportVeld('_concepts', snapRapport._concepts,
+            { screeningId: snapId, naarAnon: snapNaarAnon });
         } catch (e) { console.warn('Concept opslaan mislukt:', e.message); }
       }
 
@@ -15074,7 +15104,7 @@ async function _assistVoegToeAlsIssue(bufId, docType) {
   if (!Array.isArray(rp.issues)) rp.issues = [];
   rp.issues.push(nieuweIssue);
   try {
-    await db.from('screeningen').update({ rapport: rp }).eq('id', app.screeningId);
+    await bewaarRapportVeld('issues', rp.issues);
   } catch(e) { /* niet fataal */ }
   // Herteken de issue-lijst in de UI als die zichtbaar is
   if (typeof _activeerAnalysePanelFn === 'function') _activeerAnalysePanelFn(app.rapport);
@@ -16358,8 +16388,9 @@ import { bepaalMfaStap, mfaVerplicht, mfaFoutTekst,
 import { mfaStatusHtml, mfaInschrijfHtml }                 from './src/auth/mfa-scherm.js';
 import { berekenGemiddeldeScore, rapportScore }            from './src/rapport/score.js';
 import { bouwStatistieken }                                from './src/dashboard/statistieken.js';
-import { bouwFeitRegels, keurFeitRegel }                   from './src/dashboard/feiten.js';
+import { bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe } from './src/dashboard/feiten.js';
 import { magZoeken }                                      from './src/concept/vervangbaar.js';
+import { bouwRapportUpdate }                              from './src/opslag/rapport-veld.js';
 import { statistiekenUitFeiten, uitVerwijderdeDossiers }   from './src/dashboard/feiten-statistiek.js';
 import { kpiStripHtml, categorieHtml, verloopHtml,
          mfnHtml, topIssuesHtml, mfnTypen, label }         from './src/dashboard/scherm.js';
@@ -16436,7 +16467,9 @@ window.berekenGemiddeldeScore = berekenGemiddeldeScore;
 window.rapportScore           = rapportScore;
 window.bouwStatistieken       = bouwStatistieken;
 window.bouwFeitRegels         = bouwFeitRegels;
+window.pasBewaartermijnToe    = pasBewaartermijnToe;
 window.magZoeken              = magZoeken;
+window.bouwRapportUpdate      = bouwRapportUpdate;
 window.keurFeitRegel          = keurFeitRegel;
 window.statistiekenUitFeiten  = statistiekenUitFeiten;
 window.uitVerwijderdeDossiers = uitVerwijderdeDossiers;

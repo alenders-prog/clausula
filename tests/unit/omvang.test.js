@@ -549,8 +549,29 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // plek drie regels — de aanroep, de waarschuwing mét reden, en het overslaan. Die
 // waarschuwing is het punt van de hele wijziging, dus die eruit laten om de grens te
 // halen zou de reparatie ongedaan maken.
-const MAX_REGELS_INDEX = 16599;
-const MAX_REGELS_JS     = 13328;
+// 08-09-2026 (zesentwintigste keer): 16599 → 16627 (+28, alle script). Eén deur naar
+// screeningen.rapport.
+//
+// Vier plekken schreven `app.rapport` rechtstreeks weg en verloren daarbij de velden die
+// er in het geheugen niet in zaten — waaronder _document_bestanden, waardoor acht PDF's
+// met persoonsgegevens verweesd in Storage achterbleven: niets verwees er nog naar, en
+// juist dat veld gebruikt storagePadenVanScreening() om ze op te ruimen.
+//
+// De regel zelf staat in src/opslag/rapport-veld.js met tests, plus een bronwachter die
+// afgaat zodra iemand een tweede schrijver bouwt. Wat hier bij kwam is de deur: lezen,
+// pseudonimiseren met de JUISTE namenkaart, samenvoegen, schrijven. Dat kan niet naar src/
+// — het heeft db, app, anonimiseerObj en huidigeNaarAnon nodig, alle vier van hier.
+//
+// De vier aanroepen werden er korter van; de groei zit in de deur en in de uitleg waarom
+// de conceptgeneratie een eigen momentopname van de namenkaart meekrijgt. Die uitleg
+// schrappen om de grens te halen zou de volgende val precies zo diep maken.
+// Diezelfde dag +5 erbij: de bewaartermijn van analyse_feiten. scripts/feiten-sync.mjs
+// paste die regel toe en de browser niet — twee schrijvers naar dezelfde tabel, één die de
+// afspraak kende. Dat is dezelfde vorm als de vier schrijvers naar screeningen.rapport
+// hierboven, en de reparatie ook: de regel staat nu in src/dashboard/feiten.js, waar beide
+// erbij kunnen, met een bronwachter die controleert dat ze hem allebei aanroepen.
+const MAX_REGELS_INDEX = 16632;
+const MAX_REGELS_JS     = 13361;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
