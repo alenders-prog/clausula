@@ -595,8 +595,8 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 //
 // Het inzicht dat uniekheid het betere criterium is stond al in
 // src/viewer/uniek-fragment.js, en was niet toegepast op de twee functies ernaast.
-const MAX_REGELS_INDEX = 16697;
-const MAX_REGELS_JS     = 13419;
+const MAX_REGELS_INDEX = 16707;
+const MAX_REGELS_JS     = 13429;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;

@@ -7924,10 +7924,20 @@ async function schrijfFeitRegel(screeningId) {
   // nadat het uit de analyse is gehaald. Bewust een gerichte delete en geen "alles weg,
   // dan opnieuw": dat laatste zou gebruiker_id terugzetten op regels waar de
   // bewaartermijn hem al had weggehaald.
-  const { error: opruimFout } = await db.from('analyse_feiten').delete()
-    .eq('screening_id', screeningId)
-    .not('doc_type', 'in', `(${regels.map(r => r.doc_type).join(',')})`);
-  if (opruimFout) console.warn('[feiten] opruimen mislukt:', opruimFout.message);
+  // Per overtollig type een eigen delete. Hier stond `.not('doc_type','in','(a,b)')`, en
+  // dat werkte niet: een waarde als 'convenant+ouderschapsplan' bevat tekens die PostgREST
+  // in zo'n lijst anders leest. Gevolg was dat de oude gecombineerde regel bleef staan
+  // NAAST de twee nieuwe, en het dashboard die ene analyse drie keer telde — 20 + 18 + 30
+  // bevindingen voor een analyse van 38. Zichtbaar als een dashboard dat meer telt dan de
+  // lijst eronder, precies het soort fout waar dbVerwijderd voor bedoeld was.
+  const houden = new Set(regels.map(r => r.doc_type));
+  for (const oud of (bestaand ?? [])) {
+    if (houden.has(oud.doc_type)) continue;
+    const { error: opruimFout } = await db.from('analyse_feiten').delete()
+      .eq('screening_id', screeningId).eq('doc_type', oud.doc_type);
+    if (opruimFout) console.warn('[feiten] opruimen mislukt voor', oud.doc_type, opruimFout.message);
+    else console.info('[feiten] verouderde regel verwijderd:', oud.doc_type);
+  }
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
