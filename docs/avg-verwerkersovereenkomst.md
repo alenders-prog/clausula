@@ -100,11 +100,21 @@ gerechtvaardigd belang wordt vastgelegd (de LIA).
 | Verwerkersovereenkomst met **Anthropic** | DPA staat in `docs/` (pdf), nog niet getekend/vastgelegd |
 | Verwerkersovereenkomst met **Adobe** (PDF Services) | nog te regelen |
 | Eigen verwerkersovereenkomst richting de **kantoren** | uit te breiden met de clausules hierboven |
-| Privacyverklaring aanpassen | volgt op clausule 1 en 2 |
+| Privacyverklaring aanpassen | volgt op clausule 1 en 2; **conceptteksten liggen klaar** in `docs/architectuurbeoordeling.md` onder 1.5 |
 | Verwerkingsregister aanvullen | volgt op clausule 1 en 2 |
 | **Sentry** (indien ingevoerd) | wordt een extra verwerker; EU-datalocatie Frankfurt bij aanmaken kiezen, achteraf niet te wijzigen |
 
 Resend is vervallen — de uitnodigingsmail gaat via de eigen mailserver op clausula.nl.
+
+> **Deze vier zijn sinds 8 september 2026 het kritieke pad, niet meer een bijzaak.** Aanname
+> A4 luidde dat doorgifte buiten de EU aanvaardbaar was zolang de data "absoluut
+> geanonimiseerd" was. Die aanname is losgelaten: wat er gebeurt is pseudonimisering, en
+> die heft de verplichtingen niet op. De doorgifte steunt dus vanaf nu op deze
+> overeenkomsten en de standaardcontractbepalingen — er is geen tweede grond meer.
+>
+> Let ook op de reikwijdte. Alleen de documenttekst voor de AI-analyse is
+> gepseudonimiseerd. **Adobe en Supabase Storage krijgen het originele bestand**, met namen
+> erin. Bij die twee is de overeenkomst dus niet formeel maar dragend.
 
 ---
 

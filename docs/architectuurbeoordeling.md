@@ -19,15 +19,45 @@ inzicht wierp het hele advies om.
 | **A1** | Circa 100 kantoren binnen een jaar | antwoord 1 | opgegeven |
 | **A2** | Abonnement met limieten; kosten per analyse tellen mee | antwoord 2 | opgegeven |
 | **A3** | Het ergste is een **foute bevinding waarop een mediator handelt** | antwoord 3 | opgegeven |
-| **A4** | Data buiten de EU is aanvaardbaar **mits absoluut geanonimiseerd** | antwoord 4 | **houdt niet stand — zie B1** |
+| **A4** | ~~Data buiten de EU is aanvaardbaar **mits absoluut geanonimiseerd**~~ → **herzien 8 sep 2026**, zie hieronder | antwoord 4 · besluit | vervangen |
 | **A5** | Mogelijk overdracht of onderhoud door een ander; typecontrole belangrijk | antwoord 5 | opgegeven |
 | **A6** | Nu een aaneengesloten periode, later in blokken | antwoord 6 | opgegeven |
 | **A7** | Tweede rechtsgebied blijft open; realistisch over ~6 maanden, ná live en stabiel | antwoord 7 | opgegeven |
 | **A8** | Eerst: beheerpagina (gebruik, kosten, automatische processen), voorkeuren per gebruiker, uitgebreidere assistent. Later: zelf documenten opstellen. **AVG staat voorop** | antwoord 8 | opgegeven |
 
-> **A4 is de enige aanname die de meting niet overleeft.** Hij is opgegeven als voorwaarde
-> ("zolang de data absoluut geanonimiseerd is") en die voorwaarde is vandaag niet vervuld.
-> Dat maakt B1 en B2 de belangrijkste bevindingen van dit stuk.
+> **A4 was de enige aanname die de meting niet overleefde.** Hij was opgegeven als
+> voorwaarde ("zolang de data absoluut geanonimiseerd is") en die voorwaarde was niet
+> vervuld. Dat maakte B1 en B2 de belangrijkste bevindingen van dit stuk.
+
+### A4 herzien — 8 september 2026
+
+**Verwerking buiten de EU vindt plaats *onder* de AVG, niet daarbuiten.** De aanname dat
+anonimisering die doorgifte zou wegnemen is losgelaten. Pseudonimisering verkleint het
+risico wél, maar heft de verplichtingen niet op: doorgifte wordt geregeld met
+verwerkersovereenkomsten en standaardcontractbepalingen. De pseudonimisering blijft een
+aanvullende maatregel die we blijven aanscherpen — geen grondslag.
+
+Waarom de oude formulering niet houdbaar was, in twee punten die allebei te controleren
+zijn:
+
+- **"Geanonimiseerd" is het verkeerde woord.** Anonieme gegevens vallen buiten de AVG;
+  dát is wat het woord juridisch betekent. Wat hier gebeurt is pseudonimisering — B1 laat
+  zien wat er blijft staan (geboortedatum, geboorteplaats, werkgever, adressen zonder
+  straatsuffix). Een claim van anonimisering is door een toezichthouder of een cliënt na
+  te rekenen, en zou het niet halen.
+- **Het geldt niet voor alles wat het apparaat verlaat.** Alleen de documentTEKST voor de
+  AI-analyse wordt in de browser gepseudonimiseerd. Het ORIGINELE bestand gaat ongewijzigd
+  naar Adobe voor de PDF→DOCX-conversie (`pdfBase64` in index.html) en naar Supabase
+  Storage. "Persoonsgegevens verlaten de computer alleen gepseudonimiseerd" is dus onwaar,
+  en het is precies de zin die je niet in een privacyverklaring wilt hebben staan.
+
+**Wat wél klopt, en sterk genoeg is om zo op te schrijven:**
+
+> Voor de AI-analyse verlaat de documenttekst het apparaat alleen in gepseudonimiseerde
+> vorm: namen zijn vervangen door schuilnamen, en BSN, IBAN, e-mailadres en telefoonnummer
+> door plaatsaanduidingen. Het taalmodel ziet de namen van cliënten niet.
+
+Voorgestelde tekst voor de privacyverklaring staat onder 1.5.
 
 ---
 
@@ -332,7 +362,7 @@ daarná — het maakt het bouwen prettiger, maar het lost geen van die drie op.
 | 1.2 | ~~Datacontroles~~ — **gedaan 5 sep 2026**, `npm run check:data` | B5, A3 | 1 ronde |
 | 1.3 | ~~Cliëntnamen uit foutmeldingen~~ — **server gedaan 5 sep 2026**; browserconsole wacht op de komst van foutmonitoring | B5 | een halve ronde |
 | 1.4 | ~~Anonimisering uitbreiden: geboortedatum, geboorteplaats, adres zonder suffix~~ — **eerste ronde gedaan** (67b5bd0); "af" kan dit punt niet zijn, zie hieronder | B1 | 2 ronden + eval |
-| 1.5 | Besluit over A4: sluitend maken of laten vallen en de doorgifte regelen | B1 | uw besluit |
+| 1.5 | ~~Besluit over A4~~ — **genomen 8 sep 2026**; wat er nu nog moet gebeuren staat hieronder | B1 | administratief |
 | 1.6 | ~~Bewaartermijn en opschoning~~ — **gedaan 5 sep 2026**, `npm run opschonen`; geen schemawijziging nodig | B3 | 1–2 ronden, schemawijziging |
 | 1.7 | ~~Lidmaatschapscontrole op de laatste endpoints~~ — **gedaan 7 sep 2026**, met een test die de regel bewaakt | B2 | een halve ronde |
 | 1.8 | **CSP van report-only naar afdwingen** — wacht op één doorloop van de flows | B5 | uw handeling, dan een halve ronde |
@@ -344,6 +374,38 @@ zeker. Daarom hoort 1.5 erbij als besluit, niet als sluitstuk. Sinds 5 september
 vier ronden bij gekomen: plaatsnamen op naam in plaats van op context, de woonplaats bij de
 woning zelf, namen die met een accentletter beginnen, en de positie in de zin als
 doorslaggevend bij twijfelgevallen.
+
+#### 1.5 — het besluit is genomen; er ligt nu papierwerk *(8 sep 2026)*
+
+A4 is herzien (zie hoofdstuk 1): de doorgifte wordt geregeld in plaats van weggeredeneerd.
+Daarmee verschuift dit punt van een besluit naar een administratieve klus, en die is niet
+technisch op te lossen.
+
+**Wat er moet gebeuren, en in deze volgorde:**
+
+1. **Verwerkersovereenkomsten sluiten** met Anthropic, Adobe, Vercel en Supabase. Alle vier
+   staan open. Bij Vercel en Adobe is de DPA in het dashboard te accepteren; bij Anthropic
+   en Supabase loopt het via hun voorwaarden. Zie `docs/avg-verwerkersovereenkomst.md`.
+2. **Pas dáárna** de privacyverklaring publiceren met de tekst hieronder. De laatste zin
+   ervan is nu nog onwaar.
+3. De pseudonimisering blijven aanscherpen (1.4). Dat is geen voorwaarde meer voor de
+   doorgifte, maar wel de maatregel die het risico echt verkleint.
+
+**Voorgestelde tekst voor de privacyverklaring** — pas te gebruiken als stap 1 rond is:
+
+> Documenten worden verwerkt onder de AVG. Voor de AI-analyse wordt de tekst in uw browser
+> gepseudonimiseerd voordat hij het apparaat verlaat: namen worden vervangen door
+> schuilnamen, en BSN, IBAN, e-mailadres en telefoonnummer door plaatsaanduidingen. Dit is
+> pseudonimisering en geen anonimisering — gegevens zoals een geboortedatum of een
+> werkgever kunnen in de tekst achterblijven. Voor het omzetten van PDF naar Word en voor
+> de opslag van uw bestanden wordt het originele document verwerkt. Met alle betrokken
+> verwerkers zijn verwerkersovereenkomsten gesloten; doorgifte buiten de EU vindt plaats op
+> basis van de standaardcontractbepalingen.
+
+En voor de site, kort:
+
+> Cliëntnamen bereiken het AI-model niet. De documenttekst wordt in uw eigen browser
+> gepseudonimiseerd voordat hij wordt verstuurd.
 
 #### 1.7 — endpoints kenden alleen de token, niet het kantoor *(gedaan 7 sep 2026)*
 
