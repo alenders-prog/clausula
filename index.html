@@ -7506,7 +7506,12 @@ async function opslaan() {
     let   _opsl_rapport       = app.rapport;
     if (_magPseudo) {
       const { _teksten_per_pad, ...rapportZonderBulk } = app.rapport;
-      _opsl_rapport = anonimiseerObj(rapportZonderBulk, huidigeNaarAnon);
+      // Een Storage-pad is een sleutel en geen tekst: één vervangen letterreeks en hij wijst
+      // nergens meer heen. Op 8 september werd 'bv' middenin een willekeurige bestandsnaam
+      // vervangen door [WERKGEVER_0] — het rapport verwees daarna naar een bestand dat niet
+      // bestond, en de PDF was in de viewer weg. Zie src/opslag/technische-velden.js.
+      _opsl_rapport = herstelTechnischeVelden(app.rapport,
+        anonimiseerObj(rapportZonderBulk, huidigeNaarAnon));
     }
 
     // De sleutel waaronder deze analyse is gemeten. Hij wordt vóór het opslaan gemaakt
@@ -9690,6 +9695,7 @@ var bouwStatistieken;                             // → src/dashboard/statistie
 var bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe;  // → src/dashboard/feiten.js
 var magZoeken;                                    // → src/concept/vervangbaar.js
 var bouwRapportUpdate;                            // → src/opslag/rapport-veld.js
+var herstelTechnischeVelden;                      // → src/opslag/technische-velden.js
 var statistiekenUitFeiten, uitVerwijderdeDossiers; // → src/dashboard/feiten-statistiek.js
 var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
                                                   // → src/dashboard/scherm.js
@@ -16466,6 +16472,7 @@ import { bouwStatistieken }                                from './src/dashboard
 import { bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe } from './src/dashboard/feiten.js';
 import { magZoeken }                                      from './src/concept/vervangbaar.js';
 import { bouwRapportUpdate }                              from './src/opslag/rapport-veld.js';
+import { herstelTechnischeVelden }                        from './src/opslag/technische-velden.js';
 import { statistiekenUitFeiten, uitVerwijderdeDossiers }   from './src/dashboard/feiten-statistiek.js';
 import { kpiStripHtml, categorieHtml, verloopHtml,
          mfnHtml, topIssuesHtml, mfnTypen, label }         from './src/dashboard/scherm.js';
@@ -16545,6 +16552,7 @@ window.bouwFeitRegels         = bouwFeitRegels;
 window.pasBewaartermijnToe    = pasBewaartermijnToe;
 window.magZoeken              = magZoeken;
 window.bouwRapportUpdate      = bouwRapportUpdate;
+window.herstelTechnischeVelden = herstelTechnischeVelden;
 window.keurFeitRegel          = keurFeitRegel;
 window.statistiekenUitFeiten  = statistiekenUitFeiten;
 window.uitVerwijderdeDossiers = uitVerwijderdeDossiers;

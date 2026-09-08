@@ -595,8 +595,12 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 //
 // Het inzicht dat uniekheid het betere criterium is stond al in
 // src/viewer/uniek-fragment.js, en was niet toegepast op de twee functies ernaast.
-const MAX_REGELS_INDEX = 16707;
-const MAX_REGELS_JS     = 13429;
+// En +8: een Storage-pad is een sleutel en geen tekst. De pseudonimisering verving 'bv'
+// middenin een willekeurige bestandsnaam door [WERKGEVER_0], waarna het rapport naar een
+// bestand wees dat niet bestond — PDF weg in de viewer, bestand verweesd in Storage.
+// De regel staat in src/opslag/technische-velden.js met tests.
+const MAX_REGELS_INDEX = 16715;
+const MAX_REGELS_JS     = 13437;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
