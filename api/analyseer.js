@@ -29,6 +29,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { meetAanroep, wachtOpVerbruik } from './_verbruik.js';
 import { filterIssuesOpIban } from './_iban.js';
+import { filterBevestigingen } from '../src/rapport/geen-bevinding.js';
 import { bouwConsolidatieLijst } from './_dedup-passage.js';
 import { hoortBijDocument } from './_cross-doc-toewijzing.js';
 import { gebruikerContext } from './_auth.js';
@@ -895,7 +896,15 @@ export default async function handler(req, res) {
           ...(crossIssuesPerDoc.get(doc.bestandsnaam) ?? []),
         ];
         // IBAN-validatie: verwijder issues met niet-bestaande IBANs en tegenstrijdige IBAN-conclusies
-        const allIssues = filterIssuesOpIban(rawIssues, vervangPii(doc.tekst ?? ''));
+        // Bevindingen die zelf zeggen dat er niets hoeft. De prompt verbiedt ze al, maar
+        // ze komen er toch doorheen — en dan het liefst met ernst 'hoog'. Zie
+        // src/rapport/geen-bevinding.js voor waarom dat schadelijker is dan het lijkt.
+        const { issues: _zonderBevestiging, verwijderd: _bevestigingen } =
+          filterBevestigingen(rawIssues);
+        for (const b of _bevestigingen) {
+          console.log(`[bevestiging] ${docRef(doc.bestandsnaam)}: weg — ${b.onderwerp}`);
+        }
+        const allIssues = filterIssuesOpIban(_zonderBevestiging, vervangPii(doc.tekst ?? ''));
         if (allIssues.length < rawIssues.length)
           console.log(`[iban] ${docRef(doc.bestandsnaam)}: ${rawIssues.length - allIssues.length} issue(s) verwijderd door IBAN-validatie`);
         if (allIssues.length < 2) {

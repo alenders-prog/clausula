@@ -8897,7 +8897,14 @@ function vervangInDocxXmlSchoon(xml, wijzigingen) {
 
   const norm     = s => s.replace(/\s+/g, ' ').toLowerCase().trim();
   const paraTxt  = p => Array.from(p.getElementsByTagNameNS(wNs, 't')).map(t => t.textContent).join('');
-  const paraRPr  = p => p.getElementsByTagNameNS(wNs, 'r')[0]?.getElementsByTagNameNS(wNs, 'rPr')[0] || null;
+  // De opmaak van de run met de MEESTE tekst, niet die van de eerste. In Word is de
+  // eerste run vaak een superscript of een los cursief woord met een eigen, kleinere
+  // w:sz — en dan werd de hele vervanging kleiner weergegeven. Zie src/conversie/run-opmaak.js.
+  const paraRPr  = p => kiesRunOpmaak(
+    [...p.getElementsByTagNameNS(wNs, 'r')].map(r => ({
+      tekstLengte: [...r.getElementsByTagNameNS(wNs, 't')].reduce((n, t) => n + (t.textContent || '').length, 0),
+      rPr: r.getElementsByTagNameNS(wNs, 'rPr')[0] || null,
+    })));
 
   function maakRun(tekst, rPr) {
     const r = xmlDoc.createElementNS(wNs, 'w:r');
@@ -9135,7 +9142,14 @@ function vervangInDocxXml(xml, wijzigingen) {
 
   const norm     = s => s.replace(/\s+/g, ' ').toLowerCase().trim();
   const paraTxt  = p => Array.from(p.getElementsByTagNameNS(wNs, 't')).map(t => t.textContent).join('');
-  const paraRPr  = p => p.getElementsByTagNameNS(wNs, 'r')[0]?.getElementsByTagNameNS(wNs, 'rPr')[0] || null;
+  // De opmaak van de run met de MEESTE tekst, niet die van de eerste. In Word is de
+  // eerste run vaak een superscript of een los cursief woord met een eigen, kleinere
+  // w:sz — en dan werd de hele vervanging kleiner weergegeven. Zie src/conversie/run-opmaak.js.
+  const paraRPr  = p => kiesRunOpmaak(
+    [...p.getElementsByTagNameNS(wNs, 'r')].map(r => ({
+      tekstLengte: [...r.getElementsByTagNameNS(wNs, 't')].reduce((n, t) => n + (t.textContent || '').length, 0),
+      rPr: r.getElementsByTagNameNS(wNs, 'rPr')[0] || null,
+    })));
 
   // Maak een <w:r> run met tekst (normaal of deleteText)
   function maakRun(tekst, rPr, isDelText) {
@@ -9696,6 +9710,8 @@ var bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe;  // → src/dashboard/fe
 var magZoeken;                                    // → src/concept/vervangbaar.js
 var bouwRapportUpdate;                            // → src/opslag/rapport-veld.js
 var herstelTechnischeVelden;                      // → src/opslag/technische-velden.js
+var kiesRunOpmaak;                                // → src/conversie/run-opmaak.js
+var isTechnischeKern;                             // → src/tekst/placeholder-kern.js
 var statistiekenUitFeiten, uitVerwijderdeDossiers; // → src/dashboard/feiten-statistiek.js
 var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
                                                   // → src/dashboard/scherm.js
@@ -9761,6 +9777,13 @@ function herstelAnonObj(obj, naarEcht, naarEchtVolledig = null) {
         const kernEsc = kern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const rxStr   = '\\[\\s*' + kernEsc.replace(/[_\s]+/g, '[_\\s]+') + '\\s*\\]';
         t = t.replace(new RegExp(rxStr, 'gi'), echt);
+        // Ook zónder haken, maar alleen bij een vorm die in lopende tekst niet voorkomt:
+        // HOOFDLETTERS_cijfer. Het model schrijft 'IBAN_0' soms kaal over in een titel, en
+        // dan las de mediator een technische code waar een rekeningnummer hoorde te staan.
+        // Zie src/tekst/placeholder-kern.js voor waarom de toets op de vórm gaat.
+        if (isTechnischeKern(kern)) {
+          t = t.replace(new RegExp('(?<![A-Za-z0-9_])' + kernEsc + '(?![A-Za-z0-9_])', 'g'), echt);
+        }
       } catch (e) {
             // Gevolg: deze naam blijft als pseudoniem op het scherm staan.
             console.warn("[stil/namen] placeholder niet herstelbaar:", e.message);
@@ -16473,6 +16496,8 @@ import { bouwFeitRegels, keurFeitRegel, pasBewaartermijnToe } from './src/dashbo
 import { magZoeken }                                      from './src/concept/vervangbaar.js';
 import { bouwRapportUpdate }                              from './src/opslag/rapport-veld.js';
 import { herstelTechnischeVelden }                        from './src/opslag/technische-velden.js';
+import { kiesRunOpmaak }                                  from './src/conversie/run-opmaak.js';
+import { isTechnischeKern }                               from './src/tekst/placeholder-kern.js';
 import { statistiekenUitFeiten, uitVerwijderdeDossiers }   from './src/dashboard/feiten-statistiek.js';
 import { kpiStripHtml, categorieHtml, verloopHtml,
          mfnHtml, topIssuesHtml, mfnTypen, label }         from './src/dashboard/scherm.js';
@@ -16553,6 +16578,8 @@ window.pasBewaartermijnToe    = pasBewaartermijnToe;
 window.magZoeken              = magZoeken;
 window.bouwRapportUpdate      = bouwRapportUpdate;
 window.herstelTechnischeVelden = herstelTechnischeVelden;
+window.kiesRunOpmaak          = kiesRunOpmaak;
+window.isTechnischeKern       = isTechnischeKern;
 window.keurFeitRegel          = keurFeitRegel;
 window.statistiekenUitFeiten  = statistiekenUitFeiten;
 window.uitVerwijderdeDossiers = uitVerwijderdeDossiers;

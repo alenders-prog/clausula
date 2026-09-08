@@ -599,8 +599,17 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // middenin een willekeurige bestandsnaam door [WERKGEVER_0], waarna het rapport naar een
 // bestand wees dat niet bestond — PDF weg in de viewer, bestand verweesd in Storage.
 // De regel staat in src/opslag/technische-velden.js met tests.
-const MAX_REGELS_INDEX = 16715;
-const MAX_REGELS_JS     = 13437;
+// En +17: de opmaak van vervangen tekst in een DOCX werd overgenomen van de EERSTE run in
+// de alinea. In Word is dat vaak een superscript ("2de") of een los cursief woord met een
+// eigen kleinere w:sz — vandaar dat tekst in het conceptvoorbeeld op sommige plekken
+// opeens kleiner werd. Nu de run met de meeste tekst; de regel staat in
+// src/conversie/run-opmaak.js met tests, en beide DOCX-paden gebruiken hem.
+// En +11 voor twee kleine reparaties uit dezelfde melding: bevindingen die zelf zeggen dat
+// er niets hoeft (nu gefilterd, zie src/rapport/geen-bevinding.js) en plaatshouders die het
+// model zonder haken overschrijft — "IBAN_0" in een kaarttitel. Die laatste worden nu ook
+// kaal hersteld, maar alleen bij de vorm HOOFDLETTERS_cijfer; zie src/tekst/placeholder-kern.js.
+const MAX_REGELS_INDEX = 16743;
+const MAX_REGELS_JS     = 13465;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
