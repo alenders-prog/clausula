@@ -7640,10 +7640,14 @@ function toonResiduWaarschuwing(residu) {
   }
   const regels = [...perDoc].map(([bn, ws]) =>
     `<li><strong>${escH(bn || 'document')}</strong>: ${ws.map(escH).join(', ')}</li>`).join('');
-  const halveHtml = halve.length ? `<div style="margin-top:8px"><strong>${halve.length} naam
-    ${halve.length === 1 ? 'is' : 'zijn'} half vervangen</strong> — de achternaam wél, de
+  // Mét het bestand erbij. Deze namen staan niet meer in de lijst hierboven — daar
+  // zouden ze dubbel tellen — en die lijst was de enige plek waar stond in wélk document
+  // ze voorkomen. Bij één document is dat te raden, bij vier niet.
+  const halveNamen = [...new Map(halve.map(h => [`${h.waarde}|${h.bestandsnaam}`, h])).values()];
+  const halveHtml = halveNamen.length ? `<div style="margin-top:8px"><strong>${halveNamen.length} naam
+    ${halveNamen.length === 1 ? 'is' : 'zijn'} half vervangen</strong> — de achternaam wél, de
     voornaam niet, omdat die alleen elders in het document staat:
-    ${escH([...new Set(halve.map(h => h.waarde))].join(', '))}.</div>` : '';
+    ${halveNamen.map(h => `${escH(h.waarde)} <em>(${escH(h.bestandsnaam || 'document')})</em>`).join(', ')}.</div>` : '';
 
   const balk = document.createElement('div');
   balk.id = 'residuBalk';

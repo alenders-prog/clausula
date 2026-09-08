@@ -616,8 +616,8 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // NIET: de eerste versie verving de voornaam, en de residu-tests lieten zien dat een
 // niet-geleerde kindnaam met dezelfde achternaam dan de vader werd. Aanname A3 — een
 // foute bevinding is het ergste — weegt zwaarder dan één voornaam naar de API.
-const MAX_REGELS_INDEX = 16731;
-const MAX_REGELS_JS     = 13453;
+const MAX_REGELS_INDEX = 16735;
+const MAX_REGELS_JS     = 13457;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
