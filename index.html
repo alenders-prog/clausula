@@ -9599,6 +9599,7 @@ var mfaStatusHtml, mfaInschrijfHtml;              // → src/auth/mfa-scherm.js
 var berekenGemiddeldeScore, rapportScore;         // → src/rapport/score.js
 var bouwStatistieken;                             // → src/dashboard/statistieken.js
 var bouwFeitRegels, keurFeitRegel;                // → src/dashboard/feiten.js
+var magZoeken;                                    // → src/concept/vervangbaar.js
 var statistiekenUitFeiten, uitVerwijderdeDossiers; // → src/dashboard/feiten-statistiek.js
 var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
                                                   // → src/dashboard/scherm.js
@@ -9836,7 +9837,10 @@ function pasWijzigingenToeTekst(origineelTekst, wijzigingen) {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    if (!normOrig || normOrig.length < 5) continue;
+    // Zelfde grens als in het concept-pad, en dezelfde reparatie: zie
+    // src/concept/vervangbaar.js. 'etc:' viel eronder en verdween zonder spoor.
+    const _mag = magZoeken(normOrig);
+    if (!_mag.ok) { console.warn('[docx] Overgeslagen —', _mag.reden); _gemist++; continue; }
 
     const zoekBasis = normOrig.length > 600 ? normOrig.slice(0, 600) : normOrig;
     const escaped   = zoekBasis.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -11064,7 +11068,14 @@ ${anonimiseerTekst(snapOrigineel, snapNaarAnon)}`;
           .replace(/\s{2,}/g, ' ')
           .trim();
 
-        if (!normOrig || normOrig.length < 5) continue;
+        // Hier stond een kale lengtegrens van vijf tekens, zonder log: 'etc:' viel eronder
+        // en werd stil overgeslagen. Zie src/concept/vervangbaar.js.
+        const _mag = magZoeken(normOrig);
+        if (!_mag.ok) {
+          console.warn('[concept] Overgeslagen item', w.item_nr ?? '?', '—', _mag.reden,
+            '»', String(normOrig).slice(0, 60));
+          continue;
+        }
 
         // Bouw zoekregex: elke spatie in normOrig matcht whitespace + eventuele bullets in document.
         // Voorbeeld: "Zin A. Zin B." vindt ook "Zin A.\n●Zin B." in het document.
@@ -16348,6 +16359,7 @@ import { mfaStatusHtml, mfaInschrijfHtml }                 from './src/auth/mfa-
 import { berekenGemiddeldeScore, rapportScore }            from './src/rapport/score.js';
 import { bouwStatistieken }                                from './src/dashboard/statistieken.js';
 import { bouwFeitRegels, keurFeitRegel }                   from './src/dashboard/feiten.js';
+import { magZoeken }                                      from './src/concept/vervangbaar.js';
 import { statistiekenUitFeiten, uitVerwijderdeDossiers }   from './src/dashboard/feiten-statistiek.js';
 import { kpiStripHtml, categorieHtml, verloopHtml,
          mfnHtml, topIssuesHtml, mfnTypen, label }         from './src/dashboard/scherm.js';
@@ -16424,6 +16436,7 @@ window.berekenGemiddeldeScore = berekenGemiddeldeScore;
 window.rapportScore           = rapportScore;
 window.bouwStatistieken       = bouwStatistieken;
 window.bouwFeitRegels         = bouwFeitRegels;
+window.magZoeken              = magZoeken;
 window.keurFeitRegel          = keurFeitRegel;
 window.statistiekenUitFeiten  = statistiekenUitFeiten;
 window.uitVerwijderdeDossiers = uitVerwijderdeDossiers;

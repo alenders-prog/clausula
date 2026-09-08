@@ -538,8 +538,19 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // gericht zijn: "alles weg, dan opnieuw" zou gebruiker_id terugzetten op regels waar de
 // bewaartermijn hem al had weggehaald — een AVG-belofte ongedaan gemaakt door een
 // opslagroutine.
-const MAX_REGELS_INDEX = 16586;
-const MAX_REGELS_JS     = 13315;
+// 08-09-2026 (vijfentwintigste keer): 16586 → 16599 (+13, waarvan 13 script). Twee
+// stille overslagen in de conceptvervanging zichtbaar gemaakt.
+//
+// Er stond op twee plekken `normOrig.length < 5` zonder log. 'etc:' is vier tekens en
+// verdween daardoor spoorloos, terwijl 'etc.:' wél werd doorgevoerd: twee kaarten voor
+// dezelfde soort fout, waarvan er één niets deed en niemand kon zien waarom.
+//
+// De beoordeling zit in src/concept/vervangbaar.js met tests; wat hier bij kwam is per
+// plek drie regels — de aanroep, de waarschuwing mét reden, en het overslaan. Die
+// waarschuwing is het punt van de hele wijziging, dus die eruit laten om de grens te
+// halen zou de reparatie ongedaan maken.
+const MAX_REGELS_INDEX = 16599;
+const MAX_REGELS_JS     = 13328;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
