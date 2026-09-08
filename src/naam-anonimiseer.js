@@ -514,6 +514,7 @@ export function anonimiseerTekst(tekst, naarAnon, piiPh = null) {
     } catch { /* ongeldige naam — overslaan */ }
   }
 
+
   // PII-patronen:
   // - IBANs vervangen door genummerde placeholders [IBAN_0], [IBAN_1], ... (AVG).
   //   De server herkent ze via de uitgebreide IBAN_RE die ook [IBAN_n] matcht.

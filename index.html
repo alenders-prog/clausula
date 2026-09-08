@@ -4473,9 +4473,16 @@ Gebruik voor situatie_kenmerken UITSLUITEND keys uit deze lijst: ${kenmerkenLijs
   app.anonResidu = [];
   try {
     const _bekend = [...naarEcht.keys()];
+    // Volledige nep-namen, om half vervangen namen te herkennen: 'Erwin Bergman' is de
+    // achternaam van ons plus een voornaam die we niet kenden. Zie src/avg/half-vervangen.js.
+    const _nepVol = [...new Set(_bekend.filter(n => n.includes(' ') && !n.startsWith('[')))];
     for (const doc of documentenVoorServer) {
+      const _bn = _bnVanServer.get(doc.bestandsnaam);
       for (const r of zoekResidu(doc.tekst, _bekend)) {
-        app.anonResidu.push({ ...r, bestandsnaam: _bnVanServer.get(doc.bestandsnaam) });
+        app.anonResidu.push({ ...r, bestandsnaam: _bn });
+      }
+      for (const naam of vindHalveNamen(doc.tekst, _nepVol)) {
+        app.anonResidu.push({ soort: 'half_vervangen', waarde: naam, bestandsnaam: _bn });
       }
     }
   } catch (e) {
@@ -7665,23 +7672,35 @@ function toonResiduWaarschuwing(residu) {
   document.getElementById('residuBalk')?.remove();
   if (!residu || residu.length === 0) return;
 
-  const samen = vatResiduSamen(residu);
+  // Half vervangen namen apart. Ze zien eruit als een pseudoniem — de achternaam ís
+  // vervangen — en gingen daardoor op in een lijst van veertig meldingen. Het is een
+  // andere soort bevinding: geen gemiste naam maar een gemiste náámvariant, en de
+  // mediator kan hem herkennen omdat hij het document kent. Zie src/avg/half-vervangen.js.
+  const halve  = residu.filter(r => r.soort === 'half_vervangen');
+  const overig = residu.filter(r => r.soort !== 'half_vervangen');
+  const samen = vatResiduSamen(overig);
   const perDoc = new Map();
-  for (const r of residu) {
+  for (const r of overig) {
     if (!perDoc.has(r.bestandsnaam)) perDoc.set(r.bestandsnaam, []);
     perDoc.get(r.bestandsnaam).push(r.waarde);
   }
   const regels = [...perDoc].map(([bn, ws]) =>
     `<li><strong>${escH(bn || 'document')}</strong>: ${ws.map(escH).join(', ')}</li>`).join('');
+  const halveHtml = halve.length ? `<div style="margin-top:8px"><strong>${halve.length} naam
+    ${halve.length === 1 ? 'is' : 'zijn'} half vervangen</strong> — de achternaam wél, de
+    voornaam niet, omdat die alleen elders in het document staat:
+    ${escH([...new Set(halve.map(h => h.waarde))].join(', '))}.</div>` : '';
 
   const balk = document.createElement('div');
   balk.id = 'residuBalk';
   balk.className = 'opslag-fout-balk';
-  balk.innerHTML = `<span><strong>${samen.aantal} mogelijk herleidbaar gegeven${
-    samen.aantal === 1 ? '' : 's'} niet vervangen.</strong>
-    De vervanging kent alleen de namen die uit de documenten zijn herkend; deze stonden daar
-    niet bij en zijn meegestuurd.
-    <ul style="margin:6px 0 0;padding-left:18px">${regels}</ul></span>
+  const kop = samen.aantal
+    ? `<strong>${samen.aantal} mogelijk herleidbaar gegeven${samen.aantal === 1 ? '' : 's'} niet vervangen.</strong>
+       De vervanging kent alleen de namen die uit de documenten zijn herkend; deze stonden daar
+       niet bij en zijn meegestuurd.`
+    : '';
+  balk.innerHTML = `<span>${kop}
+    <ul style="margin:6px 0 0;padding-left:18px">${regels}</ul>${halveHtml}</span>
     <button type="button" id="residuSluitBtn">Gezien</button>`;
   document.body.appendChild(balk);
   balk.querySelector('#residuSluitBtn').addEventListener('click', () => balk.remove());
@@ -9712,6 +9731,7 @@ var bouwRapportUpdate;                            // → src/opslag/rapport-veld
 var herstelTechnischeVelden;                      // → src/opslag/technische-velden.js
 var kiesRunOpmaak;                                // → src/conversie/run-opmaak.js
 var isTechnischeKern;                             // → src/tekst/placeholder-kern.js
+var vindHalveNamen;                               // → src/avg/half-vervangen.js
 var statistiekenUitFeiten, uitVerwijderdeDossiers; // → src/dashboard/feiten-statistiek.js
 var kpiStripHtml, categorieHtml, verloopHtml, mfnHtml, topIssuesHtml, mfnTypen, label;
                                                   // → src/dashboard/scherm.js
@@ -16515,6 +16535,7 @@ import { bepaalVolgorde, beoordeelVolgorde }                 from './src/rapport
 import { accentueerAanbeveling }                             from './src/rapport/vervang-accent.js';
 import { opslagToestand, magWeg }                            from './src/opslag-waarschuwing.js';
 import { zoekResidu, vatResiduSamen }                        from './src/avg/residu.js';
+import { vindHalveNamen }                                    from './src/avg/half-vervangen.js';
 import { bronbestandMelding }                               from './src/avg/bewaartermijn.js';
 import { maakStroomBewaker }                                from './src/analyse/stroom-bewaker.js';
 import { beoordeelOpslag }                                  from './src/avg/opslag-veiligheid.js';
@@ -16529,6 +16550,7 @@ window.bouwAnonMap       = (cls) => bouwAnonMap(cls,
 );
 window.anonimiseerTekst  = anonimiseerTekst;
 window.zoekResidu        = zoekResidu;
+window.vindHalveNamen    = vindHalveNamen;
 window.vatResiduSamen    = vatResiduSamen;
 window.bronbestandMelding = bronbestandMelding;
 window.maakStroomBewaker  = maakStroomBewaker;

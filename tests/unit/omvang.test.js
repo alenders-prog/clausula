@@ -608,8 +608,16 @@ const WORTEL = join(dirname(fileURLToPath(import.meta.url)), '../..');
 // er niets hoeft (nu gefilterd, zie src/rapport/geen-bevinding.js) en plaatshouders die het
 // model zonder haken overschrijft — "IBAN_0" in een kaarttitel. Die laatste worden nu ook
 // kaal hersteld, maar alleen bij de vorm HOOFDLETTERS_cijfer; zie src/tekst/placeholder-kern.js.
-const MAX_REGELS_INDEX = 16743;
-const MAX_REGELS_JS     = 13465;
+// En +21: half vervangen namen apart melden. "Erwin Huzen" bij de bankrekeningen werd
+// "Erwin Bergman" — achternaam wél vervangen, voornaam niet, omdat die alleen dáár staat.
+// Dat leest als een pseudoniem en ging daardoor op in veertig andere residu-meldingen.
+//
+// De detectie staat in src/avg/half-vervangen.js met tests. Repareren doet hij bewust
+// NIET: de eerste versie verving de voornaam, en de residu-tests lieten zien dat een
+// niet-geleerde kindnaam met dezelfde achternaam dan de vader werd. Aanname A3 — een
+// foute bevinding is het ergste — weegt zwaarder dan één voornaam naar de API.
+const MAX_REGELS_INDEX = 16764;
+const MAX_REGELS_JS     = 13486;
 
 function regels(pad) {
   return readFileSync(join(WORTEL, pad), 'utf8').split('\n').length;
