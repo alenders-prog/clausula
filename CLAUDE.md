@@ -350,7 +350,11 @@ type="module">`), zonder build-stap.
 
 ## Browsertests: waar de unittests ophouden
 
-`npm run test:e2e` — Playwright, zeven smoketests in `tests/e2e/smoke/`.
+`npm run test:e2e` — Playwright, de smoketests in `tests/e2e/smoke/`.
+
+> Hier stond "zeven smoketests" tot 22 september 2026; het waren er toen achttien. Een
+> getal in een document dat elders vanzelf groeit, verjaart zonder dat iemand het merkt.
+> Het staat er nu niet meer: de map is de telling.
 
 Ze bestaan voor één klasse fouten die geen enkele andere controle ziet: code die
 zonder syntaxfout laadt en pas bij de eerste klik breekt. Op 23 augustus 2026 haalden
