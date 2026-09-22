@@ -45,7 +45,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { leesEnv } from '../tests/helpers/test-token.mjs';
 import { anonimiseerTekst } from '../src/naam-anonimiseer.js';
 import { controleerUitvoer } from '../src/analyse/uitvoercontrole.js';
-import { maakDeelnemer, bouwVerzoek, leesAntwoord, bouwHeaders } from '../src/vergelijking/leverancier.js';
+import {
+  maakDeelnemer, bouwVerzoek, leesAntwoord, bouwHeaders, accepteertTemperature,
+} from '../src/vergelijking/leverancier.js';
 import { kosten, verdeling, prijsBekend } from '../src/vergelijking/prijzen.js';
 import { bevindingentool } from '../api/analyseer.js';
 import { bouwStabielGedeeld } from '../api/_prompts/gedeeld.js';
@@ -119,6 +121,16 @@ for (const d of DEELNEMERS) {
   if (!prijsBekend(d.model)) console.warn(`LET OP: geen prijs bekend voor ${d.model} — kosten blijven leeg.`);
 }
 
+// Niet elke deelnemer krijgt dezelfde temperatuur, en dat is niet gelijk te trekken:
+// sommige modellen weigeren de parameter. Dat hoort zichtbaar te zijn vóór de uitslag,
+// niet als voetnoot erna.
+const zonderTemp = DEELNEMERS.filter((d) => d.leverancier !== 'claude' || !accepteertTemperature(d.model));
+if (zonderTemp.length && zonderTemp.length < DEELNEMERS.length) {
+  console.warn(`LET OP: niet iedereen krijgt temperature 0,3 — ${zonderTemp.map((d) => d.spec).join(', ')} `
+    + `${zonderTemp.length === 1 ? 'draait' : 'draaien'} op de standaard, want dat model accepteert de parameter niet.`);
+  console.warn('       Die deelnemers zijn dus niet volledig gelijkgeschakeld. Zie docs/modelvergelijking.md.\n');
+}
+
 /** Eén aanroep. Geen herpogingen; zie de kop. */
 async function roep(deelnemer) {
   const t0 = Date.now();
@@ -147,6 +159,7 @@ for (let r = 1; r <= RUNS; r++) {
 
       metingen.push({
         run: r, spec: d.spec, model: d.model, diepte: d.diepte,
+        temperatuur: d.leverancier === 'claude' && accepteertTemperature(d.model) ? 0.3 : 'standaard',
         ms: a.ms, vers: a.vers, cacheSchrijf: a.cacheSchrijf, cacheLees: a.cacheLees, uit: a.uit,
         usd, verdeling: verdeling(d.model, a),
         aantalIssues: issues.length, afgekapt: a.afgekapt, defecten: telling, fout: null,

@@ -12,6 +12,7 @@ import {
   maakDeelnemer, bouwVerzoek, bouwClaudeVerzoek, bouwChatGptVerzoek,
   leesAntwoord, leesClaudeAntwoord, leesChatGptAntwoord, bouwHeaders,
   alsTekst, gebruikersTekst, UITDAGER_BUDGETFACTOR, LEVERANCIERS,
+  accepteertTemperature, ZONDER_TEMPERATURE,
 } from '../../src/vergelijking/leverancier.js';
 
 /** Een tool in de vorm die api/analyseer.js gebruikt, mét een sprekende beschrijving. */
@@ -127,10 +128,37 @@ describe('de gelijkschakeling — wat bewust verschilt', () => {
   const claude  = bouwVerzoek(maakDeelnemer('claude'), OPDRACHT);
   const chatgpt = bouwVerzoek(maakDeelnemer('chatgpt:gpt-5.6-luna@high'), OPDRACHT);
 
-  it('stuurt temperature alleen naar Claude', () => {
-    // Redeneermodellen aan de andere kant accepteren alleen de standaardwaarde.
+  it('stuurt temperature naar een Claude-model dat hem accepteert', () => {
     expect(claude.temperature).toBe(0.3);
+  });
+
+  it('stuurt hem niet naar de uitdager', () => {
+    // Redeneermodellen daar accepteren alleen de standaardwaarde.
     expect(chatgpt).not.toHaveProperty('temperature');
+  });
+
+  it('laat hem weg bij een Claude-model dat hem weigert', () => {
+    // Gemeten bij de eerste draai, 22 september 2026: claude-sonnet-5 gaf een 400 met
+    // "`temperature` is deprecated for this model". Temperature is dus geen eigenschap
+    // van de leverancier maar van het model.
+    const sonnet5 = bouwVerzoek(maakDeelnemer('claude:claude-sonnet-5@low'), OPDRACHT);
+    expect(sonnet5).not.toHaveProperty('temperature');
+    expect(sonnet5.model).toBe('claude-sonnet-5');
+  });
+
+  it('kent de weigeraars, ook met een datumsuffix', () => {
+    expect(accepteertTemperature('claude-sonnet-4-6')).toBe(true);
+    expect(accepteertTemperature('claude-haiku-4-5')).toBe(true);
+    expect(accepteertTemperature('claude-sonnet-5')).toBe(false);
+    expect(accepteertTemperature('claude-opus-5')).toBe(false);
+    expect(accepteertTemperature('claude-sonnet-5-20260401')).toBe(false);
+  });
+
+  it('is een weigerlijst, zodat een onbekend model luid faalt in plaats van stil', () => {
+    // Een nieuw model dat de parameter niet slikt geeft een 400 die je niet kunt missen.
+    // Andersom zou het stilzwijgend de standaardtemperatuur krijgen in plaats van de 0,3
+    // die productie stuurt, en dan meet je iets anders dan je denkt.
+    expect(accepteertTemperature('claude-iets-nieuws')).toBe(true);
   });
 
   it('geeft de uitdager een ruimer budget, want redeneertokens tellen daar mee', () => {

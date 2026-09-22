@@ -22,9 +22,15 @@
  *
  * Drie dingen, en ze horen in de uitslag te staan in plaats van weggepoetst:
  *
- * 1. `temperature`. De productie stuurt 0,3. Redeneermodellen aan de andere kant
- *    accepteren alleen de standaardwaarde en geven anders een 400. Niet gelijk te
- *    trekken; we sturen hem dus alleen waar hij mag.
+ * 1. `temperature`. De productie stuurt 0,3. Dat is geen leverancierseigenschap maar een
+ *    MODELeigenschap: `claude-sonnet-4-6` accepteert hem, `claude-sonnet-5` geeft er een
+ *    400 op ("temperature is deprecated for this model"), en de redeneermodellen aan de
+ *    andere kant accepteren alleen de standaardwaarde. Zie `ZONDER_TEMPERATURE`.
+ *
+ *    Dat betekent dat een vergelijking tussen 4.6 en 5 principieel níét volledig gelijk
+ *    te schakelen is: de een krijgt 0,3, de ander de standaard. Dat is geen detail om weg
+ *    te poetsen — het hoort in de uitslag. Het harnas noteert per deelnemer wat
+ *    `accepteertTemperature` zegt, zodat het verschil in de ruwe tellingen terugkomt.
  *
  * 2. Het tokenbudget. `max_tokens` bij Anthropic telt alleen wat er geschreven wordt;
  *    `max_completion_tokens` bij OpenAI telt de redeneertokens mee. Gelijke getallen
@@ -53,6 +59,29 @@
  * alleen geld als het model het opmaakt — en dat doet het niet vanzelf.
  */
 export const UITDAGER_BUDGETFACTOR = 4;
+
+/**
+ * Claude-modellen die `temperature` weigeren met een 400.
+ *
+ * Gemeten op 22 september 2026, bij de eerste draai van dit harnas:
+ * `claude-sonnet-5` gaf "`temperature` is deprecated for this model". De
+ * sampling-parameters zijn verwijderd op Sonnet 5 en de hele Opus 4.7-en-later-reeks;
+ * Sonnet 4.6, Opus 4.6 en Haiku 4.5 accepteren ze nog.
+ *
+ * Dit is een weigerlijst en geen toestaanlijst, met opzet. Komt er een model bij dat de
+ * parameter niet accepteert, dan geeft het een luide 400 die je niet kunt missen. Zou ik
+ * het omdraaien, dan kreeg een nieuw model stilzwijgend de standaardtemperatuur in plaats
+ * van de 0,3 die productie stuurt — en dan meet je iets anders dan je denkt, zonder dat
+ * er iets misgaat.
+ */
+export const ZONDER_TEMPERATURE = Object.freeze([
+  'claude-sonnet-5', 'claude-opus-5', 'claude-opus-4-8', 'claude-opus-4-7',
+  'claude-fable-5', 'claude-fable-5-1',
+]);
+
+/** Accepteert dit model de temperatuur die productie meestuurt? */
+export const accepteertTemperature = (model) =>
+  !ZONDER_TEMPERATURE.some((m) => String(model ?? '').startsWith(m));
 
 export const LEVERANCIERS = Object.freeze({
   claude: {
@@ -133,7 +162,8 @@ export function bouwClaudeVerzoek({ systemPrompt, userContent, tool, model, maxT
   return {
     model,
     max_tokens: maxTokens,
-    temperature,
+    // Alleen waar het model hem accepteert — zie ZONDER_TEMPERATURE.
+    ...(accepteertTemperature(model) ? { temperature } : {}),
     system: [{ type: 'text', text: alsTekst(systemPrompt) }],
     messages: [{ role: 'user', content: gebruikersTekst(userContent) }],
     tools: [tool],

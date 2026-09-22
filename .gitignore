@@ -22,3 +22,5 @@ tests/golden/laatste-diff.txt
 
 # Agent-geheugen, hoort niet in de repo (per ongeluk meegecommit op 1 sep 2026)
 memory/
+tests/golden/vergelijking*.json
+tests/golden/vergelijking*.md
