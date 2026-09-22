@@ -45,6 +45,17 @@ Open daarna: http://localhost:3000
 
 Het `.env` bestand staat in `.gitignore` — nooit committen.
 
+### Poort 3000 kan van een ánder project zijn
+
+De MfN-trainer draait op dezelfde poort. Staat `vercel dev` daar aan, dan krijg je op
+`localhost:3000` gewoon die app — met een 200 en zonder enige foutmelding. Op
+22 september 2026 kostte dat twee mislukte draaien van `scripts/toon-vergelijking.mjs`,
+die netjes meldde dat `#dossierLijst` niet verscheen. Dat klopte: dat element bestaat
+daar niet.
+
+Controleer bij zo'n raadsel eerst de paginatitel (`await page.title()`), of draai tegen
+`https://app.clausula.nl`.
+
 ### `vercel dev` valt om bij het antwoord dat een bestand draagt
 
 Sinds 29 augustus 2026 bekend. De PDF→DOCX-conversie bleef staan op "Converteren… (1s)"
