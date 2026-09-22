@@ -12,7 +12,7 @@ import {
   maakDeelnemer, bouwVerzoek, bouwClaudeVerzoek, bouwChatGptVerzoek,
   leesAntwoord, leesClaudeAntwoord, leesChatGptAntwoord, bouwHeaders,
   alsTekst, gebruikersTekst, UITDAGER_BUDGETFACTOR, LEVERANCIERS,
-  accepteertTemperature, ZONDER_TEMPERATURE,
+  accepteertTemperature, ZONDER_TEMPERATURE, accepteertEffort,
 } from '../../src/vergelijking/leverancier.js';
 
 /** Een tool in de vorm die api/analyseer.js gebruikt, mét een sprekende beschrijving. */
@@ -46,11 +46,14 @@ const OPDRACHT = {
 };
 
 describe('maakDeelnemer', () => {
-  it('vult model en diepte aan uit de standaard', () => {
+  it('vult het model aan en laat de diepte leeg', () => {
+    // Geen `@diepte` betekent: niets meesturen, dus de stand van de leverancier — wat
+    // productie ook doet. Een stilzwijgende `low` zou een deelnemer die "de huidige
+    // stand" heet iets anders laten zijn dan de huidige stand.
     const d = maakDeelnemer('claude');
     expect(d.leverancier).toBe('claude');
     expect(d.model).toBe('claude-sonnet-4-6');
-    expect(d.diepte).toBe('low');
+    expect(d.diepte).toBeNull();
     expect(d.merk).toBe('Claude');
   });
 
@@ -169,6 +172,32 @@ describe('de gelijkschakeling — wat bewust verschilt', () => {
 
   it('geeft de diepte door als reasoning_effort', () => {
     expect(chatgpt.reasoning_effort).toBe('high');
+  });
+
+  it('geeft de diepte óók door aan Claude, als output_config.effort', () => {
+    // Dit ging tot 22 september 2026 verloren: alleen de uitdager kreeg de diepte mee,
+    // dus `claude:…@low` en `claude:…@high` waren hetzelfde verzoek. Het etiket zei iets
+    // anders dan het verzoek deed, zonder dat er iets misging.
+    const laag = bouwVerzoek(maakDeelnemer('claude:claude-sonnet-5@low'), OPDRACHT);
+    const hoog = bouwVerzoek(maakDeelnemer('claude:claude-sonnet-5@high'), OPDRACHT);
+    expect(laag.output_config).toEqual({ effort: 'low' });
+    expect(hoog.output_config).toEqual({ effort: 'high' });
+    expect(laag).not.toEqual(hoog);
+  });
+
+  it('stuurt geen diepte mee als de spec er geen noemt', () => {
+    const kaal = bouwVerzoek(maakDeelnemer('claude:claude-sonnet-5'), OPDRACHT);
+    expect(kaal).not.toHaveProperty('output_config');
+    expect(bouwVerzoek(maakDeelnemer('chatgpt:gpt-5.6-luna'), OPDRACHT))
+      .not.toHaveProperty('reasoning_effort');
+  });
+
+  it('laat de diepte weg bij een Claude-model dat hem niet kent', () => {
+    const haiku = bouwVerzoek(maakDeelnemer('claude:claude-haiku-4-5@low'), OPDRACHT);
+    expect(haiku).not.toHaveProperty('output_config');
+    expect(accepteertEffort('claude-sonnet-4-6')).toBe(true);
+    expect(accepteertEffort('claude-sonnet-5')).toBe(true);
+    expect(accepteertEffort('claude-haiku-4-5')).toBe(false);
   });
 
   it('bouwt geen herpogingen in — die horen in het harnas, voor iedereen gelijk', () => {

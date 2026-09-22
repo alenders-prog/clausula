@@ -163,6 +163,12 @@ for (let r = 1; r <= RUNS; r++) {
         ms: a.ms, vers: a.vers, cacheSchrijf: a.cacheSchrijf, cacheLees: a.cacheLees, uit: a.uit,
         usd, verdeling: verdeling(d.model, a),
         aantalIssues: issues.length, afgekapt: a.afgekapt, defecten: telling, fout: null,
+        // De bevindingen zelf gaan mee. Ze stonden hier eerst niet in — alleen de
+        // tellingen — en bij de eerste echte uitslag moest ik ze uit het leesbestand
+        // terugparsen om te kunnen nagaan wélke bekende fouten waren gevonden. Dat is
+        // precies wat regel 5 van de meetmethode wil voorkomen: zonder de ruwe uitvoer
+        // kost elke vraag achteraf een nieuwe draai, en die vragen komen.
+        issues,
       });
       ronde[d.spec] = issues;
       console.log(`${String(issues.length).padStart(3)} bevindingen  ${String(Math.round(a.ms / 1000)).padStart(3)}s  `
@@ -197,6 +203,30 @@ for (const d of DEELNEMERS) {
     + `${gem((x) => x.ms / 1000).toFixed(0).padStart(5)} `
     + `${gem((x) => x.aantalIssues).toFixed(1).padStart(7)} `
     + `${gem((x) => x.defecten.totaal).toFixed(1).padStart(7)}`);
+}
+
+// ── de bekende fouten ───────────────────────────────────────────────────────
+//
+// Dit is de maat die de doorslag geeft, en niet het aantal bevindingen. Een deelnemer
+// die er minder vindt kan strenger zijn of slechter; alleen dit zegt welke van de twee.
+// De fixture noemt de fouten die er aantoonbaar in zitten.
+if (Array.isArray(fixture.bekende_fouten) && fixture.bekende_fouten.length) {
+  const tekstVan = (i) =>
+    `${i.onderwerp ?? ''} ${i.bevinding ?? ''} ${i.passage ?? ''} ${i.aanbeveling ?? ''}`.toLowerCase();
+
+  console.log(`\n── bekende fouten, gevonden in hoeveel van de geslaagde runs ──`);
+  console.log(`  ${'fout'.padEnd(24)} ${DEELNEMERS.map((d) => d.kort.padStart(18)).join('')}`);
+  for (const f of fixture.bekende_fouten) {
+    const cel = DEELNEMERS.map((d) => {
+      const m = geslaagd.filter((x) => x.spec === d.spec);
+      if (m.length === 0) return '—'.padStart(18);
+      const n = m.filter((x) => x.issues.some((i) => f.zoek.some((z) => tekstVan(i).includes(z.toLowerCase())))).length;
+      return `${n}/${m.length}`.padStart(18);
+    }).join('');
+    console.log(`  ${f.sleutel.padEnd(24)}${cel}`);
+  }
+  console.log(`\n  Lees dit zo: 3/3 is betrouwbaar, 0/3 wijst op de prompt of het model,`);
+  console.log(`  en alles ertussenin is variatie — daar helpt alleen méér runs tegen.`);
 }
 
 console.log(`\n  Kosten mag je na één ronde opschrijven; het aantal bevindingen niet —`);

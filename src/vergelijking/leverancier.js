@@ -83,6 +83,16 @@ export const ZONDER_TEMPERATURE = Object.freeze([
 export const accepteertTemperature = (model) =>
   !ZONDER_TEMPERATURE.some((m) => String(model ?? '').startsWith(m));
 
+/**
+ * Claude-modellen die `output_config.effort` niet kennen en er een fout op geven.
+ * Sonnet 4.6 en Opus 4.6 en later kennen hem wel.
+ */
+export const ZONDER_EFFORT = Object.freeze(['claude-haiku-4-5', 'claude-sonnet-4-5']);
+
+/** Kent dit model de diepte-instelling? */
+export const accepteertEffort = (model) =>
+  !ZONDER_EFFORT.some((m) => String(model ?? '').startsWith(m));
+
 export const LEVERANCIERS = Object.freeze({
   claude: {
     merk: 'Claude',
@@ -114,7 +124,10 @@ export function maakDeelnemer(spec) {
   if (!tekst) throw new Error('Lege deelnemer.');
 
   const [zonderVariant, variant = null] = tekst.split('#');
-  const [voor, diepte = 'low'] = zonderVariant.split('@');
+  // Geen `@diepte` betekent: niets meesturen, dus de stand van de leverancier zelf.
+  // Dat is bewust geen stilzwijgende `low`: productie stuurt ook niets mee, en een
+  // deelnemer die "de huidige stand" heet moet dan ook de huidige stand zijn.
+  const [voor, diepte = null] = zonderVariant.split('@');
   const [naam, model] = voor.split(':');
 
   const l = LEVERANCIERS[naam];
@@ -133,7 +146,7 @@ export function maakDeelnemer(spec) {
     model: model || l.standaardModel,
     diepte,
     variant,
-    kort: `${(model || l.standaardModel).replace(/^claude-/, '')} ${diepte}`,
+    kort: `${(model || l.standaardModel).replace(/^claude-/, '')} ${diepte ?? 'standaard'}`,
   };
 }
 
@@ -158,12 +171,20 @@ export function gebruikersTekst(userContent) {
  * tokens aangelegd en nul gelezen. Zou hij hier aan staan, dan meet je een instelling
  * die in productie niet geldt.
  */
-export function bouwClaudeVerzoek({ systemPrompt, userContent, tool, model, maxTokens, temperature = 0.3 }) {
+export function bouwClaudeVerzoek({ systemPrompt, userContent, tool, model, maxTokens, diepte = null, temperature = 0.3 }) {
   return {
     model,
     max_tokens: maxTokens,
     // Alleen waar het model hem accepteert — zie ZONDER_TEMPERATURE.
     ...(accepteertTemperature(model) ? { temperature } : {}),
+    // De diepte ging hier tot 22 september 2026 verloren: `bouwChatGptVerzoek` gebruikte
+    // hem wel en deze niet. Gevolg was dat `claude:…@low` en `claude:…@high` exact
+    // hetzelfde verzoek opleverden — het etiket zei iets anders dan het verzoek deed, en
+    // dat ging stil mis. Gevonden doordat een uitslag te mooi klopte om te controleren.
+    //
+    // Geen diepte in de spec betekent niets meesturen: dan geldt de stand van de
+    // leverancier, en dat is wat productie ook doet.
+    ...(diepte && accepteertEffort(model) ? { output_config: { effort: diepte } } : {}),
     system: [{ type: 'text', text: alsTekst(systemPrompt) }],
     messages: [{ role: 'user', content: gebruikersTekst(userContent) }],
     tools: [tool],
@@ -177,11 +198,12 @@ export function bouwClaudeVerzoek({ systemPrompt, userContent, tool, model, maxT
  * Geen `temperature`: zie punt 1 in de kop. En `max_completion_tokens` in plaats van
  * `max_tokens`, ruimer bemeten om punt 2.
  */
-export function bouwChatGptVerzoek({ systemPrompt, userContent, tool, model, maxTokens, diepte = 'low' }) {
+export function bouwChatGptVerzoek({ systemPrompt, userContent, tool, model, maxTokens, diepte = null }) {
   return {
     model,
     max_completion_tokens: maxTokens * UITDAGER_BUDGETFACTOR,
-    reasoning_effort: diepte,
+    // Net als hierboven: geen diepte in de spec betekent de stand van de leverancier.
+    ...(diepte ? { reasoning_effort: diepte } : {}),
     messages: [
       { role: 'system', content: alsTekst(systemPrompt) },
       { role: 'user',   content: gebruikersTekst(userContent) },
