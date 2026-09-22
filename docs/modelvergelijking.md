@@ -264,6 +264,35 @@ de hele oefening, en het staat los van kosten en kwaliteit.**
 Wat er hoe dan ook bij hoort: een verwerkersovereenkomst. Een tweede leverancier is een
 tweede verwerker, en die lijst staat al open.
 
+### En dat kost iets, want Europese verwerking geldt niet voor elk model
+
+Dit is niet alleen papierwerk, en dat was de eerste lezing hier wél. Europese
+dataresidentie kent twee lagen: opslag in de regio geldt breed, **verwerking in de regio
+voor een beperktere modellenlijst**. De documentatie noemt daarvoor onder meer
+`gpt-5.6-terra`, `gpt-5.5` en `gpt-4o`-varianten.
+
+`gpt-5.6-luna` staat niet in die opsomming. Dat is precies het model waar de trainer op
+uitkwam en waar het kostenvoordeel op rust: $0,20/$1,20 tegen $3/$15 voor
+`claude-sonnet-4-6`. Valt luna af, dan is de EU-kandidaat `gpt-5.6-terra` op $2,00/$12,00
+— geen orde goedkoper meer, maar een derde tot een vijfde.
+
+**Dit bepaalt de deelnemerslijst en hoort dus vóór fase 2 te worden nagekeken.** Meten met
+een model dat er niet mag komen is weggegooid werk, en het is dezelfde val als bij de
+trainer: een instelling die op het ene model gold doortrekken naar het andere.
+
+Twee dingen zijn nog niet vastgesteld en moeten dat wel worden:
+
+- Of luna er werkelijk buiten valt. De gelezen opsomming staat er met "onder meer", dus
+  hij kan alsnog meedoen. Niet aannemen — navragen.
+- Hoe caching en residentie elkaar raken. De documentatie meldt dat uitgebreide prompt
+  caching in regio's zónder regionale verwerking ertoe kan leiden dat inhoud tijdelijk
+  buiten de regio wordt verwerkt. Dat raakt deel 3 hierboven rechtstreeks: het
+  cachevoordeel en de EU-garantie kunnen elkaar uitsluiten.
+
+De rest is inderdaad administratief — met als kanttekening dat het Modified
+Retention-amendement en de goedkeuring voor aangepaste abuse-monitoring via sales lopen.
+Geen werk, wel doorlooptijd. Parallel in gang zetten kost niets.
+
 ## 3. Gelijkschakeling onder tool-use
 
 **Het besluit: aan beide kanten een afgedwongen functie-aanroep met hetzelfde JSON
