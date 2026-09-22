@@ -15,14 +15,17 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { GELDIGE_ERNST, GELDIGE_DIMENSIES as GELDIGE_DIMS } from '../../src/analyse/uitvoercontrole.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(__dir, 'fixtures');
 
 // ── Schema-definities ─────────────────────────────────────────────────────────
-
-const GELDIGE_ERNST = ['hoog', 'midden', 'laag'];
-const GELDIGE_DIMS  = ['juridisch', 'volledigheid', 'balans', 'grammatica', 'conflicten'];
+//
+// Ernst en dimensies komen uit src/analyse/uitvoercontrole.js, die ze op zijn beurt uit
+// dimensies.js haalt. Tot 22 september 2026 stonden ze hier als eigen lijst — de zevende
+// kopie, naast de zes die op 8 september waren samengevoegd. Uitgerekend in het bestand
+// dat moet bewaken dát de uitvoer klopt.
 
 function valideertIssue(issue, idx) {
   const prefix = `issues[${idx}]`;

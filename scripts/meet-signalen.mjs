@@ -41,6 +41,7 @@
 import { readFileSync } from 'node:fs';
 import { leesEnv, haalToken } from '../tests/helpers/test-token.mjs';
 import { anonimiseerTekst } from '../src/naam-anonimiseer.js';
+import { controleerUitvoer } from '../src/analyse/uitvoercontrole.js';
 
 leesEnv();
 
@@ -69,6 +70,15 @@ async function draaiAnalyse() {
     return gezien.get(k);
   };
 
+  // Eerst bewerken, dán versturen — want de citaatcontrole verderop moet vergelijken
+  // met de tekst die het model werkelijk heeft gezien. Zou hij de ruwe fixture nemen,
+  // dan zou elk citaat met een placeholder erin ten onrechte als parafrase gelden.
+  const documenten = fixture.documenten.map((d) => ({
+    bestandsnaam: d.bestandsnaam,
+    type: d.type,
+    tekst: anonimiseerTekst(d.tekst, new Map(), piiPh),
+  }));
+
   const res = await fetch(`${HOST}/api/analyseer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${TOKEN}` },
@@ -77,11 +87,7 @@ async function draaiAnalyse() {
         doc_type: fixture._meta.doc_type,
         situatie_kenmerken: fixture._meta.situatie_kenmerken ?? [],
       },
-      documenten: fixture.documenten.map((d) => ({
-        bestandsnaam: d.bestandsnaam,
-        type: d.type,
-        tekst: anonimiseerTekst(d.tekst, new Map(), piiPh),
-      })),
+      documenten,
       runId: crypto.randomUUID(),
     }),
   });
@@ -111,13 +117,14 @@ async function draaiAnalyse() {
   }
   const uit = new Map();
   for (const [naam, l] of perDoc) uit.set(naam, l.consolidatie ?? l.losse);
-  return uit;
+  return { perDoc: uit, gezienTekst: documenten.map((d) => d.tekst).join('\n\n') };
 }
 
 // ── Draaien ──────────────────────────────────────────────────────────────────
 
 const gevondenPerFout = new Map(fixture.bekende_fouten.map((f) => [f.sleutel, 0]));
 const dimensieTellingen = [];
+const defectTellingen = [];
 const totalen = [];
 // Alleen geslaagde runs tellen mee. Stond hier tot 6 september 2026 niet, en toen viel
 // er één run om: elk recall-getal werd door 3 gedeeld terwijl er 2 metingen waren, dus
@@ -127,13 +134,18 @@ let geslaagd = 0;
 for (let r = 1; r <= RUNS; r++) {
   process.stdout.write(`run ${r}/${RUNS} … `);
   const t0 = Date.now();
-  let perDoc;
-  try { perDoc = await draaiAnalyse(); }
+  let perDoc, gezienTekst;
+  try { ({ perDoc, gezienTekst } = await draaiAnalyse()); }
   catch (e) { console.log(`FOUT: ${e.message} — deze run telt niet mee`); continue; }
   geslaagd++;
 
   const alle = [...perDoc.values()].flat();
   totalen.push(alle.length);
+
+  // De mechanische controle: wat er zónder oordeel over de inhoud mis is aan de uitvoer.
+  // Dit is het getal dat over runs heen iets zegt — de bevindingenlijst zelf verschilt
+  // tussen twee identieke runs met 8 tot 10 stuks.
+  defectTellingen.push(controleerUitvoer({ issues: alle }, { documentTekst: gezienTekst }).telling);
   const dims = {};
   for (const i of alle) for (const d of (i.dimensies ?? ['?'])) dims[d] = (dims[d] ?? 0) + 1;
   dimensieTellingen.push(dims);
@@ -168,6 +180,19 @@ for (const d of alleDims) {
   console.log(`  ${d.padEnd(14)} ${dimensieTellingen.map((t) => String(t[d] ?? 0).padStart(6)).join('')}`);
 }
 console.log(`  ${'TOTAAL'.padEnd(14)} ${totalen.map((t) => String(t).padStart(6)).join('')}`);
+
+console.log(`\n── mechanische defecten per run ──`);
+const alleCodes = [...new Set(defectTellingen.flatMap((t) => Object.keys(t.perCode)))].sort();
+if (alleCodes.length === 0) {
+  console.log(`  geen — de uitvoer voldoet in alle ${geslaagd} runs aan de vorm.`);
+} else {
+  console.log(`  ${'code'.padEnd(22)} ${defectTellingen.map((_, i) => `run${i + 1}`.padStart(6)).join('')}`);
+  for (const c of alleCodes) {
+    console.log(`  ${c.padEnd(22)} ${defectTellingen.map((t) => String(t.perCode[c] ?? 0).padStart(6)).join('')}`);
+  }
+  console.log(`  ${'— waarvan fout'.padEnd(22)} ${defectTellingen.map((t) => String(t.fout).padStart(6)).join('')}`);
+}
+console.log(`  Zie src/analyse/uitvoercontrole.js voor wat elke code betekent.`);
 
 console.log(`\nLees dit zo: 3/3 is betrouwbaar, 0/3 wijst op de prompt of de consolidatie,`);
 console.log(`en alles ertussenin is variatie — daar helpt alleen méér runs tegen.`);
