@@ -184,6 +184,7 @@ for (let r = 1; r <= RUNS; r++) {
         usd, verdeling: verdeling(d.model, a),
         aantalIssues: issues.length, afgekapt: a.afgekapt, defecten: telling, fout: null,
         stopReden: a.stopReden, heeftToolAanroep: a.heeftToolAanroep, leeg, regio: d.regio,
+        ruweUsage: a.ruweUsage ?? null,
         // De bevindingen zelf gaan mee. Ze stonden hier eerst niet in — alleen de
         // tellingen — en bij de eerste echte uitslag moest ik ze uit het leesbestand
         // terugparsen om te kunnen nagaan wélke bekende fouten waren gevonden. Dat is

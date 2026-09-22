@@ -121,9 +121,20 @@ export const LEVERANCIERS = Object.freeze({
     // kosten en de bevindingen zijn overdraagbaar. Wat NIET overdraagbaar is, is de
     // tijd — die hangt aan de regio. Het harnas zegt dat er hardop bij, want anders is
     // het over een week een cijfer zonder voorbehoud.
+    // `/v1/responses` en niet `/v1/chat/completions`. Gemeten op 22 september 2026:
+    // dat tweede endpoint weigert functie-tools zodra er geredeneerd wordt —
+    //
+    //   "Function tools with reasoning_effort are not supported for gpt-5.6-luna in
+    //    /v1/chat/completions. To use function tools, use /v1/responses or set
+    //    reasoning_effort to 'none'."
+    //
+    // en dat gebeurde terwijl we `reasoning_effort` niet eens meestuurden: de
+    // leverancier past zijn eigen standaard toe. De tweede uitweg uit die melding
+    // (`'none'`) zou het redeneren uitzetten, en dan vergelijk je een gekortwiekt model
+    // met een redenerend model. Dus het eerste.
     urls: {
-      eu:      'https://eu.api.openai.com/v1/chat/completions',
-      globaal: 'https://api.openai.com/v1/chat/completions',
+      eu:      'https://eu.api.openai.com/v1/responses',
+      globaal: 'https://api.openai.com/v1/responses',
     },
   },
 });
@@ -220,24 +231,23 @@ export function bouwClaudeVerzoek({ systemPrompt, userContent, tool, model, maxT
 export function bouwChatGptVerzoek({ systemPrompt, userContent, tool, model, maxTokens, diepte = null }) {
   return {
     model,
-    max_completion_tokens: maxTokens * UITDAGER_BUDGETFACTOR,
-    // Net als hierboven: geen diepte in de spec betekent de stand van de leverancier.
-    ...(diepte ? { reasoning_effort: diepte } : {}),
-    messages: [
-      { role: 'system', content: alsTekst(systemPrompt) },
-      { role: 'user',   content: gebruikersTekst(userContent) },
-    ],
+    // Telt de redeneertokens mee, vandaar de factor. Zie punt 2 in de kop.
+    max_output_tokens: maxTokens * UITDAGER_BUDGETFACTOR,
+    // Net als bij Claude: geen diepte in de spec betekent de stand van de leverancier.
+    ...(diepte ? { reasoning: { effort: diepte } } : {}),
+    instructions: alsTekst(systemPrompt),
+    input: gebruikersTekst(userContent),
+    // In dit endpoint staat de functie plat, niet genest onder `function` zoals bij
+    // chat-completions.
     tools: [{
       type: 'function',
-      function: {
-        name: tool.name,
-        description: tool.description,
-        // Hetzelfde schema-object, inclusief alle beschrijvingen. Dit is de plek waar de
-        // gelijkschakeling staat of valt: hier iets aan bewerken is de opdracht wijzigen.
-        parameters: tool.input_schema,
-      },
+      name: tool.name,
+      description: tool.description,
+      // Hetzelfde schema-object, inclusief alle beschrijvingen. Dit is de plek waar de
+      // gelijkschakeling staat of valt: hier iets aan bewerken is de opdracht wijzigen.
+      parameters: tool.input_schema,
     }],
-    tool_choice: { type: 'function', function: { name: tool.name } },
+    tool_choice: { type: 'function', name: tool.name },
   };
 }
 
@@ -282,26 +292,37 @@ export function leesClaudeAntwoord(json) {
  * argumenten van de functie-aanroep komen als string binnen, niet als object.
  */
 export function leesChatGptAntwoord(json) {
-  const keuze = json?.choices?.[0];
-  const ruw   = keuze?.message?.tool_calls?.[0]?.function?.arguments;
+  const aanroep = json?.output?.find((b) => b.type === 'function_call');
+  const ruw     = aanroep?.arguments;
 
   let uitvoer = null;
   if (typeof ruw === 'string' && ruw.trim()) {
     try { uitvoer = JSON.parse(ruw); } catch { uitvoer = null; }
   }
 
-  const cacheLees = json?.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+  const detail       = json?.usage?.input_tokens_details ?? {};
+  const cacheLees    = detail.cached_tokens ?? 0;
+  const cacheSchrijf = detail.cache_write_tokens ?? 0;
+
   return {
     uitvoer,
-    stopReden: keuze?.finish_reason ?? null,
-    heeftToolAanroep: !!keuze?.message?.tool_calls?.[0],
-    vers:         Math.max(0, (json?.usage?.prompt_tokens ?? 0) - cacheLees),
-    // Er komt geen aparte telling voor cache-schrijven terug; die is niet te meten en
-    // dus niet te beprijzen. Nul is hier de eerlijke waarde, geen aanname.
-    cacheSchrijf: 0,
+    // `status` is "completed" of "incomplete"; bij het laatste staat de reden apart.
+    stopReden: json?.incomplete_details?.reason ?? json?.status ?? null,
+    heeftToolAanroep: !!aanroep,
+    // `input_tokens` is hier het TOTAAL, inclusief wat uit de cache kwam en wat erheen
+    // is geschreven — anders dan `input_tokens` bij Anthropic, dat juist het verse deel
+    // is. Eraf trekken dus, anders telt de cache dubbel en komt de rekening te hoog uit.
+    //
+    // Dat `cache_write_tokens` in dat totaal zit, is een aanname: de documentatie zegt
+    // het niet met zoveel woorden. Zolang hij nul is maakt het niets uit. Wordt hij ooit
+    // niet-nul, controleer dat dan — de ruwe `usage` gaat mee in de meting, dus dat kan
+    // achteraf zonder opnieuw te draaien.
+    vers:         Math.max(0, (json?.usage?.input_tokens ?? 0) - cacheLees - cacheSchrijf),
+    cacheSchrijf,
     cacheLees,
-    uit:          json?.usage?.completion_tokens ?? 0,
-    afgekapt:     keuze?.finish_reason === 'length',
+    uit:          json?.usage?.output_tokens ?? 0,
+    afgekapt:     json?.incomplete_details?.reason === 'max_output_tokens',
+    ruweUsage:    json?.usage ?? null,
   };
 }
 

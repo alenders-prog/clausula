@@ -87,7 +87,7 @@ describe('maakDeelnemer', () => {
     // Een gewone sleutel krijgt op het EU-endpoint een 401: "This endpoint is only
     // accessible by projects with geography restrictions enabled." Gemeten 22 sep 2026.
     const g = maakDeelnemer('chatgpt', { regio: 'globaal' });
-    expect(g.url).toBe('https://api.openai.com/v1/chat/completions');
+    expect(g.url).toBe('https://api.openai.com/v1/responses');
     expect(g.regio).toBe('globaal');
   });
 
@@ -119,25 +119,25 @@ describe('de gelijkschakeling — wat identiek moet zijn', () => {
   it('geeft beide kanten letterlijk hetzelfde schema', () => {
     // Dit is de kern. Hier iets aan bewerken is de opdracht wijzigen, en dan meet je je
     // eigen vertaalwerk in plaats van twee modellen.
-    expect(chatgpt.tools[0].function.parameters).toBe(TOOL.input_schema);
+    expect(chatgpt.tools[0].parameters).toBe(TOOL.input_schema);
     expect(claude.tools[0].input_schema).toBe(TOOL.input_schema);
   });
 
   it('behoudt de beschrijvingen in het schema, want die dragen de instructie', () => {
-    const uitChatgpt = chatgpt.tools[0].function.parameters
+    const uitChatgpt = chatgpt.tools[0].parameters
       .properties.issues.items.properties.onderwerp.description;
     expect(uitChatgpt).toBe('Korte kop, geen hele zin.');
   });
 
   it('geeft beide kanten dezelfde systeemtekst en gebruikersinhoud', () => {
-    expect(claude.system[0].text).toBe(chatgpt.messages[0].content);
-    expect(claude.messages[0].content).toBe(chatgpt.messages[1].content);
+    expect(claude.system[0].text).toBe(chatgpt.instructions);
+    expect(claude.messages[0].content).toBe(chatgpt.input);
   });
 
   it('dwingt aan beide kanten dezelfde functie af', () => {
     expect(claude.tool_choice).toEqual({ type: 'tool', name: 'registreer_bevindingen' });
-    expect(chatgpt.tool_choice).toEqual({ type: 'function', function: { name: 'registreer_bevindingen' } });
-    expect(chatgpt.tools[0].function.name).toBe(claude.tools[0].name);
+    expect(chatgpt.tool_choice).toEqual({ type: 'function', name: 'registreer_bevindingen' });
+    expect(chatgpt.tools[0].name).toBe(claude.tools[0].name);
   });
 
   it('laat de prompt-cache aan beide kanten uit, net als in productie', () => {
@@ -184,12 +184,12 @@ describe('de gelijkschakeling — wat bewust verschilt', () => {
 
   it('geeft de uitdager een ruimer budget, want redeneertokens tellen daar mee', () => {
     expect(claude.max_tokens).toBe(8000);
-    expect(chatgpt.max_completion_tokens).toBe(8000 * UITDAGER_BUDGETFACTOR);
+    expect(chatgpt.max_output_tokens).toBe(8000 * UITDAGER_BUDGETFACTOR);
     expect(chatgpt).not.toHaveProperty('max_tokens');
   });
 
   it('geeft de diepte door als reasoning_effort', () => {
-    expect(chatgpt.reasoning_effort).toBe('high');
+    expect(chatgpt.reasoning).toEqual({ effort: 'high' });
   });
 
   it('geeft de diepte óók door aan Claude, als output_config.effort', () => {
@@ -207,7 +207,7 @@ describe('de gelijkschakeling — wat bewust verschilt', () => {
     const kaal = bouwVerzoek(maakDeelnemer('claude:claude-sonnet-5'), OPDRACHT);
     expect(kaal).not.toHaveProperty('output_config');
     expect(bouwVerzoek(maakDeelnemer('chatgpt:gpt-5.6-luna'), OPDRACHT))
-      .not.toHaveProperty('reasoning_effort');
+      .not.toHaveProperty('reasoning');
   });
 
   it('laat de diepte weg bij een Claude-model dat hem niet kent', () => {
@@ -259,49 +259,62 @@ describe('het antwoord uitpakken — Claude', () => {
 });
 
 describe('het antwoord uitpakken — de uitdager', () => {
+  // De vorm van /v1/responses: een "output"-lijst met daarin een "function_call"-item,
+  // en een usage waarin "input_tokens" het TOTAAL is, met een aparte uitsplitsing.
   const ANTWOORD = {
-    choices: [{
-      finish_reason: 'tool_calls',
-      message: {
-        tool_calls: [{
-          function: { name: 'registreer_bevindingen', arguments: '{"issues":[{"onderwerp":"A"}]}' },
-        }],
-      },
-    }],
-    usage: { prompt_tokens: 1500, completion_tokens: 700, prompt_tokens_details: { cached_tokens: 300 } },
+    status: 'completed',
+    incomplete_details: null,
+    output: [
+      { type: 'reasoning', summary: [] },
+      { type: 'function_call', name: 'registreer_bevindingen', arguments: '{"issues":[{"onderwerp":"A"}]}' },
+    ],
+    usage: {
+      input_tokens: 1500, output_tokens: 700,
+      input_tokens_details: { cached_tokens: 300, cache_write_tokens: 0 },
+    },
   };
 
   it('ontleedt de argumenten, die als string binnenkomen', () => {
     expect(leesChatGptAntwoord(ANTWOORD).uitvoer).toEqual({ issues: [{ onderwerp: 'A' }] });
   });
 
-  it('trekt de cache van prompt_tokens af, anders telt hij dubbel', () => {
-    // prompt_tokens is daar het TOTAAL; input_tokens bij Anthropic juist het verse deel.
+  it('trekt de cache van input_tokens af, anders telt hij dubbel', () => {
+    // input_tokens is hier het TOTAAL; input_tokens bij Anthropic juist het verse deel.
     // Wie dat verwisselt rekent de cache twee keer en komt te hoog uit.
     expect(leesChatGptAntwoord(ANTWOORD)).toMatchObject({
       vers: 1200, cacheLees: 300, cacheSchrijf: 0, uit: 700,
     });
   });
 
+  it('trekt ook de cache-schrijftokens af', () => {
+    const met = { ...ANTWOORD, usage: { ...ANTWOORD.usage,
+      input_tokens_details: { cached_tokens: 300, cache_write_tokens: 200 } } };
+    expect(leesChatGptAntwoord(met)).toMatchObject({ vers: 1000, cacheSchrijf: 200 });
+  });
+
   it('komt niet onder nul als de telling ontbreekt', () => {
-    expect(leesChatGptAntwoord({ usage: { prompt_tokens_details: { cached_tokens: 50 } } }).vers).toBe(0);
+    expect(leesChatGptAntwoord({ usage: { input_tokens_details: { cached_tokens: 50 } } }).vers).toBe(0);
   });
 
   it('herkent een afgekapt antwoord', () => {
-    const afgekapt = { ...ANTWOORD, choices: [{ ...ANTWOORD.choices[0], finish_reason: 'length' }] };
+    const afgekapt = { ...ANTWOORD, status: 'incomplete',
+      incomplete_details: { reason: 'max_output_tokens' } };
     expect(leesChatGptAntwoord(afgekapt).afgekapt).toBe(true);
+    expect(leesChatGptAntwoord(afgekapt).stopReden).toBe('max_output_tokens');
   });
 
   it('geeft null bij kapotte JSON in plaats van te struikelen', () => {
-    const kapot = {
-      choices: [{ message: { tool_calls: [{ function: { arguments: '{"issues":[' } }] } }],
-    };
+    const kapot = { output: [{ type: 'function_call', arguments: '{"issues":[' }] };
     expect(leesChatGptAntwoord(kapot).uitvoer).toBeNull();
   });
 
   it('geeft null als er geen functie-aanroep in zit', () => {
-    expect(leesChatGptAntwoord({ choices: [{ message: { content: 'gewoon tekst' } }] }).uitvoer).toBeNull();
+    expect(leesChatGptAntwoord({ output: [{ type: 'message', content: [] }] }).uitvoer).toBeNull();
     expect(leesChatGptAntwoord({}).uitvoer).toBeNull();
+  });
+
+  it('bewaart de ruwe usage, zodat een correctie achteraf geen nieuwe draai kost', () => {
+    expect(leesChatGptAntwoord(ANTWOORD).ruweUsage).toBe(ANTWOORD.usage);
   });
 });
 
@@ -311,7 +324,7 @@ describe('leesAntwoord kiest de juiste uitpakker', () => {
     expect(leesAntwoord(maakDeelnemer('claude'), claudeJson).uitvoer).toEqual({ a: 1 });
 
     const gptJson = {
-      choices: [{ message: { tool_calls: [{ function: { arguments: '{"a":1}' } }] } }], usage: {},
+      output: [{ type: 'function_call', arguments: '{"a":1}' }], usage: {},
     };
     expect(leesAntwoord(maakDeelnemer('chatgpt'), gptJson).uitvoer).toEqual({ a: 1 });
   });
@@ -364,9 +377,9 @@ describe('waaróm er niets uitkwam', () => {
 
   it('doet hetzelfde voor de uitdager', () => {
     const zonder = leesChatGptAntwoord({
-      choices: [{ finish_reason: 'stop', message: { content: 'niets' } }], usage: {},
+      status: 'completed', output: [{ type: 'message', content: [] }], usage: {},
     });
     expect(zonder.heeftToolAanroep).toBe(false);
-    expect(zonder.stopReden).toBe('stop');
+    expect(zonder.stopReden).toBe('completed');
   });
 });
