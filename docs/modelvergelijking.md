@@ -546,6 +546,62 @@ het is een uitkomst die je alleen ziet als je per fout telt in plaats van per to
 > Voor `etc:` staat het wél overeind — nul keer, bij zes deelnemers over eenentwintig
 > runs. Dát is een promptprobleem, en nu met meer gewicht dan eerst.
 
+## Het verschil zit in de inhoud, niet in de taal — en de maat zag dat niet
+
+Uit het lezen in de viewer kwam een waarneming die de telling niet had opgeleverd:
+Claude pakt dieper liggende zaken op, zoals het narekenen van bedragen en de balans
+tussen partijen. Dat is getoetst over alle drie de runs en het houdt stand.
+
+**Bevindingen per dimensie, opgeteld over drie runs:**
+
+| dimensie | sonnet-4-6 | luna | terra |
+|---|---|---|---|
+| grammatica | 19 | 18 | 20 |
+| juridisch | 11 | 13 | 9 |
+| conflicten | 9 | 8 | 3 |
+| volledigheid | **6** | **0** | 3 |
+| balans | **2** | **0** | **0** |
+| *totaal* | 46 | 31 | 33 |
+
+**Het rekenwerk**, langs twee kanten gemeten:
+
+| | sonnet-4-6 | luna | terra |
+|---|---|---|---|
+| noemt een berekening of bedrag | 18/46 (39%) | 6/31 (19%) | 4/33 (12%) |
+| citaat met een getal erin | 28/46 (61%) | 18/31 (58%) | 13/33 (39%) |
+
+Op grammatica zijn ze gelijk. Op inhoud niet: luna levert nul volledigheids- én nul
+balansbevindingen over 31 stuks, en Claude gaat twee tot drie keer zo vaak over een
+bedrag of een berekening.
+
+> **Voorbehoud bij de dimensietelling.** Die labels zet het model zelf, dus een model
+> dat anders labelt telt anders zonder zich anders te gedragen. Nul balans over 64
+> OpenAI-bevindingen tegen 2 over 46 is daarmee niet weg te verklaren, en de
+> rekensignalen wijzen dezelfde kant op — maar het is corroboratie, geen bewijs.
+
+### Correctie: het scorebord 4–3–2 mat maar één dimensie
+
+Hierboven staat de conclusie "complementair in plaats van geordend", op grond van de
+recall op de bekende fouten. Die conclusie is te gunstig voor de uitdagers geweest, en
+de oorzaak zit in de fixture.
+
+De zes bekende fouten zijn `wordtgekregen`, `gezamelijke`, `dwingrechtelijke`,
+`identiteitsbewijzen`, `de de vrouw` en `etc:` — **alle zes taalfouten.** De
+recall-maat meet dus uitsluitend de dimensie waarop de drie modellen gelijk scoren, en
+is blind voor het verschil dat er werkelijk is. Het scorebord 4–3–2 is ruis op één
+dimensie, geen kwaliteitsoordeel.
+
+Dat is de valkuil "een maat kan juist misgaan op wat je meet", in de scherpste vorm:
+de maat wees niet de verkeerde kant op, hij keek de verkeerde kant op.
+
+**Wat de meetopzet nodig heeft:** bekende fouten in de inhoudelijke dimensies — een
+ontbrekende peildatum, een eenzijdig beding, een bedrag dat niet klopt. Zolang die er
+niet zijn, kan geen enkele telling hier een uitspraak over doen en blijft het lezen de
+enige weg.
+
+**En het laat zien waar het lezen voor is.** Eén ronde lezen leverde op wat negen runs
+tellen niet opleverde.
+
 ## Wat er nog niet gelijkgeschakeld is
 
 Drie dingen, en ze staan alle drie in de uitvoer van het harnas zelf:
