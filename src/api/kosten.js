@@ -13,15 +13,26 @@
  */
 
 /**
- * Prijzen per miljoen tokens, in dollar. Bijgewerkt 29 augustus 2026.
+ * Prijzen per miljoen tokens, in dollar. Nagekeken 22 september 2026 op
+ * https://platform.claude.com/docs/en/about-claude/pricing
  *
  * Staat er een model niet bij, dan valt de berekening terug op `STANDAARD` en meldt
  * `kostenVanUsage` dat in `onbekendModel`. Stilzwijgend nul teruggeven zou een nieuw
  * model gratis laten lijken.
+ *
+ * Op 22 september 2026 stond `claude-sonnet-5` hier op $3/$15 terwijl het $2/$10 is —
+ * een derde te hoog. Hij wordt nergens aangeroepen, dus er is geen regel in
+ * `api_verbruik` mee misrekend, maar hij is wel een kandidaat in de
+ * leveranciersvergelijking (`docs/modelvergelijking.md`) en dan rust er een keuze op.
+ * Precies dezelfde fout, met precies dezelfde bedragen, stond in de MfN-trainer en is
+ * daar op 11 september gevonden.
+ *
+ * Schrijf hier niets uit het hoofd. Zoek het op, zet de datum erbij, en laat een model
+ * dat je niet hebt nagekeken weg — "onbekend" is beter dan een verzonnen bedrag.
  */
 export const PRIJZEN = {
   'claude-sonnet-4-6': { invoer: 3.00,  uitvoer: 15.00 },
-  'claude-sonnet-5':   { invoer: 3.00,  uitvoer: 15.00 },
+  'claude-sonnet-5':   { invoer: 2.00,  uitvoer: 10.00 },
   'claude-opus-4-6':   { invoer: 5.00,  uitvoer: 25.00 },
   'claude-opus-5':     { invoer: 5.00,  uitvoer: 25.00 },
   'claude-haiku-4-5':  { invoer: 1.00,  uitvoer:  5.00 },
