@@ -24,6 +24,51 @@ export const bouwRoepnamenNota = (roepnamen) =>
         ? `\nROEPNAMEN: De volgende partijen worden mogelijk aangeduid met een roepnaam die afwijkt van hun formele naam:${roepnamen.map(r => `\n- "${r.nepVoornaam}" als roepnaam van "${r.nepVolledig}"`).join('')}\nControleer voor elk of het document de roepnaam formeel introduceert (bijv. "verder te noemen als X" of vergelijkbaar). Indien de roepnaam NERGENS formeel omschreven is maar WEL elders in het documentlichaam (buiten de introductiezin) gebruikt wordt: meld dit als LAAG-issue. Indien de roepnaam NERGENS in het document voorkomt (ook niet in het lichaam), is er geen issue. Meld NOOIT een roepnaam-issue op basis van het bestaan van de roepnaam buiten het document.`
         : '';
 
+/**
+ * De zorgkorting, in beide checklijsten.
+ *
+ * Staat hier als één tekst omdat hij in beide takken hoort: de berekening staat meestal
+ * in het ouderschapsplan, maar het documenttype van een dossier is vaak `convenant` —
+ * dan draait het ouderschapsplan mee onder de convenant-checklijst. In de meetfixture
+ * is dat precies het geval.
+ *
+ * AANLEIDING (22 september 2026). De meting liet zien dat Claude dit gebrek in 5 van de
+ * 6 runs meldt en geen enkel ander model ooit. Het stond niet in de prompt — er stond
+ * alleen een balansregel over onderbouwing die in het voordeel van één partij uitvalt.
+ * Het model leidde de eis dus af in plaats van hem op te volgen, en dat verklaart zowel
+ * waarom het niet 6 van de 6 was als waarom de andere modellen hem missen.
+ *
+ * De bandbreedtes komen uit het Rapport Alimentatienormen 2026 van de Rechtspraak,
+ * paragraaf 4.3.5, nagekeken door de mediator.
+ */
+const ZORGKORTING_CHECK = `
+ZORGKORTING — vaste bandbreedtes, afwijking moet gemotiveerd zijn.
+   Het Rapport Alimentatienormen (par. 4.3.5) kent vier percentages, bepaald door het
+   GEMIDDELD aantal dagen per week — vakanties meegerekend — dat het kind verblijft bij
+   de ouder bij wie het NIET het hoofdverblijf heeft:
+     5%  bij minder dan 1 dag per week
+     15% bij gemiddeld 1 dag per week
+     25% bij gemiddeld 2 dagen per week
+     35% bij gemiddeld 3 dagen per week
+   De korting wordt berekend over het eigen aandeel van de ouders in de kosten van de kinderen.
+   ZO CONTROLEER JE HET — in deze volgorde, en noem de tussenstappen in je bevinding:
+   a. Zoek de zorgverdeling op die het document zelf beschrijft: welke dagen, welk
+      weekpatroon (wisselt het per even/oneven week?), en de vakantieregeling.
+   b. Reken daaruit het GEMIDDELD aantal dagen per week uit voor de ouder bij wie het kind
+      niet het hoofdverblijf heeft, vakanties meegerekend. Wisselt het patroon per week,
+      neem dan het gemiddelde over de cyclus.
+   c. Zoek in de tabel hierboven het percentage dat bij dat aantal dagen hoort.
+   d. Vergelijk dat met het percentage dat het document noemt.
+   Komen c en d niet overeen, óf staat er een percentage dat helemaal niet in de tabel
+   voorkomt, dan hoort daar een motivering bij. Ontbreekt die, dan is het een issue —
+   zonder motivering valt de alimentatie later niet na te rekenen, en juist daarop wordt
+   een convenant aangesproken. Zet je berekening uit stap b in de bevinding, zodat de
+   mediator hem kan narekenen in plaats van je op je woord te moeten geloven.
+   NIET FLAGGEN: een percentage uit de tabel dat overeenkomt met de berekende zorgverdeling.
+   Dat is de norm volgen en vraagt geen toelichting. Vraag ook nooit om een motivering van
+   het gekozen rekenmodel zelf. Is de zorgverdeling te vaag om stap b te doen, meld dan
+   DAT als gebrek — niet het percentage.`;
+
 // Checklijst per documenttype; de laatste tak is de terugval voor bijlagen
 // en onbekende types.
 export const bouwJuridischeChecks = (docType) =>
@@ -35,7 +80,8 @@ Controleer specifiek op:
 4. KINDERALIMENTATIE — Tremanormen of gemotiveerde afwijking (art. 1:404 BW)?
 5. GEZAG — Gezamenlijk gezag bevestigd of afwijking gevraagd (art. 1:247 BW)?
 6. GESCHILLENREGELING — Escalatiebepaling of mediationclausule (art. 1:253a BW)?
-7. INDEXERING — Kinderalimentatie jaarlijks geïndexeerd?`
+7. INDEXERING — Kinderalimentatie jaarlijks geïndexeerd?
+8. ${ZORGKORTING_CHECK.trim()}`
         : docType === 'convenant' ? `
 Controleer specifiek op:
 1. PARTNERALIMENTATIE — Bedrag of nihilbeding? Een nihilbeding is een overeenkomst op grond van art. 1:158 BW: partijen bepalen zelf of, en zo ja tot welk bedrag, er alimentatie verschuldigd is. Is dat bewust en geïnformeerd vastgelegd? Indexering?
@@ -64,6 +110,7 @@ Controleer specifiek op:
 5. BELASTING — Fiscaal partnerschap tot welke datum? Aanslagen/teruggaven verdeeld?
 6. VERMOGEN — Huwelijksgemeenschap of verrekenbeding volledig afgewikkeld (art. 1:94 en 1:121 BW)?
 7. SCHULDEN — Wie neemt welke schulden over?
+8. ${ZORGKORTING_CHECK.trim()}
 NOOIT als inconsistentie of conflict aanmerken: het hanteren van een gemaximeerd netto gezinsinkomen (bijv. € 7.500,-/maand per de Alimentatienormen/Trema) als grondslag voor kinderalimentatieberekeningen, terwijl het werkelijke (hogere) netto gezinsinkomen geldt als grondslag voor partneralimentatie. Dit is de standaard Trema-methode en is juridisch correct — ook als beide grondslagen in hetzelfde document naast elkaar staan.`
         : `\nControleer op juridische juistheid, volledigheid en consistentie.`;
 

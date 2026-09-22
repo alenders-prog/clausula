@@ -627,6 +627,65 @@ per deelnemer; dat lezen is de volgende stap en die is menselijk.
 En het is één fase (`bevindingen`) op één fixture. `structuur`, `cross_doc` en
 `consolidatie` zijn niet gemeten.
 
+---
+
+# Ronde 3: de zorgkortingsregel in de prompt, 22 september 2026
+
+Na ronde 2 stond de hypothese open dat het verschil een promptprobleem kon zijn: de
+prompt is maandenlang op Claude bijgeslepen, dus een gebrek dat alleen Claude meldt kan
+net zo goed betekenen dat de instructie bij Claude aanslaat en bij de rest niet.
+
+Dat is nu getoetst. De zorgkortingsregel stond **niet** in de prompt — er stond alleen
+een balansregel over onderbouwing die in het voordeel van één partij uitvalt. Claude
+leidde de eis dus af. De regel is er expliciet in gezet: de vier bandbreedtes uit
+par. 4.3.5 van het Rapport Alimentatienormen, met een procedure in vier stappen
+(zorgverdeling opzoeken → gemiddelde dagen per week uitrekenen → percentage opzoeken →
+vergelijken), de eis om de berekening in de bevinding te zetten, en een terugval voor
+een zorgverdeling die te vaag is om te berekenen.
+
+## De uitkomst
+
+| `zorgkorting-niet-gemotiveerd` | vóór | ná |
+|---|---|---|
+| `claude-sonnet-4-6` | 5/6 (83%) | **3/3** |
+| `gpt-5.6-luna` | 0/9 | **0/3** |
+| `gpt-5.6-terra` | 0/9 | **0/3** |
+
+**De regel maakt Claude betrouwbaar en doet bij de uitdagers niets.** Ze kregen exact
+dezelfde prompt — het harnas bouwt hem uit één bron — met de tabel, de stappen en de
+vindplaats erin. Een expliciete, uitgeschreven instructie met een opzoektabel bracht ze
+niet van nul.
+
+Daarmee is de hypothese uit ronde 2 verworpen: **het verschil op inhoud is geen
+promptgat.** Dat had het kunnen zijn, en het was de eerlijke vraag om te stellen, maar
+het antwoord is nee.
+
+## Wat er verder uit kwam
+
+**De eval blijft groen**: 5 van de 5 harde assertions. De promptwijziging breekt niets.
+
+**De terugvalregel werkt**, en levert een bevinding op die er zonder deze wijziging niet
+was:
+
+> *Zorgverdeling te vaag voor berekening zorgkorting* — "Omdat artikel 3 geen enkel
+> concreet zorgpatroon beschrijft (geen dagen, geen weekwissels, geen vakantieregeling),
+> is het onmogelijk het gemiddeld aantal verblijfsdagen per week per kind te berekenen en
+> daarmee de toepasselijke zorgkorting (par. 4.3.5 Rapport Alimentatienormen) vast te
+> stellen."
+
+Geen enkel geval waarin een percentage uit de tabel ten onrechte werd afgekeurd — de
+niet-flag-regel houdt stand.
+
+## Hoe sterk is dit bewijs
+
+Matig, en dat hoort erbij. 5/6 tegen 3/3 is een klein verschil op een klein aantal runs;
+het kan ruis zijn. Wat wél stevig is: de regel gáát af, met de redenering erbij, in een
+vorm die een mediator kan narekenen — en de uitdagers staan op nul bij een instructie die
+niet duidelijker kan.
+
+De andere getallen bewogen binnen de verwachte bandbreedte (`wordtgekregen` 2/3 → 3/3,
+`artikel-vorderingen-ontbreekt` 2/6 → 0/3). Daar valt niets aan toe te schrijven.
+
 ## Wat nog open staat
 
 - Of `consolidatie` (nu Haiku) een eigen, kleinere vergelijking verdient. Laagste risico,
