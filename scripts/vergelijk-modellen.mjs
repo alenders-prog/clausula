@@ -154,6 +154,15 @@ for (let r = 1; r <= RUNS; r++) {
     try {
       const a = await roep(d);
       const issues = Array.isArray(a.uitvoer?.issues) ? a.uitvoer.issues : [];
+
+      // Nul bevindingen heeft drie heel verschillende oorzaken, en ze zien er van
+      // buiten hetzelfde uit. Zonder onderscheid meldt het harnas een mislukking als
+      // een oordeel — dat gebeurde op 22 september 2026 met sonnet-5 op `max`.
+      const leeg = issues.length === 0
+        ? (!a.heeftToolAanroep ? 'geen tool-aanroep'
+          : !Array.isArray(a.uitvoer?.issues) ? 'tool aangeroepen zonder issues-veld'
+            : 'lege lijst')
+        : null;
       const { telling } = controleerUitvoer({ issues }, { documentTekst: gezienTekst });
       const usd = kosten(d.model, a);
 
@@ -163,6 +172,7 @@ for (let r = 1; r <= RUNS; r++) {
         ms: a.ms, vers: a.vers, cacheSchrijf: a.cacheSchrijf, cacheLees: a.cacheLees, uit: a.uit,
         usd, verdeling: verdeling(d.model, a),
         aantalIssues: issues.length, afgekapt: a.afgekapt, defecten: telling, fout: null,
+        stopReden: a.stopReden, heeftToolAanroep: a.heeftToolAanroep, leeg,
         // De bevindingen zelf gaan mee. Ze stonden hier eerst niet in — alleen de
         // tellingen — en bij de eerste echte uitslag moest ik ze uit het leesbestand
         // terugparsen om te kunnen nagaan wélke bekende fouten waren gevonden. Dat is
@@ -173,7 +183,8 @@ for (let r = 1; r <= RUNS; r++) {
       ronde[d.spec] = issues;
       console.log(`${String(issues.length).padStart(3)} bevindingen  ${String(Math.round(a.ms / 1000)).padStart(3)}s  `
         + `${usd === null ? 'prijs onbekend' : '$' + usd.toFixed(4)}`
-        + `${a.afgekapt ? '  AFGEKAPT' : ''}  defecten: ${telling.totaal}`);
+        + `${a.afgekapt ? '  AFGEKAPT' : ''}  defecten: ${telling.totaal}`
+        + `${leeg ? `  ← ${leeg} (stop: ${a.stopReden})` : ''}`);
     } catch (e) {
       metingen.push({ run: r, spec: d.spec, model: d.model, fout: e.message });
       console.log(`FOUT: ${e.message}`);

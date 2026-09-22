@@ -322,3 +322,31 @@ describe('bronwachter', () => {
     }
   });
 });
+
+describe('waaróm er niets uitkwam', () => {
+  it('meldt of de tool überhaupt is aangeroepen', () => {
+    // Nul bevindingen heeft drie oorzaken die er van buiten hetzelfde uitzien: geen
+    // tool-aanroep, een aanroep zonder issues-veld, of een echt lege lijst. Op
+    // 22 september 2026 meldde het harnas de eerste als de derde — een mislukking die
+    // als oordeel in de uitslag stond.
+    const zonder = leesClaudeAntwoord({
+      stop_reason: 'end_turn', content: [{ type: 'text', text: 'Ik zie niets.' }], usage: {},
+    });
+    expect(zonder.heeftToolAanroep).toBe(false);
+    expect(zonder.stopReden).toBe('end_turn');
+
+    const met = leesClaudeAntwoord({
+      stop_reason: 'tool_use', content: [{ type: 'tool_use', input: { issues: [] } }], usage: {},
+    });
+    expect(met.heeftToolAanroep).toBe(true);
+    expect(met.uitvoer).toEqual({ issues: [] });
+  });
+
+  it('doet hetzelfde voor de uitdager', () => {
+    const zonder = leesChatGptAntwoord({
+      choices: [{ finish_reason: 'stop', message: { content: 'niets' } }], usage: {},
+    });
+    expect(zonder.heeftToolAanroep).toBe(false);
+    expect(zonder.stopReden).toBe('stop');
+  });
+});

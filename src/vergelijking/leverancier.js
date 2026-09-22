@@ -240,6 +240,12 @@ export function leesClaudeAntwoord(json) {
   const toolUse = json?.content?.find((b) => b.type === 'tool_use');
   return {
     uitvoer:      toolUse?.input ?? null,
+    // Waaróm er niets uitkwam, als er niets uitkwam. Zonder dit is "het model riep de
+    // tool niet aan" niet te onderscheiden van "het model vond niets", en dat is precies
+    // wat er op 22 september 2026 misging: sonnet-5 op `max` leverde twee keer nul
+    // bevindingen bij 5.457 uitvoertokens, en de meting meldde dat als een oordeel.
+    stopReden:    json?.stop_reason ?? null,
+    heeftToolAanroep: !!toolUse,
     vers:         json?.usage?.input_tokens ?? 0,
     cacheSchrijf: json?.usage?.cache_creation_input_tokens ?? 0,
     cacheLees:    json?.usage?.cache_read_input_tokens ?? 0,
@@ -268,6 +274,8 @@ export function leesChatGptAntwoord(json) {
   const cacheLees = json?.usage?.prompt_tokens_details?.cached_tokens ?? 0;
   return {
     uitvoer,
+    stopReden: keuze?.finish_reason ?? null,
+    heeftToolAanroep: !!keuze?.message?.tool_calls?.[0],
     vers:         Math.max(0, (json?.usage?.prompt_tokens ?? 0) - cacheLees),
     // Er komt geen aparte telling voor cache-schrijven terug; die is niet te meten en
     // dus niet te beprijzen. Nul is hier de eerlijke waarde, geen aanname.
