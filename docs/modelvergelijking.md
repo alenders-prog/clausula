@@ -353,10 +353,62 @@ werk en het eerste dat aan de beurt is.
 
 ---
 
+## Wie er meedoen, en waarom
+
+**De uitkomst van de trainer draagt hier niet naar over.** Daar won `gpt-5.6-luna` voor
+vraaggeneratie. Dat is een andere taak dan deze:
+
+| | trainer | Clausula |
+|---|---|---|
+| invoer | één hoofdstuk | twee documenten, lang |
+| uitvoer | één examenvraag | een gestructureerde bevindingenlijst |
+| wat er misgaat | een vraag die niet deugt | een gemist gebrek in een document dat naar de rechter gaat |
+
+Twee dingen volgen daaruit, en ze wijzen tegen elkaar in. De kosten hier zijn voor 71%
+invoer, en op die post scheelt luna vijftien keer ($0,20 tegen $3,00). Maar een convenant
+nalopen op juridische gebreken is zwaarder werk dan een examenvraag schrijven, en juist
+daar kan een klein model omvallen. Dat valt niet te beredeneren.
+
+### De voorgestelde startlijst
+
+```
+claude:claude-sonnet-4-6@low        de huidige stand — de maatstaf
+claude:claude-sonnet-5@low          zelfde merk, nieuwer, $2/$10 in plaats van $3/$15
+chatgpt:gpt-5.6-luna@low            de goedkoopste kandidaat
+chatgpt:gpt-5.6-luna@high           dezelfde, dieper
+chatgpt:gpt-5.6-terra@low           het middenmodel, $2/$12
+```
+
+Vier keuzes zitten daarin.
+
+**`claude-sonnet-5` doet mee**, en dat is geen vanzelfsprekendheid: het is een derde
+goedkoper dan wat er nu draait, bij dezelfde leverancier. Blijkt dat gelijk te scoren,
+dan is er een besparing zonder verwerker erbij, zonder EU-traject en zonder migratie.
+Dat is de goedkoopste uitkomst die deze oefening kan opleveren en hij hoort daarom in de
+eerste ronde, niet als nagedachte.
+
+**Luna staat er twee keer in, op twee standen.** De trainer heeft gemeten dat `low` goed
+genoeg was op Sonnet, maar dat op luna de bevindingen halveerden op `high`. "Low is goed
+genoeg" was dus een eigenschap van dat ene model, niet van de taak. **Diepte is hier een
+deelnemer, geen instelling** — en één model tegen zichzelf is bovendien het sterkste wat
+deze opzet oplevert, want dan is werkelijk alles gelijk behalve die ene knop.
+
+**Terra als middenmodel**, omdat het de eerlijke vergelijking is als luna omvalt: $2/$12
+tegen $3/$15 is nog steeds goedkoper, maar in dezelfde klasse.
+
+**Sol en gpt-6-astra blijven er eerst buiten.** Sol kost $4/$20 en astra $10/$50 — duurder
+dan wat er nu draait. Die hebben alleen zin als het hele verhaal kwaliteit wordt in plaats
+van kosten, en dat is nu niet de vraag.
+
+> Let op bij het uitbreiden van deze lijst: de modellenlijst van de leverancier is
+> alfabetisch, en bij de trainer sneed een `head -30` precies het model weg dat
+> uiteindelijk gekozen werd. Filter op inhoud, niet op aantal.
+
 ## Wat nog open staat
 
-- Welke uitdagermodellen meedoen. De trainer liep hier tegen een val: de modellenlijst is
-  alfabetisch en `head -30` sneed het model weg dat uiteindelijk gekozen werd. Filter op
-  inhoud, niet op aantal.
 - Of `consolidatie` (nu Haiku) een eigen, kleinere vergelijking verdient. Laagste risico,
-  kleinste inzet — mogelijk het beste beginpunt als fase 0 lang duurt.
+  kleinste inzet.
+- Het lezen gebeurt nu in een markdown-bestand, en dat haalt het oordeel uit zijn context:
+  een bevinding beoordeel je met het document ernaast en de passage gemarkeerd, niet als
+  opsommingsteken. Beide varianten als twee gelabelde screenings in één dossier laden zou
+  dat oplossen — dezelfde documenten, hetzelfde moment, maar gelezen in de echte viewer.

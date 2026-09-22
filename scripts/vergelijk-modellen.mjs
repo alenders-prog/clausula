@@ -15,9 +15,15 @@
  *    de tokens, hoeveel bevindingen er zijn, en hoeveel mechanische defecten
  *    `src/analyse/uitvoercontrole.js` erin vindt. Dat is niet voor discussie vatbaar.
  *
- * 2. Een blind leesbestand. Per ronde de uitvoer van elke deelnemer als "A", "B", … in
- *    wisselende volgorde en zonder modelnaam, met de sleutel onderaan. Want de telling
- *    ziet niet of een bevinding ergens op slaat, en wie de namen ziet beoordeelt het merk.
+ * 2. Een leesbestand. Per ronde de uitvoer van elke deelnemer onder elkaar, want de
+ *    telling ziet niet of een bevinding ergens op slaat — dat blijft mensenwerk.
+ *
+ *    Standaard mét de naam van de deelnemer erboven. Met `--blind` komen de varianten
+ *    als "A", "B", … in wisselende volgorde en staat de sleutel onderaan. Dat is niet
+ *    overdreven voorzichtigheid: wie de namen ziet beoordeelt mede het merk. Bij
+ *    verkennend lezen is dat geen bezwaar; op het moment dat de uitslag neerkomt op een
+ *    kwaliteitsoordeel tussen twee kandidaten die dicht bij elkaar liggen, is één blinde
+ *    ronde de goedkoopste manier om jezelf te controleren.
  *
  * ── HOE JE DE UITKOMST LEEST ────────────────────────────────────────────────
  *
@@ -58,6 +64,7 @@ const RUNS    = Math.max(1, parseInt(arg('runs', '1'), 10) || 1);
 const FIXTURE = arg('fixture', 'tests/golden/meting/twee-documenten.json');
 const UIT     = arg('uit', 'vergelijking');
 const SPECS   = String(arg('deelnemers', 'claude,chatgpt')).split(',').map((s) => s.trim()).filter(Boolean);
+const BLIND   = process.argv.includes('--blind');
 
 const DEELNEMERS = SPECS.map(maakDeelnemer);
 const MERKEN = 'ABCDEFGH'.split('');
@@ -186,17 +193,22 @@ console.log(`  twee identieke runs schelen hier 8 tot 10. Zie docs/modelvergelij
 // en die correcties komen.
 writeFileSync(`${UIT}.json`, JSON.stringify({ fixture: FIXTURE, runs: RUNS, metingen }, null, 2));
 
-// Het blinde leesbestand: wisselende volgorde per ronde, sleutel onderaan.
-const regels = [`# Blind lezen — ${FIXTURE}`, '',
-  'De varianten staan per ronde in wisselende volgorde. De sleutel staat onderaan;',
-  'lees eerst, kijk daarna.', ''];
+// Het leesbestand. Met namen tenzij --blind; dan wisselende volgorde en de sleutel
+// onderaan.
+const regels = BLIND
+  ? [`# Blind lezen — ${FIXTURE}`, '',
+     'De varianten staan per ronde in wisselende volgorde. De sleutel staat onderaan;',
+     'lees eerst, kijk daarna.', '']
+  : [`# Lezen — ${FIXTURE}`, ''];
 const sleutel = [];
+
 for (const [i, ronde] of rondes.entries()) {
-  const specs = Object.keys(ronde).sort(() => Math.random() - 0.5);
+  const specs = Object.keys(ronde);
+  if (BLIND) specs.sort(() => Math.random() - 0.5);
   regels.push(`## Ronde ${i + 1}`, '');
   for (const [j, spec] of specs.entries()) {
-    sleutel.push(`ronde ${i + 1} — ${MERKEN[j]} = ${spec}`);
-    regels.push(`### ${MERKEN[j]}`, '');
+    if (BLIND) sleutel.push(`ronde ${i + 1} — ${MERKEN[j]} = ${spec}`);
+    regels.push(`### ${BLIND ? MERKEN[j] : spec}`, '');
     for (const issue of ronde[spec]) {
       regels.push(`- **${issue.onderwerp}** *(${issue.ernst}, ${(issue.dimensies ?? []).join('/')})*`);
       regels.push(`  ${issue.bevinding}`);
@@ -205,7 +217,7 @@ for (const [i, ronde] of rondes.entries()) {
     }
   }
 }
-regels.push('', '---', '', '## Sleutel', '', ...sleutel.map((s) => `- ${s}`));
+if (BLIND) regels.push('', '---', '', '## Sleutel', '', ...sleutel.map((s) => `- ${s}`));
 writeFileSync(`${UIT}.md`, regels.join('\n'));
 
 console.log(`\nweggeschreven: ${UIT}.json (ruwe tellingen) en ${UIT}.md (blind lezen)`);
