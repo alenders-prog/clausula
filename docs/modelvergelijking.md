@@ -486,6 +486,91 @@ stille degradatie in productie blootgelegd.
 **Alle drie de harnasfouten zijn gevonden door een uitslag te controleren in plaats van te
 lezen.** Dat is de enige reden om de goedkope, bekende ronde eerst te draaien.
 
+---
+
+# Uitkomst ronde 2: OpenAI ernaast, 22 september 2026
+
+Negen gepaarde aanroepen, `bevindingen`-fase, dezelfde fixture. **Op het globale
+endpoint** — het Europese weigert een gewone sleutel met een 401, zie hierboven.
+
+## De cijfers
+
+| | kosten (gemeten) | **zonder cache** | tijd | bevindingen | defecten |
+|---|---|---|---|---|---|
+| `claude-sonnet-4-6` | $0,1775 | $0,1775 | 100s | 15,3 | 1,0 |
+| `gpt-5.6-luna` | $0,0054 | **$0,0096** | 42s | 10,3 | 0,0 |
+| `gpt-5.6-terra` | $0,0704 | $0,0947 | 67s | 11,0 | 0,0 |
+
+**Lees de gemeten kolom niet als de rekening.** Het harnas stuurt drie keer exact
+dezelfde invoer, en OpenAI cacht automatisch op een gedeelde prefix: 23.470 van de
+23.604 invoertokens kwamen uit de cache, elke run. In productie verschilt elk document,
+dus dat voordeel is er grotendeels niet. De kolom "zonder cache" rekent het terug tegen
+het verse tarief; realistisch zit het daartussen, want de systeemprompt (36% van de
+invoer) is wél over analyses heen gedeeld — dan komt luna op $0,0081 uit.
+
+Dit is de valkuil "het harnas is geen productie" uit `MEETMETHODE.md`, in een vorm die
+precies de conclusie raakt waar het om gaat.
+
+**Hoe dan ook: luna is ordegrootte twintig keer goedkoper, terra ongeveer twee keer.**
+Dat verschil is zo groot dat geen enkele cache-aanname het wegneemt.
+
+Daar komt een tweede factor bij die dezelfde kant op wijst: voor dezelfde tekst telt
+OpenAI **23.604** invoertokens en Anthropic **31.698** — 26% minder. Het spiegelbeeld
+van wat we bij `claude-sonnet-5` zagen, en opnieuw: de prijs per token is de prijs niet.
+
+## De kwaliteit is niet geordend maar complementair
+
+Bekende fouten, gevonden in hoeveel van de drie runs:
+
+| fout | sonnet-4-6 | luna | terra |
+|---|---|---|---|
+| `wordtgekregen` | **2/3** | 0/3 | 0/3 |
+| `gezamelijke` | 3/3 | 2/3 | 3/3 |
+| `dwingrechtelijke` | 0/3 | **2/3** | 0/3 |
+| `identiteitsbewijzen` | **1/3** | 0/3 | 0/3 |
+| `de de vrouw` | 3/3 | 3/3 | 3/3 |
+| `etc:` | 0/3 | 0/3 | 0/3 |
+
+Op "gevonden in minstens één run" staat het 4–3–2 in het voordeel van sonnet-4-6. Maar
+dat is niet het hele verhaal: **luna vindt `dwingrechtelijke`, en dat heeft geen enkel
+Claude-model in negen runs gedaan.** Andersom vindt sonnet-4-6 `wordtgekregen` en
+`identiteitsbewijzen`, die luna nooit vindt.
+
+Ze missen dus verschillende dingen. Dat is een andere uitkomst dan "de een is beter", en
+het is een uitkomst die je alleen ziet als je per fout telt in plaats van per totaal.
+
+> **Correctie op ronde 1.** Daar staat dat `dwingrechtelijke` en `etc:` "door geen enkel
+> model" worden gevonden en dus een promptprobleem zijn. Dat klopte niet: geen enkel
+> *Claude*-model vond ze. Voor `dwingrechtelijke` was het een modelverschil.
+>
+> Voor `etc:` staat het wél overeind — nul keer, bij zes deelnemers over eenentwintig
+> runs. Dát is een promptprobleem, en nu met meer gewicht dan eerst.
+
+## Wat er nog niet gelijkgeschakeld is
+
+Drie dingen, en ze staan alle drie in de uitvoer van het harnas zelf:
+
+- **De regio.** Gemeten op het globale endpoint. Tokens, kosten en bevindingen zijn
+  overdraagbaar naar de EU; de tijden niet.
+- **`temperature`.** Claude krijgt 0,3, de uitdager de standaard — die modellen
+  accepteren de parameter niet.
+- **De cache.** Hierboven behandeld.
+
+## Wat dit betekent voor de keuze
+
+Het is geen uitgemaakte zaak, en dat is zelf de uitkomst. Er staat nu:
+
+- een kostenvoordeel van een orde van grootte, dat geen enkele aanname wegpoetst;
+- een kwaliteitsbeeld dat complementair is in plaats van geordend;
+- een AVG-argument dat één kant op wijst en waarvoor het traject nog moet beginnen.
+
+**Wat dit nog niet is:** een oordeel over de inhoud. De telling ziet niet of een
+bevinding ergens op slaat. `tests/golden/vergelijking-openai.md` bevat de bevindingen
+per deelnemer; dat lezen is de volgende stap en die is menselijk.
+
+En het is één fase (`bevindingen`) op één fixture. `structuur`, `cross_doc` en
+`consolidatie` zijn niet gemeten.
+
 ## Wat nog open staat
 
 - Of `consolidatie` (nu Haiku) een eigen, kleinere vergelijking verdient. Laagste risico,
