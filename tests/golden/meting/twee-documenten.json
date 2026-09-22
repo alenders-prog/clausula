@@ -83,6 +83,27 @@
         "zonder duidelijk"
       ],
       "herkomst": "Geverifieerd in de brontekst op 22-09-2026: artikel 3.1.1 verwijst naar \"artikel Vorderingen\"; een artikel met die kop bestaat niet. Wel 3.11 (Vorderingen en schulden sociale verzekering, dat juist zegt dat die er niet zijn) en 3.13 (Fiscale vorderingen). Dit is de eerste bekende fout in een inhoudelijke dimensie — de zes andere zijn alle zes taalfouten."
+    },
+    {
+      "sleutel": "peaks-saldo-wijkt-af",
+      "soort": "tegenstrijdigheid",
+      "zoek_alle": [
+        "peaks"
+      ],
+      "zoek": [
+        "2.336",
+        "9.018",
+        "885",
+        "twee",
+        "tweemaal",
+        "dubbel",
+        "afzonderlijk",
+        "komt niet overeen",
+        "stemt niet overeen",
+        "wijkt af",
+        "tegenstrijdig"
+      ],
+      "herkomst": "Geverifieerd in de brontekst op 22-09-2026. De bijlage van het ouderschapsplan voert Peaks twee keer op, verschillend gespeld: \"Beleggingen [Peaks - Beleggings-app] EUR 885\" en \"Beleggingen [Peaks - Beleggingsapp] EUR 9.018\", samen EUR 9.903. Het convenant noemt in 3.10.1 een enkele Peaks-belegging met saldo EUR 2.336 per 23-03-2026. Feitelijke tegenstrijdigheid tussen twee documenten van hetzelfde dossier; geen juridisch oordeel nodig. Gevonden door claude-sonnet-4-6 in 6 van de 6 runs, door gpt-5.6-terra in 2 van de 3, door gpt-5.6-luna in geen enkele."
     }
   ],
   "documenten": [
