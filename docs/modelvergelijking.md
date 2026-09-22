@@ -404,6 +404,88 @@ van kosten, en dat is nu niet de vraag.
 > alfabetisch, en bij de trainer sneed een `head -30` precies het model weg dat
 > uiteindelijk gekozen werd. Filter op inhoud, niet op aantal.
 
+---
+
+# Uitkomst ronde 1: binnen Anthropic, 22 september 2026
+
+Twaalf gepaarde aanroepen op `tests/golden/meting/twee-documenten.json`, één fase
+(`bevindingen`), samen ongeveer $2.
+
+## `claude-sonnet-5` is geen vervanger voor deze taak
+
+| deelnemer | bevindingen | bekende fouten | tijd | kosten |
+|---|---|---|---|---|
+| `claude-sonnet-4-6` (huidige stand) | 15,3 | **4 van 6** | 106s | $0,1829 |
+| `claude-sonnet-5` standaard | 9,0 | 2 van 6 | 45s | $0,1287 |
+| `claude-sonnet-5@xhigh` | 8,0 | 2 van 6 | 40s | $0,1268 |
+| `claude-sonnet-5@max` | 5,0 | 2 van 6 | 46s | $0,1316 |
+
+Het mist `wordtgekregen` en `identiteitsbewijzen` — de twee waarvan in CLAUDE.md al
+stond dat de betrouwbaarheid erop twijfelachtig is. Het verschil van zeven bevindingen
+ligt ver buiten de ruis, die op deze fixture ±2 bleek.
+
+**Meer diepte maakt het niet beter maar stiller**: van 9 naar 8 naar 5 bevindingen, met
+de recall onveranderd op 2 van 6. De hypothese dat "low is goed genoeg" hier een
+eigenschap van één model zou zijn, gaat dus niet op — het probleem zit niet in de diepte.
+
+> **Terugdraaivoorwaarde.** Dit besluit geldt voor de `bevindingen`-aanroep op deze
+> fixture. Het zegt niets over `structuur`, `cross_doc` of `consolidatie`, en niets over
+> een andere prompt. Meet opnieuw als een van die drie verandert.
+
+## De tokenprijs is niet de prijs
+
+Voor exact dezelfde tekst telt `claude-sonnet-4-6` 31.698 invoertokens en
+`claude-sonnet-5` er **44.746** — 41% meer. Dat is de tokenizer die Anthropic vanaf 4.7
+gebruikt; de prijspagina noemt ~30% en voegt eraan toe dat het van de inhoud afhangt.
+
+Gevolg voor de rekening:
+
+| | invoer | uitvoer |
+|---|---|---|
+| sonnet-4-6 | 31.698 tok → $0,0951 | 6.119 tok → $0,0918 |
+| sonnet-5 | 44.746 tok → $0,0895 | 3.926 tok → $0,0393 |
+
+**Een tarief dat een derde lager is, levert op de invoer 6% op.** En het verschil dat
+overblijft zit vooral in de uitvoer, dus in het feit dát het minder schrijft. Reken bij
+elk Anthropic-model van 4.7 of nieuwer dus niet met de prijs per token maar met een
+gemeten tokenaantal op je eigen tekst.
+
+## Twee bekende fouten vindt niemand
+
+`dwingrechtelijke` en `etc:` staan op 0/3 bij álle deelnemers. Dat is geen
+modeleigenschap maar een eigenschap van de prompt of de pijplijn — en dat is precies het
+soort defect dat je volgens de methode wél mag repareren, want het treedt bij meerdere
+modellen op. Apart spoor.
+
+## Wat de meting over productie zei
+
+`sonnet-5@max` riep één keer op drie de tool netjes aan en liet het veld `issues` weg,
+met `stop_reason: tool_use`. Het schema zegt `required: ['issues']`, maar een afgedwongen
+tool-aanroep garandeert geen geldig schema — daar is `strict: true` voor, en dat staat in
+`api/analyseer.js` niet aan.
+
+Productie crasht er niet op: overal staat `Array.isArray(result?.issues)` of `?? []`. Het
+**degradeert stil** — die aanroep levert dan nul bevindingen, en een rapport zonder
+bevindingen is niet te onderscheiden van een schoon document.
+
+Eerlijk over de omvang: dit is waargenomen op een model dat niet in productie draait, op
+een diepte die niet gebruikt wordt. Op `claude-sonnet-4-6` is het in negen runs **nul
+keer** voorgekomen. Het mechanisme geldt wel, de frequentie is onbekend.
+
+Te overwegen, als apart besluit: `strict: true` op de tooldefinities (vereist
+`additionalProperties: false`), of een ontbrekend `issues`-veld in `askClaude` behandelen
+als een mislukte poging in plaats van als een leeg antwoord.
+
+## Wat dit kostte, en wat het opleverde
+
+Ongeveer $2 aan aanroepen. Daarvoor: één leveranciersvraag beantwoord, drie fouten in het
+meetharnas gevonden (temperature als modeleigenschap, de diepte die Claude nooit bereikte,
+en nul bevindingen die drie oorzaken verhulde), één gat in de prompt aangewezen, en één
+stille degradatie in productie blootgelegd.
+
+**Alle drie de harnasfouten zijn gevonden door een uitslag te controleren in plaats van te
+lezen.** Dat is de enige reden om de goedkope, bekende ronde eerst te draaien.
+
 ## Wat nog open staat
 
 - Of `consolidatie` (nu Haiku) een eigen, kleinere vergelijking verdient. Laagste risico,
