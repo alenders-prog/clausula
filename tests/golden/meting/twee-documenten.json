@@ -104,6 +104,22 @@
         "tegenstrijdig"
       ],
       "herkomst": "Geverifieerd in de brontekst op 22-09-2026. De bijlage van het ouderschapsplan voert Peaks twee keer op, verschillend gespeld: \"Beleggingen [Peaks - Beleggings-app] EUR 885\" en \"Beleggingen [Peaks - Beleggingsapp] EUR 9.018\", samen EUR 9.903. Het convenant noemt in 3.10.1 een enkele Peaks-belegging met saldo EUR 2.336 per 23-03-2026. Feitelijke tegenstrijdigheid tussen twee documenten van hetzelfde dossier; geen juridisch oordeel nodig. Gevonden door claude-sonnet-4-6 in 6 van de 6 runs, door gpt-5.6-terra in 2 van de 3, door gpt-5.6-luna in geen enkele."
+    },
+    {
+      "sleutel": "zorgkorting-niet-gemotiveerd",
+      "soort": "motivering",
+      "zoek_alle": [
+        "zorgkorting"
+      ],
+      "zoek": [
+        "niet gemotiveerd",
+        "niet onderbouwd",
+        "motivering",
+        "onderbouwing",
+        "motiveer",
+        "zonder toelichting"
+      ],
+      "herkomst": "Bevestigd door de mediator op 22-09-2026. De zorgkorting kent vaste bandbreedtes in de rechtspraak; 30% voor de vader en 39% voor de moeder wijken daarvan af. Een afwijking hoort gemotiveerd te worden, anders valt er later niet op na te rekenen — en juist dat narekenen is waar een convenant op wordt aangesproken. Gevonden door claude-sonnet-4-6 in 4 van de 6 runs, door geen enkel ander model. De prompt noemt zorgkorting nu alleen in de balans-zin (api/_prompts/bevindingen.js regel 50: onderbouwing die in het voordeel van één partij uitvalt), niet als afwijking van de bandbreedtes — het model leidt dit dus af in plaats van het op te volgen."
     }
   ],
   "documenten": [
