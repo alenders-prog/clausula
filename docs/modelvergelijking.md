@@ -264,34 +264,44 @@ de hele oefening, en het staat los van kosten en kwaliteit.**
 Wat er hoe dan ook bij hoort: een verwerkersovereenkomst. Een tweede leverancier is een
 tweede verwerker, en die lijst staat al open.
 
-### En dat kost iets, want Europese verwerking geldt niet voor elk model
+### Wat Europese verwerking precies inhoudt
 
-Dit is niet alleen papierwerk, en dat was de eerste lezing hier wél. Europese
-dataresidentie kent twee lagen: opslag in de regio geldt breed, **verwerking in de regio
-voor een beperktere modellenlijst**. De documentatie noemt daarvoor onder meer
-`gpt-5.6-terra`, `gpt-5.5` en `gpt-4o`-varianten.
+Nagekeken op de ruwe documentatiepagina, 22 september 2026. De regiotabel zegt:
 
-`gpt-5.6-luna` staat niet in die opsomming. Dat is precies het model waar de trainer op
-uitkwam en waar het kostenvoordeel op rust: $0,20/$1,20 tegen $3/$15 voor
-`claude-sonnet-4-6`. Valt luna af, dan is de EU-kandidaat `gpt-5.6-terra` op $2,00/$12,00
-— geen orde goedkoper meer, maar een derde tot een vijfde.
+```
+Europe (EEA + Switzerland)   eu.api.openai.com
+    Storage Yes   Processing Yes   Requires MAM or ZDR
+    /v1/chat/completions   Storage  Processing
+```
 
-**Dit bepaalt de deelnemerslijst en hoort dus vóór fase 2 te worden nagekeken.** Meten met
-een model dat er niet mag komen is weggegooid werk, en het is dezelfde val als bij de
-trainer: een instelling die op het ene model gold doortrekken naar het andere.
+Verwerking in de EU geldt dus voor `/v1/chat/completions` — het endpoint dat hier in
+beeld is — en de endpointtabel noemt daar `gpt-5.6-sol`, `gpt-5.6-terra` én
+`gpt-5.6-luna` bij, naast de hele oudere reeks. **Het goedkoopste model valt er niet
+buiten.** Australië, Canada en Japan hebben `Processing No` en zijn alleen opslag; de
+Verenigde Arabische Emiraten hebben verwerking met een korte modellenlijst.
 
-Twee dingen zijn nog niet vastgesteld en moeten dat wel worden:
+**Wat er wél bij hoort: `Requires MAM or ZDR`.** Europese verwerking staat niet aan door
+een project in Europa te zetten — hij vereist goedkeuring voor aangepaste
+abuse-monitoring of zero data retention. Dat is het enige onderdeel met doorlooptijd, en
+dus het enige dat baat heeft bij vroeg beginnen. De verwerkersovereenkomst zelf is
+papierwerk dat parallel kan lopen.
 
-- Of luna er werkelijk buiten valt. De gelezen opsomming staat er met "onder meer", dus
-  hij kan alsnog meedoen. Niet aannemen — navragen.
-- Hoe caching en residentie elkaar raken. De documentatie meldt dat uitgebreide prompt
-  caching in regio's zónder regionale verwerking ertoe kan leiden dat inhoud tijdelijk
-  buiten de regio wordt verwerkt. Dat raakt deel 3 hierboven rechtstreeks: het
-  cachevoordeel en de EU-garantie kunnen elkaar uitsluiten.
+Eén ding blijft na te gaan: uitgebreide prompt caching in regio's zónder regionale
+verwerking kan inhoud tijdelijk buiten de regio verwerken. Europa hééft regionale
+verwerking, dus waarschijnlijk raakt het ons niet — maar "waarschijnlijk" is hier niet
+genoeg, en het kruist deel 3 hierboven.
 
-De rest is inderdaad administratief — met als kanttekening dat het Modified
-Retention-amendement en de goedkeuring voor aangepaste abuse-monitoring via sales lopen.
-Geen werk, wel doorlooptijd. Parallel in gang zetten kost niets.
+> **Hoe dit is vastgesteld, want dat is zelf een les.** Drie samenvattingen van dezelfde
+> pagina gaven drie verschillende antwoorden: één noemde terra wél en luna niet, één
+> noemde alles ondersteund, en één noemde luna wél en terra en sol niet. Die laatste las
+> de regel van de Verenigde Arabische Emiraten aan voor die van Europa — die staan er
+> direct naast, met een kortere modellenlijst.
+>
+> Er stond een versie van die eerste lezing in dit document, met de conclusie dat het
+> kostenvoordeel wegviel. Onjuist, en het had de deelnemerslijst van fase 2 gestuurd.
+>
+> De pagina zelf ophalen en er deterministisch in zoeken kostte twee minuten en gaf één
+> antwoord. **In een project dat een taalmodel meet, is een taalmodel geen bron.**
 
 ## 3. Gelijkschakeling onder tool-use
 
