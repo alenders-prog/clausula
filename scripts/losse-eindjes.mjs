@@ -75,10 +75,16 @@ const srcPaden  = allePaden(join(WORTEL, 'src'));
 // werd door scripts/opschonen.mjs aangeroepen en toch als los eindje gemeld: de
 // onderhoudsscripts zijn geen tweederangs gebruikers — juist het opschoonscript hoort de
 // getoetste regel te gebruiken in plaats van zijn eigen datumrekenwerk te doen.
+//
+// `.claude/hooks/` hoort er sinds 12 september 2026 bij, om dezelfde reden als scripts/:
+// `skillsVoorPad` uit src/skill-tabel.js wordt door skill-sync-hint.js aangeroepen en
+// werd tóch als los eindje gemeld. Een hook is geen tweederangs gebruiker — het is juist
+// de plek waar een gedeelde regel in werking treedt.
 const codePaden = [
   ...srcPaden,
   ...allePaden(join(WORTEL, 'api')),
   ...allePaden(join(WORTEL, 'scripts')),
+  ...allePaden(join(WORTEL, '.claude', 'hooks')),
   join(WORTEL, 'index.html'),
   ...['assistent-mobiel.html', 'login.html'].map(f => join(WORTEL, f))
     .filter(p => { try { statSync(p); return true; } catch { return false; } }),

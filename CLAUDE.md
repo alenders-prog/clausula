@@ -407,5 +407,11 @@ Update de skill alleen als de wijziging **non-obvieuze** kennis toevoegt of vera
 
 Als code en skill **afwijken**: meld dit altijd expliciet aan de gebruiker.
 
-De PostToolUse hook in `.claude/settings.json` geeft een automatisch signaal bij edits
-op de API-bestanden — reageer daarop door de skill te beoordelen.
+De PostToolUse hook in `.claude/settings.json` geeft een automatisch signaal bij edits op
+een bestand uit deze tabel — reageer daarop door de skill te beoordelen.
+
+> **De hook leest déze tabel.** Tot 12 september 2026 had `skill-sync-hint.js` een eigen
+> lijst met drie van de negen rijen, inclusief de twee dode paden die hierboven al waren
+> geschrapt. Zes rijen gingen dus nooit af en twee bestonden niet meer — zonder dat daar
+> iets van te zien was. De parser staat nu in `src/skill-tabel.js`; hook én test lezen
+> daaruit, en `tests/unit/skill-tabel.test.js` bewaakt dat er geen tweede lijst bij komt.
