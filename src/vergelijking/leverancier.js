@@ -1,0 +1,244 @@
+/**
+ * src/vergelijking/leverancier.js — dezelfde opdracht, aan wie dan ook
+ *
+ * Bestaat om te kunnen meten wie het beter doet. De valkuil bij zo'n vergelijking is dat
+ * je twee prompts vergelijkt in plaats van twee modellen. Daarom bouwen beide kanten
+ * hier hun verzoek uit exact dezelfde ingrediënten: dezelfde systeemtekst, dezelfde
+ * gebruikersinhoud, en hetzelfde JSON Schema. Alleen de vorm van het verzoek verschilt,
+ * want die moet wel.
+ *
+ * ── HET BESLUIT UIT FASE 0 ──────────────────────────────────────────────────
+ *
+ * Aan beide kanten een **afgedwongen functie-aanroep met hetzelfde schema** — niet een
+ * afgedwongen tool tegenover een `json_schema`-antwoordformaat. Dan is de vorm aan beide
+ * kanten dezelfde: één benoemde functie die het model moet aanroepen.
+ *
+ * Dat is hier ook inhoudelijk de eerlijke keuze, want het schema draagt een flink deel
+ * van de instructie. `onderwerpBeschrijving` en de beschrijving bij `samenvatting` in
+ * `api/analyseer.js` zijn geen typeannotaties maar opdrachten, en die reizen zo woord
+ * voor woord mee.
+ *
+ * ── WAT NIET GELIJK TE SCHAKELEN IS ─────────────────────────────────────────
+ *
+ * Drie dingen, en ze horen in de uitslag te staan in plaats van weggepoetst:
+ *
+ * 1. `temperature`. De productie stuurt 0,3. Redeneermodellen aan de andere kant
+ *    accepteren alleen de standaardwaarde en geven anders een 400. Niet gelijk te
+ *    trekken; we sturen hem dus alleen waar hij mag.
+ *
+ * 2. Het tokenbudget. `max_tokens` bij Anthropic telt alleen wat er geschreven wordt;
+ *    `max_completion_tokens` bij OpenAI telt de redeneertokens mee. Gelijke getallen
+ *    zijn dus ONgelijke budgetten. Daarom `UITDAGER_BUDGETFACTOR` hieronder. Met een
+ *    krap budget gaat het grootste deel op aan nadenken en komt de JSON er half uit —
+ *    dat leest als een slecht model en is een instellingsfout.
+ *
+ * 3. De tool-overhead. Een afgedwongen keuze kost bij Anthropic 589 systeemtokens op
+ *    Sonnet 4.6, tegen 497 bij `auto`. Dat zit in de invoertelling die we vergelijken.
+ *
+ * ── GEEN HERPOGINGEN HIER ───────────────────────────────────────────────────
+ *
+ * `askClaude` in `api/analyseer.js` probeert bij `max_tokens` automatisch opnieuw met
+ * een verdubbeld budget, en daarnaast tot twee keer bij een fout. Dat hoort niet in dit
+ * bestand thuis: laat je het staan voor één deelnemer, dan krijgt die er twee of drie
+ * pogingen bij en komt dat in de telling terecht als kwaliteit. Hier is één aanroep één
+ * aanroep. Het harnas beslist wat het met een afgekapt antwoord doet, voor iedereen
+ * gelijk, en telt ze apart.
+ */
+
+/**
+ * Het uitvoerbudget van de uitdager, ten opzichte van dat van Claude.
+ *
+ * Vier is geen gemeten waarde maar een ruime marge, en met opzet aan de royale kant:
+ * te krap kost een meting (half afgekapte JSON die als modelfout leest), te ruim kost
+ * alleen geld als het model het opmaakt — en dat doet het niet vanzelf.
+ */
+export const UITDAGER_BUDGETFACTOR = 4;
+
+export const LEVERANCIERS = Object.freeze({
+  claude: {
+    merk: 'Claude',
+    sleutel: 'ANTHROPIC_API_KEY',
+    standaardModel: 'claude-sonnet-4-6',
+    url: 'https://api.anthropic.com/v1/messages',
+  },
+  chatgpt: {
+    merk: 'ChatGPT',
+    sleutel: 'OPENAI_API_KEY',
+    standaardModel: 'gpt-5.6-terra',
+    // De EU-variant. Europese verwerking geldt voor /v1/chat/completions en vereist
+    // goedkeuring voor aangepaste abuse-monitoring of zero data retention — zie
+    // docs/modelvergelijking.md. Meten op het globale endpoint en draaien op het
+    // Europese zou betekenen dat je iets anders hebt gemeten dan wat er komt.
+    url: 'https://eu.api.openai.com/v1/chat/completions',
+  },
+});
+
+/**
+ * Een deelnemer uit `leverancier:model@diepte#variant`.
+ *
+ * Model, diepte en variant mogen weg. Zo zet je merken naast elkaar, maar ook één model
+ * tegen zichzelf op een andere stand — en dat laatste is vaak de vraag die er werkelijk
+ * toe doet.
+ */
+export function maakDeelnemer(spec) {
+  const tekst = String(spec ?? '').trim();
+  if (!tekst) throw new Error('Lege deelnemer.');
+
+  const [zonderVariant, variant = null] = tekst.split('#');
+  const [voor, diepte = 'low'] = zonderVariant.split('@');
+  const [naam, model] = voor.split(':');
+
+  const l = LEVERANCIERS[naam];
+  if (!l) {
+    throw new Error(
+      `Onbekende leverancier "${naam}". Kies uit ${Object.keys(LEVERANCIERS).join(', ')}.`,
+    );
+  }
+
+  return {
+    spec: tekst,
+    leverancier: naam,
+    merk: l.merk,
+    sleutel: l.sleutel,
+    url: l.url,
+    model: model || l.standaardModel,
+    diepte,
+    variant,
+    kort: `${(model || l.standaardModel).replace(/^claude-/, '')} ${diepte}`,
+  };
+}
+
+/** De systeemblokken van `api/analyseer.js` platgeslagen tot één tekst. */
+export function alsTekst(systemPrompt) {
+  if (typeof systemPrompt === 'string') return systemPrompt;
+  if (Array.isArray(systemPrompt)) return systemPrompt.map((b) => b?.text ?? '').join('\n\n');
+  return String(systemPrompt ?? '');
+}
+
+/** Hetzelfde voor de gebruikersinhoud, die als `{text, cache}`-blokken kan komen. */
+export function gebruikersTekst(userContent) {
+  if (typeof userContent === 'string') return userContent;
+  if (Array.isArray(userContent)) return userContent.map((b) => b?.text ?? '').join('\n\n');
+  return String(userContent ?? '');
+}
+
+/**
+ * Het verzoeklichaam voor Claude — gelijk aan wat `askClaude` in productie stuurt.
+ *
+ * De prompt-cache staat hier uit, net als daar. Zie `src/api/prompt-cache.js`: 153.284
+ * tokens aangelegd en nul gelezen. Zou hij hier aan staan, dan meet je een instelling
+ * die in productie niet geldt.
+ */
+export function bouwClaudeVerzoek({ systemPrompt, userContent, tool, model, maxTokens, temperature = 0.3 }) {
+  return {
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    system: [{ type: 'text', text: alsTekst(systemPrompt) }],
+    messages: [{ role: 'user', content: gebruikersTekst(userContent) }],
+    tools: [tool],
+    tool_choice: { type: 'tool', name: tool.name },
+  };
+}
+
+/**
+ * Het verzoeklichaam voor de uitdager. Hetzelfde schema, andere verpakking.
+ *
+ * Geen `temperature`: zie punt 1 in de kop. En `max_completion_tokens` in plaats van
+ * `max_tokens`, ruimer bemeten om punt 2.
+ */
+export function bouwChatGptVerzoek({ systemPrompt, userContent, tool, model, maxTokens, diepte = 'low' }) {
+  return {
+    model,
+    max_completion_tokens: maxTokens * UITDAGER_BUDGETFACTOR,
+    reasoning_effort: diepte,
+    messages: [
+      { role: 'system', content: alsTekst(systemPrompt) },
+      { role: 'user',   content: gebruikersTekst(userContent) },
+    ],
+    tools: [{
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        // Hetzelfde schema-object, inclusief alle beschrijvingen. Dit is de plek waar de
+        // gelijkschakeling staat of valt: hier iets aan bewerken is de opdracht wijzigen.
+        parameters: tool.input_schema,
+      },
+    }],
+    tool_choice: { type: 'function', function: { name: tool.name } },
+  };
+}
+
+/** Het verzoek voor een deelnemer, welke dan ook. */
+export function bouwVerzoek(deelnemer, opdracht) {
+  const bouw = deelnemer.leverancier === 'claude' ? bouwClaudeVerzoek : bouwChatGptVerzoek;
+  return bouw({ ...opdracht, model: deelnemer.model, diepte: deelnemer.diepte });
+}
+
+// ── het antwoord uitpakken ───────────────────────────────────────────────────
+//
+// Beide kanten leveren vier tellingen en één ingevuld schema. Dat de velden anders heten
+// en anders geteld worden is precies waarom dit hier gebeurt en niet bij de aanroeper.
+
+/**
+ * @returns {{uitvoer: object|null, vers, cacheSchrijf, cacheLees, uit, afgekapt: boolean}}
+ */
+export function leesClaudeAntwoord(json) {
+  const toolUse = json?.content?.find((b) => b.type === 'tool_use');
+  return {
+    uitvoer:      toolUse?.input ?? null,
+    vers:         json?.usage?.input_tokens ?? 0,
+    cacheSchrijf: json?.usage?.cache_creation_input_tokens ?? 0,
+    cacheLees:    json?.usage?.cache_read_input_tokens ?? 0,
+    uit:          json?.usage?.output_tokens ?? 0,
+    afgekapt:     json?.stop_reason === 'max_tokens',
+  };
+}
+
+/**
+ * Idem voor de uitdager.
+ *
+ * Twee dingen zijn anders dan ze lijken. `prompt_tokens` is daar het TOTAAL inclusief
+ * wat uit de cache kwam, terwijl `input_tokens` bij Anthropic juist het verse deel is —
+ * dus eraf trekken, anders tel je de cache dubbel en komt de rekening te hoog uit. En de
+ * argumenten van de functie-aanroep komen als string binnen, niet als object.
+ */
+export function leesChatGptAntwoord(json) {
+  const keuze = json?.choices?.[0];
+  const ruw   = keuze?.message?.tool_calls?.[0]?.function?.arguments;
+
+  let uitvoer = null;
+  if (typeof ruw === 'string' && ruw.trim()) {
+    try { uitvoer = JSON.parse(ruw); } catch { uitvoer = null; }
+  }
+
+  const cacheLees = json?.usage?.prompt_tokens_details?.cached_tokens ?? 0;
+  return {
+    uitvoer,
+    vers:         Math.max(0, (json?.usage?.prompt_tokens ?? 0) - cacheLees),
+    // Er komt geen aparte telling voor cache-schrijven terug; die is niet te meten en
+    // dus niet te beprijzen. Nul is hier de eerlijke waarde, geen aanname.
+    cacheSchrijf: 0,
+    cacheLees,
+    uit:          json?.usage?.completion_tokens ?? 0,
+    afgekapt:     keuze?.finish_reason === 'length',
+  };
+}
+
+/** Het antwoord van een deelnemer uitpakken, welke dan ook. */
+export function leesAntwoord(deelnemer, json) {
+  return deelnemer.leverancier === 'claude'
+    ? leesClaudeAntwoord(json)
+    : leesChatGptAntwoord(json);
+}
+
+/** De headers voor een deelnemer. De sleutel komt uit de omgeving, niet uit de spec. */
+export function bouwHeaders(deelnemer, env = process.env) {
+  const sleutel = env[deelnemer.sleutel];
+  if (!sleutel) throw new Error(`${deelnemer.sleutel} ontbreekt in de omgeving.`);
+
+  return deelnemer.leverancier === 'claude'
+    ? { 'Content-Type': 'application/json', 'x-api-key': sleutel, 'anthropic-version': '2023-06-01' }
+    : { 'Content-Type': 'application/json', Authorization: `Bearer ${sleutel}` };
+}

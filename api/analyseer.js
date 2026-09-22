@@ -344,7 +344,7 @@ async function pasConsistentieToe(issues, label) {
   }
 }
 
-const issueItem = {
+export const issueItem = {
   type: 'object',
   properties: {
     onderwerp:   { type: 'string', description: onderwerpBeschrijving },
@@ -382,7 +382,7 @@ const issueItem = {
   required: ['onderwerp', 'ernst', 'dimensies', 'bevinding', 'aanbeveling'],
 };
 
-function maakStructuurTool(heeftMfn) {
+export function maakStructuurTool(heeftMfn) {
   return {
     name: 'registreer_structuur',
     description: 'Registreert samenvatting, volledigheid-issues en optioneel MfN-score.',
@@ -403,7 +403,7 @@ function maakStructuurTool(heeftMfn) {
 
 // Gecombineerd tool voor alle niet-structuur dimensies (juridisch + balans + grammatica + conflicten).
 // Één call ipv twee parallelle calls → geen cross-call deduplicatie nodig.
-const bevindingentool = {
+export const bevindingentool = {
   name: 'registreer_bevindingen',
   description: 'Registreert juridische, balans-, grammatica- en conflictbevindingen.',
   input_schema: {
@@ -415,7 +415,7 @@ const bevindingentool = {
 
 // Cross-document tool: zelfde schema als bevindingentool + verplicht veld betreft_documenten.
 // Hiermee stuurt de server alleen de relevante issues naar elk document.
-const crossDocTool = {
+export const crossDocTool = {
   name: 'registreer_cross_doc_bevindingen',
   description: 'Registreert inconsistenties die zichtbaar zijn door twee documenten samen te lezen.',
   input_schema: {

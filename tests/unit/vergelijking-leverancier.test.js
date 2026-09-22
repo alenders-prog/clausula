@@ -1,0 +1,267 @@
+/**
+ * tests/unit/vergelijking-leverancier.test.js
+ *
+ * De gelijkschakeling. Wat hier wordt bewaakt is niet dat de verzoeken op elkaar lijken,
+ * maar dat de dingen die gelijk MOETEN zijn dat ook zijn — systeemtekst, gebruikersinhoud
+ * en vooral het schema, want dat draagt hier een deel van de instructie. En dat de
+ * dingen die niet gelijk KUNNEN zijn bewust verschillen in plaats van per ongeluk.
+ */
+
+import { describe, it, expect } from 'vitest';
+import {
+  maakDeelnemer, bouwVerzoek, bouwClaudeVerzoek, bouwChatGptVerzoek,
+  leesAntwoord, leesClaudeAntwoord, leesChatGptAntwoord, bouwHeaders,
+  alsTekst, gebruikersTekst, UITDAGER_BUDGETFACTOR, LEVERANCIERS,
+} from '../../src/vergelijking/leverancier.js';
+
+/** Een tool in de vorm die api/analyseer.js gebruikt, mét een sprekende beschrijving. */
+const TOOL = {
+  name: 'registreer_bevindingen',
+  description: 'Registreert juridische, balans-, grammatica- en conflictbevindingen.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      issues: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            onderwerp: { type: 'string', description: 'Korte kop, geen hele zin.' },
+            ernst:     { type: 'string', enum: ['laag', 'midden', 'hoog'] },
+          },
+          required: ['onderwerp', 'ernst'],
+        },
+      },
+    },
+    required: ['issues'],
+  },
+};
+
+const OPDRACHT = {
+  systemPrompt: [{ type: 'text', text: 'Je bent een screener.' }, { type: 'text', text: 'Wees streng.' }],
+  userContent:  [{ text: 'Document A', cache: true }, { text: 'Vraag: beoordeel.' }],
+  tool: TOOL,
+  maxTokens: 8000,
+};
+
+describe('maakDeelnemer', () => {
+  it('vult model en diepte aan uit de standaard', () => {
+    const d = maakDeelnemer('claude');
+    expect(d.leverancier).toBe('claude');
+    expect(d.model).toBe('claude-sonnet-4-6');
+    expect(d.diepte).toBe('low');
+    expect(d.merk).toBe('Claude');
+  });
+
+  it('leest leverancier, model, diepte en variant uit de spec', () => {
+    const d = maakDeelnemer('chatgpt:gpt-5.6-luna@high#parallel');
+    expect(d).toMatchObject({
+      leverancier: 'chatgpt', model: 'gpt-5.6-luna', diepte: 'high', variant: 'parallel',
+    });
+  });
+
+  it('laat één model tegen zichzelf op een andere stand toe', () => {
+    const laag = maakDeelnemer('chatgpt:gpt-5.6-luna@low');
+    const hoog = maakDeelnemer('chatgpt:gpt-5.6-luna@high');
+    expect(laag.model).toBe(hoog.model);
+    expect(laag.kort).not.toBe(hoog.kort);
+  });
+
+  it('weigert een onbekende leverancier en noemt de geldige', () => {
+    expect(() => maakDeelnemer('gemini:pro')).toThrow(/Onbekende leverancier/);
+    expect(() => maakDeelnemer('gemini:pro')).toThrow(/claude/);
+    expect(() => maakDeelnemer('')).toThrow(/Lege deelnemer/);
+  });
+
+  it('wijst de uitdager naar het Europese endpoint', () => {
+    // Meten op het globale endpoint en draaien op het Europese is iets anders meten.
+    expect(maakDeelnemer('chatgpt').url).toContain('eu.api.openai.com');
+  });
+});
+
+describe('platslaan van blokken', () => {
+  it('voegt systeemblokken samen tot één tekst', () => {
+    expect(alsTekst(OPDRACHT.systemPrompt)).toBe('Je bent een screener.\n\nWees streng.');
+    expect(alsTekst('plat')).toBe('plat');
+  });
+
+  it('voegt gebruikersblokken samen, ook als ze een cache-markering dragen', () => {
+    expect(gebruikersTekst(OPDRACHT.userContent)).toBe('Document A\n\nVraag: beoordeel.');
+  });
+});
+
+describe('de gelijkschakeling — wat identiek moet zijn', () => {
+  const claude  = bouwVerzoek(maakDeelnemer('claude:claude-sonnet-4-6@low'), OPDRACHT);
+  const chatgpt = bouwVerzoek(maakDeelnemer('chatgpt:gpt-5.6-luna@low'), OPDRACHT);
+
+  it('geeft beide kanten letterlijk hetzelfde schema', () => {
+    // Dit is de kern. Hier iets aan bewerken is de opdracht wijzigen, en dan meet je je
+    // eigen vertaalwerk in plaats van twee modellen.
+    expect(chatgpt.tools[0].function.parameters).toBe(TOOL.input_schema);
+    expect(claude.tools[0].input_schema).toBe(TOOL.input_schema);
+  });
+
+  it('behoudt de beschrijvingen in het schema, want die dragen de instructie', () => {
+    const uitChatgpt = chatgpt.tools[0].function.parameters
+      .properties.issues.items.properties.onderwerp.description;
+    expect(uitChatgpt).toBe('Korte kop, geen hele zin.');
+  });
+
+  it('geeft beide kanten dezelfde systeemtekst en gebruikersinhoud', () => {
+    expect(claude.system[0].text).toBe(chatgpt.messages[0].content);
+    expect(claude.messages[0].content).toBe(chatgpt.messages[1].content);
+  });
+
+  it('dwingt aan beide kanten dezelfde functie af', () => {
+    expect(claude.tool_choice).toEqual({ type: 'tool', name: 'registreer_bevindingen' });
+    expect(chatgpt.tool_choice).toEqual({ type: 'function', function: { name: 'registreer_bevindingen' } });
+    expect(chatgpt.tools[0].function.name).toBe(claude.tools[0].name);
+  });
+
+  it('laat de prompt-cache aan beide kanten uit, net als in productie', () => {
+    expect(JSON.stringify(claude)).not.toContain('cache_control');
+  });
+});
+
+describe('de gelijkschakeling — wat bewust verschilt', () => {
+  const claude  = bouwVerzoek(maakDeelnemer('claude'), OPDRACHT);
+  const chatgpt = bouwVerzoek(maakDeelnemer('chatgpt:gpt-5.6-luna@high'), OPDRACHT);
+
+  it('stuurt temperature alleen naar Claude', () => {
+    // Redeneermodellen aan de andere kant accepteren alleen de standaardwaarde.
+    expect(claude.temperature).toBe(0.3);
+    expect(chatgpt).not.toHaveProperty('temperature');
+  });
+
+  it('geeft de uitdager een ruimer budget, want redeneertokens tellen daar mee', () => {
+    expect(claude.max_tokens).toBe(8000);
+    expect(chatgpt.max_completion_tokens).toBe(8000 * UITDAGER_BUDGETFACTOR);
+    expect(chatgpt).not.toHaveProperty('max_tokens');
+  });
+
+  it('geeft de diepte door als reasoning_effort', () => {
+    expect(chatgpt.reasoning_effort).toBe('high');
+  });
+
+  it('bouwt geen herpogingen in — die horen in het harnas, voor iedereen gelijk', () => {
+    for (const body of [claude, chatgpt]) {
+      expect(JSON.stringify(body)).not.toMatch(/retry|herpoging/i);
+    }
+  });
+});
+
+describe('het antwoord uitpakken — Claude', () => {
+  const ANTWOORD = {
+    stop_reason: 'tool_use',
+    content: [
+      { type: 'text', text: 'Ik ga de tool aanroepen.' },
+      { type: 'tool_use', name: 'registreer_bevindingen', input: { issues: [{ onderwerp: 'A' }] } },
+    ],
+    usage: {
+      input_tokens: 1200, cache_creation_input_tokens: 40,
+      cache_read_input_tokens: 300, output_tokens: 700,
+    },
+  };
+
+  it('haalt het ingevulde schema uit het tool_use-blok', () => {
+    expect(leesClaudeAntwoord(ANTWOORD).uitvoer).toEqual({ issues: [{ onderwerp: 'A' }] });
+  });
+
+  it('neemt de vier tellingen over', () => {
+    expect(leesClaudeAntwoord(ANTWOORD)).toMatchObject({
+      vers: 1200, cacheSchrijf: 40, cacheLees: 300, uit: 700, afgekapt: false,
+    });
+  });
+
+  it('herkent een afgekapt antwoord', () => {
+    expect(leesClaudeAntwoord({ ...ANTWOORD, stop_reason: 'max_tokens' }).afgekapt).toBe(true);
+  });
+
+  it('geeft null als er geen tool-aanroep in zit', () => {
+    expect(leesClaudeAntwoord({ content: [{ type: 'text', text: 'nee' }] }).uitvoer).toBeNull();
+    expect(leesClaudeAntwoord({}).uitvoer).toBeNull();
+  });
+});
+
+describe('het antwoord uitpakken — de uitdager', () => {
+  const ANTWOORD = {
+    choices: [{
+      finish_reason: 'tool_calls',
+      message: {
+        tool_calls: [{
+          function: { name: 'registreer_bevindingen', arguments: '{"issues":[{"onderwerp":"A"}]}' },
+        }],
+      },
+    }],
+    usage: { prompt_tokens: 1500, completion_tokens: 700, prompt_tokens_details: { cached_tokens: 300 } },
+  };
+
+  it('ontleedt de argumenten, die als string binnenkomen', () => {
+    expect(leesChatGptAntwoord(ANTWOORD).uitvoer).toEqual({ issues: [{ onderwerp: 'A' }] });
+  });
+
+  it('trekt de cache van prompt_tokens af, anders telt hij dubbel', () => {
+    // prompt_tokens is daar het TOTAAL; input_tokens bij Anthropic juist het verse deel.
+    // Wie dat verwisselt rekent de cache twee keer en komt te hoog uit.
+    expect(leesChatGptAntwoord(ANTWOORD)).toMatchObject({
+      vers: 1200, cacheLees: 300, cacheSchrijf: 0, uit: 700,
+    });
+  });
+
+  it('komt niet onder nul als de telling ontbreekt', () => {
+    expect(leesChatGptAntwoord({ usage: { prompt_tokens_details: { cached_tokens: 50 } } }).vers).toBe(0);
+  });
+
+  it('herkent een afgekapt antwoord', () => {
+    const afgekapt = { ...ANTWOORD, choices: [{ ...ANTWOORD.choices[0], finish_reason: 'length' }] };
+    expect(leesChatGptAntwoord(afgekapt).afgekapt).toBe(true);
+  });
+
+  it('geeft null bij kapotte JSON in plaats van te struikelen', () => {
+    const kapot = {
+      choices: [{ message: { tool_calls: [{ function: { arguments: '{"issues":[' } }] } }],
+    };
+    expect(leesChatGptAntwoord(kapot).uitvoer).toBeNull();
+  });
+
+  it('geeft null als er geen functie-aanroep in zit', () => {
+    expect(leesChatGptAntwoord({ choices: [{ message: { content: 'gewoon tekst' } }] }).uitvoer).toBeNull();
+    expect(leesChatGptAntwoord({}).uitvoer).toBeNull();
+  });
+});
+
+describe('leesAntwoord kiest de juiste uitpakker', () => {
+  it('per leverancier', () => {
+    const claudeJson = { content: [{ type: 'tool_use', input: { a: 1 } }], usage: {} };
+    expect(leesAntwoord(maakDeelnemer('claude'), claudeJson).uitvoer).toEqual({ a: 1 });
+
+    const gptJson = {
+      choices: [{ message: { tool_calls: [{ function: { arguments: '{"a":1}' } }] } }], usage: {},
+    };
+    expect(leesAntwoord(maakDeelnemer('chatgpt'), gptJson).uitvoer).toEqual({ a: 1 });
+  });
+});
+
+describe('bouwHeaders', () => {
+  it('zet de juiste kop per leverancier', () => {
+    const env = { ANTHROPIC_API_KEY: 'a', OPENAI_API_KEY: 'b' };
+    expect(bouwHeaders(maakDeelnemer('claude'), env)).toMatchObject({
+      'x-api-key': 'a', 'anthropic-version': '2023-06-01',
+    });
+    expect(bouwHeaders(maakDeelnemer('chatgpt'), env)).toMatchObject({ Authorization: 'Bearer b' });
+  });
+
+  it('meldt een ontbrekende sleutel bij naam in plaats van een 401 te halen', () => {
+    expect(() => bouwHeaders(maakDeelnemer('chatgpt'), {})).toThrow(/OPENAI_API_KEY/);
+  });
+});
+
+describe('bronwachter', () => {
+  it('geeft elke leverancier een sleutelnaam, een standaardmodel en een url', () => {
+    for (const [naam, l] of Object.entries(LEVERANCIERS)) {
+      expect(l.sleutel, naam).toMatch(/_API_KEY$/);
+      expect(l.standaardModel, naam).toBeTruthy();
+      expect(l.url, naam).toMatch(/^https:\/\//);
+    }
+  });
+});
