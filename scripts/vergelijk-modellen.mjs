@@ -45,6 +45,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { leesEnv } from '../tests/helpers/test-token.mjs';
 import { anonimiseerTekst } from '../src/naam-anonimiseer.js';
 import { controleerUitvoer } from '../src/analyse/uitvoercontrole.js';
+import { aantalRunsGemeld, onbruikbareGebreken } from '../src/analyse/bekende-fouten.js';
 import {
   maakDeelnemer, bouwVerzoek, leesAntwoord, bouwHeaders, accepteertTemperature,
 } from '../src/vergelijking/leverancier.js';
@@ -233,17 +234,23 @@ for (const d of DEELNEMERS) {
 // Dit is de maat die de doorslag geeft, en niet het aantal bevindingen. Een deelnemer
 // die er minder vindt kan strenger zijn of slechter; alleen dit zegt welke van de twee.
 // De fixture noemt de fouten die er aantoonbaar in zitten.
-if (Array.isArray(fixture.bekende_fouten) && fixture.bekende_fouten.length) {
-  const tekstVan = (i) =>
-    `${i.onderwerp ?? ''} ${i.bevinding ?? ''} ${i.passage ?? ''} ${i.aanbeveling ?? ''}`.toLowerCase();
+//
+// Een gebrek zonder zoektermen matcht nergens op: het staat er, het gaat nooit af, en
+// aan de uitslag is dat niet te zien. Dus eerst melden.
+const stuk = onbruikbareGebreken(fixture.bekende_fouten);
+if (stuk.length) {
+  console.warn(`\nLET OP: ${stuk.length} gebrek(en) in de fixture hebben geen zoekterm en`);
+  console.warn(`       kunnen dus nooit gevonden worden: ${stuk.join(', ')}`);
+}
 
+if (Array.isArray(fixture.bekende_fouten) && fixture.bekende_fouten.length) {
   console.log(`\n── bekende fouten, gevonden in hoeveel van de geslaagde runs ──`);
   console.log(`  ${'fout'.padEnd(24)} ${DEELNEMERS.map((d) => d.kort.padStart(18)).join('')}`);
   for (const f of fixture.bekende_fouten) {
     const cel = DEELNEMERS.map((d) => {
       const m = geslaagd.filter((x) => x.spec === d.spec);
       if (m.length === 0) return '—'.padStart(18);
-      const n = m.filter((x) => x.issues.some((i) => f.zoek.some((z) => tekstVan(i).includes(z.toLowerCase())))).length;
+      const n = aantalRunsGemeld(f, m.map((x) => x.issues));
       return `${n}/${m.length}`.padStart(18);
     }).join('');
     console.log(`  ${f.sleutel.padEnd(24)}${cel}`);

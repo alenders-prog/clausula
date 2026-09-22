@@ -41,6 +41,7 @@
 import { readFileSync } from 'node:fs';
 import { leesEnv, haalToken } from '../tests/helpers/test-token.mjs';
 import { anonimiseerTekst } from '../src/naam-anonimiseer.js';
+import { isGemeld } from '../src/analyse/bekende-fouten.js';
 import { controleerUitvoer } from '../src/analyse/uitvoercontrole.js';
 
 leesEnv();
@@ -150,10 +151,9 @@ for (let r = 1; r <= RUNS; r++) {
   for (const i of alle) for (const d of (i.dimensies ?? ['?'])) dims[d] = (dims[d] ?? 0) + 1;
   dimensieTellingen.push(dims);
 
-  const tekstVan = (i) => `${i.onderwerp ?? ''} ${i.bevinding ?? ''} ${i.passage ?? ''} ${i.aanbeveling ?? ''}`.toLowerCase();
   const gevonden = [];
   for (const f of fixture.bekende_fouten) {
-    const raak = alle.some((i) => f.zoek.some((z) => tekstVan(i).includes(z.toLowerCase())));
+    const raak = isGemeld(f, alle);
     if (raak) { gevondenPerFout.set(f.sleutel, gevondenPerFout.get(f.sleutel) + 1); gevonden.push(f.sleutel); }
   }
   console.log(`${alle.length} bevindingen, ${Math.round((Date.now() - t0) / 1000)}s — gevonden: ${gevonden.length}/${fixture.bekende_fouten.length}`);
