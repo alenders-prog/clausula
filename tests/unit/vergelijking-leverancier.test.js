@@ -77,9 +77,27 @@ describe('maakDeelnemer', () => {
     expect(() => maakDeelnemer('')).toThrow(/Lege deelnemer/);
   });
 
-  it('wijst de uitdager naar het Europese endpoint', () => {
-    // Meten op het globale endpoint en draaien op het Europese is iets anders meten.
+  it('wijst de uitdager standaard naar het Europese endpoint', () => {
+    // De EU is waar het naartoe moet, dus dat is de standaard en niet de uitzondering.
     expect(maakDeelnemer('chatgpt').url).toContain('eu.api.openai.com');
+    expect(maakDeelnemer('chatgpt').regio).toBe('eu');
+  });
+
+  it('kan bewust naar het globale endpoint, want het EU-project bestaat nog niet', () => {
+    // Een gewone sleutel krijgt op het EU-endpoint een 401: "This endpoint is only
+    // accessible by projects with geography restrictions enabled." Gemeten 22 sep 2026.
+    const g = maakDeelnemer('chatgpt', { regio: 'globaal' });
+    expect(g.url).toBe('https://api.openai.com/v1/chat/completions');
+    expect(g.regio).toBe('globaal');
+  });
+
+  it('weigert een regio die niet bestaat', () => {
+    expect(() => maakDeelnemer('chatgpt', { regio: 'maan' })).toThrow(/Onbekende regio/);
+  });
+
+  it('laat Claude onveranderd, want daar bestaat geen EU-verwerking', () => {
+    expect(maakDeelnemer('claude', { regio: 'globaal' }).url)
+      .toBe(maakDeelnemer('claude', { regio: 'eu' }).url);
   });
 });
 
@@ -318,7 +336,9 @@ describe('bronwachter', () => {
     for (const [naam, l] of Object.entries(LEVERANCIERS)) {
       expect(l.sleutel, naam).toMatch(/_API_KEY$/);
       expect(l.standaardModel, naam).toBeTruthy();
-      expect(l.url, naam).toMatch(/^https:\/\//);
+      for (const regio of ['eu', 'globaal']) {
+        expect(l.urls[regio], `${naam}/${regio}`).toMatch(/^https:\/\//);
+      }
     }
   });
 });

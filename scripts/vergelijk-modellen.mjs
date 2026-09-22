@@ -67,8 +67,9 @@ const FIXTURE = arg('fixture', 'tests/golden/meting/twee-documenten.json');
 const UIT     = arg('uit', 'vergelijking');
 const SPECS   = String(arg('deelnemers', 'claude,chatgpt')).split(',').map((s) => s.trim()).filter(Boolean);
 const BLIND   = process.argv.includes('--blind');
+const REGIO   = arg('regio', 'eu');
 
-const DEELNEMERS = SPECS.map(maakDeelnemer);
+const DEELNEMERS = SPECS.map((s) => maakDeelnemer(s, { regio: REGIO }));
 const MERKEN = 'ABCDEFGH'.split('');
 
 // ── de opdracht, één keer opgebouwd ─────────────────────────────────────────
@@ -115,7 +116,17 @@ const OPDRACHT = {
 
 console.log(`fixture     : ${FIXTURE} (${documenten.length} documenten, ${gezienTekst.length} tekens)`);
 console.log(`deelnemers  : ${DEELNEMERS.map((d) => d.spec).join(', ')}`);
-console.log(`runs        : ${RUNS}\n`);
+console.log(`runs        : ${RUNS}`);
+console.log(`regio       : ${REGIO}\n`);
+
+// De regio bepaalt wáár het model draait, niet wat het schrijft. Tokens, kosten en
+// bevindingen zijn dus overdraagbaar naar de EU; de TIJD niet. Dat voorbehoud hoort
+// boven de uitslag te staan en niet eronder, want over een week is het een kaal cijfer.
+if (REGIO !== 'eu' && DEELNEMERS.some((d) => d.leverancier === 'chatgpt')) {
+  console.warn('LET OP: de uitdager draait NIET op het Europese endpoint. Dat vereist een project');
+  console.warn('       met geografiebeperking; een gewone sleutel krijgt daar een 401.');
+  console.warn('       Kosten en bevindingen zijn overdraagbaar, de TIJDEN niet.\n');
+}
 
 for (const d of DEELNEMERS) {
   if (!prijsBekend(d.model)) console.warn(`LET OP: geen prijs bekend voor ${d.model} — kosten blijven leeg.`);
@@ -172,7 +183,7 @@ for (let r = 1; r <= RUNS; r++) {
         ms: a.ms, vers: a.vers, cacheSchrijf: a.cacheSchrijf, cacheLees: a.cacheLees, uit: a.uit,
         usd, verdeling: verdeling(d.model, a),
         aantalIssues: issues.length, afgekapt: a.afgekapt, defecten: telling, fout: null,
-        stopReden: a.stopReden, heeftToolAanroep: a.heeftToolAanroep, leeg,
+        stopReden: a.stopReden, heeftToolAanroep: a.heeftToolAanroep, leeg, regio: d.regio,
         // De bevindingen zelf gaan mee. Ze stonden hier eerst niet in — alleen de
         // tellingen — en bij de eerste echte uitslag moest ik ze uit het leesbestand
         // terugparsen om te kunnen nagaan wélke bekende fouten waren gevonden. Dat is

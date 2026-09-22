@@ -98,17 +98,33 @@ export const LEVERANCIERS = Object.freeze({
     merk: 'Claude',
     sleutel: 'ANTHROPIC_API_KEY',
     standaardModel: 'claude-sonnet-4-6',
-    url: 'https://api.anthropic.com/v1/messages',
+    // Anthropic kent geen EU-verwerking: `inference_geo` heeft alleen "us" en "global".
+    // Beide sleutels wijzen hier dus naar hetzelfde adres.
+    urls: { eu: 'https://api.anthropic.com/v1/messages', globaal: 'https://api.anthropic.com/v1/messages' },
   },
   chatgpt: {
     merk: 'ChatGPT',
     sleutel: 'OPENAI_API_KEY',
     standaardModel: 'gpt-5.6-terra',
-    // De EU-variant. Europese verwerking geldt voor /v1/chat/completions en vereist
-    // goedkeuring voor aangepaste abuse-monitoring of zero data retention — zie
-    // docs/modelvergelijking.md. Meten op het globale endpoint en draaien op het
-    // Europese zou betekenen dat je iets anders hebt gemeten dan wat er komt.
-    url: 'https://eu.api.openai.com/v1/chat/completions',
+    // Twee endpoints, en de keuze is er een.
+    //
+    // `eu` is waar het naartoe moet: Europese verwerking geldt voor
+    // /v1/chat/completions en vereist een project met geografiebeperking, plus
+    // goedkeuring voor aangepaste abuse-monitoring of zero data retention. Zie
+    // docs/modelvergelijking.md.
+    //
+    // `globaal` bestaat omdat dat project er nog niet is. Een gewone sleutel krijgt op
+    // het EU-endpoint een 401: "This endpoint is only accessible by projects with
+    // geography restrictions enabled." Gemeten op 22 september 2026.
+    //
+    // Wat je dan nog steeds eerlijk meet: het model is hetzelfde, dus de tokens, de
+    // kosten en de bevindingen zijn overdraagbaar. Wat NIET overdraagbaar is, is de
+    // tijd — die hangt aan de regio. Het harnas zegt dat er hardop bij, want anders is
+    // het over een week een cijfer zonder voorbehoud.
+    urls: {
+      eu:      'https://eu.api.openai.com/v1/chat/completions',
+      globaal: 'https://api.openai.com/v1/chat/completions',
+    },
   },
 });
 
@@ -119,7 +135,7 @@ export const LEVERANCIERS = Object.freeze({
  * tegen zichzelf op een andere stand — en dat laatste is vaak de vraag die er werkelijk
  * toe doet.
  */
-export function maakDeelnemer(spec) {
+export function maakDeelnemer(spec, { regio = 'eu' } = {}) {
   const tekst = String(spec ?? '').trim();
   if (!tekst) throw new Error('Lege deelnemer.');
 
@@ -137,12 +153,15 @@ export function maakDeelnemer(spec) {
     );
   }
 
+  if (!l.urls[regio]) throw new Error(`Onbekende regio "${regio}". Kies uit ${Object.keys(l.urls).join(', ')}.`);
+
   return {
     spec: tekst,
     leverancier: naam,
     merk: l.merk,
     sleutel: l.sleutel,
-    url: l.url,
+    regio,
+    url: l.urls[regio],
     model: model || l.standaardModel,
     diepte,
     variant,
