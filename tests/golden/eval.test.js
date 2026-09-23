@@ -13,6 +13,7 @@ import { leesEnv, haalToken } from '../helpers/test-token.mjs';
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'fs';
 import { vergelijk, verslag } from '../helpers/eval-baseline.mjs';
 import { anonimiseerTekst } from '../../src/naam-anonimiseer.js';
+import { DEV_ADRES } from '../../src/dev-poort.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -64,8 +65,8 @@ describe.skipIf(!heeftApiKey || !expliciet)('Semantische eval (echte API)', () =
 
   for (const fixture of fixtures) {
     it(`${fixture.naam}: verwachte issues gevonden`, async () => {
-      // Aanroep van de lokale analyse-endpoint (vercel dev moet draaien op port 3000)
-      const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3000';
+      // Aanroep van de lokale analyse-endpoint; start hem met `npm run lokaal`.
+      const baseUrl = process.env.TEST_BASE_URL || DEV_ADRES;
 
       // Genummerde placeholders per type, zoals _maakPiiTracker in index.html.
       const gezien = new Map(); const teller = {};

@@ -35,6 +35,7 @@
 import { readFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import { mockSupabaseSession, mockSupabaseRest } from '../tests/e2e/helpers/mock-supabase.js';
+import { DEV_ADRES } from '../src/dev-poort.js';
 
 const arg = (naam, standaard) =>
   process.argv.find((a) => a.startsWith(`--${naam}=`))?.split('=')[1]
@@ -42,7 +43,7 @@ const arg = (naam, standaard) =>
 
 const BESTAND = arg('bestand', 'tests/golden/vergelijking-openai.json');
 const RUN     = parseInt(arg('run', '1'), 10) || 1;
-const ADRES   = arg('adres', 'http://localhost:3000');
+const ADRES   = arg('adres', DEV_ADRES);
 
 const data = JSON.parse(readFileSync(BESTAND, 'utf8'));
 const metingen = data.metingen.filter((m) => !m.fout && m.run === RUN);

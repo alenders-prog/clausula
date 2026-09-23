@@ -12,10 +12,10 @@ Guidance voor Claude Code bij dit project.
 ## Lokaal draaien
 
 ```bash
-vercel dev
+npm run lokaal
 ```
 
-Open daarna: http://localhost:3000
+Open daarna: http://localhost:3200
 
 `vercel dev` emuleert de serverless omgeving lokaal en leest de `.env` voor de API-sleutels.
 
@@ -41,20 +41,30 @@ Open daarna: http://localhost:3000
      haalt de eval bij elke run zelf een verse Supabase-token op. Zonder deze twee
      valt hij terug op `TEST_JWT_TOKEN`, en die verloopt binnen een uur — met een
      401 die eruitziet als een promptregressie. Zie `tests/helpers/test-token.mjs`.
-3. `vercel dev` starten
+3. `npm run lokaal` starten
 
 Het `.env` bestand staat in `.gitignore` — nooit committen.
 
-### Poort 3000 kan van een ánder project zijn
+### Clausula heeft een eigen poort: 3200
 
-De MfN-trainer draait op dezelfde poort. Staat `vercel dev` daar aan, dan krijg je op
-`localhost:3000` gewoon die app — met een 200 en zonder enige foutmelding. Op
-22 september 2026 kostte dat twee mislukte draaien van `scripts/toon-vergelijking.mjs`,
-die netjes meldde dat `#dossierLijst` niet verscheen. Dat klopte: dat element bestaat
-daar niet.
+Dit stond hier tot 22 september 2026 als waarschuwing dat poort 3000 van de MfN-trainer
+kon zijn. Dat was het ook: staat die aan, dan krijg je op `localhost:3000` gewoon die
+app — met een 200 en zonder enige foutmelding. Het kostte twee mislukte draaien van
+`scripts/toon-vergelijking.mjs`, die keurig meldde dat `#dossierLijst` niet verscheen.
+Dat klopte; dat element bestaat daar niet.
 
-Controleer bij zo'n raadsel eerst de paginatitel (`await page.title()`), of draai tegen
-`https://app.clausula.nl`.
+Een waarschuwing helpt daar niet tegen, want die moet je elke keer onthouden. Clausula
+draait daarom op **3200**, vastgelegd in `src/dev-poort.js` en gebruikt door de eval en
+het toonscript. `package.json` kan dat bestand niet importeren, dus daar staat het getal
+opnieuw; `tests/unit/dev-poort.test.js` bewaakt dat de twee gelijk blijven.
+
+Loopt er tóch iets vreemds, controleer dan de paginatitel (`await page.title()`) voordat
+je in de applicatiecode zoekt.
+
+> **Het script heet `lokaal` en niet `dev`.** `vercel dev` weigert te starten zodra er
+> een script met die naam in `package.json` staat: *"`vercel dev` must not recursively
+> invoke itself."* Hij ziet zijn eigen ontwikkelopdracht en denkt dat hij zichzelf
+> aanroept. Hernoemen was genoeg.
 
 ### `vercel dev` valt om bij het antwoord dat een bestand draagt
 
@@ -78,7 +88,7 @@ groottegebonden — het gebeurde bij 1,44 MB én bij 130 KB — en niet document
 waardoor het lijkt te verspringen naar "het volgende document".
 
 Alleen lokaal: productie heeft die proxy er niet tussen. Ga bij zo'n hang dus **eerst
-kijken of de dev-server nog leeft** (`curl localhost:3000/login.html`) voordat je in de
+kijken of de dev-server nog leeft** (`curl localhost:3200/login.html`) voordat je in de
 applicatiecode zoekt. Start hem met een logbestand, anders is de stacktrace weg.
 
 > **Wat hiervan wél van ons was.** De app wachtte er oneindig op. Geen enkele fetch had

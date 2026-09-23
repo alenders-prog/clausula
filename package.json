@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lokaal": "vercel dev --listen 3200",
     "test": "vitest run && npm run test:e2e",
     "test:unit": "vitest run",
     "test:watch": "vitest",
@@ -19,7 +20,8 @@
     "check:data": "node scripts/datacontroles.mjs",
     "opschonen": "node scripts/opschonen.mjs",
     "check:csp": "node scripts/csp-check.mjs",
-    "meet:signalen": "node scripts/meet-signalen.mjs"
+    "meet:signalen": "node scripts/meet-signalen.mjs",
+    "stand": "node scripts/sessiestand.mjs --tekst"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

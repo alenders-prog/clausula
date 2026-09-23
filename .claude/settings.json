@@ -41,6 +41,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/sessiestand.mjs"
+          }
+        ]
+      }
     ]
   }
 }
