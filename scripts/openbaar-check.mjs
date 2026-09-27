@@ -14,6 +14,10 @@
  *
  * Exitcode 1 bij bevindingen; de laatste regel begint met UITKOMST:.
  * Een beschermde preview-URL geeft overal 401 — draai hem dan tegen productie.
+ *
+ * Rustig aan: op 27 september 2026 zette Vercel na ~700 snelle opvragingen het eigen
+ * IP-adres achter een "Security Checkpoint" (403 op alles, ook voor de browser). Een
+ * 403 meldt dit script daarom apart, en bij een meerderheid 403 stopt hij de conclusie.
  */
 
 import fs from 'node:fs';
@@ -25,7 +29,7 @@ import { ontleedVercelignore, isGepubliceerd, volgVerwijzingen } from '../src/de
 const WORTEL = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BASIS = (process.argv[2] || 'https://app.clausula.nl').replace(/\/$/, '');
 const TIJDSLIMIET_MS = 15_000;
-const GELIJKTIJDIG = 12;
+const GELIJKTIJDIG = 4;
 
 const regels = ontleedVercelignore(fs.readFileSync(path.join(WORTEL, '.vercelignore'), 'utf8'));
 const bestanden = execFileSync('git', ['ls-files'], { cwd: WORTEL, encoding: 'utf8' })
@@ -60,6 +64,12 @@ const openbaar = bestanden.filter(f => uitkomst.get(f) === 200);
 const lek = openbaar.filter(f => !isGepubliceerd(f, regels));
 const breuk = [...nodig].filter(f => bestanden.includes(f) && uitkomst.get(f) !== 200);
 const onbeantwoord = bestanden.filter(f => typeof uitkomst.get(f) === 'string');
+const geweigerd = bestanden.filter(f => uitkomst.get(f) === 403);
+if (geweigerd.length > bestanden.length / 2) {
+  console.log(`${BASIS}: ${geweigerd.length} van ${bestanden.length} geven 403 — vermoedelijk de Vercel Security Checkpoint voor dit IP-adres. Geen conclusie; probeer het later.`);
+  console.log('UITKOMST: geen meting — geweigerd door Vercel');
+  process.exit(1);
+}
 
 console.log(`${BASIS}: ${openbaar.length} van ${bestanden.length} bestanden buiten api/ geven 200.`);
 for (const f of lek) console.log(`  LEK    ${f}`);
