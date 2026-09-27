@@ -1,0 +1,46 @@
+# .vercelignore — WHITELIST. Alleen wat hieronder met ! staat, gaat naar Vercel.
+#
+# Waarom (gevonden 27 september 2026): er is geen build-stap, dus Vercel serveert de
+# hele repository als statische site. CLAUDE.md, STAND.md, .claude/, docs/ (met het
+# incidentrapport en de AVG-stukken), supabase/ (alle RLS-policies), scripts/, tests/
+# en legal_chunks_seed.sql gaven op app.clausula.nl allemaal 200, zonder inlog.
+#
+# Een whitelist en geen blacklist: een nieuw bestand wordt zo niet vanzelf openbaar.
+# De keerzijde is dat een vergeten bestand de app breekt — een pagina die een script
+# mist, of een functie die een import uit src/ niet vindt (pas bij de eerste aanroep).
+# tests/unit/vercelignore.test.js loopt daarom alle pagina's en api/-functies na en
+# gaat rood zodra ze iets laden dat hier niet op staat. Zie ook CLAUDE.md,
+# "Vercel serveert de hele repository".
+#
+# Schrijfwijze: /* sluit alles uit, !/x haalt x terug. Wil je één bestand uit een map,
+# haal dan eerst de map terug en sluit de inhoud weer uit (!/map, /map/*, !/map/bestand)
+# — een bestand onder een uitgesloten map kan anders niet terugkomen.
+
+/*
+
+# Pagina's die een gebruiker opent
+!/index.html
+!/login.html
+!/registreer.html
+!/wachtwoord-vergeten.html
+!/wachtwoord-reset.html
+!/assistent-mobiel.html
+
+# Wat die pagina's laden
+!/config.js
+!/config.local.js
+!/favicon.svg
+!/assistent-core.js
+!/docx-preview.min.js
+
+# Browsermodules (ESM-brug) én wat de functies in api/ importeren
+!/src
+
+# Serverless functies — Vercel serveert deze niet als bestand
+!/api
+
+# Build- en runtimeconfiguratie
+!/package.json
+!/package-lock.json
+!/vercel.json
+!/.vercelignore

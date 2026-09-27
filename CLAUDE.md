@@ -148,6 +148,31 @@ Claude wordt aangeroepen via `askClaude()` in `api/analyseer.js` (tool-use, gest
 > niet — met als gevolg dat elf commits stil op GitHub bleven staan terwijl de
 > site gewoon de oude versie bleef serveren.
 
+## Vercel serveert de hele repository — tenzij `.vercelignore` het tegenhoudt
+
+Er is geen build-stap, dus alles wat naar Vercel gaat is ook als bestand op te vragen.
+Tot 27 september 2026 was er geen `.vercelignore`: van de 331 bestanden in git buiten
+`api/` gaven er 323 status 200 op app.clausula.nl, zonder inlog. 239 daarvan had de app
+niet nodig — `CLAUDE.md`, `.claude/`, `docs/` met het incidentrapport en de AVG-stukken,
+`supabase/` met alle RLS-policies, `scripts/`, `tests/` en de seed-SQL. Geen sleutels:
+`.env` stond niet in git.
+
+`.vercelignore` is daarom een **whitelist**: `/*` sluit alles uit, `!/pad` haalt terug.
+Een nieuw bestand is dus standaard níet openbaar. De keerzijde: een pagina of functie
+die iets nieuws laadt buiten de lijst, breekt pas bij gebruik — een functie zelfs pas
+bij de eerste aanroep. Twee poorten:
+
+- `tests/unit/vercelignore.test.js` loopt alle pagina's op de lijst en alle functies in
+  `api/` na (met hun imports) en gaat rood als iets wat ze laden is uitgesloten — en ook
+  als `docs/`, `supabase/`, `scripts/`, `tests/` of `.claude/` toch meegaat.
+- `node scripts/openbaar-check.mjs [url]` vraagt na een deploy élk bestand uit git op en
+  meldt `LEK` (200 buiten de lijst) en `BREUK` (nodig, maar geen 200). Draai hem na elke
+  wijziging aan `.vercelignore` tegen productie; een beschermde preview geeft overal 401.
+
+Nieuwe pagina? Zet hem op de lijst. Een pagina die je zelf via de URL opent maar die de
+app niet nodig heeft (mockups, `docs/clausula-beheer.html`), hoort er niet op: open hem
+lokaal.
+
 ## Git
 
 Nooit automatisch pushen. Alleen pushen als de gebruiker dat expliciet vraagt.
