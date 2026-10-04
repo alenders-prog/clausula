@@ -108,7 +108,10 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${access_token}`,
         'Content-Type':  'application/json',
       },
-      body: JSON.stringify({ assetID, targetFormat: 'docx' }),
+      // ocrLang: zonder deze regel leest Adobe een scan als Engels (SDK-standaard
+      // en-US). Gezien op 4 oktober 2026: "bet" voor het, "warden" voor worden,
+      // "alien" voor alle, en Niqué werd Nique — en die tekst is wat Claude leest.
+      body: JSON.stringify({ assetID, targetFormat: 'docx', ocrLang: 'nl-NL' }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!jobRes.ok) {
