@@ -22,6 +22,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -99,7 +100,26 @@ function standblok() {
   return uit;
 }
 
+/**
+ * De nachtelijke backup naar Dropbox (sinds 19 nov 2026, docs/backup.md). Een geplande taak
+ * die stil stopt, merkt niemand tot de backup nodig is; daarom staat een mislukte of te
+ * oude backup hier. Alles goed: geen regel. Faalt nooit hard (zie boven).
+ */
+async function backupregel() {
+  try {
+    const { beoordeelBackup } = await import('../src/backup/backup.js');
+    const pad = path.join(process.env.CLAUSULA_BACKUP ?? path.join(os.homedir(), 'Dropbox', 'Clausula-backup'), 'laatste-backup.json');
+    let verslag;
+    try { verslag = JSON.parse(fs.readFileSync(pad, 'utf8')); } catch (e) { verslag = e.code === 'ENOENT' ? undefined : {}; }
+    return beoordeelBackup(verslag, new Date());
+  } catch (e) {
+    return `Backup: controle mislukt (${e.message})`;
+  }
+}
+const backup = await backupregel();
+
 const regels = [...standblok()];
+if (backup) regels.push(backup, '');
 
 const commits = git('log', '-5', '--format=%h %ad %s', '--date=short');
 if (commits) {
@@ -138,6 +158,7 @@ const melding = [
   'Projectstand',
   // Bovenaan, want dit is het antwoord op "waar waren we gebleven".
   ...stand.filter(Boolean).map((r) => '  ' + r),
+  ...(backup ? ['  ' + backup] : []),
   laatste ? '  Laatst: ' + laatste : '  Geen git-geschiedenis gevonden',
   `  Werkboom: ${aantal === 0 ? 'schoon' : aantal + ' gewijzigd'} · ongepusht: ${ongepusht === '' ? 'onbekend' : ongepusht}`,
   '  Volledig: npm run stand',

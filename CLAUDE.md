@@ -8,6 +8,7 @@ Guidance voor Claude Code bij dit project.
 - **Backend**: Vercel serverless functies in `/api/` (Node.js, ES modules).
 - **Database**: Supabase (tabellen: `screeningen`, `situatie_kenmerken`, `document_templates`, `legal_chunks`).
 - **AI**: Claude via Anthropic API (`claude-sonnet-4-6`), tool-use voor gestructureerde JSON-output.
+- **Projectmap**: `C:\Users\alexx\dev\clausula` — buiten Dropbox sinds 19 nov 2026. De oude map is archief (hernoemd naar `Dropbox\Clausula-ARCHIEF-verhuisd-2026-11`), niet meer in werken. Backup: nachtelijk naar `Dropbox\Clausula-backup` (git-bundle, `.env`-bestanden, geheugen); zie `docs/backup.md`.
 
 ## Lokaal draaien
 

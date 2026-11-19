@@ -12,6 +12,8 @@
   nog gecommit, dan meldt de hook dat dit bestand verouderd is.
 -->
 
+19 nov: projectmap nu `dev\clausula` (buiten Dropbox); oude map = archief (hernoemd). Backup → `Dropbox\Clausula-backup`.
+
 Leveranciersvergelijking af — docs/modelvergelijking.md. OpenAI is 20x goedkoper
 en gelijk op taalfouten, maar 11% tegen 72% op inhoud (volledigheid, balans,
 narekenen). Geen vervanger, sonnet-5 evenmin. Géén promptgat: een expliciete

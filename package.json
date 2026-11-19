@@ -21,7 +21,8 @@
     "opschonen": "node scripts/opschonen.mjs",
     "check:csp": "node scripts/csp-check.mjs",
     "meet:signalen": "node scripts/meet-signalen.mjs",
-    "stand": "node scripts/sessiestand.mjs --tekst"
+    "stand": "node scripts/sessiestand.mjs --tekst",
+    "backup": "node scripts/backup-naar-dropbox.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

@@ -3,8 +3,9 @@
 -- Stap 1: legal_sources aanmaken (bronrecord per wet)
 -- Stap 2: legal_chunks invoegen met source_id + chunk_index
 --
--- Uitvoeren in de Supabase SQL-editor van het Documentscreening-project
--- (zanxprrymagsuwxddiln), NIET de Scheidingskennisbank.
+-- Uitvoeren in de Supabase SQL-editor van het Clausula-project
+-- (ref zanxprrymagsuwxddiln; heet in het dashboard "Scheidingskennisbank",
+-- vroeger "Documentscreening" — het is één en hetzelfde project).
 --
 -- Versie: 2026-06 — uitgebreid met IB 2001, Participatiewet,
 --   art. 1:159a, 1:160, 1:397, 1:401, 1:402, 1:408, 1:253n,
